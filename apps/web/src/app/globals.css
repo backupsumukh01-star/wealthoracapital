@@ -1,0 +1,703 @@
+@import 'tailwindcss';
+@import '../styles/tokens.css';
+@import '../styles/typography.css';
+
+/* Dark is the default theme, so `:root` already holds the dark values and the
+   `dark` class is a no-op. The `light` class is the override. */
+@custom-variant light (&:where(.light, .light *));
+
+/* ==========================================================================
+   Theme layer — maps the design tokens onto Tailwind's utility namespaces.
+   `inline` keeps the var() reference so a runtime theme swap works.
+   ========================================================================== */
+@theme inline {
+  /* Surfaces */
+  --color-base: var(--surface-base);
+  --color-raised: var(--surface-raised);
+  --color-overlay: var(--surface-overlay);
+  --color-inset: var(--surface-inset);
+  --color-hover: var(--surface-hover);
+
+  /* Borders */
+  --color-line: var(--border-subtle);
+  --color-line-default: var(--border-default);
+  --color-line-strong: var(--border-strong);
+
+  /* Foreground */
+  --color-fg: var(--text-primary);
+  --color-fg-muted: var(--text-secondary);
+  --color-fg-subtle: var(--text-tertiary);
+  --color-fg-disabled: var(--text-disabled);
+  --color-fg-inverse: var(--text-inverse);
+
+  /* Accent */
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-50: var(--accent-50);
+  --color-accent-100: var(--accent-100);
+  --color-accent-200: var(--accent-200);
+  --color-accent-300: var(--accent-300);
+  --color-accent-400: var(--accent-400);
+  --color-accent-500: var(--accent-500);
+  --color-accent-600: var(--accent-600);
+  --color-accent-700: var(--accent-700);
+  --color-accent-800: var(--accent-800);
+  --color-accent-900: var(--accent-900);
+
+  /* Semantic */
+  --color-profit: var(--profit);
+  --color-profit-bg: var(--profit-bg);
+  --color-loss: var(--loss);
+  --color-loss-bg: var(--loss-bg);
+  --color-neutral-fg: var(--neutral);
+  --color-neutral-bg: var(--neutral-bg);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+
+  --color-hl-emerald: var(--hl-emerald);
+  --color-hl-cyan: var(--hl-cyan);
+  --color-hl-blue: var(--hl-blue);
+  --color-hl-violet: var(--hl-violet);
+  --color-hl-amber: var(--hl-amber);
+
+  /* Glass */
+  --color-glass: var(--glass-bg);
+  --color-glass-strong: var(--glass-bg-strong);
+  --color-glass-line: var(--glass-border);
+
+  /* Focus */
+  --color-ring: var(--ring);
+
+  /* Radii */
+  --radius-sm: var(--rad-sm);
+  --radius-md: var(--rad-md);
+  --radius-lg: var(--rad-lg);
+  --radius-xl: var(--rad-xl);
+  --radius-2xl: var(--rad-2xl);
+  --radius-3xl: var(--rad-3xl);
+  --radius-full: var(--rad-full);
+
+  /* Elevation */
+  --shadow-e1: var(--elev-1);
+  --shadow-e2: var(--elev-2);
+  --shadow-e3: var(--elev-3);
+  --shadow-e4: var(--elev-4);
+  --shadow-glow: var(--glow-accent);
+  --shadow-glow-profit: var(--glow-profit);
+  --shadow-glow-soft: var(--glow-soft);
+
+  /* Motion */
+  --ease-out-soft: var(--motion-ease-out);
+  --ease-in-out-soft: var(--motion-ease-in-out);
+  --ease-spring: var(--motion-ease-spring);
+
+  /* Type */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, 'JetBrains Mono', monospace;
+
+  /* Layout */
+  --spacing-sidebar: var(--sidebar-width);
+  --spacing-topbar: var(--topbar-height);
+  --container-content: var(--content-max);
+
+  /* Animation */
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-fade-up: fade-up var(--dur-slower) var(--motion-ease-out) both;
+  --animate-fade-in: fade-in var(--dur-normal) var(--motion-ease-out) both;
+  --animate-scale-in: scale-in var(--dur-normal) var(--motion-ease-out) both;
+  --animate-slide-down: slide-down var(--dur-fast) var(--motion-ease-out) both;
+  --animate-float: float 9s ease-in-out infinite;
+  --animate-pulse-ring: pulse-ring 2.4s var(--motion-ease-out) infinite;
+  --animate-draw: draw 1.4s var(--motion-ease-out) forwards;
+  --animate-marquee: marquee-left 34s linear infinite;
+  --animate-marquee-reverse: marquee-right 34s linear infinite;
+  --animate-masonry-up: masonry-up 70s linear infinite;
+  --animate-trade-ticker: trade-ticker 36s linear infinite;
+  --animate-gradient-shift: gradient-shift 8s ease-in-out infinite;
+  --animate-accordion-down: accordion-down var(--dur-normal) var(--motion-ease-in-out);
+  --animate-accordion-up: accordion-up var(--dur-normal) var(--motion-ease-in-out);
+}
+
+/* ==========================================================================
+   Keyframes
+   ========================================================================== */
+@keyframes shimmer {
+  from {
+    background-position: -160% 0;
+  }
+  to {
+    background-position: 260% 0;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -14px, 0);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes masonry-up {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, -50%, 0);
+  }
+}
+
+@keyframes trade-ticker {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, -50%, 0);
+  }
+}
+
+@keyframes gradient-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes marquee-left {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes marquee-right {
+  from {
+    transform: translate3d(-50%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+@layer base {
+  * {
+    border-color: var(--border-subtle);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    overflow-x: clip;
+    max-width: 100%;
+  }
+
+  body {
+    background-color: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.6;
+    overflow-x: clip;
+    max-width: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+  }
+
+  /* One focus ring, everywhere. Never removed — only restyled. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: var(--rad-sm);
+  }
+
+  ::selection {
+    background-color: var(--accent-700);
+    color: var(--text-primary);
+  }
+
+  /* Numbers never shift width. */
+  [data-numeric],
+  th[data-numeric],
+  td[data-numeric] {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+    border-radius: var(--rad-full);
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--border-strong);
+    background-clip: content-box;
+  }
+}
+
+/* ==========================================================================
+   Utilities — the reusable surface treatments
+   ========================================================================== */
+@utility glass {
+  background-color: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border: 1px solid var(--glass-border);
+}
+
+@utility glass-strong {
+  background-color: var(--glass-bg-strong);
+  backdrop-filter: blur(calc(var(--glass-blur) * 1.4)) saturate(160%);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 1.4)) saturate(160%);
+  border: 1px solid var(--glass-border);
+}
+
+/* A one-pixel light catch along the top edge. This is the detail that makes a
+   translucent panel read as glass rather than as flat transparency. */
+@utility glass-edge {
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--glass-highlight) 22%,
+      var(--glass-highlight) 78%,
+      transparent
+    );
+    pointer-events: none;
+  }
+}
+
+@utility surface-card {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--rad-lg);
+  box-shadow: var(--elev-1);
+}
+
+@utility text-gradient {
+  background: linear-gradient(
+    120deg,
+    var(--text-primary) 12%,
+    var(--accent-200) 52%,
+    var(--text-primary) 92%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* Large marketing panels — the luxury signal is scale + radius, not clutter. */
+@utility panel-luxury {
+  border-radius: var(--rad-2xl);
+  border: 1px solid var(--border-subtle);
+  background: linear-gradient(
+    165deg,
+    rgb(17 21 31 / 0.95) 0%,
+    rgb(8 10 15 / 0.98) 100%
+  );
+  box-shadow: var(--elev-2), var(--glow-soft);
+}
+
+@utility panel-gradient-accent {
+  border-radius: var(--rad-2xl);
+  border: 1px solid rgb(18 214 160 / 0.28);
+  background: linear-gradient(
+    145deg,
+    rgb(13 133 116 / 0.55) 0%,
+    rgb(6 62 53 / 0.9) 48%,
+    rgb(5 7 12 / 0.98) 100%
+  );
+  box-shadow: var(--elev-3), 0 0 60px rgb(18 214 160 / 0.14);
+}
+
+@utility panel-gradient-steel {
+  border-radius: var(--rad-2xl);
+  border: 1px solid var(--border-default);
+  background: linear-gradient(
+    150deg,
+    rgb(42 50 68 / 0.85) 0%,
+    rgb(17 21 31 / 0.95) 55%,
+    rgb(5 7 12 / 1) 100%
+  );
+  box-shadow: var(--elev-2);
+}
+
+@utility panel-gradient-profit {
+  border-radius: var(--rad-2xl);
+  border: 1px solid rgb(52 211 153 / 0.25);
+  background: linear-gradient(
+    145deg,
+    rgb(15 156 108 / 0.45) 0%,
+    rgb(6 40 30 / 0.92) 55%,
+    rgb(5 7 12 / 0.98) 100%
+  );
+  box-shadow: var(--elev-3);
+}
+
+@utility gradient-border {
+  position: relative;
+  border-radius: var(--rad-2xl);
+  background: var(--surface-raised);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      rgb(69 214 192 / 0.55),
+      rgb(42 50 68 / 0.2) 40%,
+      rgb(18 214 160 / 0.35)
+    );
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+}
+
+@utility snap-x-mandatory {
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 1rem;
+}
+
+@utility snap-start {
+  scroll-snap-align: start;
+}
+
+/* Faint technical grid, used behind the hero and section headers. */
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, var(--border-subtle) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border-subtle) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+@utility bg-radial-accent {
+  background-image: radial-gradient(
+    60% 60% at 50% 0%,
+    rgb(18 214 160 / 0.16) 0%,
+    transparent 70%
+  );
+}
+
+@utility shimmer-surface {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--surface-hover) 45%,
+    transparent 90%
+  );
+  background-size: 220% 100%;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Premium section rhythm. */
+@utility section-y {
+  padding-block: 3.5rem;
+
+  @media (width >= 768px) {
+    padding-block: 5rem;
+  }
+
+  @media (width >= 1024px) {
+    padding-block: 6.5rem;
+  }
+}
+
+@utility container-page {
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding-inline: max(1rem, env(safe-area-inset-left, 0px))
+    max(1rem, env(safe-area-inset-right, 0px));
+  box-sizing: border-box;
+
+  @media (width >= 768px) {
+    padding-inline: max(1.5rem, env(safe-area-inset-left, 0px))
+      max(1.5rem, env(safe-area-inset-right, 0px));
+  }
+
+  @media (width >= 1024px) {
+    padding-inline: max(2rem, env(safe-area-inset-left, 0px))
+      max(2rem, env(safe-area-inset-right, 0px));
+  }
+}
+
+@utility safe-px {
+  padding-inline: max(1rem, env(safe-area-inset-left, 0px))
+    max(1rem, env(safe-area-inset-right, 0px));
+}
+
+@utility safe-pt {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+@utility safe-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@utility card-lift {
+  transition:
+    transform 220ms var(--motion-ease-out),
+    box-shadow 220ms var(--motion-ease-out),
+    border-color 220ms var(--motion-ease-out);
+
+  @media (hover: hover) and (pointer: fine) and (width >= 768px) {
+    &:hover {
+      transform: translateY(-6px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover {
+      transform: none;
+    }
+  }
+}
+
+@utility noise-overlay {
+  isolation: isolate;
+
+  &::after {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+/* Premium glass cards. */
+@utility card-fill {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  border-radius: var(--rad-2xl);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  background:
+    linear-gradient(155deg, rgb(94 242 196 / 0.07) 0%, transparent 38%),
+    linear-gradient(165deg, rgb(255 255 255 / 0.045) 0%, transparent 48%),
+    rgb(16 27 38 / 0.92);
+  box-shadow:
+    0 0 0 1px rgb(18 214 160 / 0.05),
+    0 10px 28px rgb(0 0 0 / 0.3);
+  backdrop-filter: blur(16px);
+  transition:
+    transform 200ms var(--motion-ease-out),
+    box-shadow 200ms var(--motion-ease-out),
+    border-color 200ms var(--motion-ease-out);
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-2px);
+      border-color: rgb(18 214 160 / 0.22);
+      box-shadow:
+        0 0 0 1px rgb(18 214 160 / 0.1),
+        0 14px 36px rgb(0 0 0 / 0.36),
+        0 0 40px rgb(18 214 160 / 0.08);
+    }
+  }
+}
+
+@utility gradient-border-soft {
+  position: relative;
+  border-radius: var(--rad-2xl);
+  background: var(--surface-raised);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      rgb(52 211 153 / 0.45),
+      rgb(34 211 238 / 0.2),
+      rgb(167 139 250 / 0.35),
+      rgb(18 214 160 / 0.4)
+    );
+    background-size: 200% 200%;
+    animation: gradient-shift 10s ease-in-out infinite;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+}
+
+@utility section-divider {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(34 211 238 / 0.35),
+    rgb(18 214 160 / 0.55),
+    rgb(167 139 250 / 0.35),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: gradient-shift 8s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   Reduced motion — implemented once, inherited everywhere (docs/10 §5).
+   Reveals resolve to their final state; nothing is left invisible.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

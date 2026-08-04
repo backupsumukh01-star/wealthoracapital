@@ -1,0 +1,40 @@
+/**
+ * Barrel for the primitive layer.
+ *
+ * Primitives are style + accessibility only. Nothing here knows what a deposit is, and nothing
+ * here may import from `features/*` (docs/01 §6, enforced by an ESLint rule).
+ */
+
+export * from './accordion'
+export * from './alert'
+export * from './avatar'
+export * from './badge'
+export * from './button'
+export * from './card'
+export * from './checkbox'
+export * from './copy-button'
+export * from './date-picker'
+export * from './date-range-picker'
+export * from './dialog'
+export * from './dropdown-menu'
+export * from './empty-state'
+export * from './file-dropzone'
+export * from './form-field'
+export * from './input'
+export * from './label'
+export * from './pagination'
+export * from './popover'
+export * from './progress'
+export * from './radio-group'
+export * from './scroll-area'
+export * from './select'
+export * from './separator'
+export * from './sheet'
+export * from './skeleton'
+export * from './spinner'
+export * from './switch'
+export * from './table'
+export * from './tabs'
+export * from './textarea'
+export * from './toast'
+export * from './tooltip'

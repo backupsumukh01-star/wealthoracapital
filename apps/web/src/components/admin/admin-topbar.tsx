@@ -1,0 +1,107 @@
+'use client'
+
+import { useEffect, useState, type ReactNode } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { ROUTES } from '@meridian/shared'
+import { LogOut, Menu, Search } from 'lucide-react'
+import { toast } from 'sonner'
+
+import { ThemeToggle } from '@/components/common/theme-toggle'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { clearAdminSession, hasAdminSession } from '@/lib/demo-admin-auth'
+
+import { AdminNav } from './admin-sidebar'
+
+export function AdminTopbar() {
+  const pathname = usePathname()
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+
+  useEffect(() => setOpen(false), [pathname])
+
+  function signOut() {
+    clearAdminSession()
+    toast.message('Signed out of operator console')
+    router.push(ROUTES.admin.login)
+    router.refresh()
+  }
+
+  function onSearch(e: React.FormEvent) {
+    e.preventDefault()
+    const q = query.trim()
+    if (!q) {
+      router.push(ROUTES.admin.search)
+      return
+    }
+    router.push(`${ROUTES.admin.search}?q=${encodeURIComponent(q)}`)
+  }
+
+  return (
+    <header className="glass sticky top-0 z-40 flex h-topbar items-center gap-3 border-b border-glass-line px-4 lg:px-8">
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild>
+          <Button variant="ghost" size="icon-sm" className="lg:hidden" aria-label="Open navigation">
+            <Menu aria-hidden />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="lg:hidden">
+          <SheetTitle className="sr-only">Operator navigation</SheetTitle>
+          <AdminNav className="flex-1 overflow-y-auto px-3 py-6" />
+        </SheetContent>
+      </Sheet>
+
+      <form onSubmit={onSearch} className="hidden max-w-sm flex-1 md:block">
+        <Input
+          type="search"
+          placeholder="Search everything · or press Ctrl+K"
+          prefix={<Search className="size-4" />}
+          aria-label="Search the console"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </form>
+
+      <div className="ml-auto flex items-center gap-2">
+        <kbd className="hidden rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-fg-subtle lg:inline">
+          Ctrl K
+        </kbd>
+        <ThemeToggle />
+        <div className="hidden items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-caption text-fg-muted sm:flex">
+          <span className="size-1.5 rounded-full bg-profit" aria-hidden />
+          admin@growzy.com
+        </div>
+        <Button variant="ghost" size="sm" onClick={signOut} aria-label="Sign out">
+          <LogOut className="size-4" aria-hidden />
+          <span className="hidden sm:inline">Sign out</span>
+        </Button>
+      </div>
+    </header>
+  )
+}
+
+/** Soft gate — UI only. API will enforce roles later. */
+export function AdminSessionGate({ children }: { children: ReactNode }) {
+  const router = useRouter()
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    if (!hasAdminSession()) {
+      router.replace(ROUTES.admin.login)
+      return
+    }
+    setReady(true)
+  }, [router])
+
+  if (!ready) {
+    return (
+      <div className="grid min-h-dvh place-items-center bg-base text-caption text-fg-muted">
+        Checking operator session…
+      </div>
+    )
+  }
+
+  return <>{children}</>
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@meridian/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Meridian FX Express API — modular monolith (scaffold only; no business logic yet)",
+  "type": "module",
+  "scripts": {
+    "dev": "echo \"API not implemented yet — Phase 0/1\" && exit 0",
+    "build": "echo \"API scaffold — nothing to build\" && exit 0",
+    "start": "echo \"API not implemented yet\" && exit 0",
+    "lint": "echo \"no lint yet\"",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"no tests yet\"",
+    "clean": "rimraf dist .turbo"
+  },
+  "dependencies": {
+    "@meridian/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@meridian/config": "workspace:*",
+    "@types/node": "^22.10.5",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.7.2"
+  }
+}

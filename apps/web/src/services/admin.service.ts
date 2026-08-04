@@ -1,0 +1,128 @@
+import {
+  API_ROUTES,
+  type AuditLogEntry,
+  type Deposit,
+  type Trade,
+  type User,
+  type Withdrawal,
+  type DailyReturnRun,
+} from '@meridian/shared'
+
+import { apiClient } from './http'
+import type { AdminHealthSnapshot, PlatformCmsDocument, SearchHit } from '@/types/domain'
+
+export const adminService = {
+  health: () => apiClient<AdminHealthSnapshot>(API_ROUTES.admin.health),
+
+  search: (q: string) =>
+    apiClient<{ hits: SearchHit[] }>(
+      `${API_ROUTES.admin.search}?q=${encodeURIComponent(q)}`,
+    ),
+
+  activity: (query?: { kind?: string; cursor?: string }) => {
+    const params = new URLSearchParams()
+    if (query?.kind) params.set('kind', query.kind)
+    if (query?.cursor) params.set('cursor', query.cursor)
+    const qs = params.toString()
+    return apiClient<{ items: Array<{ id: string; kind: string; title: string; at: string }> }>(
+      `${API_ROUTES.admin.activity}${qs ? `?${qs}` : ''}`,
+    )
+  },
+
+  users: (query?: { q?: string; cursor?: string }) => {
+    const params = new URLSearchParams()
+    if (query?.q) params.set('q', query.q)
+    if (query?.cursor) params.set('cursor', query.cursor)
+    const qs = params.toString()
+    return apiClient<{ items: User[]; nextCursor: string | null }>(
+      `${API_ROUTES.admin.users}${qs ? `?${qs}` : ''}`,
+    )
+  },
+
+  user: (id: string) => apiClient<User>(`${API_ROUTES.admin.users}/${id}`),
+
+  deposits: (query?: { status?: string }) => {
+    const params = new URLSearchParams()
+    if (query?.status) params.set('status', query.status)
+    const qs = params.toString()
+    return apiClient<{ items: Deposit[] }>(`${API_ROUTES.admin.deposits}${qs ? `?${qs}` : ''}`)
+  },
+
+  reviewDeposit: (
+    id: string,
+    body: { decision: 'APPROVE' | 'REJECT'; reason?: string; creditedAmount?: string },
+  ) =>
+    apiClient<Deposit>(`${API_ROUTES.admin.deposits}/${id}/review`, {
+      method: 'POST',
+      body,
+      idempotencyKey: `dep-review-${id}-${body.decision}`,
+    }),
+
+  withdrawals: (query?: { status?: string }) => {
+    const params = new URLSearchParams()
+    if (query?.status) params.set('status', query.status)
+    const qs = params.toString()
+    return apiClient<{ items: Withdrawal[] }>(
+      `${API_ROUTES.admin.withdrawals}${qs ? `?${qs}` : ''}`,
+    )
+  },
+
+  reviewWithdrawal: (
+    id: string,
+    body: { decision: 'APPROVE' | 'REJECT' | 'PAID'; reason?: string },
+  ) =>
+    apiClient<Withdrawal>(`${API_ROUTES.admin.withdrawals}/${id}/review`, {
+      method: 'POST',
+      body,
+      idempotencyKey: `wd-review-${id}-${body.decision}`,
+    }),
+
+  trades: () => apiClient<{ items: Trade[] }>(API_ROUTES.admin.trades),
+
+  publishTrade: (id: string) =>
+    apiClient<Trade>(`${API_ROUTES.admin.trades}/${id}/publish`, { method: 'POST' }),
+
+  returns: () => apiClient<{ items: DailyReturnRun[] }>(API_ROUTES.admin.returns),
+
+  publishReturn: (body: { date: string; returnPct: string; idempotencyKey: string }) =>
+    apiClient<DailyReturnRun>(API_ROUTES.admin.returns, {
+      method: 'POST',
+      body,
+      idempotencyKey: body.idempotencyKey,
+    }),
+
+  audit: (query?: { q?: string; cursor?: string }) => {
+    const params = new URLSearchParams()
+    if (query?.q) params.set('q', query.q)
+    if (query?.cursor) params.set('cursor', query.cursor)
+    const qs = params.toString()
+    return apiClient<{ items: AuditLogEntry[] }>(
+      `${API_ROUTES.admin.audit}${qs ? `?${qs}` : ''}`,
+    )
+  },
+
+  roles: () =>
+    apiClient<Array<{ roleKey: string; label: string; permissions: Record<string, boolean> }>>(
+      API_ROUTES.admin.roles,
+    ),
+
+  updateRoles: (
+    rows: Array<{ roleKey: string; label: string; permissions: Record<string, boolean> }>,
+  ) => apiClient(API_ROUTES.admin.roles, { method: 'PUT', body: rows }),
+
+  backups: () =>
+    apiClient<{ lastAt: string; nextAt: string; points: Array<{ id: string; label: string }> }>(
+      API_ROUTES.admin.backups,
+    ),
+
+  createBackup: (scope: string) =>
+    apiClient<{ id: string }>(API_ROUTES.admin.backups, { method: 'POST', body: { scope } }),
+
+  getPlatformCms: () => apiClient<PlatformCmsDocument>(API_ROUTES.cms.platform),
+
+  publishPlatformCms: (body: PlatformCmsDocument) =>
+    apiClient<PlatformCmsDocument>(`${API_ROUTES.cms.platform}/publish`, {
+      method: 'POST',
+      body,
+    }),
+}

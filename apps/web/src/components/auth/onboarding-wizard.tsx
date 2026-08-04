@@ -1,0 +1,382 @@
+'use client'
+
+import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { ROUTES } from '@meridian/shared'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Controller, useForm } from 'react-hook-form'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Camera, Check, FileUp, ShieldCheck, Sparkles } from 'lucide-react'
+import { toast } from 'sonner'
+
+import { AuthCard } from '@/components/auth/auth-card'
+import { SuccessDialog } from '@/components/auth/success-dialog'
+import { KycUploadSlot } from '@/components/auth/kyc-upload-slot'
+import { Alert } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { FormField } from '@/components/ui/form-field'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  COUNTRIES,
+  onboardingKycSchema,
+  wait,
+  type OnboardingKycInput,
+} from '@/lib/auth-schemas'
+import { displayUsername, kycBadge } from '@/lib/investor-lifecycle'
+import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
+import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+import { cn } from '@/lib/cn'
+
+const STEPS = [
+  { id: 1, label: 'Welcome' },
+  { id: 2, label: 'Identity' },
+  { id: 3, label: 'Documents' },
+  { id: 4, label: 'Review' },
+] as const
+
+const ID_TYPES = [
+  { value: 'PASSPORT', label: 'Passport' },
+  { value: 'DRIVING_LICENSE', label: 'Driving license' },
+  { value: 'NATIONAL_ID', label: 'National ID' },
+] as const
+
+/**
+ * Investor onboarding + KYC — production UI wired to lifecycle store.
+ */
+export function OnboardingWizard() {
+  const router = useRouter()
+  const prefersReducedMotion = usePrefersReducedMotion()
+  const { session, submitKyc, ready } = useInvestorLifecycle()
+  const [step, setStep] = useState(1)
+  const [front, setFront] = useState<File | null>(null)
+  const [back, setBack] = useState<File | null>(null)
+  const [selfie, setSelfie] = useState<File | null>(null)
+  const [successOpen, setSuccessOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
+  const form = useForm<OnboardingKycInput>({
+    resolver: zodResolver(onboardingKycSchema),
+    defaultValues: {
+      country: session?.kyc?.country ?? 'PK',
+      dateOfBirth: session?.kyc?.dateOfBirth ?? '',
+      address: session?.kyc?.address ?? '',
+      city: session?.kyc?.city ?? '',
+      occupation: session?.kyc?.occupation ?? '',
+      idType: session?.kyc?.idType ?? 'PASSPORT',
+    },
+  })
+
+  const progress = useMemo(() => (step / STEPS.length) * 100, [step])
+  const badge = session ? kycBadge(session.kycStatus) : null
+
+  async function onSubmitDocs(values: OnboardingKycInput) {
+    setSubmitError(null)
+    if (!front || !selfie) {
+      setSubmitError('Upload ID front and a selfie to continue.')
+      return
+    }
+    if (values.idType !== 'PASSPORT' && !back) {
+      setSubmitError('Upload the back of your ID.')
+      return
+    }
+    setSubmitting(true)
+    await wait(800)
+    const result = submitKyc({
+      ...values,
+      front,
+      back,
+      selfie,
+    })
+    setSubmitting(false)
+    if (!result.ok) {
+      setSubmitError(result.error ?? 'Could not submit KYC')
+      return
+    }
+    toast.success('KYC submitted', { description: 'Expected review: 24–48 hours.' })
+    setStep(4)
+    setSuccessOpen(true)
+  }
+
+  if (ready && session?.kycStatus === 'UNDER_REVIEW') {
+    return (
+      <AuthCard
+        title="KYC under review"
+        description="Our compliance team is reviewing your documents. Expected review: 24–48 hours."
+      >
+        <Alert tone="warning" title="Deposit locked">
+          You cannot deposit or withdraw until KYC is approved.
+        </Alert>
+        <Button fullWidth size="lg" onClick={() => router.push(ROUTES.dashboard.root)}>
+          Go to dashboard
+        </Button>
+      </AuthCard>
+    )
+  }
+
+  if (ready && session?.kycStatus === 'APPROVED') {
+    return (
+      <AuthCard title="You are verified" description="Your account is ready to deposit and invest.">
+        <Button fullWidth size="lg" onClick={() => router.push(ROUTES.dashboard.wallet)}>
+          Deposit funds
+        </Button>
+      </AuthCard>
+    )
+  }
+
+  return (
+    <>
+      <AuthCard
+        title={step === 1 ? 'Welcome to Growzy' : 'Identity verification'}
+        description={
+          step === 1
+            ? 'Complete identity verification before investing.'
+            : 'Cannot deposit until KYC is approved.'
+        }
+        className="sm:max-w-none"
+      >
+        {session ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-caption">
+            <span className="font-mono text-fg">{session.userId}</span>
+            <span className="text-fg-subtle">·</span>
+            <span className="font-mono text-fg">{displayUsername(session.username)}</span>
+            {badge ? (
+              <span
+                className={cn(
+                  'ml-auto rounded-full px-2 py-0.5 text-[10px] font-medium',
+                  badge.tone === 'profit' && 'bg-profit/15 text-profit',
+                  badge.tone === 'warning' && 'bg-warning/15 text-warning',
+                  badge.tone === 'info' && 'bg-info/15 text-info',
+                  badge.tone === 'loss' && 'bg-loss/15 text-loss',
+                  badge.tone === 'neutral' && 'bg-hover text-fg-muted',
+                )}
+              >
+                {badge.label}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="space-y-2">
+          <div className="h-1.5 overflow-hidden rounded-full bg-line">
+            <div
+              className="h-full rounded-full bg-accent transition-[width] duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <ol className="flex gap-1.5" aria-label="Onboarding progress">
+            {STEPS.map((s) => {
+              const done = step > s.id
+              const current = step === s.id
+              return (
+                <li key={s.id} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                  <span
+                    className={cn(
+                      'truncate text-[10px] font-medium sm:text-caption',
+                      current ? 'text-accent-200' : done ? 'text-fg-muted' : 'text-fg-subtle',
+                    )}
+                  >
+                    {s.label}
+                  </span>
+                </li>
+              )
+            })}
+          </ol>
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial={prefersReducedMotion ? false : { opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, x: -10 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {step === 1 ? (
+              <div className="space-y-5">
+                <div className="rounded-2xl border border-white/[0.08] bg-gradient-to-br from-accent-500/10 to-transparent p-5">
+                  <Sparkles className="mb-3 size-6 text-accent-300" aria-hidden />
+                  <p className="text-heading-md text-fg">Welcome to Growzy</p>
+                  <p className="mt-2 text-body-sm text-fg-muted">
+                    Complete your identity verification before investing. Deposits and withdrawals
+                    unlock after compliance approval.
+                  </p>
+                </div>
+                <ul className="space-y-2 text-body-sm text-fg-muted">
+                  <li className="flex gap-2">
+                    <ShieldCheck className="mt-0.5 size-4 shrink-0 text-accent-300" aria-hidden />
+                    Government ID + selfie required
+                  </li>
+                  <li className="flex gap-2">
+                    <Check className="mt-0.5 size-4 shrink-0 text-accent-300" aria-hidden />
+                    Review typically 24–48 hours
+                  </li>
+                </ul>
+                <Button type="button" fullWidth size="lg" onClick={() => setStep(2)}>
+                  Continue
+                </Button>
+              </div>
+            ) : null}
+
+            {step === 2 ? (
+              <form
+                className="space-y-4"
+                noValidate
+                onSubmit={form.handleSubmit(async () => {
+                  await wait(200)
+                  setStep(3)
+                })}
+              >
+                <p className="text-body-sm font-medium text-fg">Personal details</p>
+                <FormField label="Country" required error={form.formState.errors.country?.message}>
+                  <Controller
+                    control={form.control}
+                    name="country"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select country" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {COUNTRIES.map((c) => (
+                            <SelectItem key={c.value} value={c.value}>
+                              {c.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </FormField>
+                <FormField label="Date of birth" required error={form.formState.errors.dateOfBirth?.message}>
+                  <Input type="date" {...form.register('dateOfBirth')} />
+                </FormField>
+                <FormField label="Address" required error={form.formState.errors.address?.message}>
+                  <Input {...form.register('address')} placeholder="Street, building, area" />
+                </FormField>
+                <FormField label="City" required error={form.formState.errors.city?.message}>
+                  <Input {...form.register('city')} />
+                </FormField>
+                <FormField label="Occupation" required error={form.formState.errors.occupation?.message}>
+                  <Input {...form.register('occupation')} placeholder="Investor, engineer…" />
+                </FormField>
+                <FormField label="Government ID type" required error={form.formState.errors.idType?.message}>
+                  <Controller
+                    control={form.control}
+                    name="idType"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ID_TYPES.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>
+                              {t.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </FormField>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button type="button" variant="ghost" className="sm:flex-1" onClick={() => setStep(1)}>
+                    Back
+                  </Button>
+                  <Button type="submit" className="sm:flex-[2]" size="lg">
+                    Continue to documents
+                  </Button>
+                </div>
+              </form>
+            ) : null}
+
+            {step === 3 ? (
+              <form className="space-y-4" noValidate onSubmit={form.handleSubmit(onSubmitDocs)}>
+                <p className="text-body-sm font-medium text-fg">Upload documents</p>
+                <p className="text-caption text-fg-subtle">
+                  Drag & drop, browse, or use camera. Images are compressed client-side for preview.
+                </p>
+                {submitError ? (
+                  <Alert tone="danger" title="Cannot submit">
+                    {submitError}
+                  </Alert>
+                ) : null}
+                <KycUploadSlot
+                  label="ID front"
+                  icon={FileUp}
+                  file={front}
+                  onChange={setFront}
+                  required
+                />
+                {form.watch('idType') !== 'PASSPORT' ? (
+                  <KycUploadSlot
+                    label="ID back"
+                    icon={FileUp}
+                    file={back}
+                    onChange={setBack}
+                    required
+                  />
+                ) : null}
+                <KycUploadSlot
+                  label="Selfie"
+                  icon={Camera}
+                  file={selfie}
+                  onChange={setSelfie}
+                  required
+                  capture
+                />
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button type="button" variant="ghost" className="sm:flex-1" onClick={() => setStep(2)}>
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="sm:flex-[2]"
+                    size="lg"
+                    loading={submitting}
+                    loadingText="Submitting…"
+                  >
+                    Submit KYC
+                  </Button>
+                </div>
+              </form>
+            ) : null}
+
+            {step === 4 ? (
+              <div className="space-y-4 text-center">
+                <div className="mx-auto grid size-14 place-items-center rounded-full bg-warning/15 text-warning">
+                  <ShieldCheck className="size-7" aria-hidden />
+                </div>
+                <p className="text-heading-md text-fg">Under review</p>
+                <p className="text-body-sm text-fg-muted">
+                  Status is Under Review. You cannot deposit until approved. We emailed a KYC Submitted
+                  confirmation.
+                </p>
+                <Button fullWidth size="lg" onClick={() => router.push(ROUTES.dashboard.root)}>
+                  Open dashboard
+                </Button>
+              </div>
+            ) : null}
+          </motion.div>
+        </AnimatePresence>
+      </AuthCard>
+
+      <SuccessDialog
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+        title="KYC submitted"
+        description="Our compliance team is reviewing your documents. Expected review: 24–48 hours."
+        primaryLabel="Go to dashboard"
+        onPrimary={() => router.push(ROUTES.dashboard.root)}
+      />
+    </>
+  )
+}

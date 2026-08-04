@@ -1,0 +1,115 @@
+/* ==========================================================================
+   Growzy — typographic scale (docs/10 §3)
+
+   1.250 major third from a 16px base. Display sizes use clamp() so the hero
+   steps down on mobile without a separate breakpoint rule.
+
+   Every numeric class carries `tabular-nums`: a count-up animation on
+   proportional figures wobbles, and wobbling money looks unserious.
+   ========================================================================== */
+
+@layer components {
+  .text-display-xl {
+    font-size: clamp(2.15rem, 7.2vw, 5rem);
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+    font-weight: 700;
+  }
+
+  .text-display-lg {
+    font-size: clamp(1.85rem, 5.2vw, 3.75rem);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    font-weight: 700;
+  }
+
+  .text-display-md {
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+
+  .text-heading-xl {
+    font-size: clamp(2rem, 3vw, 2.25rem);
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    font-weight: 600;
+  }
+
+  .text-heading-lg {
+    font-size: clamp(1.75rem, 2.5vw, 1.875rem);
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    font-weight: 600;
+  }
+
+  .text-heading-md {
+    font-size: clamp(1.25rem, 2vw, 1.375rem);
+    line-height: 1.35;
+    font-weight: 600;
+  }
+
+  .text-heading-sm {
+    font-size: 1.125rem;
+    line-height: 1.4;
+    font-weight: 600;
+  }
+
+  .text-body-lg {
+    font-size: 1.125rem;
+    line-height: 1.65;
+  }
+
+  .text-body-md {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .text-body-sm {
+    font-size: 0.875rem;
+    line-height: 1.55;
+  }
+
+  .text-caption {
+    font-size: 0.875rem;
+    line-height: 1.45;
+  }
+
+  .text-overline {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* --- Figures. Always tabular, always the most legible thing on screen. --- */
+  .text-stat-xl {
+    font-size: clamp(2.5rem, 6vw, 3.75rem);
+    line-height: 1;
+    letter-spacing: -0.025em;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .text-stat-lg {
+    font-size: clamp(1.75rem, 3.5vw, 2.25rem);
+    line-height: 1;
+    letter-spacing: -0.015em;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .text-stat-md {
+    font-size: 1.5rem;
+    line-height: 1;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Body copy is never full-width: measure is capped at 68 characters. */
+  .prose-measure {
+    max-width: var(--prose-max);
+  }
+}
