@@ -144,8 +144,27 @@ export type LedgerEntryType = (typeof LedgerEntryType)[keyof typeof LedgerEntryT
 export const TradeDirection = { BUY: 'BUY', SELL: 'SELL' } as const
 export type TradeDirection = (typeof TradeDirection)[keyof typeof TradeDirection]
 
+export const TradeStatus = {
+  DRAFT: 'DRAFT',
+  SCHEDULED: 'SCHEDULED',
+  OPEN: 'OPEN',
+  RUNNING: 'RUNNING',
+  CLOSED: 'CLOSED',
+  CANCELLED: 'CANCELLED',
+  ARCHIVED: 'ARCHIVED',
+} as const
+export type TradeStatus = (typeof TradeStatus)[keyof typeof TradeStatus]
+
 export const TradeOutcome = { WIN: 'WIN', LOSS: 'LOSS', BREAKEVEN: 'BREAKEVEN' } as const
 export type TradeOutcome = (typeof TradeOutcome)[keyof typeof TradeOutcome]
+
+export const AllocationMode = {
+  EQUAL: 'EQUAL',
+  PERCENTAGE: 'PERCENTAGE',
+  CAPITAL: 'CAPITAL',
+  MANUAL: 'MANUAL',
+} as const
+export type AllocationMode = (typeof AllocationMode)[keyof typeof AllocationMode]
 
 export const TradeSource = {
   MANUAL: 'MANUAL',

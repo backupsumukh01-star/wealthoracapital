@@ -8,6 +8,7 @@ import { requireAdminAccess, requirePermission } from '../middlewares/require-pe
 import { validate } from '../middlewares/validate.js'
 import { adminFinanceRouter } from './admin-finance.routes.js'
 import { adminKycRouter } from './admin-kyc.routes.js'
+import { adminTradingRouter } from './admin-trading.routes.js'
 import {
   adminActivityQuerySchema,
   adminAuditQuerySchema,
@@ -132,3 +133,4 @@ adminRouter.post(
 
 adminRouter.use('/kyc', adminKycRouter)
 adminRouter.use(adminFinanceRouter)
+adminRouter.use(adminTradingRouter)

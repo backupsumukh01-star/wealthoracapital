@@ -71,10 +71,14 @@ If you only remember ten decisions from this documentation set, make it these.
 | [API Phase 2](./API_PHASE2.md) | Profile / admin / audit |
 | [API Phase 3 KYC](./API_PHASE3_KYC.md) | Investor + admin KYC APIs |
 | [API Phase 4 Finance](./API_PHASE4_FINANCE.md) | Wallet, deposits, withdrawals, admin finance |
+| [API Phase 5 Trading](./API_PHASE5_TRADING.md) | Trades, returns, performance |
 | [Database Phase 3 KYC](./DATABASE_PHASE3_KYC.md) | KYC schema |
 | [Database Phase 4 Finance](./DATABASE_PHASE4_FINANCE.md) | Finance schema |
 | [Financial Architecture](./FINANCIAL_ARCHITECTURE.md) | Money principles + module map |
 | [Ledger](./LEDGER.md) | Double-entry posting rules |
+| [Trading Architecture](./TRADING_ARCHITECTURE.md) | Trades + daily return engine |
+| [Performance Engine](./PERFORMANCE_ENGINE.md) | Portfolio + analytics |
+| [Distribution Engine](./DISTRIBUTION_ENGINE.md) | Profit distribution rules |
 | [KYC Flow](./KYC_FLOW.md) | End-to-end verification flow |
 | [Backend setup](./BACKEND_SETUP.md) | Local API + Postgres |
 

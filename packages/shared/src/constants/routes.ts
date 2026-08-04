@@ -156,7 +156,13 @@ export const API_ROUTES = {
     cancel: (id: string) => `/withdrawals/${id}/cancel`,
   },
   transactions: { root: '/transactions' },
-  trades: { root: '/trades', pairs: '/trades/pairs', stats: '/trades/stats' },
+  trades: {
+    root: '/trades',
+    pairs: '/trades/pairs',
+    stats: '/trades/stats',
+    public: '/trades/public',
+    byId: (id: string) => `/trades/${id}`,
+  },
   performance: {
     summary: '/performance/summary',
     series: '/performance/series',
@@ -165,6 +171,8 @@ export const API_ROUTES = {
     distributions: '/performance/distributions',
     public: '/performance/public',
   },
+  returns: { root: '/returns' },
+  portfolio: { root: '/portfolio' },
   notifications: { root: '/notifications', unreadCount: '/notifications/unread-count' },
   settings: { public: '/settings/public', me: '/settings/me' },
   profile: {
@@ -206,6 +214,9 @@ export const API_ROUTES = {
     ledger: '/admin/ledger',
     financeMetrics: '/admin/finance/metrics',
     trades: '/admin/trades',
+    tradeAllocate: '/admin/trades/allocate',
+    tradePublish: '/admin/trades/publish',
+    performance: '/admin/performance',
     returns: '/admin/returns',
     notifications: '/admin/notifications',
     support: '/admin/support',

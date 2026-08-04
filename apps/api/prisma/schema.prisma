@@ -139,6 +139,11 @@ enum ActivityKind {
   WITHDRAWAL_CANCELLED
   WITHDRAWAL_PAID
   WALLET_ADJUSTMENT
+  TRADE_OPENED
+  TRADE_CLOSED
+  TRADE_PUBLISHED
+  DAILY_RETURN_APPLIED
+  DISTRIBUTION_COMPLETE
 }
 
 enum NotificationKind {
@@ -147,6 +152,75 @@ enum NotificationKind {
   ACCOUNT
   ADMIN
   FINANCE
+  TRADING
+}
+
+enum TradeStatus {
+  DRAFT
+  SCHEDULED
+  OPEN
+  RUNNING
+  CLOSED
+  CANCELLED
+  ARCHIVED
+}
+
+enum TradeDirection {
+  BUY
+  SELL
+}
+
+enum TradeOutcome {
+  WIN
+  LOSS
+  BREAKEVEN
+}
+
+enum TradeRisk {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AllocationMode {
+  EQUAL
+  PERCENTAGE
+  CAPITAL
+  MANUAL
+}
+
+enum DailyReturnRunStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REVERSED
+}
+
+enum ReturnBasis {
+  BALANCE
+  INVESTED
+}
+
+enum TradingDayStatus {
+  DRAFT
+  PUBLISHED
+  DISTRIBUTED
+  REVERSED
+}
+
+enum TradeHistoryAction {
+  CREATED
+  UPDATED
+  OPENED
+  CLOSED
+  CANCELLED
+  DUPLICATED
+  ARCHIVED
+  PUBLISHED
+  HIDDEN
+  ALLOCATED
+  NOTE
 }
 
 enum WalletKind {
@@ -319,6 +393,10 @@ model User {
   payoutMethods         PayoutMethod[]
   financeReviews        FinanceReview[] @relation("FinanceReviewer")
   approvalAssignments   ApprovalQueue[] @relation("ApprovalAssignee")
+  tradeAllocations      TradeAllocation[]
+  profitDistributions   ProfitDistribution[]
+  investorPerformance   InvestorPerformance?
+  portfolioSnapshots    PortfolioSnapshot[]
 
   @@index([status])
   @@index([role])
@@ -846,4 +924,227 @@ model TransactionHistory {
   @@index([userId, createdAt])
   @@index([transactionId])
   @@map("transaction_histories")
+}
+
+model TradingSession {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @db.VarChar(80)
+  startsAt    DateTime  @map("starts_at")
+  endsAt      DateTime? @map("ends_at")
+  isActive    Boolean   @default(true) @map("is_active")
+  notes       String?   @db.VarChar(500)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  trades Trade[]
+
+  @@index([isActive, startsAt])
+  @@map("trading_sessions")
+}
+
+model Trade {
+  id            String         @id @default(uuid()) @db.Uuid
+  reference     String         @unique @db.VarChar(32)
+  pair          String         @db.VarChar(20)
+  direction     TradeDirection
+  strategy      String?        @db.VarChar(80)
+  risk          TradeRisk      @default(MEDIUM)
+  leverage      Decimal?       @db.Decimal(10, 2)
+  lotSize       Decimal?       @map("lot_size") @db.Decimal(20, 8)
+  entryPrice    Decimal        @map("entry_price") @db.Decimal(20, 8)
+  exitPrice     Decimal?       @map("exit_price") @db.Decimal(20, 8)
+  stopLoss      Decimal?       @map("stop_loss") @db.Decimal(20, 8)
+  takeProfit    Decimal?       @map("take_profit") @db.Decimal(20, 8)
+  openTime      DateTime?      @map("open_time")
+  closeTime     DateTime?      @map("close_time")
+  tradeDate     DateTime       @map("trade_date") @db.Date
+  status        TradeStatus    @default(DRAFT)
+  outcome       TradeOutcome?
+  profitAmount  Decimal?       @map("profit_amount") @db.Decimal(20, 8)
+  lossAmount    Decimal?       @map("loss_amount") @db.Decimal(20, 8)
+  returnPct     Decimal?       @map("return_pct") @db.Decimal(12, 6)
+  pips          Decimal?       @db.Decimal(20, 8)
+  isPublic      Boolean        @default(false) @map("is_public")
+  adminNotes    String?        @map("admin_notes") @db.VarChar(2000)
+  sessionId     String?        @map("session_id") @db.Uuid
+  session       TradingSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  createdById   String?        @map("created_by_id") @db.Uuid
+  settledAt     DateTime?      @map("settled_at")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  allocations TradeAllocation[]
+  result      TradeResult?
+  history     TradeHistory[]
+
+  @@index([status, tradeDate])
+  @@index([pair])
+  @@index([strategy])
+  @@index([isPublic])
+  @@index([reference])
+  @@map("trades")
+}
+
+model TradeAllocation {
+  id              String         @id @default(uuid()) @db.Uuid
+  tradeId         String         @map("trade_id") @db.Uuid
+  trade           Trade          @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  userId          String         @map("user_id") @db.Uuid
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode            AllocationMode @default(CAPITAL)
+  allocatedAmount Decimal        @map("allocated_amount") @db.Decimal(20, 8)
+  allocationPct   Decimal?       @map("allocation_pct") @db.Decimal(12, 6)
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  @@unique([tradeId, userId])
+  @@index([userId])
+  @@index([tradeId])
+  @@map("trade_allocations")
+}
+
+model TradeResult {
+  id            String       @id @default(uuid()) @db.Uuid
+  tradeId       String       @unique @map("trade_id") @db.Uuid
+  trade         Trade        @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  outcome       TradeOutcome
+  returnPct     Decimal      @map("return_pct") @db.Decimal(12, 6)
+  profitAmount  Decimal      @map("profit_amount") @db.Decimal(20, 8)
+  notes         String?      @db.VarChar(1000)
+  settledAt     DateTime     @default(now()) @map("settled_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  @@map("trade_results")
+}
+
+model TradeHistory {
+  id        String             @id @default(uuid()) @db.Uuid
+  tradeId   String             @map("trade_id") @db.Uuid
+  trade     Trade              @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  actorId   String?            @map("actor_id") @db.Uuid
+  action    TradeHistoryAction
+  message   String?            @db.VarChar(1000)
+  metadata  Json?
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  @@index([tradeId, createdAt])
+  @@map("trade_histories")
+}
+
+/// Calendar trading day / daily return aggregate (alias concept: DailyReturn).
+model DailyReturn {
+  id                 String           @id @default(uuid()) @db.Uuid
+  date               DateTime         @unique @db.Date
+  status             TradingDayStatus @default(DRAFT)
+  computedReturnPct  Decimal?         @map("computed_return_pct") @db.Decimal(12, 6)
+  netReturnPct       Decimal?         @map("net_return_pct") @db.Decimal(12, 6)
+  tradeCount         Int              @default(0) @map("trade_count")
+  winCount           Int              @default(0) @map("win_count")
+  lossCount          Int              @default(0) @map("loss_count")
+  summary            String?          @db.VarChar(1000)
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  runs DailyReturnRun[]
+
+  @@index([status, date])
+  @@map("daily_returns")
+}
+
+model DailyReturnRun {
+  id                 String               @id @default(uuid()) @db.Uuid
+  dailyReturnId      String               @map("daily_return_id") @db.Uuid
+  dailyReturn        DailyReturn          @relation(fields: [dailyReturnId], references: [id], onDelete: Cascade)
+  date               DateTime             @db.Date
+  returnPct          Decimal              @map("return_pct") @db.Decimal(12, 6)
+  returnBasis        ReturnBasis          @default(BALANCE) @map("return_basis")
+  status             DailyReturnRunStatus @default(PENDING)
+  eligibleWallets    Int                  @default(0) @map("eligible_wallets")
+  processedWallets   Int                  @default(0) @map("processed_wallets")
+  totalBaseAmount    Decimal              @default(0) @map("total_base_amount") @db.Decimal(20, 8)
+  totalDistributed   Decimal              @default(0) @map("total_distributed") @db.Decimal(20, 8)
+  roundingDelta      Decimal              @default(0) @map("rounding_delta") @db.Decimal(20, 8)
+  idempotencyKey     String               @unique @map("idempotency_key") @db.VarChar(120)
+  createdById        String?              @map("created_by_id") @db.Uuid
+  startedAt          DateTime?            @map("started_at")
+  completedAt        DateTime?            @map("completed_at")
+  createdAt          DateTime             @default(now()) @map("created_at")
+
+  distributions ProfitDistribution[]
+
+  @@index([date, status])
+  @@map("daily_return_runs")
+}
+
+model ProfitDistribution {
+  id               String         @id @default(uuid()) @db.Uuid
+  runId            String         @map("run_id") @db.Uuid
+  run              DailyReturnRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  userId           String         @map("user_id") @db.Uuid
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date             DateTime       @db.Date
+  eligibleBalance  Decimal        @map("eligible_balance") @db.Decimal(20, 8)
+  returnPct        Decimal        @map("return_pct") @db.Decimal(12, 6)
+  grossAmount      Decimal        @map("gross_amount") @db.Decimal(20, 8)
+  amount           Decimal        @db.Decimal(20, 8)
+  balanceAfter     Decimal        @map("balance_after") @db.Decimal(20, 8)
+  isReversed       Boolean        @default(false) @map("is_reversed")
+  ledgerTxnId      String?        @map("ledger_txn_id") @db.Uuid
+  idempotencyKey   String         @unique @map("idempotency_key") @db.VarChar(160)
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  @@unique([runId, userId])
+  @@index([userId, date])
+  @@index([date])
+  @@map("profit_distributions")
+}
+
+model PortfolioSnapshot {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date           DateTime @db.Date
+  balance        Decimal  @db.Decimal(20, 8)
+  available      Decimal  @db.Decimal(20, 8)
+  invested       Decimal  @db.Decimal(20, 8)
+  profit         Decimal  @db.Decimal(20, 8)
+  dailyProfit    Decimal  @default(0) @map("daily_profit") @db.Decimal(20, 8)
+  portfolioValue Decimal  @map("portfolio_value") @db.Decimal(20, 8)
+  roiPct         Decimal  @default(0) @map("roi_pct") @db.Decimal(12, 6)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, date])
+  @@index([date])
+  @@map("portfolio_snapshots")
+}
+
+model PerformanceMetric {
+  id         String   @id @default(uuid()) @db.Uuid
+  scope      String   @db.VarChar(40)
+  period     String   @db.VarChar(20)
+  periodKey  String   @map("period_key") @db.VarChar(32)
+  userId     String?  @map("user_id") @db.Uuid
+  metrics    Json
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@unique([scope, period, periodKey, userId])
+  @@index([scope, period, periodKey])
+  @@map("performance_metrics")
+}
+
+model InvestorPerformance {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String   @unique @map("user_id") @db.Uuid
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalProfit        Decimal  @default(0) @map("total_profit") @db.Decimal(20, 8)
+  totalRoiPct        Decimal  @default(0) @map("total_roi_pct") @db.Decimal(12, 6)
+  winRatePct         Decimal  @default(0) @map("win_rate_pct") @db.Decimal(12, 6)
+  activeDays         Int      @default(0) @map("active_days")
+  bestDayProfit      Decimal  @default(0) @map("best_day_profit") @db.Decimal(20, 8)
+  worstDayProfit     Decimal  @default(0) @map("worst_day_profit") @db.Decimal(20, 8)
+  avgDailyReturnPct  Decimal  @default(0) @map("avg_daily_return_pct") @db.Decimal(12, 6)
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@map("investor_performances")
 }

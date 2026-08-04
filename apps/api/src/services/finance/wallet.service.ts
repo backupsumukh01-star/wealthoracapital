@@ -38,29 +38,14 @@ export const walletService = {
       notificationRepository.unreadCount(userId),
     ])
 
-    const today = new Date().toISOString().slice(0, 10)
+    const { performanceService } = await import('../trading/performance.service.js')
+    const extras = await performanceService.walletSummaryExtras(userId)
     return {
       wallet,
-      today: {
-        date: today,
-        profit: moneyDisplay(0),
-        returnPct: '0.00',
-        status: 'PENDING' as const,
-        tradeCount: 0,
-      },
-      performance: {
-        roiPct: '0.00',
-        thisMonthProfit: moneyDisplay(0),
-        thisMonthReturnPct: '0.00',
-        lastMonthReturnPct: '0.00',
-        bestDay: null,
-        worstDay: null,
-        winRatePct: '0.00',
-        activeDays: 0,
-        avgDailyReturnPct: '0.00',
-      },
-      chart: { range: '30d', points: [] as Array<{ date: string; balance: string; profit: string; cumulativeProfit: string }> },
-      recentTrades: [] as unknown[],
+      today: extras.today,
+      performance: extras.performance,
+      chart: extras.chart,
+      recentTrades: extras.recentTrades,
       pending: { deposits: pendingDeposits, withdrawals: pendingWithdrawals },
       unreadNotifications,
     }

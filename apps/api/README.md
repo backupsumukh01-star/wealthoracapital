@@ -1,6 +1,6 @@
 # Growzy API (`@meridian/api`)
 
-Phase 1–4 backend: Express + TypeScript + PostgreSQL + Prisma + JWT auth, user/admin management, RBAC, audit/activity, profiles, KYC, and the financial engine (wallet/ledger/deposits/withdrawals).
+Phase 1–5 backend: Express + TypeScript + PostgreSQL + Prisma + JWT auth, user/admin, RBAC, audit/activity, profiles, KYC, finance (wallet/ledger/deposits/withdrawals), and trading (trades/daily returns/performance).
 
 Frontend UI is connected via `@meridian/shared` contracts and `apps/web` service clients.
 
@@ -103,11 +103,16 @@ Investor: `/api/v1/wallet`, `/deposits`, `/withdrawals`, `/transactions`
 Admin: `/api/v1/admin/deposits|withdrawals|wallets|payment-methods|wallet-addresses|ledger|finance/metrics`  
 See [Financial architecture](../../docs/FINANCIAL_ARCHITECTURE.md) and [Ledger](../../docs/LEDGER.md).
 
+## Trading (Phase 5)
+
+Investor: `/api/v1/trades`, `/performance/*`, `/portfolio`, `/returns`  
+Admin: `/api/v1/admin/trades*`, `/admin/returns`, `/admin/performance`  
+See [Trading architecture](../../docs/TRADING_ARCHITECTURE.md).
+
 ## Docs
 
 - [Backend setup guide](../../docs/BACKEND_SETUP.md)
-- [API Phase 1](../../docs/API_PHASE1.md) · [API Phase 2](../../docs/API_PHASE2.md) · [API Phase 3 KYC](../../docs/API_PHASE3_KYC.md) · [API Phase 4 Finance](../../docs/API_PHASE4_FINANCE.md)
-- [Database Phase 2](../../docs/DATABASE_PHASE2.md) · [Database Phase 3 KYC](../../docs/DATABASE_PHASE3_KYC.md) · [Database Phase 4 Finance](../../docs/DATABASE_PHASE4_FINANCE.md)
-- [Architecture Phase 2](../../docs/ARCHITECTURE_PHASE2.md) · [KYC flow](../../docs/KYC_FLOW.md) · [Financial architecture](../../docs/FINANCIAL_ARCHITECTURE.md) · [Ledger](../../docs/LEDGER.md)
+- [API Phase 5 Trading](../../docs/API_PHASE5_TRADING.md) · [Trading architecture](../../docs/TRADING_ARCHITECTURE.md) · [Performance](../../docs/PERFORMANCE_ENGINE.md) · [Distribution](../../docs/DISTRIBUTION_ENGINE.md)
+- Earlier phases: [API Phase 1–4](../../docs/API_PHASE4_FINANCE.md), [Ledger](../../docs/LEDGER.md), [KYC](../../docs/KYC_FLOW.md)
 - [Environment variables](../../docs/ENV_VARIABLES.md)
-- [Phase 1](../../PHASE1_BACKEND_COMPLETION_REPORT.md) · [Phase 2](../../PHASE2_BACKEND_COMPLETION_REPORT.md) · [Phase 3](../../PHASE3_BACKEND_COMPLETION_REPORT.md) · [Phase 4](../../PHASE4_BACKEND_COMPLETION_REPORT.md)
+- [Phase 5 report](../../PHASE5_BACKEND_COMPLETION_REPORT.md)

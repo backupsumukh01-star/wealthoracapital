@@ -29,7 +29,9 @@ export function mapWalletAggregate(wallets: Wallet[]) {
     lockedBalance: moneyDisplay(sum((w) => w.lockedBalance)),
     pendingBalance: moneyDisplay(sum((w) => w.pendingBalance)),
     investedAmount: moneyDisplay(investment?.investedAmount ?? 0),
-    totalProfit: moneyDisplay(profit?.totalProfit ?? profit?.balance ?? 0),
+    totalProfit: moneyDisplay(
+      investment?.totalProfit ?? profit?.totalProfit ?? profit?.balance ?? 0,
+    ),
     totalDeposited: moneyDisplay(investment?.totalDeposited ?? 0),
     totalWithdrawn: moneyDisplay(investment?.totalWithdrawn ?? 0),
     currency: investment?.currency ?? 'USD',

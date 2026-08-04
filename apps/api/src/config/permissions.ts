@@ -29,6 +29,10 @@ export const PERMISSIONS = {
   'finance.review': 'finance.review',
   'finance.manage': 'finance.manage',
   'finance.adjust': 'finance.adjust',
+  'trades.view': 'trades.view',
+  'trades.manage': 'trades.manage',
+  'performance.view': 'performance.view',
+  'returns.manage': 'returns.manage',
 } as const
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
@@ -51,6 +55,9 @@ const STAFF_PERMISSION_MAP: Record<StaffRole, Permission[]> = {
     PERMISSIONS['finance.review'],
     PERMISSIONS['finance.manage'],
     PERMISSIONS['finance.adjust'],
+    PERMISSIONS['trades.view'],
+    PERMISSIONS['performance.view'],
+    PERMISSIONS['returns.manage'],
   ],
   SUPPORT: [
     PERMISSIONS['dashboard.view'],
@@ -91,6 +98,8 @@ const STAFF_PERMISSION_MAP: Record<StaffRole, Permission[]> = {
     PERMISSIONS['sessions.manage'],
     PERMISSIONS['kyc.view'],
     PERMISSIONS['finance.view'],
+    PERMISSIONS['trades.view'],
+    PERMISSIONS['performance.view'],
   ],
 }
 
@@ -105,6 +114,8 @@ const INVESTOR_PERMISSIONS: Permission[] = [
   PERMISSIONS['deposits.create'],
   PERMISSIONS['withdrawals.view'],
   PERMISSIONS['withdrawals.create'],
+  PERMISSIONS['trades.view'],
+  PERMISSIONS['performance.view'],
 ]
 
 export function resolvePermissions(input: {

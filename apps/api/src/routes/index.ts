@@ -5,7 +5,11 @@ import { authRouter } from './auth.routes.js'
 import { depositRouter } from './deposit.routes.js'
 import { healthRouter } from './health.routes.js'
 import { kycRouter } from './kyc.routes.js'
+import { performanceRouter } from './performance.routes.js'
+import { portfolioRouter } from './portfolio.routes.js'
 import { profileRouter } from './profile.routes.js'
+import { returnsRouter } from './returns.routes.js'
+import { tradeRouter } from './trade.routes.js'
 import { transactionRouter } from './transaction.routes.js'
 import { usersRouter } from './users.routes.js'
 import { walletRouter } from './wallet.routes.js'
@@ -26,6 +30,10 @@ export function createApiRouter(): Router {
   router.use('/v1/deposits', depositRouter)
   router.use('/v1/withdrawals', withdrawalRouter)
   router.use('/v1/transactions', transactionRouter)
+  router.use('/v1/trades', tradeRouter)
+  router.use('/v1/performance', performanceRouter)
+  router.use('/v1/portfolio', portfolioRouter)
+  router.use('/v1/returns', returnsRouter)
   router.use('/v1/admin', adminRouter)
 
   return router

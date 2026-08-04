@@ -2,7 +2,7 @@
 
 Premium AI-assisted Forex investment platform.
 
-> **Status:** Phases 1–4 backend live (auth, users/admin/RBAC/audit, KYC, wallet/ledger/deposits/withdrawals). Trading/daily returns deferred.
+> **Status:** Phases 1–5 backend live (auth, users/admin, KYC, wallet/ledger/finance, trading/daily returns/performance). CMS/reports deferred.
 
 ## Stack
 
@@ -54,7 +54,8 @@ Open [http://localhost:3000](http://localhost:3000). API: [http://localhost:4000
 - [Phase 2 — Users / admin / RBAC](./PHASE2_BACKEND_COMPLETION_REPORT.md)
 - [Phase 3 — KYC engine](./PHASE3_BACKEND_COMPLETION_REPORT.md)
 - [Phase 4 — Financial engine](./PHASE4_BACKEND_COMPLETION_REPORT.md)
-- API: [`docs/API_PHASE4_FINANCE.md`](./docs/API_PHASE4_FINANCE.md) · Ledger: [`docs/LEDGER.md`](./docs/LEDGER.md)
+- [Phase 5 — Trading engine](./PHASE5_BACKEND_COMPLETION_REPORT.md)
+- API: [`docs/API_PHASE5_TRADING.md`](./docs/API_PHASE5_TRADING.md) · Trading: [`docs/TRADING_ARCHITECTURE.md`](./docs/TRADING_ARCHITECTURE.md)
 
 ## Design system
 
@@ -63,4 +64,4 @@ Docs: [`docs/10-design-system.md`](./docs/10-design-system.md)
 
 ## Next (deferred)
 
-Trading · Daily returns · Performance · Reports · CMS · Support channels
+Reports · CMS · Support channels · Redis/BullMQ · Email provider
