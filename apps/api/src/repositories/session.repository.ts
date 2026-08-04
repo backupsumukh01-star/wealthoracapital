@@ -49,6 +49,14 @@ export const sessionRepository = {
     return result.count
   },
 
+  async touch(id: string): Promise<void> {
+    await prisma.session.update({
+      where: { id },
+      data: { lastUsedAt: new Date() },
+    })
+  },
+
+
   async revokeFamily(familyId: string): Promise<number> {
     const result = await prisma.session.updateMany({
       where: { familyId, revokedAt: null },

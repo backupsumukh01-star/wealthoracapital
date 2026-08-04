@@ -1,5 +1,6 @@
-// Growzy / Meridian FX — Prisma schema (Phase 1: identity & auth)
-// Spec: docs/04-database-schema.md
+// Growzy / Meridian FX — Prisma schema
+// Phase 1: identity & auth
+// Phase 2: profiles, audit, activity, notifications
 
 generator client {
   provider = "prisma-client-js"
@@ -10,16 +11,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Investor-facing coarse role (matches @meridian/shared Role).
-// Investor accounts use USER. Admin console accounts use ADMIN / SUPER_ADMIN.
 enum Role {
   USER
   ADMIN
   SUPER_ADMIN
 }
 
-// Fine-grained operator RBAC. Null for investors.
-// Maps to product names: Finance, Support, KYC, Content, Viewer (+ Super Admin / Admin).
 enum StaffRole {
   SUPER_ADMIN
   ADMIN
@@ -34,7 +31,9 @@ enum UserStatus {
   PENDING_VERIFICATION
   ACTIVE
   SUSPENDED
+  BLOCKED
   CLOSED
+  ARCHIVED
 }
 
 enum KycStatus {
@@ -50,53 +49,83 @@ enum TokenType {
   EMAIL_CHANGE
 }
 
+enum ActivityKind {
+  LOGIN
+  LOGOUT
+  PASSWORD_CHANGE
+  EMAIL_CHANGE
+  PROFILE_UPDATE
+  ADMIN_ACTION
+  ACCOUNT_STATUS_CHANGE
+  SESSION_TERMINATED
+  AVATAR_UPDATE
+  REGISTRATION
+}
+
+enum NotificationKind {
+  SYSTEM
+  SECURITY
+  ACCOUNT
+  ADMIN
+}
+
 model User {
-  id               String     @id @default(uuid()) @db.Uuid
-  email            String     @unique @db.Citext
-  emailVerifiedAt  DateTime?  @map("email_verified_at")
-  passwordHash     String?    @map("password_hash")
-  firstName        String     @map("first_name") @db.VarChar(60)
-  lastName         String     @map("last_name") @db.VarChar(60)
-  phone            String?    @db.VarChar(24)
-  country          String?    @db.Char(2)
-  timezone         String     @default("UTC")
-  avatarKey        String?    @map("avatar_key")
-  role             Role       @default(USER)
-  staffRole        StaffRole? @map("staff_role")
-  status           UserStatus @default(PENDING_VERIFICATION)
-  kycStatus        KycStatus  @default(NOT_STARTED) @map("kyc_status")
+  id                String     @id @default(uuid()) @db.Uuid
+  email             String     @unique @db.Citext
+  emailVerifiedAt   DateTime?  @map("email_verified_at")
+  passwordHash      String?    @map("password_hash")
+  firstName         String     @map("first_name") @db.VarChar(60)
+  lastName          String     @map("last_name") @db.VarChar(60)
+  phone             String?    @db.VarChar(24)
+  country           String?    @db.Char(2)
+  timezone          String     @default("UTC")
+  avatarKey         String?    @map("avatar_key")
+  role              Role       @default(USER)
+  staffRole         StaffRole? @map("staff_role")
+  status            UserStatus @default(PENDING_VERIFICATION)
+  kycStatus         KycStatus  @default(NOT_STARTED) @map("kyc_status")
 
-  twoFactorSecret  String?    @map("two_factor_secret")
-  twoFactorEnabled Boolean    @default(false) @map("two_factor_enabled")
-  failedLoginCount Int        @default(0) @map("failed_login_count")
-  lockedUntil      DateTime?  @map("locked_until")
-  lastLoginAt      DateTime?  @map("last_login_at")
-  lastLoginIp      String?    @map("last_login_ip")
-  passwordChangedAt DateTime? @map("password_changed_at")
+  twoFactorSecret   String?    @map("two_factor_secret")
+  twoFactorEnabled  Boolean    @default(false) @map("two_factor_enabled")
+  failedLoginCount  Int        @default(0) @map("failed_login_count")
+  lockedUntil       DateTime?  @map("locked_until")
+  lastLoginAt       DateTime?  @map("last_login_at")
+  lastLoginIp       String?    @map("last_login_ip")
+  passwordChangedAt DateTime?  @map("password_changed_at")
 
-  termsAcceptedAt  DateTime?  @map("terms_accepted_at")
-  riskAcceptedAt   DateTime?  @map("risk_accepted_at")
-  marketingOptIn   Boolean    @default(false) @map("marketing_opt_in")
+  termsAcceptedAt   DateTime?  @map("terms_accepted_at")
+  riskAcceptedAt    DateTime?  @map("risk_accepted_at")
+  marketingOptIn    Boolean    @default(false) @map("marketing_opt_in")
 
-  referralCode     String?    @unique @map("referral_code") @db.VarChar(16)
-  referredById     String?    @map("referred_by_id") @db.Uuid
-  referredBy       User?      @relation("Referrals", fields: [referredById], references: [id])
-  referrals        User[]     @relation("Referrals")
+  referralCode      String?    @unique @map("referral_code") @db.VarChar(16)
+  referredById      String?    @map("referred_by_id") @db.Uuid
+  referredBy        User?      @relation("Referrals", fields: [referredById], references: [id])
+  referrals         User[]     @relation("Referrals")
 
-  createdAt        DateTime   @default(now()) @map("created_at")
-  updatedAt        DateTime   @updatedAt @map("updated_at")
-  deletedAt        DateTime?  @map("deleted_at")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+  deletedAt         DateTime?  @map("deleted_at")
 
-  sessions            Session[]
-  verificationTokens  VerificationToken[]
+  // UserSession — existing Session model (refresh-token sessions)
+  sessions              Session[]
+  verificationTokens    VerificationToken[]
+  profile               UserProfile?
+  auditLogsAsActor      AuditLog[]    @relation("AuditActor")
+  auditLogsAsTarget     AuditLog[]    @relation("AuditTarget")
+  activityLogs          ActivityLog[] @relation("ActivitySubject")
+  activityLogsAsActor   ActivityLog[] @relation("ActivityActor")
+  notifications         Notification[]
 
   @@index([status])
   @@index([role])
   @@index([staffRole])
   @@index([createdAt])
+  @@index([country])
+  @@index([phone])
   @@map("users")
 }
 
+/// Refresh-token session store (UserSession in product language).
 model Session {
   id               String    @id @default(uuid()) @db.Uuid
   userId           String    @map("user_id") @db.Uuid
@@ -130,4 +159,80 @@ model VerificationToken {
 
   @@index([userId, type])
   @@map("verification_tokens")
+}
+
+model UserProfile {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @unique @map("user_id") @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addressLine1 String? @map("address_line1") @db.VarChar(120)
+  addressLine2 String? @map("address_line2") @db.VarChar(120)
+  city        String?  @db.VarChar(80)
+  state       String?  @db.VarChar(80)
+  postalCode  String?  @map("postal_code") @db.VarChar(24)
+  language    String   @default("en") @db.VarChar(10)
+  bio         String?  @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("user_profiles")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  targetUserId String? @map("target_user_id") @db.Uuid
+  targetUser User?    @relation("AuditTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+  action     String   @db.VarChar(80)
+  module     String   @db.VarChar(80)
+  oldValue   Json?    @map("old_value")
+  newValue   Json?    @map("new_value")
+  reason     String?  @db.VarChar(500)
+  ip         String?
+  userAgent  String?  @map("user_agent") @db.VarChar(400)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([actorId])
+  @@index([targetUserId])
+  @@index([module, action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model ActivityLog {
+  id          String       @id @default(uuid()) @db.Uuid
+  userId      String       @map("user_id") @db.Uuid
+  user        User         @relation("ActivitySubject", fields: [userId], references: [id], onDelete: Cascade)
+  actorId     String?      @map("actor_id") @db.Uuid
+  actor       User?        @relation("ActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+  kind        ActivityKind
+  title       String       @db.VarChar(160)
+  description String?      @db.VarChar(500)
+  metadata    Json?
+  ip          String?
+  userAgent   String?      @map("user_agent") @db.VarChar(400)
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([kind, createdAt])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+/// In-app notifications only (no email/push/websocket in Phase 2).
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      NotificationKind @default(SYSTEM)
+  title     String           @db.VarChar(160)
+  body      String           @db.VarChar(1000)
+  metadata  Json?
+  readAt    DateTime?        @map("read_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  @@index([userId, readAt])
+  @@index([createdAt])
+  @@map("notifications")
 }

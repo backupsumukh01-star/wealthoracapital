@@ -29,7 +29,9 @@ export const UserStatus = {
   PENDING_VERIFICATION: 'PENDING_VERIFICATION',
   ACTIVE: 'ACTIVE',
   SUSPENDED: 'SUSPENDED',
+  BLOCKED: 'BLOCKED',
   CLOSED: 'CLOSED',
+  ARCHIVED: 'ARCHIVED',
 } as const
 export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus]
 

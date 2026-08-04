@@ -2,9 +2,10 @@ import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import express from 'express'
 import helmet from 'helmet'
+import path from 'node:path'
 import { pinoHttp } from 'pino-http'
 
-import { getCorsOrigins } from './config/env.js'
+import { env, getCorsOrigins } from './config/env.js'
 import { errorHandler, notFoundHandler } from './middlewares/error-handler.js'
 import { globalRateLimiter } from './middlewares/rate-limit.js'
 import { requestIdMiddleware } from './middlewares/request-id.js'
@@ -64,6 +65,7 @@ export function createApp() {
     })
   })
 
+  app.use('/uploads', express.static(path.resolve(env.UPLOAD_ROOT)))
   app.use('/api', createApiRouter())
 
   app.use(notFoundHandler)

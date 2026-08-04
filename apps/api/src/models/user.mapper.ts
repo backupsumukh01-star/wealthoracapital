@@ -1,6 +1,8 @@
 import type { User as SharedUser } from '@meridian/shared'
 import type { User } from '@prisma/client'
 
+import { storage } from '../services/storage/index.js'
+
 /** Map a Prisma user to the shared frontend DTO (wallet omitted until later phases). */
 export function toPublicUser(user: User): SharedUser {
   return {
@@ -11,7 +13,7 @@ export function toPublicUser(user: User): SharedUser {
     phone: user.phone,
     country: user.country,
     timezone: user.timezone,
-    avatarUrl: user.avatarKey,
+    avatarUrl: user.avatarKey ? storage.getPublicUrl(user.avatarKey) : null,
     role: user.role,
     status: user.status,
     kycStatus: user.kycStatus,

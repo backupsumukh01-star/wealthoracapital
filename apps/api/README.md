@@ -1,8 +1,8 @@
 # Growzy API (`@meridian/api`)
 
-Phase 1 backend foundation: Express + TypeScript + PostgreSQL + Prisma + JWT authentication.
+Phase 1–2 backend: Express + TypeScript + PostgreSQL + Prisma + JWT auth, user/admin management, RBAC, audit/activity, profiles.
 
-Frontend UI is untouched. This package serves the contracts expected by `apps/web` auth clients.
+Frontend UI is untouched. Contracts align with `@meridian/shared` and `apps/web` service clients.
 
 ## Stack
 
@@ -94,6 +94,8 @@ Staff guards: `requireRoles`, `requireStaffRoles`.
 ## Docs
 
 - [Backend setup guide](../../docs/BACKEND_SETUP.md)
-- [API documentation](../../docs/API_PHASE1.md)
+- [API Phase 1](../../docs/API_PHASE1.md) · [API Phase 2](../../docs/API_PHASE2.md)
+- [Database Phase 2](../../docs/DATABASE_PHASE2.md)
+- [Architecture Phase 2](../../docs/ARCHITECTURE_PHASE2.md)
 - [Environment variables](../../docs/ENV_VARIABLES.md)
-- [Phase 1 completion report](../../PHASE1_BACKEND_COMPLETION_REPORT.md)
+- [Phase 1 report](../../PHASE1_BACKEND_COMPLETION_REPORT.md) · [Phase 2 report](../../PHASE2_BACKEND_COMPLETION_REPORT.md)

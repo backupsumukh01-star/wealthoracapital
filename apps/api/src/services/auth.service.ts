@@ -27,6 +27,7 @@ import type {
   ResetPasswordInput,
   VerifyEmailInput,
 } from '../validators/auth.validators.js'
+import { activityService } from './activity.service.js'
 import { passwordService } from './password.service.js'
 import { tokenService } from './token.service.js'
 
@@ -149,6 +150,12 @@ export const authService = {
     })
 
     logger.info({ userId: user.id }, 'User registered')
+    await activityService.record({
+      userId: user.id,
+      actorId: user.id,
+      kind: 'REGISTRATION',
+      title: 'Account registered',
+    })
     return { userId: user.id }
   },
 
@@ -167,11 +174,11 @@ export const authService = {
       throw forbidden('Account temporarily locked due to failed login attempts.')
     }
 
-    if (user.status === 'SUSPENDED') {
+    if (user.status === 'SUSPENDED' || user.status === 'BLOCKED') {
       throw new AppError(403, ERROR_CODES.ACCOUNT_SUSPENDED, 'This account has been suspended.')
     }
 
-    if (user.status === 'CLOSED') {
+    if (user.status === 'CLOSED' || user.status === 'ARCHIVED') {
       throw unauthorized('Incorrect email or password.')
     }
 
@@ -220,6 +227,14 @@ export const authService = {
     await userRepository.recordSuccessfulLogin(user.id, context.ip)
     const { tokens } = await issueAuthTokens(user, context)
     logger.info({ userId: user.id, sessionHint: tokens.accessToken.slice(0, 8) }, 'User logged in')
+    await activityService.record({
+      userId: user.id,
+      actorId: user.id,
+      kind: 'LOGIN',
+      title: 'Signed in',
+      ip: context.ip,
+      userAgent: context.userAgent,
+    })
 
     return {
       user: toPublicUser(user),
@@ -251,7 +266,13 @@ export const authService = {
     }
 
     const user = await userRepository.findById(existing.userId)
-    if (!user || user.status === 'SUSPENDED' || user.status === 'CLOSED') {
+    if (
+      !user ||
+      user.status === 'SUSPENDED' ||
+      user.status === 'BLOCKED' ||
+      user.status === 'CLOSED' ||
+      user.status === 'ARCHIVED'
+    ) {
       await sessionRepository.revoke(existing.id)
       throw unauthorized('Session is no longer valid.')
     }
@@ -300,6 +321,14 @@ export const authService = {
     if (session && !session.revokedAt) {
       await sessionRepository.revoke(session.id)
       logger.info({ sessionId }, 'Session revoked on logout')
+      await activityService.record({
+        userId: session.userId,
+        actorId: session.userId,
+        kind: 'LOGOUT',
+        title: 'Signed out',
+        ip: session.ip,
+        userAgent: session.userAgent,
+      })
     }
   },
 
@@ -374,6 +403,12 @@ export const authService = {
     await verificationTokenRepository.markUsed(record.id)
     await sessionRepository.revokeAllForUser(record.userId)
     logger.info({ userId: record.userId }, 'Password reset completed')
+    await activityService.record({
+      userId: record.userId,
+      actorId: record.userId,
+      kind: 'PASSWORD_CHANGE',
+      title: 'Password reset completed',
+    })
   },
 
   async changePassword(userId: string, input: ChangePasswordInput): Promise<void> {
@@ -400,6 +435,12 @@ export const authService = {
       message: 'Your password was changed. All sessions have been signed out.',
     })
     logger.info({ userId: user.id }, 'Password changed')
+    await activityService.record({
+      userId: user.id,
+      actorId: user.id,
+      kind: 'PASSWORD_CHANGE',
+      title: 'Password changed',
+    })
   },
 
   async listSessions(userId: string, currentSessionId: string) {

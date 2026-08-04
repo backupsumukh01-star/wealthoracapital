@@ -41,6 +41,11 @@ const envSchema = z.object({
   SMTP_FROM_ADDRESS: z.string().min(3).default('noreply@localhost'),
 
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+
+  UPLOAD_ROOT: z.string().min(1).default('./uploads'),
+  STORAGE_DRIVER: z.enum(['local']).default('local'),
+  REDIS_URL: z.string().optional().default(''),
+  CACHE_DRIVER: z.enum(['memory', 'redis']).default('memory'),
 })
 
 export type Env = z.infer<typeof envSchema>

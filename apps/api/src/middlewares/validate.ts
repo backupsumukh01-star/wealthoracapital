@@ -7,7 +7,8 @@ type RequestPart = 'body' | 'query' | 'params'
 
 export function validate(schema: ZodSchema, part: RequestPart = 'body') {
   return (req: Request, _res: Response, next: NextFunction): void => {
-    const parsed = schema.safeParse(req[part])
+    const raw = req[part] ?? (part === 'body' ? {} : req[part])
+    const parsed = schema.safeParse(raw)
     if (!parsed.success) {
       next(
         badRequest('Validation failed.', {
