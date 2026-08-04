@@ -1,6 +1,5 @@
-// Meridian FX — Prisma schema
-// Full specification: docs/04-database-schema.md
-// Scaffold only — models will be added in Phase 1.
+// Growzy / Meridian FX — Prisma schema (Phase 1: identity & auth)
+// Spec: docs/04-database-schema.md
 
 generator client {
   provider = "prisma-client-js"
@@ -9,4 +8,126 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// Investor-facing coarse role (matches @meridian/shared Role).
+// Investor accounts use USER. Admin console accounts use ADMIN / SUPER_ADMIN.
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+// Fine-grained operator RBAC. Null for investors.
+// Maps to product names: Finance, Support, KYC, Content, Viewer (+ Super Admin / Admin).
+enum StaffRole {
+  SUPER_ADMIN
+  ADMIN
+  FINANCE
+  SUPPORT
+  KYC
+  CONTENT
+  VIEWER
+}
+
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum KycStatus {
+  NOT_STARTED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  EMAIL_CHANGE
+}
+
+model User {
+  id               String     @id @default(uuid()) @db.Uuid
+  email            String     @unique @db.Citext
+  emailVerifiedAt  DateTime?  @map("email_verified_at")
+  passwordHash     String?    @map("password_hash")
+  firstName        String     @map("first_name") @db.VarChar(60)
+  lastName         String     @map("last_name") @db.VarChar(60)
+  phone            String?    @db.VarChar(24)
+  country          String?    @db.Char(2)
+  timezone         String     @default("UTC")
+  avatarKey        String?    @map("avatar_key")
+  role             Role       @default(USER)
+  staffRole        StaffRole? @map("staff_role")
+  status           UserStatus @default(PENDING_VERIFICATION)
+  kycStatus        KycStatus  @default(NOT_STARTED) @map("kyc_status")
+
+  twoFactorSecret  String?    @map("two_factor_secret")
+  twoFactorEnabled Boolean    @default(false) @map("two_factor_enabled")
+  failedLoginCount Int        @default(0) @map("failed_login_count")
+  lockedUntil      DateTime?  @map("locked_until")
+  lastLoginAt      DateTime?  @map("last_login_at")
+  lastLoginIp      String?    @map("last_login_ip")
+  passwordChangedAt DateTime? @map("password_changed_at")
+
+  termsAcceptedAt  DateTime?  @map("terms_accepted_at")
+  riskAcceptedAt   DateTime?  @map("risk_accepted_at")
+  marketingOptIn   Boolean    @default(false) @map("marketing_opt_in")
+
+  referralCode     String?    @unique @map("referral_code") @db.VarChar(16)
+  referredById     String?    @map("referred_by_id") @db.Uuid
+  referredBy       User?      @relation("Referrals", fields: [referredById], references: [id])
+  referrals        User[]     @relation("Referrals")
+
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+  deletedAt        DateTime?  @map("deleted_at")
+
+  sessions            Session[]
+  verificationTokens  VerificationToken[]
+
+  @@index([status])
+  @@index([role])
+  @@index([staffRole])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Session {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String    @unique @map("refresh_token_hash")
+  familyId         String    @map("family_id") @db.Uuid
+  userAgent        String?   @map("user_agent") @db.VarChar(400)
+  ip               String?
+  expiresAt        DateTime  @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  replacedById     String?   @map("replaced_by_id") @db.Uuid
+  lastUsedAt       DateTime  @default(now()) @map("last_used_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique @map("token_hash")
+  type      TokenType
+  payload   Json?
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId, type])
+  @@map("verification_tokens")
 }
