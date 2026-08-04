@@ -65,6 +65,18 @@ export function createApp() {
     })
   })
 
+  app.use('/uploads', (req, res, next) => {
+    // KYC objects are private — only signed/authenticated download routes may serve them.
+    if (req.path.replace(/\\/g, '/').startsWith('/kyc')) {
+      res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Private KYC file storage.' },
+        meta: createMeta(req.requestId),
+      })
+      return
+    }
+    next()
+  })
   app.use('/uploads', express.static(path.resolve(env.UPLOAD_ROOT)))
   app.use('/api', createApiRouter())
 

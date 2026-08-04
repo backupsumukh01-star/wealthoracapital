@@ -1,9 +1,8 @@
-# Meridian FX
+# Growzy (Meridian FX monorepo)
 
 Premium AI-assisted Forex investment platform.
 
-> **Status:** Frontend scaffold complete. API is folder structure only. No business logic or live APIs yet.
-> Planning docs live in [`docs/`](./docs/README.md).
+> **Status:** Phases 1–3 backend live (auth, users/admin/RBAC/audit, KYC). Frontend UI connected for those domains. Wallet/ledger/trading deferred.
 
 ## Stack
 
@@ -12,17 +11,17 @@ Premium AI-assisted Forex investment platform.
 | Monorepo | pnpm workspaces + Turborepo |
 | Web | Next.js 15 · App Router · TypeScript · Tailwind CSS v4 · Framer Motion · React Query · React Hook Form · shadcn/Radix · Lucide |
 | Shared | `@meridian/shared` — types, enums, route constants |
-| API | Express 5 (scaffold only — Phase 0+) |
+| API | Express + Prisma + PostgreSQL (`apps/api`) |
 | Design | Dark-first teal accent, glassmorphism, tabular figures — see `docs/10-design-system.md` |
 
 ## Packages
 
 ```
-apps/web          Next.js investor + admin UI (placeholders)
-apps/api          Express API folder tree (not implemented)
+apps/web          Next.js investor + admin UI
+apps/api          Express API (Phases 1–3)
 packages/shared   Shared types & constants
 packages/config   Shared ESLint / TSConfig bases
-docs/             Architecture & planning (source of truth)
+docs/             Architecture, API, and KYC docs
 infra/            Nginx / PM2 / deploy scripts (stubs)
 ```
 
@@ -31,33 +30,36 @@ infra/            Nginx / PM2 / deploy scripts (stubs)
 ```bash
 # Node 22+, pnpm 9+
 pnpm install
-pnpm --filter @meridian/web dev
+cp apps/api/.env.example apps/api/.env
+pnpm --filter @meridian/api db:migrate:deploy
+pnpm --filter @meridian/api dev          # :4000
+pnpm --filter @meridian/web dev          # :3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
-Route guards are **off** during scaffold so every placeholder page is browsable. Enable later with:
-
-```env
-NEXT_PUBLIC_ENABLE_ROUTE_GUARDS=true
-```
+Open [http://localhost:3000](http://localhost:3000). API: [http://localhost:4000](http://localhost:4000).
 
 ## Scripts
 
 | Command | What it does |
 |---------|----------------|
-| `pnpm dev` | Start all packages that define `dev` |
-| `pnpm --filter @meridian/web dev` | Web only on :3000 |
+| `pnpm --filter @meridian/web dev` | Web on :3000 |
+| `pnpm --filter @meridian/api dev` | API on :4000 |
 | `pnpm build` | Build workspace |
 | `pnpm lint` / `pnpm typecheck` | Quality gates |
 | `pnpm format` | Prettier |
 
+## Backend phases
+
+- [Phase 1 — Auth](./PHASE1_BACKEND_COMPLETION_REPORT.md)
+- [Phase 2 — Users / admin / RBAC](./PHASE2_BACKEND_COMPLETION_REPORT.md)
+- [Phase 3 — KYC engine](./PHASE3_BACKEND_COMPLETION_REPORT.md)
+- API: [`docs/API_PHASE3_KYC.md`](./docs/API_PHASE3_KYC.md) · Flow: [`docs/KYC_FLOW.md`](./docs/KYC_FLOW.md)
+
 ## Design system
 
 Tokens: `apps/web/src/styles/tokens.css`  
-Utilities: glass / glass-strong / glass-edge / surface-card / section-y / container-page  
 Docs: [`docs/10-design-system.md`](./docs/10-design-system.md)
 
-## Next phases
+## Next (deferred)
 
-Follow [`docs/03-development-roadmap.md`](./docs/03-development-roadmap.md) — Phase 0 foundation → Phase 1 database → Phase 2 auth.
+Wallet · Ledger · Deposits/Withdrawals · Trading · Reports · CMS · Support channels

@@ -160,7 +160,17 @@ export const API_ROUTES = {
     avatar: '/profile/avatar',
     sessions: '/profile/sessions',
   },
-  kyc: { root: '/kyc', me: '/kyc/me', documents: '/kyc/documents' },
+  kyc: {
+    root: '/kyc',
+    me: '/kyc/me',
+    status: '/kyc/status',
+    submit: '/kyc/submit',
+    upload: '/kyc/upload',
+    update: '/kyc/update',
+    history: '/kyc/history',
+    documents: '/kyc/documents',
+    document: (id: string) => `/kyc/document/${id}`,
+  },
   support: { tickets: '/support/tickets' },
   reports: { root: '/reports', export: '/reports/export' },
   cms: {

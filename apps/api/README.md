@@ -1,8 +1,8 @@
 # Growzy API (`@meridian/api`)
 
-Phase 1–2 backend: Express + TypeScript + PostgreSQL + Prisma + JWT auth, user/admin management, RBAC, audit/activity, profiles.
+Phase 1–3 backend: Express + TypeScript + PostgreSQL + Prisma + JWT auth, user/admin management, RBAC, audit/activity, profiles, and the KYC engine.
 
-Frontend UI is untouched. Contracts align with `@meridian/shared` and `apps/web` service clients.
+Frontend UI is connected via `@meridian/shared` contracts and `apps/web` service clients.
 
 ## Stack
 
@@ -60,10 +60,11 @@ src/
   middlewares/     auth, RBAC, validation, errors, rate limit
   controllers/     HTTP adapters
   routes/          /api/health, /api/version, /api/v1/*
-  services/        auth, token, password
+  services/        auth, profile, admin, kyc (+ risk/virus interfaces)
   repositories/    data access
   models/          DTO mappers
   validators/      Zod schemas
+  storage/         local disk + signed URL abstraction
   emails/          transport + templates (provider deferred)
   jobs/            in-memory job queue interface
   utils/           logger, crypto, responses, errors
@@ -91,11 +92,16 @@ Refresh tokens are stored hashed (SHA-256). Rotation revokes the previous token;
 
 Staff guards: `requireRoles`, `requireStaffRoles`.
 
+## KYC (Phase 3)
+
+Investor: `/api/v1/kyc/*` · Admin: `/api/v1/admin/kyc/*`  
+Uploads use multipart + signed download URLs. See [KYC flow](../../docs/KYC_FLOW.md).
+
 ## Docs
 
 - [Backend setup guide](../../docs/BACKEND_SETUP.md)
-- [API Phase 1](../../docs/API_PHASE1.md) · [API Phase 2](../../docs/API_PHASE2.md)
-- [Database Phase 2](../../docs/DATABASE_PHASE2.md)
-- [Architecture Phase 2](../../docs/ARCHITECTURE_PHASE2.md)
+- [API Phase 1](../../docs/API_PHASE1.md) · [API Phase 2](../../docs/API_PHASE2.md) · [API Phase 3 KYC](../../docs/API_PHASE3_KYC.md)
+- [Database Phase 2](../../docs/DATABASE_PHASE2.md) · [Database Phase 3 KYC](../../docs/DATABASE_PHASE3_KYC.md)
+- [Architecture Phase 2](../../docs/ARCHITECTURE_PHASE2.md) · [KYC flow](../../docs/KYC_FLOW.md)
 - [Environment variables](../../docs/ENV_VARIABLES.md)
-- [Phase 1 report](../../PHASE1_BACKEND_COMPLETION_REPORT.md) · [Phase 2 report](../../PHASE2_BACKEND_COMPLETION_REPORT.md)
+- [Phase 1](../../PHASE1_BACKEND_COMPLETION_REPORT.md) · [Phase 2](../../PHASE2_BACKEND_COMPLETION_REPORT.md) · [Phase 3](../../PHASE3_BACKEND_COMPLETION_REPORT.md)

@@ -34,7 +34,19 @@ export const adminUserListQuerySchema = z.object({
     .enum(['true', 'false'])
     .optional()
     .transform((v) => (v === undefined ? undefined : v === 'true')),
-  kycStatus: z.enum(['NOT_STARTED', 'PENDING', 'APPROVED', 'REJECTED']).optional(),
+  kycStatus: z
+    .enum([
+      'NOT_STARTED',
+      'PENDING',
+      'SUBMITTED',
+      'UNDER_REVIEW',
+      'NEED_MORE_INFO',
+      'APPROVED',
+      'REJECTED',
+      'EXPIRED',
+      'SUSPENDED',
+    ])
+    .optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
   includeDeleted: z

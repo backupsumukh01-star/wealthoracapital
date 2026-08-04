@@ -177,7 +177,10 @@ export const userRepository = {
 
   async countPendingKyc(): Promise<number> {
     return prisma.user.count({
-      where: { deletedAt: null, kycStatus: 'PENDING' },
+      where: {
+        deletedAt: null,
+        kycStatus: { in: ['PENDING', 'SUBMITTED', 'UNDER_REVIEW', 'NEED_MORE_INFO'] },
+      },
     })
   },
 }

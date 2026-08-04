@@ -6,6 +6,7 @@ import { authenticate } from '../middlewares/authenticate.js'
 import { PERMISSIONS } from '../config/permissions.js'
 import { requireAdminAccess, requirePermission } from '../middlewares/require-permission.js'
 import { validate } from '../middlewares/validate.js'
+import { adminKycRouter } from './admin-kyc.routes.js'
 import {
   adminActivityQuerySchema,
   adminAuditQuerySchema,
@@ -127,3 +128,5 @@ adminRouter.post(
   validate(idParamSchema, 'params'),
   adminUsersController.forceLogout,
 )
+
+adminRouter.use('/kyc', adminKycRouter)

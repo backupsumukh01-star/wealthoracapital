@@ -38,10 +38,35 @@ export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus]
 export const KycStatus = {
   NOT_STARTED: 'NOT_STARTED',
   PENDING: 'PENDING',
+  SUBMITTED: 'SUBMITTED',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  NEED_MORE_INFO: 'NEED_MORE_INFO',
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
+  EXPIRED: 'EXPIRED',
+  SUSPENDED: 'SUSPENDED',
 } as const
 export type KycStatus = (typeof KycStatus)[keyof typeof KycStatus]
+
+export const KycDocumentType = {
+  PASSPORT: 'PASSPORT',
+  NATIONAL_ID: 'NATIONAL_ID',
+  DRIVING_LICENSE: 'DRIVING_LICENSE',
+  RESIDENCE_PERMIT: 'RESIDENCE_PERMIT',
+  PROOF_OF_ADDRESS: 'PROOF_OF_ADDRESS',
+  SELFIE: 'SELFIE',
+  BANK_STATEMENT: 'BANK_STATEMENT',
+  UTILITY_BILL: 'UTILITY_BILL',
+} as const
+export type KycDocumentType = (typeof KycDocumentType)[keyof typeof KycDocumentType]
+
+export const KycRiskLevel = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  CRITICAL: 'CRITICAL',
+} as const
+export type KycRiskLevel = (typeof KycRiskLevel)[keyof typeof KycRiskLevel]
 
 export const DepositStatus = {
   PENDING: 'PENDING',

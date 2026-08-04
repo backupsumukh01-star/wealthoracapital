@@ -39,8 +39,70 @@ enum UserStatus {
 enum KycStatus {
   NOT_STARTED
   PENDING
+  SUBMITTED
+  UNDER_REVIEW
+  NEED_MORE_INFO
   APPROVED
   REJECTED
+  EXPIRED
+  SUSPENDED
+}
+
+enum KycDocumentType {
+  PASSPORT
+  NATIONAL_ID
+  DRIVING_LICENSE
+  RESIDENCE_PERMIT
+  PROOF_OF_ADDRESS
+  SELFIE
+  BANK_STATEMENT
+  UTILITY_BILL
+}
+
+enum KycDocumentSide {
+  FRONT
+  BACK
+  SINGLE
+}
+
+enum KycDocumentStatus {
+  UPLOADED
+  VERIFIED
+  REJECTED
+  REPLACED
+}
+
+enum KycRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum KycReviewDecision {
+  APPROVE
+  REJECT
+  REQUEST_INFORMATION
+  EXPIRE
+  REOPEN
+  SUSPEND
+}
+
+enum KycHistoryAction {
+  CREATED
+  UPDATED
+  DOCUMENT_UPLOADED
+  DOCUMENT_DELETED
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  INFO_REQUESTED
+  EXPIRED
+  REOPENED
+  SUSPENDED
+  ASSIGNED
+  NOTE_ADDED
 }
 
 enum TokenType {
@@ -60,6 +122,13 @@ enum ActivityKind {
   SESSION_TERMINATED
   AVATAR_UPDATE
   REGISTRATION
+  KYC_SUBMITTED
+  KYC_APPROVED
+  KYC_REJECTED
+  KYC_INFO_REQUESTED
+  KYC_EXPIRED
+  KYC_SUSPENDED
+  KYC_REOPENED
 }
 
 enum NotificationKind {
@@ -115,10 +184,13 @@ model User {
   activityLogs          ActivityLog[] @relation("ActivitySubject")
   activityLogsAsActor   ActivityLog[] @relation("ActivityActor")
   notifications         Notification[]
+  kycSubmissions        KycSubmission[]
+  kycReviewsAssigned    KycReview[]     @relation("KycReviewer")
 
   @@index([status])
   @@index([role])
   @@index([staffRole])
+  @@index([kycStatus])
   @@index([createdAt])
   @@index([country])
   @@index([phone])
@@ -235,4 +307,102 @@ model Notification {
   @@index([userId, readAt])
   @@index([createdAt])
   @@map("notifications")
+}
+
+model KycSubmission {
+  id                 String        @id @default(uuid()) @db.Uuid
+  referenceId        String        @unique @map("reference_id") @db.VarChar(24)
+  userId             String        @map("user_id") @db.Uuid
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status             KycStatus     @default(PENDING)
+  country            String        @db.Char(2)
+  dateOfBirth        DateTime      @map("date_of_birth") @db.Date
+  nationality        String?       @db.Char(2)
+  addressLine1       String?       @map("address_line1") @db.VarChar(120)
+  city               String?       @db.VarChar(80)
+  postalCode         String?       @map("postal_code") @db.VarChar(24)
+  occupation         String?       @db.VarChar(80)
+  primaryDocumentType KycDocumentType? @map("primary_document_type")
+  riskLevel          KycRiskLevel  @default(LOW) @map("risk_level")
+  riskScore          Int           @default(0) @map("risk_score")
+  fraudFlag          Boolean       @default(false) @map("fraud_flag")
+  documentQuality    Int?          @map("document_quality")
+  assignedReviewerId String?       @map("assigned_reviewer_id") @db.Uuid
+  rejectionReason    String?       @map("rejection_reason") @db.VarChar(500)
+  infoRequestMessage String?       @map("info_request_message") @db.VarChar(1000)
+  internalNotes      String?       @map("internal_notes") @db.VarChar(2000)
+  submittedAt        DateTime?     @map("submitted_at")
+  reviewedAt         DateTime?     @map("reviewed_at")
+  expiresAt          DateTime?     @map("expires_at")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  documents KycDocument[]
+  reviews   KycReview[]
+  history   KycHistory[]
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@index([country])
+  @@index([riskLevel])
+  @@index([assignedReviewerId])
+  @@index([referenceId])
+  @@map("kyc_submissions")
+}
+
+model KycDocument {
+  id           String            @id @default(uuid()) @db.Uuid
+  submissionId String            @map("submission_id") @db.Uuid
+  submission   KycSubmission     @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  documentType KycDocumentType   @map("document_type")
+  side         KycDocumentSide   @default(SINGLE)
+  status       KycDocumentStatus @default(UPLOADED)
+  storageKey   String            @map("storage_key") @db.VarChar(400)
+  originalName String            @map("original_name") @db.VarChar(200)
+  mimeType     String            @map("mime_type") @db.VarChar(100)
+  sizeBytes    Int               @map("size_bytes")
+  checksumSha256 String          @map("checksum_sha256") @db.VarChar(64)
+  virusScanStatus String         @default("PENDING") @map("virus_scan_status") @db.VarChar(32)
+  deletedAt    DateTime?         @map("deleted_at")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  @@index([submissionId])
+  @@index([checksumSha256])
+  @@index([documentType])
+  @@map("kyc_documents")
+}
+
+model KycReview {
+  id             String            @id @default(uuid()) @db.Uuid
+  submissionId   String            @map("submission_id") @db.Uuid
+  submission     KycSubmission     @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reviewerId     String?           @map("reviewer_id") @db.Uuid
+  reviewer       User?             @relation("KycReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  decision       KycReviewDecision
+  reason         String?           @db.VarChar(1000)
+  internalNotes  String?           @map("internal_notes") @db.VarChar(2000)
+  riskLevel      KycRiskLevel?     @map("risk_level")
+  riskScore      Int?              @map("risk_score")
+  fraudFlag      Boolean?          @map("fraud_flag")
+  documentQuality Int?             @map("document_quality")
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  @@index([submissionId, createdAt])
+  @@index([reviewerId])
+  @@map("kyc_reviews")
+}
+
+model KycHistory {
+  id           String           @id @default(uuid()) @db.Uuid
+  submissionId String           @map("submission_id") @db.Uuid
+  submission   KycSubmission    @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  actorId      String?          @map("actor_id") @db.Uuid
+  action       KycHistoryAction
+  message      String?          @db.VarChar(1000)
+  metadata     Json?
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  @@index([submissionId, createdAt])
+  @@map("kyc_histories")
 }

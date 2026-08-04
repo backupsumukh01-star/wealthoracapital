@@ -2,8 +2,7 @@
 
 > **Product brand:** Growzy (repo/package codename may still say `meridian-fx` / `@meridian/*`)  
 > **Phase 2 source of truth:** [`../MASTER_PROJECT_PLAN.md`](../MASTER_PROJECT_PLAN.md)  
-> **Status:** Frontend marketing/auth UI is production-quality (demo data). API is scaffold only — no business logic yet.  
-> Documents below remain the deep technical specs (originally written under the Meridian codename).
+> **Status:** Backend Phases 1–3 implemented (auth, users/admin, KYC). Planning docs below remain the deep specs; live API docs are `API_PHASE*.md` / `DATABASE_PHASE*.md` / `KYC_FLOW.md`.
 
 This folder contains the complete architecture and planning set for a premium,
 AI-assisted Forex investment platform. Read the documents in order the first time;
@@ -61,6 +60,19 @@ If you only remember ten decisions from this documentation set, make it these.
 10. **This is not a licensed brokerage product out of the box.** Regulatory posture, custody of
     client funds and jurisdiction must be resolved by the operator before accepting real money.
     See the compliance note in the [Project Overview](./00-project-overview.md#8-compliance-posture).
+
+---
+
+## Live backend docs (Phases 1–3)
+
+| Doc | Topic |
+|-----|--------|
+| [API Phase 1](./API_PHASE1.md) | Auth |
+| [API Phase 2](./API_PHASE2.md) | Profile / admin / audit |
+| [API Phase 3 KYC](./API_PHASE3_KYC.md) | Investor + admin KYC APIs |
+| [Database Phase 3 KYC](./DATABASE_PHASE3_KYC.md) | KYC schema |
+| [KYC Flow](./KYC_FLOW.md) | End-to-end verification flow |
+| [Backend setup](./BACKEND_SETUP.md) | Local API + Postgres |
 
 ---
 
