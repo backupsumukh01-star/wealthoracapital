@@ -74,6 +74,7 @@ export const DepositStatus = {
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
   CANCELLED: 'CANCELLED',
+  EXPIRED: 'EXPIRED',
 } as const
 export type DepositStatus = (typeof DepositStatus)[keyof typeof DepositStatus]
 
@@ -81,7 +82,9 @@ export const WithdrawalStatus = {
   PENDING: 'PENDING',
   UNDER_REVIEW: 'UNDER_REVIEW',
   APPROVED: 'APPROVED',
+  PROCESSING: 'PROCESSING',
   PAID: 'PAID',
+  COMPLETED: 'COMPLETED',
   REJECTED: 'REJECTED',
   CANCELLED: 'CANCELLED',
 } as const
@@ -89,11 +92,37 @@ export type WithdrawalStatus = (typeof WithdrawalStatus)[keyof typeof Withdrawal
 
 export const PaymentMethodType = {
   BANK_TRANSFER: 'BANK_TRANSFER',
+  USDT_TRC20: 'USDT_TRC20',
+  USDT_BEP20: 'USDT_BEP20',
+  BTC: 'BTC',
+  ETH: 'ETH',
+  MANUAL: 'MANUAL',
   CRYPTO: 'CRYPTO',
   MOBILE_WALLET: 'MOBILE_WALLET',
   OTHER: 'OTHER',
 } as const
 export type PaymentMethodType = (typeof PaymentMethodType)[keyof typeof PaymentMethodType]
+
+export const WalletKind = {
+  INVESTMENT: 'INVESTMENT',
+  PROFIT: 'PROFIT',
+  BONUS: 'BONUS',
+  REFERRAL: 'REFERRAL',
+} as const
+export type WalletKind = (typeof WalletKind)[keyof typeof WalletKind]
+
+export const TransactionType = {
+  DEPOSIT: 'DEPOSIT',
+  WITHDRAWAL: 'WITHDRAWAL',
+  INVESTMENT: 'INVESTMENT',
+  PROFIT: 'PROFIT',
+  REFERRAL_BONUS: 'REFERRAL_BONUS',
+  ADMIN_ADJUSTMENT: 'ADMIN_ADJUSTMENT',
+  TRANSFER: 'TRANSFER',
+  REFUND: 'REFUND',
+  REVERSAL: 'REVERSAL',
+} as const
+export type TransactionType = (typeof TransactionType)[keyof typeof TransactionType]
 
 export const LedgerEntryType = {
   DEPOSIT_APPROVED: 'DEPOSIT_APPROVED',
@@ -106,6 +135,9 @@ export const LedgerEntryType = {
   ADJUSTMENT_DEBIT: 'ADJUSTMENT_DEBIT',
   FEE: 'FEE',
   BONUS: 'BONUS',
+  TRANSFER: 'TRANSFER',
+  REFUND: 'REFUND',
+  REVERSAL: 'REVERSAL',
 } as const
 export type LedgerEntryType = (typeof LedgerEntryType)[keyof typeof LedgerEntryType]
 
@@ -146,8 +178,10 @@ export const ReturnBasis = { BALANCE: 'BALANCE', INVESTED: 'INVESTED' } as const
 export type ReturnBasis = (typeof ReturnBasis)[keyof typeof ReturnBasis]
 
 export const NotificationType = {
+  DEPOSIT_SUBMITTED: 'DEPOSIT_SUBMITTED',
   DEPOSIT_APPROVED: 'DEPOSIT_APPROVED',
   DEPOSIT_REJECTED: 'DEPOSIT_REJECTED',
+  WITHDRAWAL_SUBMITTED: 'WITHDRAWAL_SUBMITTED',
   WITHDRAWAL_APPROVED: 'WITHDRAWAL_APPROVED',
   WITHDRAWAL_REJECTED: 'WITHDRAWAL_REJECTED',
   WITHDRAWAL_PAID: 'WITHDRAWAL_PAID',

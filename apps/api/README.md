@@ -1,6 +1,6 @@
 # Growzy API (`@meridian/api`)
 
-Phase 1–3 backend: Express + TypeScript + PostgreSQL + Prisma + JWT auth, user/admin management, RBAC, audit/activity, profiles, and the KYC engine.
+Phase 1–4 backend: Express + TypeScript + PostgreSQL + Prisma + JWT auth, user/admin management, RBAC, audit/activity, profiles, KYC, and the financial engine (wallet/ledger/deposits/withdrawals).
 
 Frontend UI is connected via `@meridian/shared` contracts and `apps/web` service clients.
 
@@ -97,11 +97,17 @@ Staff guards: `requireRoles`, `requireStaffRoles`.
 Investor: `/api/v1/kyc/*` · Admin: `/api/v1/admin/kyc/*`  
 Uploads use multipart + signed download URLs. See [KYC flow](../../docs/KYC_FLOW.md).
 
+## Finance (Phase 4)
+
+Investor: `/api/v1/wallet`, `/deposits`, `/withdrawals`, `/transactions`  
+Admin: `/api/v1/admin/deposits|withdrawals|wallets|payment-methods|wallet-addresses|ledger|finance/metrics`  
+See [Financial architecture](../../docs/FINANCIAL_ARCHITECTURE.md) and [Ledger](../../docs/LEDGER.md).
+
 ## Docs
 
 - [Backend setup guide](../../docs/BACKEND_SETUP.md)
-- [API Phase 1](../../docs/API_PHASE1.md) · [API Phase 2](../../docs/API_PHASE2.md) · [API Phase 3 KYC](../../docs/API_PHASE3_KYC.md)
-- [Database Phase 2](../../docs/DATABASE_PHASE2.md) · [Database Phase 3 KYC](../../docs/DATABASE_PHASE3_KYC.md)
-- [Architecture Phase 2](../../docs/ARCHITECTURE_PHASE2.md) · [KYC flow](../../docs/KYC_FLOW.md)
+- [API Phase 1](../../docs/API_PHASE1.md) · [API Phase 2](../../docs/API_PHASE2.md) · [API Phase 3 KYC](../../docs/API_PHASE3_KYC.md) · [API Phase 4 Finance](../../docs/API_PHASE4_FINANCE.md)
+- [Database Phase 2](../../docs/DATABASE_PHASE2.md) · [Database Phase 3 KYC](../../docs/DATABASE_PHASE3_KYC.md) · [Database Phase 4 Finance](../../docs/DATABASE_PHASE4_FINANCE.md)
+- [Architecture Phase 2](../../docs/ARCHITECTURE_PHASE2.md) · [KYC flow](../../docs/KYC_FLOW.md) · [Financial architecture](../../docs/FINANCIAL_ARCHITECTURE.md) · [Ledger](../../docs/LEDGER.md)
 - [Environment variables](../../docs/ENV_VARIABLES.md)
-- [Phase 1](../../PHASE1_BACKEND_COMPLETION_REPORT.md) · [Phase 2](../../PHASE2_BACKEND_COMPLETION_REPORT.md) · [Phase 3](../../PHASE3_BACKEND_COMPLETION_REPORT.md)
+- [Phase 1](../../PHASE1_BACKEND_COMPLETION_REPORT.md) · [Phase 2](../../PHASE2_BACKEND_COMPLETION_REPORT.md) · [Phase 3](../../PHASE3_BACKEND_COMPLETION_REPORT.md) · [Phase 4](../../PHASE4_BACKEND_COMPLETION_REPORT.md)

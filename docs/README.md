@@ -70,7 +70,11 @@ If you only remember ten decisions from this documentation set, make it these.
 | [API Phase 1](./API_PHASE1.md) | Auth |
 | [API Phase 2](./API_PHASE2.md) | Profile / admin / audit |
 | [API Phase 3 KYC](./API_PHASE3_KYC.md) | Investor + admin KYC APIs |
+| [API Phase 4 Finance](./API_PHASE4_FINANCE.md) | Wallet, deposits, withdrawals, admin finance |
 | [Database Phase 3 KYC](./DATABASE_PHASE3_KYC.md) | KYC schema |
+| [Database Phase 4 Finance](./DATABASE_PHASE4_FINANCE.md) | Finance schema |
+| [Financial Architecture](./FINANCIAL_ARCHITECTURE.md) | Money principles + module map |
+| [Ledger](./LEDGER.md) | Double-entry posting rules |
 | [KYC Flow](./KYC_FLOW.md) | End-to-end verification flow |
 | [Backend setup](./BACKEND_SETUP.md) | Local API + Postgres |
 

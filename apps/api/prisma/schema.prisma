@@ -129,6 +129,16 @@ enum ActivityKind {
   KYC_EXPIRED
   KYC_SUSPENDED
   KYC_REOPENED
+  DEPOSIT_SUBMITTED
+  DEPOSIT_APPROVED
+  DEPOSIT_REJECTED
+  DEPOSIT_CANCELLED
+  WITHDRAWAL_SUBMITTED
+  WITHDRAWAL_APPROVED
+  WITHDRAWAL_REJECTED
+  WITHDRAWAL_CANCELLED
+  WITHDRAWAL_PAID
+  WALLET_ADJUSTMENT
 }
 
 enum NotificationKind {
@@ -136,6 +146,121 @@ enum NotificationKind {
   SECURITY
   ACCOUNT
   ADMIN
+  FINANCE
+}
+
+enum WalletKind {
+  INVESTMENT
+  PROFIT
+  BONUS
+  REFERRAL
+}
+
+enum LedgerAccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+  CONTRA
+}
+
+enum LedgerDirection {
+  DEBIT
+  CREDIT
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  INVESTMENT
+  PROFIT
+  REFERRAL_BONUS
+  ADMIN_ADJUSTMENT
+  TRANSFER
+  REFUND
+  REVERSAL
+}
+
+enum TransactionStatus {
+  PENDING
+  POSTED
+  REVERSED
+  CANCELLED
+  FAILED
+}
+
+enum LedgerEntryType {
+  DEPOSIT_APPROVED
+  WITHDRAWAL_LOCKED
+  WITHDRAWAL_COMPLETED
+  WITHDRAWAL_REFUNDED
+  PROFIT_DISTRIBUTION
+  PROFIT_REVERSAL
+  ADJUSTMENT_CREDIT
+  ADJUSTMENT_DEBIT
+  FEE
+  BONUS
+  TRANSFER
+  REFUND
+  REVERSAL
+}
+
+enum DepositStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  CANCELLED
+  EXPIRED
+}
+
+enum WithdrawalStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  PROCESSING
+  PAID
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+enum PaymentMethodType {
+  BANK_TRANSFER
+  USDT_TRC20
+  USDT_BEP20
+  BTC
+  ETH
+  MANUAL
+  CRYPTO
+  MOBILE_WALLET
+  OTHER
+}
+
+enum ApprovalQueueStatus {
+  PENDING
+  IN_PROGRESS
+  APPROVED
+  REJECTED
+  CANCELLED
+  ESCALATED
+}
+
+enum ApprovalRole {
+  FINANCE
+  ADMIN
+  SUPERVISOR
+}
+
+enum FinanceReviewDecision {
+  APPROVE
+  REJECT
+  REQUEST_INFORMATION
+  FORCE_COMPLETE
+  FORCE_CANCEL
+  NOTE
+  PAID
 }
 
 model User {
@@ -186,6 +311,14 @@ model User {
   notifications         Notification[]
   kycSubmissions        KycSubmission[]
   kycReviewsAssigned    KycReview[]     @relation("KycReviewer")
+  wallets               Wallet[]
+  ledgerAccounts        LedgerAccount[]
+  transactions          Transaction[]
+  deposits              Deposit[]
+  withdrawals           Withdrawal[]
+  payoutMethods         PayoutMethod[]
+  financeReviews        FinanceReview[] @relation("FinanceReviewer")
+  approvalAssignments   ApprovalQueue[] @relation("ApprovalAssignee")
 
   @@index([status])
   @@index([role])
@@ -405,4 +538,312 @@ model KycHistory {
 
   @@index([submissionId, createdAt])
   @@map("kyc_histories")
+}
+
+/// Cached balances — always derived from immutable ledger entries.
+model Wallet {
+  id               String     @id @default(uuid()) @db.Uuid
+  userId           String     @map("user_id") @db.Uuid
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind             WalletKind
+  currency         String     @default("USD") @db.Char(3)
+  balance          Decimal    @default(0) @db.Decimal(20, 8)
+  availableBalance Decimal    @default(0) @map("available_balance") @db.Decimal(20, 8)
+  lockedBalance    Decimal    @default(0) @map("locked_balance") @db.Decimal(20, 8)
+  pendingBalance   Decimal    @default(0) @map("pending_balance") @db.Decimal(20, 8)
+  investedAmount   Decimal    @default(0) @map("invested_amount") @db.Decimal(20, 8)
+  totalProfit      Decimal    @default(0) @map("total_profit") @db.Decimal(20, 8)
+  totalDeposited   Decimal    @default(0) @map("total_deposited") @db.Decimal(20, 8)
+  totalWithdrawn   Decimal    @default(0) @map("total_withdrawn") @db.Decimal(20, 8)
+  version          Int        @default(0)
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  ledgerAccounts LedgerAccount[]
+  ledgerEntries  LedgerEntry[]
+  deposits       Deposit[]
+  withdrawals    Withdrawal[]
+
+  @@unique([userId, kind])
+  @@index([userId])
+  @@map("wallets")
+}
+
+model LedgerAccount {
+  id          String            @id @default(uuid()) @db.Uuid
+  code        String            @unique @db.VarChar(64)
+  name        String            @db.VarChar(120)
+  accountType LedgerAccountType @map("account_type")
+  currency    String            @default("USD") @db.Char(3)
+  userId      String?           @map("user_id") @db.Uuid
+  user        User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  walletId    String?           @map("wallet_id") @db.Uuid
+  wallet      Wallet?           @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  isSystem    Boolean           @default(false) @map("is_system")
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  entries LedgerEntry[]
+
+  @@index([userId])
+  @@index([walletId])
+  @@map("ledger_accounts")
+}
+
+model Transaction {
+  id             String            @id @default(uuid()) @db.Uuid
+  referenceId    String            @unique @map("reference_id") @db.VarChar(32)
+  userId         String            @map("user_id") @db.Uuid
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type           TransactionType
+  status         TransactionStatus @default(PENDING)
+  amount         Decimal           @db.Decimal(20, 8)
+  currency       String            @default("USD") @db.Char(3)
+  description    String?           @db.VarChar(500)
+  idempotencyKey String?           @unique @map("idempotency_key") @db.VarChar(120)
+  createdById    String?           @map("created_by_id") @db.Uuid
+  auditRef       String?           @map("audit_ref") @db.VarChar(80)
+  metadata       Json?
+  createdAt      DateTime          @default(now()) @map("created_at")
+  postedAt       DateTime?         @map("posted_at")
+
+  entries   LedgerEntry[]
+  history   TransactionHistory[]
+  deposit   Deposit?
+  withdrawal Withdrawal?
+
+  @@index([userId, createdAt])
+  @@index([type, status])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+/// Immutable double-entry line. Never update or delete — reverse only.
+model LedgerEntry {
+  id             String          @id @default(uuid()) @db.Uuid
+  transactionId  String          @map("transaction_id") @db.Uuid
+  transaction    Transaction     @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  accountId      String          @map("account_id") @db.Uuid
+  account        LedgerAccount   @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  walletId       String?         @map("wallet_id") @db.Uuid
+  wallet         Wallet?         @relation(fields: [walletId], references: [id], onDelete: SetNull)
+  direction      LedgerDirection
+  amount         Decimal         @db.Decimal(20, 8)
+  signedAmount   Decimal         @map("signed_amount") @db.Decimal(20, 8)
+  entryType      LedgerEntryType @map("entry_type")
+  balanceBefore  Decimal?        @map("balance_before") @db.Decimal(20, 8)
+  balanceAfter   Decimal?        @map("balance_after") @db.Decimal(20, 8)
+  description    String?         @db.VarChar(500)
+  referenceType  String?         @map("reference_type") @db.VarChar(40)
+  referenceId    String?         @map("reference_id") @db.Uuid
+  idempotencyKey String?         @unique @map("idempotency_key") @db.VarChar(160)
+  createdById    String?         @map("created_by_id") @db.Uuid
+  createdAt      DateTime        @default(now()) @map("created_at")
+
+  @@index([transactionId])
+  @@index([accountId])
+  @@index([walletId, createdAt])
+  @@index([referenceType, referenceId])
+  @@index([createdAt])
+  @@map("ledger_entries")
+}
+
+model PaymentMethod {
+  id             String            @id @default(uuid()) @db.Uuid
+  name           String            @db.VarChar(80)
+  type           PaymentMethodType
+  instructions   String            @db.VarChar(2000)
+  accountDetails Json              @default("{}") @map("account_details")
+  network        String?           @db.VarChar(40)
+  minAmount      Decimal           @default(50) @map("min_amount") @db.Decimal(20, 8)
+  maxAmount      Decimal?          @map("max_amount") @db.Decimal(20, 8)
+  feePct         Decimal           @default(0) @map("fee_pct") @db.Decimal(10, 6)
+  processingTime String?           @map("processing_time") @db.VarChar(80)
+  priority       Int               @default(100)
+  isActive       Boolean           @default(true) @map("is_active")
+  deletedAt      DateTime?         @map("deleted_at")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  walletAddresses WalletAddress[]
+  deposits        Deposit[]
+
+  @@index([isActive, priority])
+  @@index([type])
+  @@map("payment_methods")
+}
+
+model WalletAddress {
+  id              String         @id @default(uuid()) @db.Uuid
+  paymentMethodId String?        @map("payment_method_id") @db.Uuid
+  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
+  label           String         @db.VarChar(80)
+  network         String         @db.VarChar(40)
+  address         String         @db.VarChar(200)
+  memo            String?        @db.VarChar(120)
+  qrCodeKey       String?        @map("qr_code_key") @db.VarChar(400)
+  isDefault       Boolean        @default(false) @map("is_default")
+  isActive        Boolean        @default(true) @map("is_active")
+  deletedAt       DateTime?      @map("deleted_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  @@index([network, isActive])
+  @@index([paymentMethodId])
+  @@map("wallet_addresses")
+}
+
+model PayoutMethod {
+  id             String            @id @default(uuid()) @db.Uuid
+  userId         String            @map("user_id") @db.Uuid
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label          String            @db.VarChar(80)
+  type           PaymentMethodType
+  details        Json              @default("{}")
+  maskedDetails  String            @map("masked_details") @db.VarChar(160)
+  isDefault      Boolean           @default(false) @map("is_default")
+  isVerified     Boolean           @default(false) @map("is_verified")
+  deletedAt      DateTime?         @map("deleted_at")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  withdrawals Withdrawal[]
+
+  @@index([userId])
+  @@map("payout_methods")
+}
+
+model Deposit {
+  id              String         @id @default(uuid()) @db.Uuid
+  reference       String         @unique @db.VarChar(32)
+  userId          String         @map("user_id") @db.Uuid
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  walletId        String         @map("wallet_id") @db.Uuid
+  wallet          Wallet         @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  paymentMethodId String         @map("payment_method_id") @db.Uuid
+  paymentMethod   PaymentMethod  @relation(fields: [paymentMethodId], references: [id], onDelete: Restrict)
+  transactionId   String?        @unique @map("transaction_id") @db.Uuid
+  transaction     Transaction?   @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  amount          Decimal        @db.Decimal(20, 8)
+  fee             Decimal        @default(0) @db.Decimal(20, 8)
+  creditedAmount  Decimal?       @map("credited_amount") @db.Decimal(20, 8)
+  currency        String         @default("USD") @db.Char(3)
+  status          DepositStatus  @default(PENDING)
+  userReference   String?        @map("user_reference") @db.VarChar(120)
+  txHash          String?        @map("tx_hash") @db.VarChar(120)
+  proofKey        String?        @map("proof_key") @db.VarChar(400)
+  proofChecksum   String?        @map("proof_checksum") @db.VarChar(64)
+  rejectionReason String?        @map("rejection_reason") @db.VarChar(500)
+  internalNotes   String?        @map("internal_notes") @db.VarChar(2000)
+  idempotencyKey  String         @unique @map("idempotency_key") @db.VarChar(120)
+  reviewedById    String?        @map("reviewed_by_id") @db.Uuid
+  reviewedAt      DateTime?      @map("reviewed_at")
+  expiresAt       DateTime?      @map("expires_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  reviews FinanceReview[]
+  queue   ApprovalQueue?
+
+  @@unique([txHash])
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@index([proofChecksum])
+  @@map("deposits")
+}
+
+model Withdrawal {
+  id                  String           @id @default(uuid()) @db.Uuid
+  reference           String           @unique @db.VarChar(32)
+  userId              String           @map("user_id") @db.Uuid
+  user                User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  walletId            String           @map("wallet_id") @db.Uuid
+  wallet              Wallet           @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  payoutMethodId      String           @map("payout_method_id") @db.Uuid
+  payoutMethod        PayoutMethod     @relation(fields: [payoutMethodId], references: [id], onDelete: Restrict)
+  transactionId       String?          @unique @map("transaction_id") @db.Uuid
+  transaction         Transaction?     @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  amount              Decimal          @db.Decimal(20, 8)
+  fee                 Decimal          @default(0) @db.Decimal(20, 8)
+  netAmount           Decimal          @map("net_amount") @db.Decimal(20, 8)
+  currency            String           @default("USD") @db.Char(3)
+  status              WithdrawalStatus @default(PENDING)
+  destinationLabel    String           @map("destination_label") @db.VarChar(160)
+  destinationSnapshot Json             @map("destination_snapshot")
+  transactionRef      String?          @map("transaction_ref") @db.VarChar(120)
+  rejectionReason     String?          @map("rejection_reason") @db.VarChar(500)
+  internalNotes       String?          @map("internal_notes") @db.VarChar(2000)
+  idempotencyKey      String           @unique @map("idempotency_key") @db.VarChar(120)
+  reviewedById        String?          @map("reviewed_by_id") @db.Uuid
+  reviewedAt          DateTime?        @map("reviewed_at")
+  paidAt              DateTime?        @map("paid_at")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  reviews FinanceReview[]
+  queue   ApprovalQueue?
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@map("withdrawals")
+}
+
+model ApprovalQueue {
+  id           String              @id @default(uuid()) @db.Uuid
+  entityType   String              @map("entity_type") @db.VarChar(40)
+  entityId     String              @map("entity_id") @db.Uuid
+  depositId    String?             @unique @map("deposit_id") @db.Uuid
+  deposit      Deposit?            @relation(fields: [depositId], references: [id], onDelete: Cascade)
+  withdrawalId String?             @unique @map("withdrawal_id") @db.Uuid
+  withdrawal   Withdrawal?         @relation(fields: [withdrawalId], references: [id], onDelete: Cascade)
+  status       ApprovalQueueStatus @default(PENDING)
+  requiredRole ApprovalRole        @default(FINANCE) @map("required_role")
+  assigneeId   String?             @map("assignee_id") @db.Uuid
+  assignee     User?               @relation("ApprovalAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  priority     Int                 @default(100)
+  metadata     Json?
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+  resolvedAt   DateTime?           @map("resolved_at")
+
+  @@index([status, priority, createdAt])
+  @@index([entityType, entityId])
+  @@map("approval_queue")
+}
+
+model FinanceReview {
+  id           String                @id @default(uuid()) @db.Uuid
+  depositId    String?               @map("deposit_id") @db.Uuid
+  deposit      Deposit?              @relation(fields: [depositId], references: [id], onDelete: Cascade)
+  withdrawalId String?               @map("withdrawal_id") @db.Uuid
+  withdrawal   Withdrawal?           @relation(fields: [withdrawalId], references: [id], onDelete: Cascade)
+  reviewerId   String?               @map("reviewer_id") @db.Uuid
+  reviewer     User?                 @relation("FinanceReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  decision     FinanceReviewDecision
+  reason       String?               @db.VarChar(1000)
+  internalNotes String?              @map("internal_notes") @db.VarChar(2000)
+  metadata     Json?
+  createdAt    DateTime              @default(now()) @map("created_at")
+
+  @@index([depositId, createdAt])
+  @@index([withdrawalId, createdAt])
+  @@index([reviewerId])
+  @@map("finance_reviews")
+}
+
+model TransactionHistory {
+  id            String       @id @default(uuid()) @db.Uuid
+  transactionId String?      @map("transaction_id") @db.Uuid
+  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  userId        String       @map("user_id") @db.Uuid
+  event         String       @db.VarChar(80)
+  status        String?      @db.VarChar(40)
+  amount        Decimal?     @db.Decimal(20, 8)
+  currency      String?      @db.Char(3)
+  message       String?      @db.VarChar(500)
+  metadata      Json?
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([transactionId])
+  @@map("transaction_histories")
 }

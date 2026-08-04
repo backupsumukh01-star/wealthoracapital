@@ -589,6 +589,10 @@ export const kycService = {
     })
 
     await kycRepository.syncUserKycStatus(submission.userId, nextStatus)
+    if (nextStatus === 'APPROVED') {
+      const { ledgerService } = await import('../finance/ledger.service.js')
+      await ledgerService.ensureWalletsForUser(submission.userId)
+    }
     await kycRepository.createReview({
       submission: { connect: { id: submission.id } },
       reviewer: { connect: { id: actorId } },

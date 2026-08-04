@@ -1,4 +1,4 @@
-export type StorageCategory = 'avatars' | 'documents' | 'kyc'
+export type StorageCategory = 'avatars' | 'documents' | 'kyc' | 'deposits'
 
 export interface StoredObject {
   key: string

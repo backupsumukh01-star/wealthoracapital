@@ -6,6 +6,7 @@ import { authenticate } from '../middlewares/authenticate.js'
 import { PERMISSIONS } from '../config/permissions.js'
 import { requireAdminAccess, requirePermission } from '../middlewares/require-permission.js'
 import { validate } from '../middlewares/validate.js'
+import { adminFinanceRouter } from './admin-finance.routes.js'
 import { adminKycRouter } from './admin-kyc.routes.js'
 import {
   adminActivityQuerySchema,
@@ -130,3 +131,4 @@ adminRouter.post(
 )
 
 adminRouter.use('/kyc', adminKycRouter)
+adminRouter.use(adminFinanceRouter)
