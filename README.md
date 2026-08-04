@@ -2,7 +2,7 @@
 
 Premium AI-assisted Forex investment platform.
 
-> **Status:** Phases 1–5 backend live (auth, users/admin, KYC, wallet/ledger/finance, trading/daily returns/performance). CMS/reports deferred.
+> **Status:** Phases 1–6 backend live (auth, users/admin, KYC, wallet/ledger/finance, trading/daily returns/performance, CMS/media/reports/email engine/notifications/support/broadcasts/settings/ops metrics).
 
 ## Stack
 
@@ -56,6 +56,8 @@ Open [http://localhost:3000](http://localhost:3000). API: [http://localhost:4000
 - [Phase 4 — Financial engine](./PHASE4_BACKEND_COMPLETION_REPORT.md)
 - [Phase 5 — Trading engine](./PHASE5_BACKEND_COMPLETION_REPORT.md)
 - API: [`docs/API_PHASE5_TRADING.md`](./docs/API_PHASE5_TRADING.md) · Trading: [`docs/TRADING_ARCHITECTURE.md`](./docs/TRADING_ARCHITECTURE.md)
+- [Phase 6 — Business operations (CMS, media, reports, email, notifications, support, broadcasts, settings)](./PHASE6_BACKEND_COMPLETION_REPORT.md)
+- API: [`docs/API_PHASE6_CMS.md`](./docs/API_PHASE6_CMS.md) · [`docs/API_PHASE6_REPORTS.md`](./docs/API_PHASE6_REPORTS.md) · [`docs/API_PHASE6_EMAIL.md`](./docs/API_PHASE6_EMAIL.md) · [`docs/API_PHASE6_SUPPORT.md`](./docs/API_PHASE6_SUPPORT.md)
 
 ## Design system
 
@@ -64,4 +66,5 @@ Docs: [`docs/10-design-system.md`](./docs/10-design-system.md)
 
 ## Next (deferred)
 
-Reports · CMS · Support channels · Redis/BullMQ · Email provider
+Real Resend/SendGrid/SES/Mailgun credentials · push/SMS/WhatsApp/Telegram notification channels ·
+Redis/BullMQ · WebSockets · CI/CD · perf testing

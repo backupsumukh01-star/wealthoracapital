@@ -2,13 +2,20 @@ import { Router } from 'express'
 
 import { adminRouter } from './admin.routes.js'
 import { authRouter } from './auth.routes.js'
+import { cmsRouter } from './cms.routes.js'
 import { depositRouter } from './deposit.routes.js'
+import { emailTrackingRouter } from './email-tracking.routes.js'
+import { filesRouter } from './files.routes.js'
 import { healthRouter } from './health.routes.js'
 import { kycRouter } from './kyc.routes.js'
+import { notificationRouter } from './notification.routes.js'
 import { performanceRouter } from './performance.routes.js'
 import { portfolioRouter } from './portfolio.routes.js'
 import { profileRouter } from './profile.routes.js'
+import { reportRouter } from './report.routes.js'
 import { returnsRouter } from './returns.routes.js'
+import { settingsRouter } from './settings.routes.js'
+import { supportRouter } from './support.routes.js'
 import { tradeRouter } from './trade.routes.js'
 import { transactionRouter } from './transaction.routes.js'
 import { usersRouter } from './users.routes.js'
@@ -34,6 +41,13 @@ export function createApiRouter(): Router {
   router.use('/v1/performance', performanceRouter)
   router.use('/v1/portfolio', portfolioRouter)
   router.use('/v1/returns', returnsRouter)
+  router.use('/v1/notifications', notificationRouter)
+  router.use('/v1/support', supportRouter)
+  router.use('/v1/settings', settingsRouter)
+  router.use('/v1/reports', reportRouter)
+  router.use('/v1/cms', cmsRouter)
+  router.use('/v1/files', filesRouter)
+  router.use('/v1/emails', emailTrackingRouter)
   router.use('/v1/admin', adminRouter)
 
   return router

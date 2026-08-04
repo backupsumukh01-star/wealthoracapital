@@ -33,6 +33,17 @@ export const PERMISSIONS = {
   'trades.manage': 'trades.manage',
   'performance.view': 'performance.view',
   'returns.manage': 'returns.manage',
+  'cms.view': 'cms.view',
+  'cms.manage': 'cms.manage',
+  'media.manage': 'media.manage',
+  'emails.manage': 'emails.manage',
+  'support.view': 'support.view',
+  'support.manage': 'support.manage',
+  'reports.view': 'reports.view',
+  'reports.manage': 'reports.manage',
+  'broadcasts.manage': 'broadcasts.manage',
+  'settings.manage': 'settings.manage',
+  'notifications.view': 'notifications.view',
 } as const
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
@@ -58,6 +69,9 @@ const STAFF_PERMISSION_MAP: Record<StaffRole, Permission[]> = {
     PERMISSIONS['trades.view'],
     PERMISSIONS['performance.view'],
     PERMISSIONS['returns.manage'],
+    PERMISSIONS['reports.view'],
+    PERMISSIONS['reports.manage'],
+    PERMISSIONS['notifications.view'],
   ],
   SUPPORT: [
     PERMISSIONS['dashboard.view'],
@@ -69,6 +83,11 @@ const STAFF_PERMISSION_MAP: Record<StaffRole, Permission[]> = {
     PERMISSIONS['profile.edit'],
     PERMISSIONS['sessions.manage'],
     PERMISSIONS['kyc.view'],
+    PERMISSIONS['support.view'],
+    PERMISSIONS['support.manage'],
+    PERMISSIONS['emails.manage'],
+    PERMISSIONS['notifications.view'],
+    PERMISSIONS['broadcasts.manage'],
   ],
   KYC: [
     PERMISSIONS['dashboard.view'],
@@ -88,6 +107,12 @@ const STAFF_PERMISSION_MAP: Record<StaffRole, Permission[]> = {
     PERMISSIONS['profile.view'],
     PERMISSIONS['profile.edit'],
     PERMISSIONS['sessions.manage'],
+    PERMISSIONS['cms.view'],
+    PERMISSIONS['cms.manage'],
+    PERMISSIONS['media.manage'],
+    PERMISSIONS['emails.manage'],
+    PERMISSIONS['broadcasts.manage'],
+    PERMISSIONS['notifications.view'],
   ],
   VIEWER: [
     PERMISSIONS['dashboard.view'],
@@ -100,6 +125,10 @@ const STAFF_PERMISSION_MAP: Record<StaffRole, Permission[]> = {
     PERMISSIONS['finance.view'],
     PERMISSIONS['trades.view'],
     PERMISSIONS['performance.view'],
+    PERMISSIONS['cms.view'],
+    PERMISSIONS['support.view'],
+    PERMISSIONS['reports.view'],
+    PERMISSIONS['notifications.view'],
   ],
 }
 
@@ -116,6 +145,9 @@ const INVESTOR_PERMISSIONS: Permission[] = [
   PERMISSIONS['withdrawals.create'],
   PERMISSIONS['trades.view'],
   PERMISSIONS['performance.view'],
+  PERMISSIONS['support.view'],
+  PERMISSIONS['reports.view'],
+  PERMISSIONS['notifications.view'],
 ]
 
 export function resolvePermissions(input: {

@@ -173,7 +173,12 @@ export const API_ROUTES = {
   },
   returns: { root: '/returns' },
   portfolio: { root: '/portfolio' },
-  notifications: { root: '/notifications', unreadCount: '/notifications/unread-count' },
+  notifications: {
+    root: '/notifications',
+    unreadCount: '/notifications/unread-count',
+    readAll: '/notifications/read-all',
+    read: (id: string) => `/notifications/${id}/read`,
+  },
   settings: { public: '/settings/public', me: '/settings/me' },
   profile: {
     root: '/profile',
@@ -191,12 +196,17 @@ export const API_ROUTES = {
     documents: '/kyc/documents',
     document: (id: string) => `/kyc/document/${id}`,
   },
-  support: { tickets: '/support/tickets' },
+  support: {
+    tickets: '/support/tickets',
+    ticket: (id: string) => `/support/tickets/${id}`,
+    messages: (id: string) => `/support/tickets/${id}/messages`,
+  },
   reports: { root: '/reports', export: '/reports/export' },
   cms: {
     public: '/cms/public',
     landing: '/cms/landing',
     platform: '/cms/platform',
+    rollback: (revisionId: string) => `/cms/public/revisions/${revisionId}/rollback`,
   },
   admin: {
     root: '/admin',
@@ -227,6 +237,10 @@ export const API_ROUTES = {
     media: '/admin/media',
     backups: '/admin/backups',
     emails: '/admin/emails',
+    emailTemplates: '/admin/email-templates',
+    broadcasts: '/admin/broadcasts',
+    announcements: '/admin/announcements',
     reports: '/admin/reports',
+    opsMetrics: '/admin/ops/metrics',
   },
 } as const

@@ -66,6 +66,10 @@ export function renderEmailTemplate(
         text: `Hi ${variables.firstName},\n\n${variables.message}`,
         html: wrapHtml('Security alert', `<p>Hi ${variables.firstName},</p><p>${variables.message}</p>`),
       }
+    case 'custom':
+      // DB-managed templates (Phase 6) render through `emailTemplateService`, not this
+      // static renderer — reaching this case means a caller passed 'custom' by mistake.
+      throw new Error('The "custom" template must be rendered via emailTemplateService, not renderEmailTemplate.')
     default: {
       const exhaustive: never = template
       throw new Error(`Unhandled email template: ${String(exhaustive)}`)

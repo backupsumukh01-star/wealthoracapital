@@ -1,12 +1,20 @@
 import { createApp } from './app.js'
 import { env } from './config/env.js'
 import { connectDatabase, disconnectDatabase } from './database/prisma.js'
+import { DEFAULT_EMAIL_TEMPLATES } from './emails/default-templates.js'
 import { registerDefaultJobs } from './jobs/index.js'
+import { emailTemplateService } from './services/email/email-template.service.js'
 import { logger } from './utils/logger.js'
 
 async function bootstrap(): Promise<void> {
   registerDefaultJobs()
   await connectDatabase()
+
+  try {
+    await emailTemplateService.ensureSeeded(DEFAULT_EMAIL_TEMPLATES)
+  } catch (error) {
+    logger.error({ error }, 'Failed to seed default email templates')
+  }
 
   const app = createApp()
   const server = app.listen(env.PORT, () => {

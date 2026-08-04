@@ -32,13 +32,23 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
 
-  EMAIL_TRANSPORT: z.enum(['console', 'smtp']).default('console'),
+  EMAIL_TRANSPORT: z
+    .enum(['console', 'smtp', 'resend', 'sendgrid', 'ses', 'mailgun'])
+    .default('console'),
   SMTP_HOST: z.string().default('localhost'),
   SMTP_PORT: z.coerce.number().int().positive().default(1025),
   SMTP_USER: z.string().optional().default(''),
   SMTP_PASS: z.string().optional().default(''),
   SMTP_FROM_NAME: z.string().default('Growzy'),
   SMTP_FROM_ADDRESS: z.string().min(3).default('noreply@localhost'),
+  RESEND_API_KEY: z.string().optional().default(''),
+  SENDGRID_API_KEY: z.string().optional().default(''),
+  SES_ACCESS_KEY_ID: z.string().optional().default(''),
+  SES_SECRET_ACCESS_KEY: z.string().optional().default(''),
+  SES_REGION: z.string().optional().default('us-east-1'),
+  MAILGUN_API_KEY: z.string().optional().default(''),
+  MAILGUN_DOMAIN: z.string().optional().default(''),
+  EMAIL_OUTBOX_POLL_MS: z.coerce.number().int().positive().default(30_000),
 
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 

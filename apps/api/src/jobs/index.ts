@@ -8,6 +8,9 @@ export type JobName =
   | 'daily-return-prepare'
   | 'portfolio-snapshots'
   | 'performance-recalculate'
+  | 'email-outbox-process'
+  | 'cms-scheduled-publish'
+  | 'broadcast-scheduled-send'
 
 export interface JobPayloadMap {
   'send-email': { to: string; template: string }
@@ -16,6 +19,9 @@ export interface JobPayloadMap {
   'daily-return-prepare': Record<string, never>
   'portfolio-snapshots': Record<string, never>
   'performance-recalculate': Record<string, never>
+  'email-outbox-process': Record<string, never>
+  'cms-scheduled-publish': Record<string, never>
+  'broadcast-scheduled-send': Record<string, never>
 }
 
 export interface Job<T extends JobName = JobName> {
@@ -92,8 +98,25 @@ export function registerDefaultJobs(): void {
     logger.info('performance-recalculate completed')
   })
 
+  jobQueue.register('email-outbox-process', async () => {
+    const { emailOutboxService } = await import('../services/email/email-outbox.service.js')
+    const result = await emailOutboxService.processQueue()
+    logger.info({ result }, 'email-outbox-process completed')
+  })
+  jobQueue.register('cms-scheduled-publish', async () => {
+    const { cmsService } = await import('../services/cms/cms.service.js')
+    const count = await cmsService.processScheduledPublishes()
+    if (count > 0) logger.info({ count }, 'cms-scheduled-publish completed')
+  })
+  jobQueue.register('broadcast-scheduled-send', async () => {
+    const { broadcastService } = await import('../services/broadcast.service.js')
+    const count = await broadcastService.processScheduled()
+    if (count > 0) logger.info({ count }, 'broadcast-scheduled-send completed')
+  })
+
   // Scheduler abstraction (no BullMQ) — 24h cadence placeholders
   const dayMs = 24 * 60 * 60 * 1000
+  const minuteMs = 60 * 1000
   scheduler.register('daily-return-prepare', dayMs, async () => {
     await jobQueue.enqueue('daily-return-prepare', {})
   })
@@ -102,5 +125,16 @@ export function registerDefaultJobs(): void {
   })
   scheduler.register('performance-recalculate', dayMs, async () => {
     await jobQueue.enqueue('performance-recalculate', {})
+  })
+
+  // Phase 6 — short-cadence pollers for outbox delivery + scheduled publishing.
+  scheduler.register('email-outbox-process', minuteMs, async () => {
+    await jobQueue.enqueue('email-outbox-process', {})
+  })
+  scheduler.register('cms-scheduled-publish', minuteMs, async () => {
+    await jobQueue.enqueue('cms-scheduled-publish', {})
+  })
+  scheduler.register('broadcast-scheduled-send', minuteMs, async () => {
+    await jobQueue.enqueue('broadcast-scheduled-send', {})
   })
 }

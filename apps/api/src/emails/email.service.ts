@@ -2,14 +2,32 @@ import { env } from '../config/env.js'
 import type { EmailService, EmailTransport } from './email.types.js'
 import { renderEmailTemplate } from './templates/index.js'
 import { ConsoleEmailTransport } from './transports/console.transport.js'
+import { MailgunEmailTransport } from './transports/mailgun.transport.js'
+import { ResendEmailTransport } from './transports/resend.transport.js'
+import { SendgridEmailTransport } from './transports/sendgrid.transport.js'
+import { SesEmailTransport } from './transports/ses.transport.js'
 import { SmtpEmailTransport } from './transports/smtp.transport.js'
 
 function createTransport(): EmailTransport {
-  if (env.EMAIL_TRANSPORT === 'smtp') {
-    return new SmtpEmailTransport()
+  switch (env.EMAIL_TRANSPORT) {
+    case 'smtp':
+      return new SmtpEmailTransport()
+    case 'resend':
+      return new ResendEmailTransport()
+    case 'sendgrid':
+      return new SendgridEmailTransport()
+    case 'ses':
+      return new SesEmailTransport()
+    case 'mailgun':
+      return new MailgunEmailTransport()
+    case 'console':
+    default:
+      return new ConsoleEmailTransport()
   }
-  return new ConsoleEmailTransport()
 }
+
+/** Shared transport instance — reused by the Phase 6 DB-managed outbox worker. */
+export const activeEmailTransport: EmailTransport = createTransport()
 
 class AppEmailService implements EmailService {
   constructor(private readonly transport: EmailTransport) {}
@@ -58,6 +76,17 @@ class AppEmailService implements EmailService {
       message: input.message,
     })
   }
+
+  async sendRaw(input: { to: string; subject: string; html: string; text: string }): Promise<void> {
+    await this.transport.send({
+      to: input.to,
+      subject: input.subject,
+      template: 'custom',
+      variables: {},
+      text: input.text,
+      html: input.html,
+    })
+  }
 }
 
-export const emailService: EmailService = new AppEmailService(createTransport())
+export const emailService: EmailService = new AppEmailService(activeEmailTransport)

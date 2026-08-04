@@ -32,4 +32,34 @@ export const notificationRepository = {
       return row
     })
   },
+
+  listPaged(userId: string, options: { cursor?: string; unreadOnly?: boolean; take?: number }): Promise<Notification[]> {
+    const take = options.take ?? 30
+    return prisma.notification.findMany({
+      where: {
+        userId,
+        ...(options.unreadOnly ? { readAt: null } : {}),
+        ...(options.cursor ? { createdAt: { lt: new Date(options.cursor) } } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      take,
+    })
+  },
+
+  findById(id: string): Promise<Notification | null> {
+    return prisma.notification.findUnique({ where: { id } })
+  },
+
+  markAllRead(userId: string): Promise<{ count: number }> {
+    return prisma.notification.updateMany({
+      where: { userId, readAt: null },
+      data: { readAt: new Date() },
+    })
+  },
+
+  async remove(id: string, userId: string): Promise<void> {
+    const row = await prisma.notification.findUnique({ where: { id } })
+    if (!row || row.userId !== userId) return
+    await prisma.notification.delete({ where: { id } })
+  },
 }

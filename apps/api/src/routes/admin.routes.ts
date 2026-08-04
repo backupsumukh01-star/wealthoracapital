@@ -1,13 +1,21 @@
 import { Router } from 'express'
 
 import { adminDashboardController } from '../controllers/admin-dashboard.controller.js'
+import { adminOpsMetricsController } from '../controllers/admin-ops-metrics.controller.js'
 import { adminUsersController } from '../controllers/admin-users.controller.js'
 import { authenticate } from '../middlewares/authenticate.js'
 import { PERMISSIONS } from '../config/permissions.js'
 import { requireAdminAccess, requirePermission } from '../middlewares/require-permission.js'
 import { validate } from '../middlewares/validate.js'
+import { adminAnnouncementsRouter } from './admin-announcements.routes.js'
+import { adminBroadcastsRouter } from './admin-broadcasts.routes.js'
+import { adminEmailsRouter } from './admin-emails.routes.js'
 import { adminFinanceRouter } from './admin-finance.routes.js'
 import { adminKycRouter } from './admin-kyc.routes.js'
+import { adminMediaRouter } from './admin-media.routes.js'
+import { adminReportsRouter } from './admin-reports.routes.js'
+import { adminSettingsRouter } from './admin-settings.routes.js'
+import { adminSupportRouter } from './admin-support.routes.js'
 import { adminTradingRouter } from './admin-trading.routes.js'
 import {
   adminActivityQuerySchema,
@@ -131,6 +139,19 @@ adminRouter.post(
   adminUsersController.forceLogout,
 )
 
+adminRouter.get(
+  '/ops/metrics',
+  requirePermission(PERMISSIONS['dashboard.view']),
+  adminOpsMetricsController.summary,
+)
+
 adminRouter.use('/kyc', adminKycRouter)
 adminRouter.use(adminFinanceRouter)
 adminRouter.use(adminTradingRouter)
+adminRouter.use('/media', adminMediaRouter)
+adminRouter.use('/support', adminSupportRouter)
+adminRouter.use(adminSettingsRouter)
+adminRouter.use('/reports', adminReportsRouter)
+adminRouter.use('/broadcasts', adminBroadcastsRouter)
+adminRouter.use('/announcements', adminAnnouncementsRouter)
+adminRouter.use(adminEmailsRouter)
