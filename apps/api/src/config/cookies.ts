@@ -36,8 +36,10 @@ export function refreshTokenCookieOptions(maxAgeMs: number): CookieOptions {
 export function csrfCookieOptions(maxAgeMs: number): CookieOptions {
   return {
     ...baseCookieOptions(),
+    // Readable by JS (Swagger / web double-submit). SameSite=Lax matches mfx_at so
+    // the cookie is stored and visible after XHR/fetch login; Strict often is not.
     httpOnly: false,
-    sameSite: 'strict',
+    sameSite: 'lax',
     maxAge: maxAgeMs,
   }
 }

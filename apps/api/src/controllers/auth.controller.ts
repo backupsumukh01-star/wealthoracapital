@@ -65,7 +65,11 @@ export const authController = {
       userAgent: req.get('user-agent') ?? null,
     })
     setAuthCookies(res, result.tokens)
-    sendSuccess(res, { user: result.user, wallet: result.wallet })
+    sendSuccess(res, {
+      user: result.user,
+      wallet: result.wallet,
+      csrfToken: result.tokens.csrfToken,
+    })
   }),
 
   logout: asyncHandler(async (req, res) => {
@@ -81,7 +85,7 @@ export const authController = {
       userAgent: req.get('user-agent') ?? null,
     })
     setAuthCookies(res, tokens)
-    sendSuccess(res, null)
+    sendSuccess(res, { csrfToken: tokens.csrfToken })
   }),
 
   me: asyncHandler(async (req, res) => {

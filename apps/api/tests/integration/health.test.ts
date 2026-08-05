@@ -37,7 +37,9 @@ describe('API health & docs', () => {
     expect(res.text).toContain('/api/openapi.json')
     expect(res.text).toContain('X-CSRF-Token')
     expect(res.text).toContain('requestInterceptor')
+    expect(res.text).toContain('responseInterceptor')
     expect(res.text).toContain('mfx_csrf')
+    expect(res.text).toContain('csrfToken')
   })
 
   it('GET /api/redoc returns redoc html pointing at /api/openapi.json', async () => {

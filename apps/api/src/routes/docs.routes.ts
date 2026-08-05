@@ -58,6 +58,16 @@ function swaggerHtml(): string {
       return match ? decodeURIComponent(match[1]) : '';
     }
 
+    function rememberCsrfToken(token) {
+      if (token && typeof token === 'string') {
+        window.__growzyCsrf = token;
+      }
+    }
+
+    function currentCsrfToken() {
+      return window.__growzyCsrf || readCsrfCookie() || '';
+    }
+
     window.ui = SwaggerUIBundle({
       url: ${JSON.stringify(OPENAPI_JSON_PATH)},
       dom_id: '#swagger-ui',
@@ -69,10 +79,22 @@ function swaggerHtml(): string {
       displayRequestDuration: true,
       filter: true,
       withCredentials: true,
-      // Double-submit CSRF: after login/refresh the readable mfx_csrf cookie is set.
-      // Mirror the web client by copying it onto X-CSRF-Token for mutating calls.
+      // Capture csrfToken from login/refresh JSON (and cookie) so Try-it-out can
+      // send X-CSRF-Token even if document.cookie lags behind Set-Cookie.
+      responseInterceptor: function (res) {
+        try {
+          var payload = res.body;
+          if (typeof payload === 'string') {
+            payload = JSON.parse(payload);
+          }
+          var token = payload && payload.data && payload.data.csrfToken;
+          rememberCsrfToken(token);
+        } catch (e) { /* ignore non-JSON */ }
+        rememberCsrfToken(readCsrfCookie());
+        return res;
+      },
       requestInterceptor: function (req) {
-        var token = readCsrfCookie();
+        var token = currentCsrfToken();
         if (token) {
           if (!req.headers) req.headers = {};
           req.headers['X-CSRF-Token'] = token;

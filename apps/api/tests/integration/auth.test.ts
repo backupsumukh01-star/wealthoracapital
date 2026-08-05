@@ -51,7 +51,19 @@ describe('Auth flows', () => {
     const login = await agent.post('/api/v1/auth/login').send({ email, password })
     expect(login.status).toBe(200)
     expect(login.body.data.user.email.toLowerCase()).toBe(email.toLowerCase())
-    expect(login.headers['set-cookie']?.join(';') || '').toMatch(/mfx_at/)
+    expect(login.body.data.csrfToken).toMatch(/^[A-Za-z0-9_-]+$/)
+
+    const setCookie = login.headers['set-cookie']
+    expect(Array.isArray(setCookie)).toBe(true)
+    const cookieHeader = (setCookie ?? []).join('\n')
+    expect(cookieHeader).toMatch(/mfx_at=/)
+    expect(cookieHeader).toMatch(/mfx_rt=/)
+    expect(cookieHeader).toMatch(/mfx_csrf=/)
+    // CSRF cookie must be JS-readable and Lax so Swagger XHR login can store/read it.
+    const csrfLine = (setCookie ?? []).find((c) => c.startsWith('mfx_csrf='))
+    expect(csrfLine).toBeTruthy()
+    expect(csrfLine!.toLowerCase()).toMatch(/samesite=lax/)
+    expect(csrfLine!.toLowerCase()).not.toMatch(/httponly/)
 
     const me = await agent.get('/api/v1/auth/me')
     expect(me.status).toBe(200)
