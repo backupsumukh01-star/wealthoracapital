@@ -1,0 +1,235 @@
+# Growzy — Render Production Deployment
+
+This guide deploys the Growzy monorepo on [Render](https://render.com) with:
+
+- **Next.js** frontend (`@meridian/web`)
+- **Express** API (`@meridian/api`)
+- **Render PostgreSQL**
+- **GitHub auto-deploy** via Blueprint (`render.yaml`)
+
+No VPS, PM2, or Nginx is required. Render terminates TLS and injects `PORT`.
+
+---
+
+## Architecture
+
+| Service | Type | Role |
+|---------|------|------|
+| `growzy-web` | Web | Next.js UI |
+| `growzy-api` | Web | Express API + Swagger |
+| `growzy-db` | PostgreSQL | Primary database |
+| `growzy-worker` | Worker (optional) | BullMQ consumer — enable when using Redis |
+
+Default Blueprint uses in-process jobs (`JOB_DRIVER=memory`) so a worker/Redis is not required for the first production cut.
+
+**Cookie auth on split hosts:** use a shared parent domain, e.g.
+
+- App: `https://growzycapital.com` (or `https://www.growzycapital.com`)
+- API: `https://api.growzycapital.com`
+- `COOKIE_DOMAIN=.growzycapital.com`
+- `CORS_ORIGIN=https://growzycapital.com`
+
+---
+
+## 1. GitHub auto deployment
+
+1. Push this repository to GitHub.
+2. In Render: **New → Blueprint**.
+3. Select the repo and confirm `render.yaml`.
+4. Render creates `growzy-db`, `growzy-api`, and `growzy-web`.
+5. Fill every `sync: false` secret in the dashboard (listed below).
+6. Enable **Auto-Deploy** on each web service (already `autoDeploy: true` in the Blueprint).
+
+Every push to the connected branch rebuilds and redeploys.
+
+---
+
+## 2. Exact service settings
+
+### PostgreSQL — `growzy-db`
+
+| Setting | Value |
+|---------|--------|
+| Plan | Basic 256 MB (or higher) |
+| Version | 16 |
+| Database | `growzy` |
+
+Copy the **Internal Database URL** into `DATABASE_URL` on the API (Blueprint wires this automatically via `fromDatabase`).
+
+### API — `growzy-api`
+
+| Setting | Value |
+|---------|--------|
+| Runtime | Node |
+| Region | Oregon (or nearest) |
+| Root directory | `.` (repo root) |
+| Build command | `corepack enable && pnpm install --frozen-lockfile && pnpm --filter @meridian/api... build` |
+| Pre-deploy command | `pnpm --filter @meridian/api exec prisma migrate deploy` |
+| Start command | `pnpm --filter @meridian/api start` |
+| Health check path | `/api/health` |
+| Instance | Starter+ |
+
+Equivalent root scripts:
+
+```bash
+pnpm install
+pnpm render:build:api    # prisma generate (postinstall) + tsup build
+pnpm render:migrate      # prisma migrate deploy
+pnpm render:start:api    # node dist/server.js — listens on process.env.PORT
+```
+
+### Frontend — `growzy-web`
+
+| Setting | Value |
+|---------|--------|
+| Runtime | Node |
+| Root directory | `.` |
+| Build command | `corepack enable && pnpm install --frozen-lockfile && pnpm --filter @meridian/web... build` |
+| Start command | `pnpm --filter @meridian/web start` |
+| Health check path | `/` |
+
+```bash
+pnpm install
+pnpm render:build:web
+pnpm render:start:web    # next start -H 0.0.0.0 -p $PORT
+```
+
+`NEXT_PUBLIC_*` variables are inlined at **build** time — set them before the first web build (or clear build cache after changing them).
+
+---
+
+## 3. Environment variables
+
+Full checklist: [`env.render.example`](./env.render.example).
+
+### Frontend (`growzy-web`)
+
+| Variable | Example |
+|----------|---------|
+| `NODE_ENV` | `production` |
+| `NEXT_PUBLIC_API_URL` | `https://api.growzycapital.com/api/v1` |
+| `NEXT_PUBLIC_SITE_URL` | `https://growzycapital.com` |
+| `NEXT_PUBLIC_PLATFORM_NAME` | `Growzy` |
+| `NEXT_PUBLIC_SUPPORT_EMAIL` | `support@growzycapital.com` |
+| `NEXT_PUBLIC_ENABLE_REFERRALS` | `false` |
+| `NEXT_PUBLIC_ENABLE_ROUTE_GUARDS` | `true` |
+
+`NEXTAUTH_SECRET` is **not used**. Auth is Express cookie JWT (`mfx_at` / `mfx_rt` / `mfx_csrf`).
+
+### API (`growzy-api`)
+
+| Variable | Example / notes |
+|----------|-----------------|
+| `NODE_ENV` | `production` |
+| `APP_ENV` | `production` |
+| `PORT` | Injected by Render — do not set |
+| `APP_URL` | `https://growzycapital.com` |
+| `API_URL` | `https://api.growzycapital.com` |
+| `DATABASE_URL` | From Render Postgres (SSL) |
+| `JWT_ACCESS_SECRET` | ≥32 chars random |
+| `JWT_REFRESH_SECRET` | ≥32 chars random |
+| `CORS_ORIGIN` | `https://growzycapital.com` |
+| `COOKIE_DOMAIN` | `.growzycapital.com` |
+| `COOKIE_SECURE` | `true` |
+| `EMAIL_TRANSPORT` | `resend` |
+| `RESEND_API_KEY` | Resend dashboard |
+| `SMTP_FROM_NAME` | `Growzy` |
+| `SMTP_FROM_ADDRESS` | Verified sender domain |
+| `GOOGLE_CLIENT_ID` | Google Cloud OAuth client |
+| `GOOGLE_CLIENT_SECRET` | Google Cloud secret |
+| `GOOGLE_CALLBACK_URL` | `https://api.growzycapital.com/api/v1/auth/google/callback` |
+| `CACHE_DRIVER` | `memory` (or `redis`) |
+| `JOB_DRIVER` | `memory` (or `bullmq`) |
+| `ENABLE_API_DOCS` | `true` |
+| `CSRF_PROTECTION` | `true` |
+
+Production rejects `localhost` in `APP_URL`, `API_URL`, and `CORS_ORIGIN`.
+
+---
+
+## 4. Domain setup
+
+1. In Render → each web service → **Custom Domains**:
+   - Web: `growzycapital.com` / `www.growzycapital.com`
+   - API: `api.growzycapital.com`
+2. Add the DNS records Render shows (CNAME / ALIAS).
+3. Wait for TLS certificates.
+4. Set env vars to those HTTPS URLs and **redeploy web** (so `NEXT_PUBLIC_*` rebuild).
+5. Google Cloud Console → OAuth redirect URI = `GOOGLE_CALLBACK_URL`.
+6. Resend → verify `growzycapital.com` and use `SMTP_FROM_ADDRESS` on that domain.
+
+---
+
+## 5. Security (kept in production)
+
+- Helmet + CSP (API) / Next security headers (web)
+- Rate limiting
+- Double-submit CSRF (`mfx_csrf` + `X-CSRF-Token`)
+- JWT access/refresh cookies (`Secure`, `SameSite=Lax` / refresh `Strict`)
+- Swagger UI + OpenAPI at `/api/docs`, `/api/redoc`, `/api/openapi.json`
+
+---
+
+## 6. Post-deployment verification
+
+```bash
+# API liveness / readiness
+curl -sS https://api.growzycapital.com/api/health
+curl -sS https://api.growzycapital.com/api/health/live
+
+# Docs
+curl -sI https://api.growzycapital.com/api/docs
+curl -sS https://api.growzycapital.com/api/openapi.json | head -c 200
+curl -sS https://api.growzycapital.com/api/v1/csrf
+
+# Frontend
+curl -sI https://growzycapital.com/
+```
+
+Manual checks:
+
+1. Open `https://api.growzycapital.com/api/docs` — Swagger loads; `mfx_csrf` is set.
+2. Register / login from the web app — session cookies appear under `.growzycapital.com`.
+3. Trigger a password-reset email — Resend dashboard shows delivery.
+4. (If enabled) Google OAuth callback hits `GOOGLE_CALLBACK_URL`.
+5. Confirm Prisma migrations applied (pre-deploy logs show `migrate deploy`).
+
+---
+
+## 7. Scaling to Redis + worker
+
+1. Add a Render **Key Value** (Redis) instance.
+2. Set on API + worker: `REDIS_URL`, `JOB_DRIVER=bullmq`, `CACHE_DRIVER=redis`, `RATE_LIMIT_STORE=redis`, `REDIS_REQUIRED=true`.
+3. Uncomment the `growzy-worker` service in `render.yaml`.
+4. Redeploy.
+
+---
+
+## 8. Local parity (optional)
+
+```bash
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env.local
+# Adjust local URLs back to http://127.0.0.1 for development only
+docker compose up -d   # Postgres (+ Redis if needed)
+pnpm install
+pnpm --filter @meridian/api exec prisma migrate deploy
+pnpm --filter @meridian/api dev
+pnpm --filter @meridian/web dev
+```
+
+Docker Compose / Nginx files remain in the repo for optional self-hosting; **Render production does not use them**.
+
+---
+
+## 9. Troubleshooting
+
+| Symptom | Likely cause |
+|---------|----------------|
+| Web build fails on env validation | Missing/`localhost` `NEXT_PUBLIC_*` in production |
+| API boots then exits | `DATABASE_URL` / JWT secrets / localhost URLs |
+| CORS errors | `CORS_ORIGIN` must match the exact browser origin |
+| Cookies missing after login | Set `COOKIE_DOMAIN=.yourdomain.com` and `COOKIE_SECURE=true` |
+| CSRF 403 in Swagger | Open `/api/docs` first (issues `mfx_csrf`), then login |
+| Emails not sent | `EMAIL_TRANSPORT=resend` + valid `RESEND_API_KEY` + verified domain |
+| Uploads disappear | `/tmp/uploads` is ephemeral — add a disk or object storage later |

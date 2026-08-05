@@ -1,15 +1,10 @@
-# Infrastructure
-
-Production-oriented assets for Growzy.
+# Infrastructure stubs
 
 | Path | Purpose |
 |------|---------|
-| `nginx/nginx.conf` | Reverse proxy, compression, security headers, rate limits |
-| `monitoring/prometheus.yml` | Prometheus scrape config for `/api/metrics` |
-| `../docker-compose.yml` | Dev: Postgres + Redis |
-| `../docker-compose.staging.yml` | Staging full stack |
-| `../docker-compose.production.yml` | Production full stack |
-| `../scripts/backup/` | DB / media / config backup & restore |
-| `../docs/ops/` | Deployment, runbook, monitoring, backup, DR, CI/CD |
+| `nginx/` | Optional self-host reverse proxy (not used on Render) |
+| `pm2/` | Deprecated — do not use; Render manages process lifecycle |
+| `systemd/` | Optional Linux unit stubs (not used on Render) |
+| `monitoring/` | Optional Prometheus scrape config |
 
-See also `docs/15-deployment-checklist.md`.
+For production on Render, see [`../DEPLOYMENT.md`](../DEPLOYMENT.md) and [`../render.yaml`](../render.yaml).

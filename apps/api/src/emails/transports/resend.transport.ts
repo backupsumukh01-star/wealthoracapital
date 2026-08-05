@@ -3,8 +3,8 @@ import { logger } from '../../utils/logger.js'
 import type { EmailMessage, EmailTransport } from '../email.types.js'
 
 /**
- * Resend transport stub. Logs intent until `RESEND_API_KEY` is wired to a real HTTP call —
- * mirrors the SMTP stub architecture so swapping in the real SDK later is a one-file change.
+ * Resend HTTP API transport (https://resend.com/docs/api-reference/emails/send-email).
+ * Uses fetch — no SDK dependency required.
  */
 export class ResendEmailTransport implements EmailTransport {
   async send(message: EmailMessage): Promise<void> {
@@ -15,9 +15,35 @@ export class ResendEmailTransport implements EmailTransport {
       )
       return
     }
+
+    const from = `${env.SMTP_FROM_NAME} <${env.SMTP_FROM_ADDRESS}>`
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from,
+        to: [message.to],
+        subject: message.subject,
+        html: message.html,
+        text: message.text,
+      }),
+    })
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '')
+      logger.error(
+        { status: response.status, detail, to: message.to, subject: message.subject },
+        'Resend API rejected email',
+      )
+      throw new Error(`Resend send failed (${response.status})`)
+    }
+
     logger.info(
       { to: message.to, subject: message.subject, template: message.template },
-      'Email dispatched via Resend (stub — integrate resend SDK for live delivery)',
+      'Email dispatched via Resend',
     )
   }
 }

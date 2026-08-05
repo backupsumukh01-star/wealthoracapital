@@ -1,0 +1,159 @@
+# Growzy — Render Blueprint
+# https://render.com/docs/blueprint-spec
+#
+# Connect this GitHub repo in Render → New → Blueprint.
+# After first deploy, attach custom domains (see DEPLOYMENT.md).
+
+previewsEnabled: false
+
+databases:
+  - name: growzy-db
+    plan: basic-256mb
+    databaseName: growzy
+    user: growzy
+    postgresMajorVersion: "16"
+
+services:
+  # ── Express API ────────────────────────────────────────────────────────────
+  - type: web
+    name: growzy-api
+    runtime: node
+    plan: starter
+    region: oregon
+    rootDir: .
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @meridian/api... build
+    preDeployCommand: pnpm --filter @meridian/api exec prisma migrate deploy
+    startCommand: pnpm --filter @meridian/api start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_ENV
+        value: production
+      - key: APP_NAME
+        value: Growzy
+      - key: DATABASE_URL
+        fromDatabase:
+          name: growzy-db
+          property: connectionString
+      - key: APP_URL
+        sync: false
+      - key: API_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: COOKIE_DOMAIN
+        sync: false
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: JWT_ISSUER
+        value: growzy
+      - key: JWT_AUDIENCE
+        value: growzy-web
+      - key: EMAIL_TRANSPORT
+        value: resend
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SMTP_FROM_NAME
+        value: Growzy
+      - key: SMTP_FROM_ADDRESS
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        sync: false
+      - key: CACHE_DRIVER
+        value: memory
+      - key: JOB_DRIVER
+        value: memory
+      - key: RATE_LIMIT_STORE
+        value: memory
+      - key: REDIS_REQUIRED
+        value: "false"
+      - key: ENABLE_API_DOCS
+        value: "true"
+      - key: CSRF_PROTECTION
+        value: "true"
+      - key: METRICS_ENABLED
+        value: "true"
+      - key: LOG_LEVEL
+        value: info
+      - key: UPLOAD_ROOT
+        value: /tmp/uploads
+      - key: STORAGE_DRIVER
+        value: local
+
+  # ── Next.js frontend ───────────────────────────────────────────────────────
+  - type: web
+    name: growzy-web
+    runtime: node
+    plan: starter
+    region: oregon
+    rootDir: .
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @meridian/web... build
+    startCommand: pnpm --filter @meridian/web start
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+      - key: NEXT_PUBLIC_PLATFORM_NAME
+        value: Growzy
+      - key: NEXT_PUBLIC_SUPPORT_EMAIL
+        sync: false
+      - key: NEXT_PUBLIC_ENABLE_REFERRALS
+        value: "false"
+      - key: NEXT_PUBLIC_ENABLE_ROUTE_GUARDS
+        value: "true"
+
+  # ── Optional BullMQ worker (enable after adding Redis + JOB_DRIVER=bullmq) ─
+  # Uncomment and set REDIS_URL / JOB_DRIVER=bullmq on API + worker.
+  # - type: worker
+  #   name: growzy-worker
+  #   runtime: node
+  #   plan: starter
+  #   region: oregon
+  #   rootDir: .
+  #   buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @meridian/api... build
+  #   startCommand: pnpm --filter @meridian/api worker:start
+  #   autoDeploy: true
+  #   envVars:
+  #     - key: NODE_ENV
+  #       value: production
+  #     - key: DATABASE_URL
+  #       fromDatabase:
+  #         name: growzy-db
+  #         property: connectionString
+  #     - key: JOB_DRIVER
+  #       value: bullmq
+  #     - key: CACHE_DRIVER
+  #       value: redis
+  #     - key: REDIS_REQUIRED
+  #       value: "true"
+  #     - key: REDIS_URL
+  #       sync: false
+  #     - key: JWT_ACCESS_SECRET
+  #       fromService:
+  #         name: growzy-api
+  #         type: web
+  #         envVarKey: JWT_ACCESS_SECRET
+  #     - key: JWT_REFRESH_SECRET
+  #       fromService:
+  #         name: growzy-api
+  #         type: web
+  #         envVarKey: JWT_REFRESH_SECRET

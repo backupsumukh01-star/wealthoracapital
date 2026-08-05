@@ -3,12 +3,11 @@ import { describe, expect, it } from 'vitest'
 import { csrfCookieOptions, accessTokenCookieOptions } from '../config/cookies.js'
 
 describe('auth cookie options', () => {
-  it('issues a JS-readable host-only CSRF cookie with SameSite=Lax', () => {
+  it('issues a JS-readable CSRF cookie with SameSite=Lax', () => {
     const csrf = csrfCookieOptions(60_000)
     expect(csrf.httpOnly).toBe(false)
     expect(csrf.sameSite).toBe('lax')
     expect(csrf.path).toBe('/')
-    expect(csrf.domain).toBeUndefined()
   })
 
   it('keeps access token HttpOnly with SameSite=Lax', () => {

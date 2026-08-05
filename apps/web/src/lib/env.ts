@@ -4,12 +4,28 @@ import { z } from 'zod'
  * Public environment, validated at module load.
  *
  * Next.js inlines `process.env.NEXT_PUBLIC_*` at build time, so each key must be referenced
- * literally rather than looked up dynamically. A missing or malformed value fails the build
- * instead of surfacing as an undefined URL at runtime.
+ * literally rather than looked up dynamically. Production builds must supply real HTTPS URLs
+ * via Render (or other) environment variables — do not rely on localhost defaults in prod.
  */
+const isProd = process.env.NODE_ENV === 'production'
+
 const publicEnvSchema = z.object({
-  NEXT_PUBLIC_API_URL: z.string().url().default('http://localhost:4000/api/v1'),
-  NEXT_PUBLIC_SITE_URL: z.string().url().default('http://localhost:3000'),
+  NEXT_PUBLIC_API_URL: isProd
+    ? z
+        .string()
+        .url()
+        .refine((value) => !value.includes('localhost'), {
+          message: 'NEXT_PUBLIC_API_URL must not use localhost in production',
+        })
+    : z.string().url().default('http://localhost:4000/api/v1'),
+  NEXT_PUBLIC_SITE_URL: isProd
+    ? z
+        .string()
+        .url()
+        .refine((value) => !value.includes('localhost'), {
+          message: 'NEXT_PUBLIC_SITE_URL must not use localhost in production',
+        })
+    : z.string().url().default('http://localhost:3000'),
   NEXT_PUBLIC_PLATFORM_NAME: z.string().min(1).default('Growzy'),
   NEXT_PUBLIC_SUPPORT_EMAIL: z.string().email().default('support@growzy.com'),
   NEXT_PUBLIC_ENABLE_REFERRALS: z

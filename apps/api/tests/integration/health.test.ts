@@ -47,7 +47,6 @@ describe('API health & docs', () => {
     expect(csrfLine).toBeTruthy()
     expect(csrfLine!.toLowerCase()).toMatch(/samesite=lax/)
     expect(csrfLine!.toLowerCase()).not.toMatch(/httponly/)
-    expect(csrfLine!.toLowerCase()).not.toMatch(/domain=/)
   })
 
   it('GET /api/v1/csrf issues readable mfx_csrf cookie and returns token', async () => {

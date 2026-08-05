@@ -51,6 +51,11 @@ const envSchema = z.object({
   MAILGUN_DOMAIN: z.string().optional().default(''),
   EMAIL_OUTBOX_POLL_MS: z.coerce.number().int().positive().default(30_000),
 
+  // Optional Google OAuth (wire routes when enabling social login)
+  GOOGLE_CLIENT_ID: z.string().optional().default(''),
+  GOOGLE_CLIENT_SECRET: z.string().optional().default(''),
+  GOOGLE_CALLBACK_URL: z.string().optional().default(''),
+
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
   UPLOAD_ROOT: z.string().min(1).default('./uploads'),
@@ -98,10 +103,18 @@ function parseEnv(): Env {
     throw new Error('Production JWT secrets must be rotated away from placeholder values')
   }
 
-  // Default ON in every environment (including production). PM2 / bare-metal
-  // deploys often omit ENABLE_API_DOCS; the previous production-off default
-  // left /api/docs, /api/redoc, and /api/openapi.json unregistered (404).
-  // Set ENABLE_API_DOCS=false explicitly to disable.
+  if (parsed.data.NODE_ENV === 'production') {
+    const blocked = ['APP_URL', 'API_URL', 'CORS_ORIGIN'] as const
+    for (const key of blocked) {
+      const value = parsed.data[key]
+      if (typeof value === 'string' && value.includes('localhost')) {
+        throw new Error(`${key} must not use localhost in production`)
+      }
+    }
+  }
+
+  // Default ON unless explicitly disabled. Render / PaaS deploys often omit
+  // ENABLE_API_DOCS; leaving it off would 404 /api/docs.
   const enableDocs =
     parsed.data.ENABLE_API_DOCS === undefined
       ? true

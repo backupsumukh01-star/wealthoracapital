@@ -35,13 +35,15 @@ export function refreshTokenCookieOptions(maxAgeMs: number): CookieOptions {
 
 export function csrfCookieOptions(maxAgeMs: number): CookieOptions {
   return {
-    // Host-only (no Domain): a misconfigured COOKIE_DOMAIN would cause the
-    // browser to reject Set-Cookie entirely, leaving Application→Cookies empty.
     httpOnly: false,
     secure: env.COOKIE_SECURE || isProduction,
     sameSite: 'lax',
     path: '/',
     maxAge: maxAgeMs,
+    // When COOKIE_DOMAIN is set (e.g. .growzycapital.com), the readable CSRF
+    // cookie is shared across app + API subdomains for double-submit from the web.
+    // When unset, the cookie is host-only (safe default for single-host deploys).
+    ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
   }
 }
 

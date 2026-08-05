@@ -22,7 +22,7 @@ apps/api          Express API (Phases 1–3)
 packages/shared   Shared types & constants
 packages/config   Shared ESLint / TSConfig bases
 docs/             Architecture, API, and KYC docs
-infra/            Nginx / PM2 / deploy scripts (stubs)
+infra/            Optional self-host stubs (Nginx) — production uses Render
 ```
 
 ## Quick start
@@ -31,20 +31,26 @@ infra/            Nginx / PM2 / deploy scripts (stubs)
 # Node 22+, pnpm 9+
 pnpm install
 cp apps/api/.env.example apps/api/.env
+# For local only, set APP_URL/API_URL/CORS to http://127.0.0.1:… in apps/api/.env
+# and NEXT_PUBLIC_* similarly in apps/web/.env.local
 pnpm --filter @meridian/api db:migrate:deploy
-pnpm --filter @meridian/api dev          # :4000
-pnpm --filter @meridian/web dev          # :3000
+pnpm --filter @meridian/api dev
+pnpm --filter @meridian/web dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). API: [http://localhost:4000](http://localhost:4000).
+## Production (Render)
+
+See **[DEPLOYMENT.md](./DEPLOYMENT.md)** and **[render.yaml](./render.yaml)**.
 
 ## Scripts
 
 | Command | What it does |
 |---------|----------------|
-| `pnpm --filter @meridian/web dev` | Web on :3000 |
-| `pnpm --filter @meridian/api dev` | API on :4000 |
+| `pnpm --filter @meridian/web dev` | Web (local) |
+| `pnpm --filter @meridian/api dev` | API (local) |
 | `pnpm build` | Build workspace |
+| `pnpm render:build:api` / `render:build:web` | Render build filters |
+| `pnpm render:migrate` | `prisma migrate deploy` |
 | `pnpm lint` / `pnpm typecheck` | Quality gates |
 | `pnpm format` | Prettier |
 

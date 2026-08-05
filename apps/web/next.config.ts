@@ -1,8 +1,8 @@
 import type { NextConfig } from 'next'
 
 /**
- * Headers duplicate what Nginx will also set in production (docs/15 §4). Belt and braces:
- * the app must be safe when run without the proxy in front of it, e.g. in staging or locally.
+ * Security headers for the Next.js app. In production these complement the
+ * Render TLS terminator (no Nginx required).
  */
 const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -17,15 +17,23 @@ const securityHeaders = [
 
 const isProd = process.env.NODE_ENV === 'production'
 
+function apiConnectSrc(): string {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL
+  if (!apiUrl) return "'self'"
+  try {
+    return `'self' ${new URL(apiUrl).origin}`
+  } catch {
+    return "'self'"
+  }
+}
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   output: 'standalone',
 
-  // Source maps are not published in production (docs/14 §10 item 84).
   productionBrowserSourceMaps: false,
 
-  // The shared package is consumed as TypeScript source rather than a build artefact.
   transpilePackages: ['@meridian/shared'],
 
   experimental: {
@@ -52,7 +60,7 @@ const nextConfig: NextConfig = {
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
           "font-src 'self' https://fonts.gstatic.com data:",
           "img-src 'self' data: blob: https:",
-          "connect-src 'self'",
+          `connect-src ${apiConnectSrc()}`,
           "frame-ancestors 'none'",
           'upgrade-insecure-requests',
         ].join('; '),

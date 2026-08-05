@@ -2,7 +2,8 @@
 export function readCsrfCookie(): string | undefined {
   if (typeof document === 'undefined') return undefined
   const match = document.cookie.match(/(?:^|; )mfx_csrf=([^;]*)/)
-  return match ? decodeURIComponent(match[1]) : undefined
+  const value = match?.[1]
+  return value ? decodeURIComponent(value) : undefined
 }
 
 export function csrfHeaders(): Record<string, string> {
