@@ -2,10 +2,12 @@ import { createHash, randomUUID } from 'node:crypto'
 import type { DepositStatus, Prisma } from '@prisma/client'
 
 import { prisma } from '../../database/prisma.js'
+import { transactionalMailer } from '../../emails/transactional.js'
 import { activityService } from '../activity.service.js'
 import { auditService } from '../audit.service.js'
 import { notificationService } from '../notification.service.js'
 import { storage } from '../storage/index.js'
+import { assertUploadMagicBytes } from '../../utils/upload-magic.js'
 import { badRequest, conflict, forbidden, notFound } from '../../utils/errors.js'
 import { d, moneyDisplay, moneyString } from '../../utils/money.js'
 import { mapDeposit, mapPaymentMethod } from './finance.mappers.js'
@@ -32,9 +34,31 @@ export const depositService = {
   async listMethods() {
     const methods = await prisma.paymentMethod.findMany({
       where: { isActive: true, deletedAt: null },
+      include: {
+        walletAddresses: {
+          where: { isActive: true, deletedAt: null },
+          orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+        },
+      },
       orderBy: [{ priority: 'asc' }, { name: 'asc' }],
     })
-    return methods.map(mapPaymentMethod)
+
+    return methods.map((method) => {
+      const mapped = mapPaymentMethod(method)
+      const wallet = method.walletAddresses[0]
+      const details = { ...mapped.accountDetails }
+
+      if (wallet) {
+        if (!details.address?.trim()) details.address = wallet.address
+        if (!details.walletAddress?.trim()) details.walletAddress = wallet.address
+        if (!details.network?.trim()) details.network = wallet.network
+        if (wallet.memo && !details.memo?.trim()) details.memo = wallet.memo
+      } else if (method.network && !details.network?.trim()) {
+        details.network = method.network
+      }
+
+      return { ...mapped, accountDetails: details }
+    })
   },
 
   async list(
@@ -178,6 +202,10 @@ export const depositService = {
       body: `Your deposit ${deposit.reference} is pending review.`,
       metadata: { type: 'DEPOSIT_SUBMITTED', depositId: deposit.id },
     })
+    await transactionalMailer.depositSubmitted(userId, {
+      reference: deposit.reference,
+      amount: moneyDisplay(amount),
+    })
 
     return mapDeposit(deposit)
   },
@@ -191,6 +219,7 @@ export const depositService = {
     const allowed = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'application/pdf'])
     if (!allowed.has(file.mimetype)) throw badRequest('Unsupported proof file type.')
     if (file.size > 5 * 1024 * 1024) throw badRequest('Proof file exceeds 5MB.')
+    assertUploadMagicBytes(file.buffer, file.mimetype)
 
     const deposit = await prisma.deposit.findFirst({ where: { id: depositId, userId } })
     if (!deposit) throw notFound('Deposit not found.')
@@ -242,17 +271,23 @@ export const depositService = {
     }
 
     const updated = await prisma.$transaction(async (tx) => {
-      const row = await tx.deposit.update({
-        where: { id: deposit.id },
+      await tx.$executeRaw`SELECT 1 FROM deposits WHERE id = ${deposit.id}::uuid FOR UPDATE`
+      const claimed = await tx.deposit.updateMany({
+        where: { id: deposit.id, status: { in: ['PENDING', 'UNDER_REVIEW'] } },
         data: { status: 'CANCELLED' },
-        include: { paymentMethod: { select: { id: true, name: true, type: true } } },
       })
+      if (claimed.count !== 1) {
+        throw conflict('Deposit status changed concurrently; cancel aborted.')
+      }
       await ledgerService.adjustPending(tx, deposit.walletId, d(deposit.amount).neg())
       await tx.approvalQueue.updateMany({
         where: { depositId: deposit.id, status: { in: ['PENDING', 'IN_PROGRESS'] } },
         data: { status: 'CANCELLED', resolvedAt: new Date() },
       })
-      return row
+      return tx.deposit.findUniqueOrThrow({
+        where: { id: deposit.id },
+        include: { paymentMethod: { select: { id: true, name: true, type: true } } },
+      })
     })
 
     await activityService.record({
@@ -393,61 +428,82 @@ export const depositService = {
     if (!deposit) throw notFound('Deposit not found.')
 
     if (body.decision === 'APPROVE' || body.decision === 'FORCE_COMPLETE') {
-      if (!['PENDING', 'UNDER_REVIEW'].includes(deposit.status) && body.decision === 'APPROVE') {
-        throw badRequest('Deposit cannot be approved from the current status.')
-      }
-      const credit = d(body.creditedAmount ?? deposit.amount)
-      if (credit.lte(0)) throw badRequest('Credited amount must be positive.')
+      // FORCE_COMPLETE uses the same status gate as APPROVE — never credit cancelled/rejected rows.
+      const creditRequested = d(body.creditedAmount ?? deposit.amount)
+      if (creditRequested.lte(0)) throw badRequest('Credited amount must be positive.')
 
       const updated = await prisma.$transaction(async (tx) => {
-        const locked = await tx.deposit.update({
+        await tx.$executeRaw`SELECT 1 FROM deposits WHERE id = ${deposit.id}::uuid FOR UPDATE`
+        const current = await tx.deposit.findUniqueOrThrow({
           where: { id: deposit.id },
+          include: { paymentMethod: { select: { id: true, name: true, type: true } } },
+        })
+
+        if (current.status === 'APPROVED') {
+          return current
+        }
+        if (!['PENDING', 'UNDER_REVIEW'].includes(current.status)) {
+          throw badRequest('Deposit cannot be approved from the current status.')
+        }
+
+        // Never over-credit above the requested deposit amount.
+        const credit = creditRequested.gt(d(current.amount)) ? d(current.amount) : creditRequested
+
+        const claimed = await tx.deposit.updateMany({
+          where: { id: deposit.id, status: { in: ['PENDING', 'UNDER_REVIEW'] } },
           data: {
             status: 'APPROVED',
             creditedAmount: moneyString(credit),
             reviewedById: actorId,
             reviewedAt: new Date(),
-            internalNotes: body.internalNotes ?? deposit.internalNotes,
+            internalNotes: body.internalNotes ?? current.internalNotes,
             rejectionReason: null,
           },
-          include: { paymentMethod: { select: { id: true, name: true, type: true } } },
         })
+        if (claimed.count !== 1) {
+          throw conflict('Deposit status changed concurrently; approve aborted.')
+        }
 
         const txn = await ledgerService.creditAvailable(tx, {
-          userId: deposit.userId,
-          walletId: deposit.walletId,
+          userId: current.userId,
+          walletId: current.walletId,
           amount: credit,
           entryType: 'DEPOSIT_APPROVED',
           transactionType: 'DEPOSIT',
-          description: `Deposit ${deposit.reference} approved`,
+          description: `Deposit ${current.reference} approved`,
           referenceType: 'DEPOSIT',
-          referenceId: deposit.id,
+          referenceId: current.id,
           createdById: actorId,
-          idempotencyKey: `deposit:${deposit.id}:approve`,
+          idempotencyKey: `deposit:${current.id}:approve`,
           bumpDeposited: true,
           bumpInvested: true,
         })
 
         await tx.deposit.update({
-          where: { id: deposit.id },
+          where: { id: current.id },
           data: { transactionId: txn.id },
         })
-        await ledgerService.adjustPending(tx, deposit.walletId, d(deposit.amount).neg())
+        await ledgerService.adjustPending(tx, current.walletId, d(current.amount).neg())
         await tx.approvalQueue.updateMany({
-          where: { depositId: deposit.id },
+          where: { depositId: current.id },
           data: { status: 'APPROVED', resolvedAt: new Date(), assigneeId: actorId },
         })
         await tx.financeReview.create({
           data: {
-            depositId: deposit.id,
+            depositId: current.id,
             reviewerId: actorId,
             decision: body.decision === 'FORCE_COMPLETE' ? 'FORCE_COMPLETE' : 'APPROVE',
             reason: body.reason ?? null,
             internalNotes: body.internalNotes ?? null,
           },
         })
-        return locked
+        return tx.deposit.findUniqueOrThrow({
+          where: { id: current.id },
+          include: { paymentMethod: { select: { id: true, name: true, type: true } } },
+        })
       })
+
+      const credit = d(updated.creditedAmount ?? updated.amount)
 
       await activityService.record({
         userId: deposit.userId,
@@ -475,6 +531,10 @@ export const depositService = {
         body: `Deposit ${deposit.reference} was approved for ${moneyDisplay(credit)}.`,
         metadata: { type: 'DEPOSIT_APPROVED', depositId: deposit.id },
       })
+      await transactionalMailer.depositApproved(deposit.userId, {
+        reference: deposit.reference,
+        amount: moneyDisplay(credit),
+      })
       return mapDeposit(updated)
     }
 
@@ -484,22 +544,63 @@ export const depositService = {
       }
       const nextStatus = body.decision === 'FORCE_CANCEL' ? 'CANCELLED' : 'REJECTED'
       const updated = await prisma.$transaction(async (tx) => {
-        const row = await tx.deposit.update({
+        await tx.$executeRaw`SELECT 1 FROM deposits WHERE id = ${deposit.id}::uuid FOR UPDATE`
+        const current = await tx.deposit.findUniqueOrThrow({
           where: { id: deposit.id },
-          data: {
-            status: nextStatus,
-            rejectionReason: body.reason ?? null,
-            reviewedById: actorId,
-            reviewedAt: new Date(),
-            internalNotes: body.internalNotes ?? deposit.internalNotes,
-          },
           include: { paymentMethod: { select: { id: true, name: true, type: true } } },
         })
-        if (['PENDING', 'UNDER_REVIEW'].includes(deposit.status)) {
-          await ledgerService.adjustPending(tx, deposit.walletId, d(deposit.amount).neg())
+
+        if (current.status === nextStatus) {
+          return current
         }
+
+        // H1: FORCE_CANCEL after APPROVE must reverse the ledger credit.
+        if (current.status === 'APPROVED') {
+          if (body.decision !== 'FORCE_CANCEL') {
+            throw badRequest('Approved deposits cannot be rejected; use FORCE_CANCEL to reverse.')
+          }
+          const credited = d(current.creditedAmount ?? current.amount)
+          await ledgerService.reverseDepositCredit(tx, {
+            userId: current.userId,
+            walletId: current.walletId,
+            amount: credited,
+            description: `Deposit ${current.reference} force-cancelled`,
+            referenceType: 'DEPOSIT',
+            referenceId: current.id,
+            createdById: actorId,
+            idempotencyKey: `deposit:${current.id}:force_cancel`,
+          })
+          await tx.deposit.update({
+            where: { id: current.id },
+            data: {
+              status: 'CANCELLED',
+              rejectionReason: body.reason ?? 'FORCE_CANCEL after approval',
+              reviewedById: actorId,
+              reviewedAt: new Date(),
+              internalNotes: body.internalNotes ?? current.internalNotes,
+            },
+          })
+        } else if (['PENDING', 'UNDER_REVIEW'].includes(current.status)) {
+          const claimed = await tx.deposit.updateMany({
+            where: { id: current.id, status: { in: ['PENDING', 'UNDER_REVIEW'] } },
+            data: {
+              status: nextStatus,
+              rejectionReason: body.reason ?? null,
+              reviewedById: actorId,
+              reviewedAt: new Date(),
+              internalNotes: body.internalNotes ?? current.internalNotes,
+            },
+          })
+          if (claimed.count !== 1) {
+            throw conflict('Deposit status changed concurrently; reject aborted.')
+          }
+          await ledgerService.adjustPending(tx, current.walletId, d(current.amount).neg())
+        } else {
+          throw badRequest('Deposit cannot be rejected from the current status.')
+        }
+
         await tx.approvalQueue.updateMany({
-          where: { depositId: deposit.id },
+          where: { depositId: current.id },
           data: {
             status: body.decision === 'FORCE_CANCEL' ? 'CANCELLED' : 'REJECTED',
             resolvedAt: new Date(),
@@ -508,14 +609,17 @@ export const depositService = {
         })
         await tx.financeReview.create({
           data: {
-            depositId: deposit.id,
+            depositId: current.id,
             reviewerId: actorId,
             decision: body.decision === 'FORCE_CANCEL' ? 'FORCE_CANCEL' : 'REJECT',
             reason: body.reason ?? null,
             internalNotes: body.internalNotes ?? null,
           },
         })
-        return row
+        return tx.deposit.findUniqueOrThrow({
+          where: { id: current.id },
+          include: { paymentMethod: { select: { id: true, name: true, type: true } } },
+        })
       })
 
       await activityService.record({
@@ -544,6 +648,13 @@ export const depositService = {
         body: body.reason ?? `Deposit ${deposit.reference} was ${nextStatus.toLowerCase()}.`,
         metadata: { type: 'DEPOSIT_REJECTED', depositId: deposit.id },
       })
+      if (nextStatus === 'REJECTED') {
+        await transactionalMailer.depositRejected(deposit.userId, {
+          reference: deposit.reference,
+          amount: moneyDisplay(deposit.amount),
+          reason: body.reason ?? 'Deposit rejected',
+        })
+      }
       return mapDeposit(updated)
     }
 
@@ -586,5 +697,222 @@ export const depositService = {
     }
 
     throw badRequest('Unsupported decision.')
+  },
+
+  /**
+   * Provider webhook confirmation — credits ledger identically to admin APPROVE.
+   * Idempotent via `deposit:{id}:approve` ledger key.
+   */
+  async confirmFromProvider(
+    depositId: string,
+    input: {
+      amount?: string
+      eventId: string
+      txHash?: string
+      context: Ctx
+    },
+  ) {
+    const deposit = await prisma.deposit.findUnique({
+      where: { id: depositId },
+      include: { paymentMethod: { select: { id: true, name: true, type: true } } },
+    })
+    if (!deposit) throw notFound('Deposit not found.')
+
+    const creditRequested = d(input.amount ?? deposit.amount)
+    if (creditRequested.lte(0)) throw badRequest('Credited amount must be positive.')
+
+    const updated = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT 1 FROM deposits WHERE id = ${deposit.id}::uuid FOR UPDATE`
+      const current = await tx.deposit.findUniqueOrThrow({
+        where: { id: deposit.id },
+        include: { paymentMethod: { select: { id: true, name: true, type: true } } },
+      })
+
+      if (current.status === 'APPROVED') {
+        return current
+      }
+      if (!['PENDING', 'UNDER_REVIEW'].includes(current.status)) {
+        throw badRequest('Deposit cannot be provider-confirmed from the current status.')
+      }
+
+      const credit = creditRequested.gt(d(current.amount)) ? d(current.amount) : creditRequested
+
+      const claimed = await tx.deposit.updateMany({
+        where: { id: deposit.id, status: { in: ['PENDING', 'UNDER_REVIEW'] } },
+        data: {
+          status: 'APPROVED',
+          creditedAmount: moneyString(credit),
+          reviewedAt: new Date(),
+          txHash: input.txHash?.slice(0, 120) ?? current.txHash,
+          internalNotes: `Provider confirmed ${input.eventId}`,
+          rejectionReason: null,
+        },
+      })
+      if (claimed.count !== 1) {
+        throw conflict('Deposit status changed concurrently; provider confirm aborted.')
+      }
+
+      const txn = await ledgerService.creditAvailable(tx, {
+        userId: current.userId,
+        walletId: current.walletId,
+        amount: credit,
+        entryType: 'DEPOSIT_APPROVED',
+        transactionType: 'DEPOSIT',
+        description: `Deposit ${current.reference} confirmed by provider`,
+        referenceType: 'DEPOSIT',
+        referenceId: current.id,
+        createdById: null,
+        idempotencyKey: `deposit:${current.id}:approve`,
+        bumpDeposited: true,
+        bumpInvested: true,
+      })
+
+      await tx.deposit.update({
+        where: { id: current.id },
+        data: { transactionId: txn.id },
+      })
+      await ledgerService.adjustPending(tx, current.walletId, d(current.amount).neg())
+      await tx.approvalQueue.updateMany({
+        where: { depositId: current.id },
+        data: { status: 'APPROVED', resolvedAt: new Date() },
+      })
+      await tx.financeReview.create({
+        data: {
+          depositId: current.id,
+          decision: 'PROVIDER_CONFIRM',
+          reason: `Webhook ${input.eventId}`,
+          metadata: { eventId: input.eventId, credited: moneyString(credit) },
+        },
+      })
+      await tx.transactionHistory.create({
+        data: {
+          userId: current.userId,
+          transactionId: txn.id,
+          event: 'DEPOSIT_PROVIDER_CONFIRMED',
+          status: 'APPROVED',
+          amount: moneyString(credit),
+          currency: 'USD',
+          message: `Deposit ${current.reference} confirmed by payment provider`,
+        },
+      })
+      return tx.deposit.findUniqueOrThrow({
+        where: { id: current.id },
+        include: { paymentMethod: { select: { id: true, name: true, type: true } } },
+      })
+    })
+
+    const credit = d(updated.creditedAmount ?? updated.amount)
+    await activityService.record({
+      userId: deposit.userId,
+      kind: 'DEPOSIT_APPROVED',
+      title: 'Deposit confirmed by provider',
+      ip: input.context.ip,
+      userAgent: input.context.userAgent,
+    })
+    await auditService.record({
+      actorId: null,
+      targetUserId: deposit.userId,
+      action: 'deposit.provider_confirm',
+      module: 'finance',
+      oldValue: { status: deposit.status },
+      newValue: { status: 'APPROVED', creditedAmount: moneyDisplay(credit), eventId: input.eventId },
+      ip: input.context.ip,
+      userAgent: input.context.userAgent,
+    })
+    await notificationService.notify({
+      userId: deposit.userId,
+      kind: 'FINANCE',
+      title: 'Deposit confirmed',
+      body: `Deposit ${deposit.reference} was confirmed for ${moneyDisplay(credit)}.`,
+      metadata: { type: 'DEPOSIT_APPROVED', depositId: deposit.id },
+    })
+    await transactionalMailer.depositApproved(deposit.userId, {
+      reference: deposit.reference,
+      amount: moneyDisplay(credit),
+    })
+
+    return moneyDisplay(credit)
+  },
+
+  async markFailedFromProvider(
+    depositId: string,
+    input: { eventId: string; reason?: string; context: Ctx },
+  ) {
+    const deposit = await prisma.deposit.findUnique({
+      where: { id: depositId },
+      include: { paymentMethod: { select: { id: true, name: true, type: true } } },
+    })
+    if (!deposit) throw notFound('Deposit not found.')
+    if (deposit.status === 'REJECTED' || deposit.status === 'CANCELLED') {
+      return mapDeposit(deposit)
+    }
+    if (deposit.status === 'APPROVED') {
+      throw badRequest('Approved deposits cannot be marked failed by provider; use FORCE_CANCEL.')
+    }
+    if (!['PENDING', 'UNDER_REVIEW'].includes(deposit.status)) {
+      throw badRequest('Deposit cannot be marked failed from the current status.')
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT 1 FROM deposits WHERE id = ${deposit.id}::uuid FOR UPDATE`
+      const current = await tx.deposit.findUniqueOrThrow({
+        where: { id: deposit.id },
+        include: { paymentMethod: { select: { id: true, name: true, type: true } } },
+      })
+      if (!['PENDING', 'UNDER_REVIEW'].includes(current.status)) {
+        return current
+      }
+      await tx.deposit.update({
+        where: { id: current.id },
+        data: {
+          status: 'REJECTED',
+          rejectionReason: input.reason ?? 'Provider reported payment failed',
+          reviewedAt: new Date(),
+          internalNotes: `webhook:${input.eventId}`,
+        },
+      })
+      await ledgerService.adjustPending(tx, current.walletId, d(current.amount).neg())
+      await tx.approvalQueue.updateMany({
+        where: { depositId: current.id },
+        data: { status: 'REJECTED', resolvedAt: new Date() },
+      })
+      await tx.financeReview.create({
+        data: {
+          depositId: current.id,
+          decision: 'REJECT',
+          reason: input.reason ?? 'Provider reported payment failed',
+          metadata: { eventId: input.eventId, source: 'webhook' },
+        },
+      })
+      return tx.deposit.findUniqueOrThrow({
+        where: { id: current.id },
+        include: { paymentMethod: { select: { id: true, name: true, type: true } } },
+      })
+    })
+
+    await activityService.record({
+      userId: deposit.userId,
+      kind: 'DEPOSIT_REJECTED',
+      title: 'Deposit failed at provider',
+      ip: input.context.ip,
+      userAgent: input.context.userAgent,
+    })
+    await auditService.record({
+      actorId: null,
+      targetUserId: deposit.userId,
+      action: 'deposit.provider_failed',
+      module: 'finance',
+      reason: input.reason,
+      ip: input.context.ip,
+      userAgent: input.context.userAgent,
+    })
+    await notificationService.notify({
+      userId: deposit.userId,
+      kind: 'FINANCE',
+      title: 'Deposit failed',
+      body: input.reason ?? `Deposit ${deposit.reference} failed at the payment provider.`,
+      metadata: { type: 'DEPOSIT_REJECTED', depositId: deposit.id },
+    })
+    return mapDeposit(updated)
   },
 }

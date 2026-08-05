@@ -50,11 +50,35 @@ const envSchema = z.object({
   MAILGUN_API_KEY: z.string().optional().default(''),
   MAILGUN_DOMAIN: z.string().optional().default(''),
   EMAIL_OUTBOX_POLL_MS: z.coerce.number().int().positive().default(30_000),
+  /** Comma-separated ops inboxes for deposit/withdrawal/KYC admin alerts */
+  ADMIN_ALERT_EMAILS: z.string().optional().default(''),
 
-  // Optional Google OAuth (wire routes when enabling social login)
+  // Google OAuth — leave blank to disable social login endpoints
   GOOGLE_CLIENT_ID: z.string().optional().default(''),
   GOOGLE_CLIENT_SECRET: z.string().optional().default(''),
+  // Absolute callback URL registered in Google Cloud Console
   GOOGLE_CALLBACK_URL: z.string().optional().default(''),
+
+  /**
+   * Payment provider webhooks (HMAC-SHA256).
+   * Leave PAYMENT_WEBHOOK_SECRET empty to reject all webhook posts in production.
+   */
+  PAYMENT_PROVIDER: z.enum(['generic', 'nowpayments']).default('generic'),
+  PAYMENT_WEBHOOK_SECRET: z.string().optional().default(''),
+  PAYMENT_AUTO_CONFIRM_DEPOSITS: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  /**
+   * Dev/test only. When true AND secret is empty, unsigned webhooks are accepted.
+   * Never enable on internet-facing environments that share a real ledger DB.
+   */
+  PAYMENT_WEBHOOK_ALLOW_UNSIGNED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  /** Max age of webhook timestamp claim (seconds); 0 disables skew check. */
+  PAYMENT_WEBHOOK_MAX_SKEW_SECONDS: z.coerce.number().int().min(0).default(300),
 
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
@@ -123,12 +147,64 @@ function parseEnv(): Env {
     throw new Error('S3_BUCKET is required when STORAGE_DRIVER=s3')
   }
 
-  // Default ON unless explicitly disabled. Render / PaaS deploys often omit
-  // ENABLE_API_DOCS; leaving it off would 404 /api/docs.
+  // Default: docs on in non-production, off in production (attack-surface reduction).
+  // Set ENABLE_API_DOCS=true explicitly if operators need Swagger in prod (prefer IP allowlist).
   const enableDocs =
     parsed.data.ENABLE_API_DOCS === undefined
-      ? true
+      ? parsed.data.NODE_ENV !== 'production'
       : parsed.data.ENABLE_API_DOCS === 'true'
+
+  if (
+    parsed.data.NODE_ENV === 'production' &&
+    parsed.data.PAYMENT_WEBHOOK_ALLOW_UNSIGNED
+  ) {
+    throw new Error('PAYMENT_WEBHOOK_ALLOW_UNSIGNED must be false in production')
+  }
+
+  if (
+    parsed.data.NODE_ENV === 'production' &&
+    parsed.data.PAYMENT_AUTO_CONFIRM_DEPOSITS &&
+    !parsed.data.PAYMENT_WEBHOOK_SECRET
+  ) {
+    throw new Error(
+      'PAYMENT_AUTO_CONFIRM_DEPOSITS requires PAYMENT_WEBHOOK_SECRET in production',
+    )
+  }
+
+  // Production email must not silently drop mail (auth, KYC, finance).
+  if (parsed.data.NODE_ENV === 'production') {
+    if (parsed.data.EMAIL_TRANSPORT === 'console') {
+      throw new Error('EMAIL_TRANSPORT=console is not allowed in production')
+    }
+    if (parsed.data.EMAIL_TRANSPORT === 'resend') {
+      if (!parsed.data.RESEND_API_KEY?.trim()) {
+        throw new Error('RESEND_API_KEY is required when EMAIL_TRANSPORT=resend in production')
+      }
+      if (
+        !parsed.data.SMTP_FROM_ADDRESS?.trim() ||
+        parsed.data.SMTP_FROM_ADDRESS.includes('localhost')
+      ) {
+        throw new Error(
+          'SMTP_FROM_ADDRESS must be a real verified sender when EMAIL_TRANSPORT=resend in production',
+        )
+      }
+    }
+    if (parsed.data.EMAIL_TRANSPORT === 'sendgrid' && !parsed.data.SENDGRID_API_KEY?.trim()) {
+      throw new Error('SENDGRID_API_KEY is required when EMAIL_TRANSPORT=sendgrid in production')
+    }
+    if (
+      parsed.data.EMAIL_TRANSPORT === 'mailgun' &&
+      (!parsed.data.MAILGUN_API_KEY?.trim() || !parsed.data.MAILGUN_DOMAIN?.trim())
+    ) {
+      throw new Error('MAILGUN_API_KEY and MAILGUN_DOMAIN are required in production')
+    }
+    if (
+      parsed.data.EMAIL_TRANSPORT === 'ses' &&
+      (!parsed.data.SES_ACCESS_KEY_ID?.trim() || !parsed.data.SES_SECRET_ACCESS_KEY?.trim())
+    ) {
+      throw new Error('SES_ACCESS_KEY_ID and SES_SECRET_ACCESS_KEY are required in production')
+    }
+  }
 
   const underTest =
     parsed.data.NODE_ENV === 'test' || process.env.VITEST === 'true' || process.env.VITEST === '1'

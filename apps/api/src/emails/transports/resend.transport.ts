@@ -8,12 +8,11 @@ import type { EmailMessage, EmailTransport } from '../email.types.js'
  */
 export class ResendEmailTransport implements EmailTransport {
   async send(message: EmailMessage): Promise<void> {
-    if (!env.RESEND_API_KEY) {
-      logger.warn(
-        { to: message.to, subject: message.subject },
-        'Resend transport selected but RESEND_API_KEY is not set; message logged only',
-      )
-      return
+    if (!env.RESEND_API_KEY?.trim()) {
+      throw new Error('RESEND_API_KEY is not configured for EMAIL_TRANSPORT=resend')
+    }
+    if (!env.SMTP_FROM_ADDRESS?.trim() || env.SMTP_FROM_ADDRESS.includes('localhost')) {
+      throw new Error('SMTP_FROM_ADDRESS must be a verified sender address for Resend')
     }
 
     const from = `${env.SMTP_FROM_NAME} <${env.SMTP_FROM_ADDRESS}>`
