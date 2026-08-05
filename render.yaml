@@ -92,9 +92,10 @@ services:
       - key: LOG_LEVEL
         value: info
       - key: UPLOAD_ROOT
-        value: /tmp/uploads
+        value: /var/data/uploads
       - key: STORAGE_DRIVER
         value: local
+      # For multi-instance / durable uploads set STORAGE_DRIVER=s3 and S3_* secrets in the dashboard.
 
   # ── Next.js frontend ───────────────────────────────────────────────────────
   # Must be a Web Service (NOT Static Site): App Router + middleware + SSR.

@@ -27,6 +27,6 @@ export const filesService = {
     if (!ALLOWED_PREFIXES.some((prefix) => key.startsWith(prefix))) {
       throw forbidden('This file cannot be downloaded from this endpoint.')
     }
-    return storage.getAbsolutePath(key)
+    return key
   },
 }

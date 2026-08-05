@@ -136,7 +136,26 @@ export function createApp() {
     }
     next()
   })
-  app.use('/uploads', express.static(path.resolve(env.UPLOAD_ROOT)))
+  if (env.STORAGE_DRIVER === 'local') {
+    app.use('/uploads', express.static(path.resolve(env.UPLOAD_ROOT)))
+  } else {
+    // Object storage: stream public media through the API (same URL shape as local).
+    app.use('/uploads', async (req, res, next) => {
+      try {
+        const key = req.path.replace(/^\/+/, '')
+        if (!key || key.includes('..')) {
+          res.status(404).end()
+          return
+        }
+        const { storage } = await import('./services/storage/index.js')
+        const stream = await storage.openReadStream(key)
+        stream.on('error', next)
+        stream.pipe(res)
+      } catch (err) {
+        next(err)
+      }
+    })
+  }
   app.use('/api', createApiRouter())
 
   app.use(notFoundHandler)

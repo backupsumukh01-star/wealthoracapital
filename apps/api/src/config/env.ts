@@ -59,7 +59,13 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
   UPLOAD_ROOT: z.string().min(1).default('./uploads'),
-  STORAGE_DRIVER: z.enum(['local']).default('local'),
+  STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
+  S3_BUCKET: z.string().optional().default(''),
+  S3_REGION: z.string().optional().default('us-east-1'),
+  S3_ENDPOINT: z.string().optional().default(''),
+  S3_ACCESS_KEY_ID: z.string().optional().default(''),
+  S3_SECRET_ACCESS_KEY: z.string().optional().default(''),
+  S3_PUBLIC_BASE_URL: z.string().optional().default(''),
   REDIS_URL: z.string().optional().default(''),
   REDIS_REQUIRED: z
     .enum(['true', 'false'])
@@ -111,6 +117,10 @@ function parseEnv(): Env {
         throw new Error(`${key} must not use localhost in production`)
       }
     }
+  }
+
+  if (parsed.data.STORAGE_DRIVER === 's3' && !parsed.data.S3_BUCKET) {
+    throw new Error('S3_BUCKET is required when STORAGE_DRIVER=s3')
   }
 
   // Default ON unless explicitly disabled. Render / PaaS deploys often omit

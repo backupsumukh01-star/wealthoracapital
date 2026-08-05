@@ -16,7 +16,9 @@ export interface StorageDriver {
   }): Promise<StoredObject>
   delete(key: string): Promise<void>
   getPublicUrl(key: string): string
+  /** Local disk path when available; object storage drivers throw. Prefer `openReadStream`. */
   getAbsolutePath(key: string): string
+  openReadStream(key: string): Promise<NodeJS.ReadableStream>
   createSignedDownloadUrl(key: string, expiresInSeconds?: number): string
   verifySignedDownloadUrl(key: string, expires: string, signature: string): boolean
 }

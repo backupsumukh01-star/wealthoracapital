@@ -1,8 +1,8 @@
 import multer from 'multer'
-import { createReadStream } from 'node:fs'
 import path from 'node:path'
 
 import { kycService } from '../services/kyc/kyc.service.js'
+import { storage } from '../services/storage/index.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import { badRequest } from '../utils/errors.js'
 import { requestContext } from '../utils/request-context.js'
@@ -101,10 +101,11 @@ export const kycController = {
     const key = String(req.query.key ?? '')
     const expires = String(req.query.expires ?? '')
     const signature = String(req.query.signature ?? '')
-    const absolute = await kycService.resolveSignedFile(key, expires, signature)
+    const storageKey = await kycService.resolveSignedFile(key, expires, signature)
     res.setHeader('Content-Type', 'application/octet-stream')
-    res.setHeader('Content-Disposition', `inline; filename="${path.basename(absolute)}"`)
-    createReadStream(absolute).pipe(res)
+    res.setHeader('Content-Disposition', `inline; filename="${path.basename(storageKey)}"`)
+    const stream = await storage.openReadStream(storageKey)
+    stream.pipe(res)
   }),
 
   adminList: asyncHandler(async (req, res) => {

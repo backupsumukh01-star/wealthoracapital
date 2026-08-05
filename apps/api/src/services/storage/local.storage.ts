@@ -1,4 +1,5 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
+import { createReadStream } from 'node:fs'
 import { mkdir, unlink, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
@@ -46,6 +47,10 @@ export class LocalStorageDriver implements StorageDriver {
       throw new Error('Invalid storage key')
     }
     return path.join(this.root, normalized)
+  }
+
+  async openReadStream(key: string): Promise<NodeJS.ReadableStream> {
+    return createReadStream(this.getAbsolutePath(key))
   }
 
   getPublicUrl(key: string): string {

@@ -685,6 +685,6 @@ export const kycService = {
     if (!key.startsWith('kyc/')) {
       throw forbidden('Invalid file key.')
     }
-    return storage.getAbsolutePath(key)
+    return key
   },
 }
