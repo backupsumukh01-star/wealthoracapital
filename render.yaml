@@ -21,12 +21,14 @@ services:
     plan: starter
     region: oregon
     rootDir: .
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @meridian/api... build
+    buildCommand: corepack enable && corepack prepare pnpm@9.15.0 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @meridian/api... build
     preDeployCommand: pnpm --filter @meridian/api exec prisma migrate deploy
     startCommand: pnpm --filter @meridian/api start
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
+      - key: NODE_VERSION
+        value: "22"
       - key: NODE_ENV
         value: production
       - key: APP_ENV
@@ -101,11 +103,13 @@ services:
     plan: starter
     region: oregon
     rootDir: .
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @meridian/web... build
+    buildCommand: corepack enable && corepack prepare pnpm@9.15.0 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @meridian/web... build
     startCommand: pnpm --filter @meridian/web start
     healthCheckPath: /
     autoDeploy: true
     envVars:
+      - key: NODE_VERSION
+        value: "22"
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_API_URL
@@ -129,7 +133,7 @@ services:
   #   plan: starter
   #   region: oregon
   #   rootDir: .
-  #   buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @meridian/api... build
+  #   buildCommand: corepack enable && corepack prepare pnpm@9.15.0 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @meridian/api... build
   #   startCommand: pnpm --filter @meridian/api worker:start
   #   autoDeploy: true
   #   envVars:

@@ -63,16 +63,18 @@ Copy the **Internal Database URL** into `DATABASE_URL` on the API (Blueprint wir
 | Runtime | Node |
 | Region | Oregon (or nearest) |
 | Root directory | `.` (repo root) |
-| Build command | `corepack enable && pnpm install --frozen-lockfile && pnpm --filter @meridian/api... build` |
+| Build command | `corepack enable && corepack prepare pnpm@9.15.0 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @meridian/api... build` |
 | Pre-deploy command | `pnpm --filter @meridian/api exec prisma migrate deploy` |
 | Start command | `pnpm --filter @meridian/api start` |
 | Health check path | `/api/health` |
 | Instance | Starter+ |
 
+> **Important:** Always pass `--prod=false` (or unset `NODE_ENV` during install). Render sets `NODE_ENV=production`, which would otherwise skip `devDependencies` (Prisma CLI, TypeScript, tsup) and can surface as install/build failures. `--frozen-lockfile` requires `pnpm-lock.yaml` to match every `package.json` exactly — regenerate with `pnpm install` after dependency changes and commit the lockfile.
+
 Equivalent root scripts:
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile --prod=false
 pnpm render:build:api    # prisma generate (postinstall) + tsup build
 pnpm render:migrate      # prisma migrate deploy
 pnpm render:start:api    # node dist/server.js — listens on process.env.PORT
@@ -84,16 +86,15 @@ pnpm render:start:api    # node dist/server.js — listens on process.env.PORT
 |---------|--------|
 | Runtime | Node |
 | Root directory | `.` |
-| Build command | `corepack enable && pnpm install --frozen-lockfile && pnpm --filter @meridian/web... build` |
+| Build command | `corepack enable && corepack prepare pnpm@9.15.0 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @meridian/web... build` |
 | Start command | `pnpm --filter @meridian/web start` |
 | Health check path | `/` |
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile --prod=false
 pnpm render:build:web
 pnpm render:start:web    # next start -H 0.0.0.0 -p $PORT
 ```
-
 `NEXT_PUBLIC_*` variables are inlined at **build** time — set them before the first web build (or clear build cache after changing them).
 
 ---
@@ -212,11 +213,23 @@ cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env.local
 # Adjust local URLs back to http://127.0.0.1 for development only
 docker compose up -d   # Postgres (+ Redis if needed)
-pnpm install
+pnpm install --frozen-lockfile --prod=false
 pnpm --filter @meridian/api exec prisma migrate deploy
 pnpm --filter @meridian/api dev
 pnpm --filter @meridian/web dev
 ```
+
+### Lockfile maintenance
+
+After any `package.json` change:
+
+```bash
+pnpm install
+git add pnpm-lock.yaml package.json apps/*/package.json packages/*/package.json
+git commit -m "chore: sync pnpm lockfile"
+```
+
+CI and Render both use `pnpm install --frozen-lockfile` (Render adds `--prod=false`). An outdated lockfile fails the build with `ERR_PNPM_OUTDATED_LOCKFILE`.
 
 Docker Compose / Nginx files remain in the repo for optional self-hosting; **Render production does not use them**.
 
@@ -231,5 +244,7 @@ Docker Compose / Nginx files remain in the repo for optional self-hosting; **Ren
 | CORS errors | `CORS_ORIGIN` must match the exact browser origin |
 | Cookies missing after login | Set `COOKIE_DOMAIN=.yourdomain.com` and `COOKIE_SECURE=true` |
 | CSRF 403 in Swagger | Open `/api/docs` first (issues `mfx_csrf`), then login |
+| `ERR_PNPM_OUTDATED_LOCKFILE` | Run `pnpm install`, commit updated `pnpm-lock.yaml`, redeploy |
+| Prisma/tsup missing on build | Ensure install uses `--prod=false` (see build command above) |
 | Emails not sent | `EMAIL_TRANSPORT=resend` + valid `RESEND_API_KEY` + verified domain |
 | Uploads disappear | `/tmp/uploads` is ephemeral — add a disk or object storage later |

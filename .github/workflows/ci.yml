@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --prod=false
       - run: pnpm --filter @meridian/api exec prisma generate
       - run: pnpm lint
       - run: pnpm typecheck
@@ -63,7 +63,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --prod=false
       - run: pnpm --filter @meridian/api exec prisma generate
       - run: pnpm --filter @meridian/api exec prisma migrate deploy
       - run: pnpm --filter @meridian/api test
@@ -82,9 +82,14 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --prod=false
       - run: pnpm --filter @meridian/api exec prisma generate
       - run: pnpm --filter @meridian/api build
       - run: pnpm --filter @meridian/web build
         env:
           NEXT_TELEMETRY_DISABLED: '1'
+          NEXT_PUBLIC_API_URL: https://api.example.com/api/v1
+          NEXT_PUBLIC_SITE_URL: https://app.example.com
+          NEXT_PUBLIC_PLATFORM_NAME: Growzy
+          NEXT_PUBLIC_SUPPORT_EMAIL: support@example.com
+          NEXT_PUBLIC_ENABLE_REFERRALS: 'false'
