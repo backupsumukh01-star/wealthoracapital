@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ROUTES } from '@meridian/shared'
 import {
@@ -21,14 +21,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from '@/components/ui/toast'
-import {
-  PERFORMANCE_SUMMARY,
-  TRADE_HISTORY,
-  type TradeLifecycle,
-} from '@/lib/dashboard-data'
+import type { TradeLifecycle } from '@/lib/dashboard-data'
 import { formatDateTime } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { useAdminOs } from '@/providers/admin-os-provider'
+import { useTradeStats, useTrades } from '@/features/trades/hooks'
+import { useSession } from '@/providers/session-provider'
+import type { Trade } from '@meridian/shared'
 
 type FilterId = 'ALL' | 'PROFIT' | 'LOSS' | 'PENDING' | 'CANCELLED'
 
@@ -89,42 +87,35 @@ export function TradeHistoryWorkspace() {
   const [filter, setFilter] = useState<FilterId>('ALL')
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
-  const [booting, setBooting] = useState(true)
-  const { ready, state } = useAdminOs()
-
-  useEffect(() => {
-    const id = window.setTimeout(() => setBooting(false), 480)
-    return () => window.clearTimeout(id)
-  }, [])
+  const { session } = useSession()
+  const { data: tradesData, isLoading } = useTrades(undefined, { enabled: Boolean(session) })
+  const { data: stats } = useTradeStats({ enabled: Boolean(session) })
 
   const rows = useMemo(() => {
-    const fromCms = ready
-      ? state.trades
-          .filter((t) => t.status === 'PUBLISHED')
-          .map((t) => {
-            const pct = Number(String(t.profitPct).replace('%', '').replace('+', ''))
-            const win = !Number.isNaN(pct) ? pct >= 0 : !String(t.profitPct).startsWith('-')
-            return {
-              id: t.id,
-              date: t.publishedAt || t.tradingDay || t.createdAt,
-              pair: t.pair,
-              direction: (String(t.direction).includes('SELL') || String(t.direction).includes('SHORT')
-                ? 'SELL'
-                : 'BUY') as 'BUY' | 'SELL',
-              entry: t.entry,
-              exit: t.exit,
-              lot: '0.10',
-              pips: '—',
-              returnPct: String(t.profitPct).replace('%', ''),
-              profit: win ? '120.00' : '-80.00',
-              result: (win ? 'WIN' : 'LOSS') as 'WIN' | 'LOSS' | 'FLAT',
-              lifecycle: 'Completed' as TradeLifecycle,
-            }
-          })
-      : []
-    const ids = new Set(fromCms.map((t) => t.id))
-    return [...fromCms, ...TRADE_HISTORY.filter((t) => !ids.has(t.id))]
-  }, [ready, state.trades])
+    const items = tradesData?.items ?? []
+    return items.map((t: Trade) => {
+      const win = t.outcome === 'WIN'
+      const loss = t.outcome === 'LOSS'
+      return {
+        id: t.id,
+        date: t.closedAt || t.openedAt || t.date,
+        pair: t.pair,
+        direction: (String(t.direction).includes('SELL') || String(t.direction).includes('SHORT')
+          ? 'SELL'
+          : 'BUY') as 'BUY' | 'SELL',
+        entry: t.entryPrice,
+        exit: t.exitPrice,
+        lot: t.lotSize ?? '—',
+        pips: t.pips ?? '—',
+        returnPct: String(t.returnPct).replace('%', ''),
+        profit: '—',
+        result: (win ? 'WIN' : loss ? 'LOSS' : 'FLAT') as 'WIN' | 'LOSS' | 'FLAT',
+        lifecycle: 'Completed' as TradeLifecycle,
+      }
+    })
+  }, [tradesData?.items])
+
+  const booting = isLoading
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -148,9 +139,24 @@ export function TradeHistoryWorkspace() {
 
   const closed = rows.filter((t) => t.lifecycle === 'Completed')
   const wins = closed.filter((t) => t.result === 'WIN').length
-  const winRate = closed.length ? ((wins / closed.length) * 100).toFixed(1) : '—'
+  const winRate = stats?.winRatePct
+    ? Number(stats.winRatePct).toFixed(1)
+    : closed.length
+      ? ((wins / closed.length) * 100).toFixed(1)
+      : '—'
+  const avgDailyReturnPct = stats?.avgReturnPct
+    ? Number(stats.avgReturnPct).toFixed(2)
+    : closed.length
+      ? (closed.reduce((sum, t) => sum + Number(t.returnPct), 0) / closed.length).toFixed(2)
+      : '0.00'
+  const pairCounts = closed.reduce<Record<string, number>>((acc, t) => {
+    acc[t.pair] = (acc[t.pair] ?? 0) + 1
+    return acc
+  }, {})
+  const bestPair =
+    Object.entries(pairCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? '—'
 
-  function exportCsv() {
+  function exportTradesCsv() {
     const header = 'id,date,pair,direction,entry,exit,lot,pips,returnPct,profit,result,lifecycle\n'
     const body = filtered
       .map(
@@ -162,24 +168,20 @@ export function TradeHistoryWorkspace() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'growzy-trades-demo.csv'
+    a.download = 'growzy-trades.csv'
     a.click()
     URL.revokeObjectURL(url)
-    toast.success('Trades exported (demo)')
+    toast.success('Trades exported')
   }
 
   return (
     <div className="min-w-0 space-y-5 sm:space-y-6 lg:space-y-8">
       <PageHeader
         className="pb-2 sm:pb-4"
-        title={ready ? state.platformCms.trades.title : 'Trade history'}
-        description={
-          ready
-            ? state.platformCms.trades.emptyHint
-            : 'Every desk position behind your returns — wins and losses included.'
-        }
+        title="Trade history"
+        description="Every desk position behind your returns — wins and losses included."
         actions={
-          <Button variant="secondary" className="w-full sm:w-auto" onClick={exportCsv}>
+          <Button variant="secondary" className="w-full sm:w-auto" onClick={exportTradesCsv}>
             <Download aria-hidden />
             Export
           </Button>
@@ -201,9 +203,9 @@ export function TradeHistoryWorkspace() {
         <StatCard
           className="p-4 sm:p-5"
           label="Avg daily"
-          value={<Percent value={PERFORMANCE_SUMMARY.avgDailyReturnPct} />}
+          value={<Percent value={avgDailyReturnPct} />}
         />
-        <StatCard className="p-4 sm:p-5" label="Best pair" value="EUR/USD" />
+        <StatCard className="p-4 sm:p-5" label="Best pair" value={bestPair} />
       </div>
 
       <div className="min-w-0 space-y-3">

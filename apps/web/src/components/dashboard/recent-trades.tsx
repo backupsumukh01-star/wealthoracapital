@@ -16,10 +16,51 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { RECENT_TRADES } from '@/lib/dashboard-data'
+import { PremiumEmptyState } from '@/components/dashboard/premium-empty-state'
+import { useTrades } from '@/features/trades/hooks'
 import { formatDate } from '@/lib/format'
+import { useSession } from '@/providers/session-provider'
 
 export function RecentTrades() {
+  const { session } = useSession()
+  const { data } = useTrades(undefined, { enabled: Boolean(session) })
+  const trades = (data?.items ?? []).slice(0, 5).map((t) => ({
+    id: t.id,
+    date: t.closedAt || t.date,
+    pair: t.pair,
+    direction: (String(t.direction).includes('SELL') || String(t.direction).includes('SHORT')
+      ? 'SELL'
+      : 'BUY') as 'BUY' | 'SELL',
+    entry: t.entryPrice,
+    exit: t.exitPrice,
+    returnPct: String(t.returnPct).replace('%', ''),
+    status: (t.outcome === 'WIN' ? 'WIN' : t.outcome === 'LOSS' ? 'LOSS' : 'FLAT') as
+      | 'WIN'
+      | 'LOSS'
+      | 'FLAT',
+  }))
+
+  if (trades.length === 0) {
+    return (
+      <Card variant="glass" padded="md">
+        <SectionHeader
+          title="Recent trading performance"
+          description="The most recent positions the desk closed."
+          actions={
+            <Button asChild variant="ghost" size="sm">
+              <Link href={ROUTES.dashboard.trades}>View all</Link>
+            </Button>
+          }
+        />
+        <PremiumEmptyState
+          className="py-8"
+          title="No trades yet"
+          description="Closed trades will list here once the desk publishes them."
+        />
+      </Card>
+    )
+  }
+
   return (
     <Card variant="glass" padded="md">
       <SectionHeader
@@ -31,96 +72,29 @@ export function RecentTrades() {
           </Button>
         }
       />
-
-      {/* Mobile cards — financial tables should not force horizontal scroll on phones. */}
-      <ul className="space-y-3 md:hidden">
-        {RECENT_TRADES.map((trade) => (
-          <li
-            key={trade.id}
-            className="rounded-xl border border-line bg-inset/35 p-4"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-body-sm font-medium text-fg">{trade.pair}</p>
-                <p className="text-caption text-fg-subtle">{formatDate(trade.date)}</p>
-              </div>
-              <div className="flex flex-col items-end gap-1.5">
-                <Badge tone={trade.direction === 'BUY' ? 'accent' : 'neutral'} size="sm">
-                  {trade.direction}
-                </Badge>
-                <Badge tone={trade.status === 'WIN' ? 'profit' : 'loss'} size="sm">
-                  {trade.status}
-                </Badge>
-              </div>
-            </div>
-            <dl className="mt-3 grid grid-cols-3 gap-2 text-caption">
-              <div>
-                <dt className="text-fg-subtle">Entry</dt>
-                <dd className="tabular-nums text-fg">{trade.entry}</dd>
-              </div>
-              <div>
-                <dt className="text-fg-subtle">Exit</dt>
-                <dd className="tabular-nums text-fg">{trade.exit}</dd>
-              </div>
-              <div className="text-right">
-                <dt className="text-fg-subtle">Profit</dt>
-                <dd>
-                  <Percent value={trade.returnPct} />
-                </dd>
-              </div>
-            </dl>
-            <Button asChild variant="secondary" size="sm" className="mt-3 w-full">
-              <Link href={ROUTES.dashboard.trade(trade.id)}>View details</Link>
-            </Button>
-          </li>
-        ))}
-      </ul>
-
-      <div className="hidden md:block">
+      <div className="mt-4 overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead>Pair</TableHead>
               <TableHead>Side</TableHead>
-              <TableHead className="text-right">Entry</TableHead>
-              <TableHead className="text-right">Exit</TableHead>
-              <TableHead className="text-right">Profit %</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right"> </TableHead>
+              <TableHead>Return</TableHead>
+              <TableHead>Result</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {RECENT_TRADES.map((trade) => (
-              <TableRow key={trade.id}>
-                <TableCell className="whitespace-nowrap text-fg-muted">
-                  {formatDate(trade.date)}
-                </TableCell>
-                <TableCell className="font-medium text-fg">{trade.pair}</TableCell>
+            {trades.map((t) => (
+              <TableRow key={t.id}>
+                <TableCell>{formatDate(t.date)}</TableCell>
+                <TableCell>{t.pair}</TableCell>
                 <TableCell>
-                  <Badge tone={trade.direction === 'BUY' ? 'accent' : 'neutral'} size="sm">
-                    {trade.direction}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right tabular-nums text-fg-muted">
-                  {trade.entry}
-                </TableCell>
-                <TableCell className="text-right tabular-nums text-fg-muted">
-                  {trade.exit}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Percent value={trade.returnPct} />
+                  <Badge tone={t.direction === 'BUY' ? 'profit' : 'loss'}>{t.direction}</Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge tone={trade.status === 'WIN' ? 'profit' : 'loss'} size="sm">
-                    {trade.status}
-                  </Badge>
+                  <Percent value={t.returnPct} showArrow />
                 </TableCell>
-                <TableCell className="text-right">
-                  <Button asChild variant="ghost" size="sm">
-                    <Link href={ROUTES.dashboard.trade(trade.id)}>Details</Link>
-                  </Button>
-                </TableCell>
+                <TableCell>{t.status}</TableCell>
               </TableRow>
             ))}
           </TableBody>

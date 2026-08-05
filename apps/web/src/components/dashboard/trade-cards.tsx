@@ -6,15 +6,24 @@ import { ROUTES } from '@meridian/shared'
 import { Percent } from '@/components/common/percent'
 import { PremiumEmptyState } from '@/components/dashboard/premium-empty-state'
 import { Button } from '@/components/ui/button'
-import { RECENT_TRADES } from '@/lib/dashboard-data'
+import { useTrades } from '@/features/trades/hooks'
 import { formatDate } from '@/lib/format'
-import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
+import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
 
 function TradeRow({
   trade,
 }: {
-  trade: (typeof RECENT_TRADES)[number]
+  trade: {
+    id: string
+    pair: string
+    direction: string
+    date: string
+    entry: string
+    exit: string
+    returnPct: string
+    status: 'WIN' | 'LOSS' | 'FLAT'
+  }
 }) {
   const win = trade.status === 'WIN'
   return (
@@ -53,57 +62,49 @@ function TradeRow({
 }
 
 export function TradeCards({ limit = 5 }: { limit?: number }) {
-  const prefersReducedMotion = usePrefersReducedMotion()
-  const rows = RECENT_TRADES.slice(0, Math.max(limit, 5))
+  const { session } = useSession()
+  const { data } = useTrades(undefined, { enabled: Boolean(session) })
+  const rows = (data?.items ?? []).slice(0, Math.max(limit, 5)).map((t) => ({
+    id: t.id,
+    pair: t.pair,
+    direction: String(t.direction).includes('SELL') ? 'SELL' : 'BUY',
+    date: t.closedAt || t.date,
+    entry: t.entryPrice,
+    exit: t.exitPrice,
+    returnPct: String(t.returnPct).replace('%', ''),
+    status: (t.outcome === 'WIN' ? 'WIN' : t.outcome === 'LOSS' ? 'LOSS' : 'FLAT') as
+      | 'WIN'
+      | 'LOSS'
+      | 'FLAT',
+  }))
 
   if (rows.length === 0) {
     return (
-      <div className="glass glass-edge rounded-3xl p-5 shadow-e2 sm:p-6">
-        <PremiumEmptyState
-          title="No trades yet"
-          description="Desk fills will appear here once your capital is deployed."
-        />
-      </div>
+      <PremiumEmptyState
+        title="No trades yet"
+        description="Published desk trades will appear here."
+        action={
+          <Button asChild size="sm" variant="secondary">
+            <Link href={ROUTES.dashboard.trades}>Trade history</Link>
+          </Button>
+        }
+      />
     )
   }
 
-  const loop = [...rows, ...rows]
-
   return (
-    <div className="glass glass-edge card-lift noise-overlay relative overflow-hidden rounded-3xl p-5 shadow-e2 sm:p-6">
+    <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-overline text-accent-300">Recent trades</p>
-          <p className="mt-1 text-body-sm text-fg-muted">Desk activity behind your returns</p>
-        </div>
+        <p className="text-overline text-accent-300">Recent trades</p>
         <Button asChild variant="ghost" size="sm">
           <Link href={ROUTES.dashboard.trades}>View all</Link>
         </Button>
       </div>
-
-      <div className="relative mt-4 h-[280px] overflow-hidden">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 z-10 h-8 bg-gradient-to-b from-[rgb(8_18_28)] to-transparent"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-10 bg-gradient-to-t from-[rgb(8_18_28)] to-transparent"
-        />
-        {prefersReducedMotion ? (
-          <ul className="space-y-2.5 overflow-y-auto pr-1">
-            {rows.map((trade) => (
-              <TradeRow key={trade.id} trade={trade} />
-            ))}
-          </ul>
-        ) : (
-          <ul className="animate-trade-ticker space-y-2.5 hover:[animation-play-state:paused]">
-            {loop.map((trade, i) => (
-              <TradeRow key={`${trade.id}-${i}`} trade={trade} />
-            ))}
-          </ul>
-        )}
-      </div>
+      <ul className="space-y-2.5">
+        {rows.map((trade) => (
+          <TradeRow key={trade.id} trade={trade} />
+        ))}
+      </ul>
     </div>
   )
 }
