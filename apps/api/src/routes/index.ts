@@ -1,5 +1,6 @@
 import { Router } from 'express'
 
+import { env } from '../config/env.js'
 import { adminRouter } from './admin.routes.js'
 import { authRouter } from './auth.routes.js'
 import { cmsRouter } from './cms.routes.js'
@@ -30,10 +31,12 @@ export function createApiRouter(): Router {
   const router = Router()
 
   router.use(healthRouter)
-  router.use('/docs', docsRouter)
-  router.get('/redoc', (req, res) => {
-    sendRedoc(req, res)
-  })
+  if (env.ENABLE_API_DOCS) {
+    router.use('/docs', docsRouter)
+    router.get('/redoc', (req, res) => {
+      sendRedoc(req, res)
+    })
+  }
   router.use('/v1/auth', authRouter)
   router.use('/v1/users', usersRouter)
   router.use('/v1/profile', profileRouter)

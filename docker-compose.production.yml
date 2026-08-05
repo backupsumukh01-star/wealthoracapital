@@ -41,6 +41,10 @@ services:
       RATE_LIMIT_STORE: redis
       REDIS_REQUIRED: "true"
       COOKIE_SECURE: "true"
+      ENABLE_API_DOCS: "false"
+      CSRF_PROTECTION: "true"
+    volumes:
+      - prod_uploads:/app/uploads
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -61,6 +65,8 @@ services:
       CACHE_DRIVER: redis
       WORKER_GROUP: all
       WORKER_CONCURRENCY: "4"
+    volumes:
+      - prod_uploads:/app/uploads
     depends_on:
       - redis
       - postgres
@@ -92,3 +98,4 @@ services:
 volumes:
   prod_pg:
   prod_redis:
+  prod_uploads:

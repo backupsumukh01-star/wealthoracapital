@@ -1,5 +1,6 @@
 import { ERROR_CODES, type ApiResponse } from '@meridian/shared'
 
+import { csrfHeaders, readCsrfCookie } from './csrf'
 import { env } from './env'
 
 /**
@@ -47,6 +48,9 @@ async function refreshSession(): Promise<boolean> {
   refreshInFlight ??= fetch(`${env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
     method: 'POST',
     credentials: 'include',
+    headers: {
+      ...csrfHeaders(),
+    },
   })
     .then((response) => response.ok)
     .catch(() => false)
@@ -59,6 +63,7 @@ async function refreshSession(): Promise<boolean> {
 
 export async function apiClient<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { body, idempotencyKey, skipRefresh, headers, ...rest } = options
+  const csrf = readCsrfCookie()
 
   const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${path}`, {
     ...rest,
@@ -68,6 +73,7 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
       Accept: 'application/json',
       ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
       ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+      ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
       ...headers,
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),

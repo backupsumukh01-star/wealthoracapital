@@ -7,6 +7,7 @@ import { pinoHttp } from 'pino-http'
 
 import { env, getCorsOrigins, isProduction } from './config/env.js'
 import { errorHandler, notFoundHandler } from './middlewares/error-handler.js'
+import { csrfProtection } from './middlewares/csrf.js'
 import { globalRateLimiter } from './middlewares/rate-limit.js'
 import { metricsMiddleware } from './middlewares/metrics.js'
 import { requestIdMiddleware } from './middlewares/request-id.js'
@@ -98,6 +99,7 @@ export function createApp() {
   app.use(express.urlencoded({ extended: false }))
   app.use(cookieParser())
   app.use(sanitizeRequest)
+  app.use(csrfProtection)
   app.use(metricsMiddleware)
   app.use(globalRateLimiter)
 

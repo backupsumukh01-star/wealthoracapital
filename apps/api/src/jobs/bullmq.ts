@@ -153,7 +153,7 @@ export function createWorker(
       const data = job.data as { name: JobName; payload: unknown; group?: string }
       await processor(data.name, data.payload)
     },
-    { connection, concurrency: group === 'email' ? 5 : 2 },
+    { connection, concurrency: Number(process.env.WORKER_CONCURRENCY || (group === 'email' ? 5 : 2)) },
   )
 
   worker.on('failed', (job, error) => {

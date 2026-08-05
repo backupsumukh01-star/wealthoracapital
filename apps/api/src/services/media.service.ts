@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import type { MediaKind, Prisma } from '@prisma/client'
 
 import { prisma } from '../database/prisma.js'
-import { notFound } from '../utils/errors.js'
+import { notFound, badRequest } from '../utils/errors.js'
 import { storage } from './storage/index.js'
 import { activityService } from './activity.service.js'
 
@@ -58,6 +58,22 @@ async function getOrThrow(id: string) {
   return asset
 }
 
+function assertAllowedMime(mimetype: string) {
+  const allowed = new Set([
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'image/svg+xml',
+    'application/pdf',
+    'video/mp4',
+    'video/webm',
+  ])
+  if (!allowed.has(mimetype)) {
+    throw badRequest(`Unsupported media type: ${mimetype}`)
+  }
+}
+
 export const mediaService = {
   async upload(
     actorId: string,
@@ -65,6 +81,7 @@ export const mediaService = {
     folder: string,
     context: Ctx,
   ) {
+    assertAllowedMime(file.mimetype)
     const stored = await storage.put({
       category: 'media',
       filename: file.originalname,

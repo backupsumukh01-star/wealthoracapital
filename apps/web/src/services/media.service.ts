@@ -2,6 +2,7 @@ import { API_ROUTES, ERROR_CODES, type ApiResponse } from '@meridian/shared'
 
 import { env } from '@/lib/env'
 import { ApiError } from '@/lib/api-client'
+import { csrfHeaders } from '@/lib/csrf'
 
 import { apiClient } from './http'
 
@@ -48,6 +49,9 @@ export const mediaService = {
     const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${API_ROUTES.admin.media}/upload`, {
       method: 'POST',
       credentials: 'include',
+      headers: {
+        ...csrfHeaders(),
+      },
       body: form,
     }).catch(() => {
       throw new ApiError(ERROR_CODES.NETWORK_ERROR, 'We could not reach the server.', 0)

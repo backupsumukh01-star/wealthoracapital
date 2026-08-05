@@ -7,6 +7,12 @@ export default defineConfig({
     include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
     exclude: ['node_modules', 'dist'],
     setupFiles: ['./tests/setup.ts'],
+    env: {
+      NODE_ENV: 'test',
+      CSRF_PROTECTION: 'false',
+      ENABLE_API_DOCS: 'true',
+      METRICS_ENABLED: 'true',
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'html', 'lcov'],

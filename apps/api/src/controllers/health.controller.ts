@@ -58,7 +58,19 @@ export const healthController = {
     )
   }),
 
-  metrics: asyncHandler(async (_req: Request, res: Response) => {
+  metrics: asyncHandler(async (req: Request, res: Response) => {
+    if (env.METRICS_TOKEN) {
+      const auth = req.get('authorization') ?? ''
+      const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : ''
+      const queryToken = typeof req.query.token === 'string' ? req.query.token : ''
+      if (bearer !== env.METRICS_TOKEN && queryToken !== env.METRICS_TOKEN) {
+        res.status(401).type('text/plain').send('Unauthorized')
+        return
+      }
+    } else if (env.NODE_ENV === 'production') {
+      res.status(404).type('text/plain').send('Not found')
+      return
+    }
     const body = await metricsText()
     res.setHeader('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
     res.status(200).send(body)

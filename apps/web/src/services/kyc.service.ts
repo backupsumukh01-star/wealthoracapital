@@ -2,6 +2,7 @@ import { API_ROUTES, ERROR_CODES, type KycStatus, type User } from '@meridian/sh
 
 import { ApiError, apiClient } from './http'
 import { env } from '@/lib/env'
+import { csrfHeaders } from '@/lib/csrf'
 
 export type KycProfile = {
   status: KycStatus
@@ -16,6 +17,9 @@ async function apiFormData<T>(path: string, form: FormData): Promise<T> {
   const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${path}`, {
     method: 'POST',
     credentials: 'include',
+    headers: {
+      ...csrfHeaders(),
+    },
     body: form,
   })
   const payload = (await response.json()) as { success: true; data: T } | {

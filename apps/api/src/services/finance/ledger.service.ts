@@ -99,13 +99,13 @@ async function postBalanced(
     metadata?: Record<string, unknown>
     lines: PostLine[]
   },
-) {
+): Promise<{ transaction: Awaited<ReturnType<TxClient['transaction']['findUniqueOrThrow']>>; created: boolean }> {
   if (input.idempotencyKey) {
     const existing = await tx.transaction.findUnique({
       where: { idempotencyKey: input.idempotencyKey },
       include: { entries: true },
     })
-    if (existing) return existing
+    if (existing) return { transaction: existing, created: false }
   }
 
   const debit = input.lines
@@ -167,10 +167,11 @@ async function postBalanced(
     },
   })
 
-  return tx.transaction.findUniqueOrThrow({
+  const created = await tx.transaction.findUniqueOrThrow({
     where: { id: transaction.id },
     include: { entries: true },
   })
+  return { transaction: created, created: true }
 }
 
 export const ledgerService = {
@@ -222,7 +223,7 @@ export const ledgerService = {
     const after = before.plus(params.amount)
     const availableAfter = d(wallet.availableBalance).plus(params.amount)
 
-    const posted = await postBalanced(tx, {
+    const { transaction: posted, created } = await postBalanced(tx, {
       userId: params.userId,
       type: params.transactionType,
       amount: params.amount,
@@ -256,6 +257,8 @@ export const ledgerService = {
         },
       ],
     })
+
+    if (!created) return posted
 
     await tx.wallet.update({
       where: { id: wallet.id },
@@ -304,7 +307,7 @@ export const ledgerService = {
     const availableAfter = d(wallet.availableBalance).minus(params.amount)
     const lockedAfter = d(wallet.lockedBalance).plus(params.amount)
 
-    const posted = await postBalanced(tx, {
+    const { transaction: posted, created } = await postBalanced(tx, {
       userId: params.userId,
       type: 'WITHDRAWAL',
       amount: params.amount,
@@ -339,6 +342,8 @@ export const ledgerService = {
         },
       ],
     })
+
+    if (!created) return posted
 
     await tx.wallet.update({
       where: { id: wallet.id },
@@ -378,7 +383,7 @@ export const ledgerService = {
     const after = before.minus(params.amount)
     const lockedAfter = d(wallet.lockedBalance).minus(params.amount)
 
-    const posted = await postBalanced(tx, {
+    const { transaction: posted, created } = await postBalanced(tx, {
       userId: params.userId,
       type: 'WITHDRAWAL',
       amount: params.amount,
@@ -412,6 +417,8 @@ export const ledgerService = {
         },
       ],
     })
+
+    if (!created) return posted
 
     await tx.wallet.update({
       where: { id: wallet.id },
@@ -451,7 +458,7 @@ export const ledgerService = {
     const availableAfter = d(wallet.availableBalance).plus(params.amount)
     const lockedAfter = d(wallet.lockedBalance).minus(params.amount)
 
-    const posted = await postBalanced(tx, {
+    const { transaction: posted, created } = await postBalanced(tx, {
       userId: params.userId,
       type: 'REFUND',
       amount: params.amount,
@@ -486,6 +493,8 @@ export const ledgerService = {
         },
       ],
     })
+
+    if (!created) return posted
 
     await tx.wallet.update({
       where: { id: wallet.id },
@@ -540,7 +549,7 @@ export const ledgerService = {
     const after = before.minus(params.amount)
     const availableAfter = d(wallet.availableBalance).minus(params.amount)
 
-    const posted = await postBalanced(tx, {
+    const { transaction: posted, created } = await postBalanced(tx, {
       userId: params.userId,
       type: 'ADMIN_ADJUSTMENT',
       amount: params.amount,
@@ -574,6 +583,8 @@ export const ledgerService = {
         },
       ],
     })
+
+    if (!created) return posted
 
     await tx.wallet.update({
       where: { id: wallet.id },

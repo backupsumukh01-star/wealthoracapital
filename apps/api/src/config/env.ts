@@ -69,9 +69,17 @@ const envSchema = z.object({
     .enum(['true', 'false'])
     .default('true')
     .transform((value) => value === 'true'),
+  METRICS_TOKEN: z.string().optional().default(''),
+  ENABLE_API_DOCS: z.enum(['true', 'false']).optional(),
+  CSRF_PROTECTION: z.enum(['true', 'false']).optional(),
 })
 
-export type Env = z.infer<typeof envSchema>
+type EnvParsed = z.infer<typeof envSchema>
+
+export type Env = Omit<EnvParsed, 'ENABLE_API_DOCS' | 'CSRF_PROTECTION'> & {
+  ENABLE_API_DOCS: boolean
+  CSRF_PROTECTION: boolean
+}
 
 function parseEnv(): Env {
   const parsed = envSchema.safeParse(process.env)
@@ -90,7 +98,24 @@ function parseEnv(): Env {
     throw new Error('Production JWT secrets must be rotated away from placeholder values')
   }
 
-  return parsed.data
+  const enableDocs =
+    parsed.data.ENABLE_API_DOCS === undefined
+      ? parsed.data.NODE_ENV !== 'production'
+      : parsed.data.ENABLE_API_DOCS === 'true'
+
+  const underTest =
+    parsed.data.NODE_ENV === 'test' || process.env.VITEST === 'true' || process.env.VITEST === '1'
+
+  const csrfProtection =
+    parsed.data.CSRF_PROTECTION === undefined
+      ? !underTest
+      : parsed.data.CSRF_PROTECTION === 'true'
+
+  return {
+    ...parsed.data,
+    ENABLE_API_DOCS: enableDocs,
+    CSRF_PROTECTION: csrfProtection,
+  }
 }
 
 export const env = parseEnv()

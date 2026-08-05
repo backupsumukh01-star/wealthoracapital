@@ -172,13 +172,19 @@ export const distributionService = {
               idempotencyKey,
               bumpProfit: true,
             })
-            const profitWallet = await tx.wallet.findUniqueOrThrow({
-              where: { userId_kind: { userId: line.wallet.userId, kind: 'PROFIT' } },
+            // Only bump the profit-wallet aggregate on a newly posted ledger credit.
+            const existingDist = await tx.profitDistribution.findUnique({
+              where: { idempotencyKey },
             })
-            await tx.wallet.update({
-              where: { id: profitWallet.id },
-              data: { totalProfit: moneyString(d(profitWallet.totalProfit).plus(line.amount)) },
-            })
+            if (!existingDist) {
+              const profitWallet = await tx.wallet.findUniqueOrThrow({
+                where: { userId_kind: { userId: line.wallet.userId, kind: 'PROFIT' } },
+              })
+              await tx.wallet.update({
+                where: { id: profitWallet.id },
+                data: { totalProfit: moneyString(d(profitWallet.totalProfit).plus(line.amount)) },
+              })
+            }
             const inv = await tx.wallet.findUniqueOrThrow({ where: { id: line.wallet.id } })
             return { txnId: txn.id, balanceAfter: d(inv.availableBalance) }
           })
