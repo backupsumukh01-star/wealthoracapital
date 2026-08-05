@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ROUTES } from '@meridian/shared'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -24,14 +24,20 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
+  kycStatusBadge,
+  useKycStatus,
+  useSubmitKyc,
+  useUpdateKyc,
+  useUploadKycDocument,
+} from '@/features/kyc/hooks'
+import { ApiError } from '@/lib/api-client'
+import {
   COUNTRIES,
   onboardingKycSchema,
-  wait,
   type OnboardingKycInput,
 } from '@/lib/auth-schemas'
-import { displayUsername, kycBadge } from '@/lib/investor-lifecycle'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
 
 const STEPS = [
@@ -48,12 +54,17 @@ const ID_TYPES = [
 ] as const
 
 /**
- * Investor onboarding + KYC — production UI wired to lifecycle store.
+ * Investor onboarding + KYC — production API (`/kyc/update`, `/kyc/upload`, `/kyc/submit`).
  */
 export function OnboardingWizard() {
   const router = useRouter()
   const prefersReducedMotion = usePrefersReducedMotion()
-  const { session, submitKyc, ready } = useInvestorLifecycle()
+  const { session, isLoading: sessionLoading, isAuthenticated, refresh } = useSession()
+  const kycStatusQuery = useKycStatus(isAuthenticated)
+  const updateKyc = useUpdateKyc()
+  const uploadDoc = useUploadKycDocument()
+  const submitKyc = useSubmitKyc()
+
   const [step, setStep] = useState(1)
   const [front, setFront] = useState<File | null>(null)
   const [back, setBack] = useState<File | null>(null)
@@ -61,21 +72,59 @@ export function OnboardingWizard() {
   const [successOpen, setSuccessOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [savingProfile, setSavingProfile] = useState(false)
+
+  const kycStatus =
+    kycStatusQuery.data?.status ?? session?.user.kycStatus ?? 'NOT_STARTED'
 
   const form = useForm<OnboardingKycInput>({
     resolver: zodResolver(onboardingKycSchema),
     defaultValues: {
-      country: session?.kyc?.country ?? 'PK',
-      dateOfBirth: session?.kyc?.dateOfBirth ?? '',
-      address: session?.kyc?.address ?? '',
-      city: session?.kyc?.city ?? '',
-      occupation: session?.kyc?.occupation ?? '',
-      idType: session?.kyc?.idType ?? 'PASSPORT',
+      country: session?.user.country ?? 'PK',
+      dateOfBirth: '',
+      address: '',
+      city: '',
+      occupation: '',
+      idType: 'PASSPORT',
     },
   })
 
+  useEffect(() => {
+    if (sessionLoading) return
+    if (!isAuthenticated) {
+      router.replace(`${ROUTES.auth.login}?next=${encodeURIComponent(ROUTES.auth.onboarding)}`)
+    }
+  }, [sessionLoading, isAuthenticated, router])
+
   const progress = useMemo(() => (step / STEPS.length) * 100, [step])
-  const badge = session ? kycBadge(session.kycStatus) : null
+  const badge = kycStatusBadge(kycStatus)
+
+  async function onContinueIdentity(values: OnboardingKycInput) {
+    setSubmitError(null)
+    setSavingProfile(true)
+    try {
+      await updateKyc.mutateAsync({
+        country: values.country,
+        dateOfBirth: values.dateOfBirth,
+        nationality: values.country,
+        addressLine1: values.address,
+        city: values.city,
+        occupation: values.occupation,
+        primaryDocumentType: values.idType,
+      })
+      setStep(3)
+    } catch (error) {
+      setSubmitError(
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : 'Could not save identity details',
+      )
+    } finally {
+      setSavingProfile(false)
+    }
+  }
 
   async function onSubmitDocs(values: OnboardingKycInput) {
     setSubmitError(null)
@@ -87,25 +136,75 @@ export function OnboardingWizard() {
       setSubmitError('Upload the back of your ID.')
       return
     }
+
     setSubmitting(true)
-    await wait(800)
-    const result = submitKyc({
-      ...values,
-      front,
-      back,
-      selfie,
-    })
-    setSubmitting(false)
-    if (!result.ok) {
-      setSubmitError(result.error ?? 'Could not submit KYC')
-      return
+    try {
+      // Ensure draft exists / is current before uploads (API requires profile first).
+      await updateKyc.mutateAsync({
+        country: values.country,
+        dateOfBirth: values.dateOfBirth,
+        nationality: values.country,
+        addressLine1: values.address,
+        city: values.city,
+        occupation: values.occupation,
+        primaryDocumentType: values.idType,
+      })
+
+      await uploadDoc.mutateAsync({
+        kind: values.idType,
+        file: front,
+        side: 'FRONT',
+      })
+      if (values.idType !== 'PASSPORT' && back) {
+        await uploadDoc.mutateAsync({
+          kind: values.idType,
+          file: back,
+          side: 'BACK',
+        })
+      }
+      await uploadDoc.mutateAsync({
+        kind: 'SELFIE',
+        file: selfie,
+        side: 'SINGLE',
+      })
+
+      await submitKyc.mutateAsync({})
+      refresh()
+      toast.success('KYC submitted', { description: 'Expected review: 24–48 hours.' })
+      setStep(4)
+      setSuccessOpen(true)
+    } catch (error) {
+      setSubmitError(
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : 'Could not submit KYC',
+      )
+    } finally {
+      setSubmitting(false)
     }
-    toast.success('KYC submitted', { description: 'Expected review: 24–48 hours.' })
-    setStep(4)
-    setSuccessOpen(true)
   }
 
-  if (ready && session?.kycStatus === 'UNDER_REVIEW') {
+  if (sessionLoading || (isAuthenticated && kycStatusQuery.isLoading)) {
+    return (
+      <AuthCard title="Identity verification" description="Loading your account…">
+        <p className="text-body-sm text-fg-muted">Please wait.</p>
+      </AuthCard>
+    )
+  }
+
+  if (!session) {
+    return (
+      <AuthCard title="Sign in required" description="Verify your identity after signing in.">
+        <Button fullWidth size="lg" onClick={() => router.push(ROUTES.auth.login)}>
+          Sign in
+        </Button>
+      </AuthCard>
+    )
+  }
+
+  if (kycStatus === 'UNDER_REVIEW' || kycStatus === 'SUBMITTED') {
     return (
       <AuthCard
         title="KYC under review"
@@ -121,7 +220,7 @@ export function OnboardingWizard() {
     )
   }
 
-  if (ready && session?.kycStatus === 'APPROVED') {
+  if (kycStatus === 'APPROVED') {
     return (
       <AuthCard title="You are verified" description="Your account is ready to deposit and invest.">
         <Button fullWidth size="lg" onClick={() => router.push(ROUTES.dashboard.wallet)}>
@@ -142,27 +241,25 @@ export function OnboardingWizard() {
         }
         className="sm:max-w-none"
       >
-        {session ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-caption">
-            <span className="font-mono text-fg">{session.userId}</span>
-            <span className="text-fg-subtle">·</span>
-            <span className="font-mono text-fg">{displayUsername(session.username)}</span>
-            {badge ? (
-              <span
-                className={cn(
-                  'ml-auto rounded-full px-2 py-0.5 text-[10px] font-medium',
-                  badge.tone === 'profit' && 'bg-profit/15 text-profit',
-                  badge.tone === 'warning' && 'bg-warning/15 text-warning',
-                  badge.tone === 'info' && 'bg-info/15 text-info',
-                  badge.tone === 'loss' && 'bg-loss/15 text-loss',
-                  badge.tone === 'neutral' && 'bg-hover text-fg-muted',
-                )}
-              >
-                {badge.label}
-              </span>
-            ) : null}
-          </div>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-caption">
+          <span className="truncate text-fg">
+            {session.user.firstName} {session.user.lastName}
+          </span>
+          <span className="text-fg-subtle">·</span>
+          <span className="truncate font-mono text-fg">{session.user.email}</span>
+          <span
+            className={cn(
+              'ml-auto rounded-full px-2 py-0.5 text-[10px] font-medium',
+              badge.tone === 'profit' && 'bg-profit/15 text-profit',
+              badge.tone === 'warning' && 'bg-warning/15 text-warning',
+              badge.tone === 'info' && 'bg-info/15 text-info',
+              badge.tone === 'loss' && 'bg-loss/15 text-loss',
+              badge.tone === 'neutral' && 'bg-hover text-fg-muted',
+            )}
+          >
+            {badge.label}
+          </span>
+        </div>
 
         <div className="space-y-2">
           <div className="h-1.5 overflow-hidden rounded-full bg-line">
@@ -190,6 +287,12 @@ export function OnboardingWizard() {
             })}
           </ol>
         </div>
+
+        {submitError && step !== 3 ? (
+          <Alert tone="danger" title="Could not continue">
+            {submitError}
+          </Alert>
+        ) : null}
 
         <AnimatePresence mode="wait">
           <motion.div
@@ -229,10 +332,7 @@ export function OnboardingWizard() {
               <form
                 className="space-y-4"
                 noValidate
-                onSubmit={form.handleSubmit(async () => {
-                  await wait(200)
-                  setStep(3)
-                })}
+                onSubmit={form.handleSubmit(onContinueIdentity)}
               >
                 <p className="text-body-sm font-medium text-fg">Personal details</p>
                 <FormField label="Country" required error={form.formState.errors.country?.message}>
@@ -291,7 +391,13 @@ export function OnboardingWizard() {
                   <Button type="button" variant="ghost" className="sm:flex-1" onClick={() => setStep(1)}>
                     Back
                   </Button>
-                  <Button type="submit" className="sm:flex-[2]" size="lg">
+                  <Button
+                    type="submit"
+                    className="sm:flex-[2]"
+                    size="lg"
+                    loading={savingProfile}
+                    loadingText="Saving…"
+                  >
                     Continue to documents
                   </Button>
                 </div>
@@ -302,7 +408,7 @@ export function OnboardingWizard() {
               <form className="space-y-4" noValidate onSubmit={form.handleSubmit(onSubmitDocs)}>
                 <p className="text-body-sm font-medium text-fg">Upload documents</p>
                 <p className="text-caption text-fg-subtle">
-                  Drag & drop, browse, or use camera. Images are compressed client-side for preview.
+                  Drag & drop, browse, or use camera. Files upload securely to Growzy for review.
                 </p>
                 {submitError ? (
                   <Alert tone="danger" title="Cannot submit">
@@ -357,8 +463,7 @@ export function OnboardingWizard() {
                 </div>
                 <p className="text-heading-md text-fg">Under review</p>
                 <p className="text-body-sm text-fg-muted">
-                  Status is Under Review. You cannot deposit until approved. We emailed a KYC Submitted
-                  confirmation.
+                  Status is Under Review. You cannot deposit until approved.
                 </p>
                 <Button fullWidth size="lg" onClick={() => router.push(ROUTES.dashboard.root)}>
                   Open dashboard
