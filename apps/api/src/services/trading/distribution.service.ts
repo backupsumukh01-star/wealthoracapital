@@ -1,4 +1,4 @@
-import type { ReturnBasis } from '@prisma/client'
+import type { DailyReturnRun, ReturnBasis } from '@prisma/client'
 
 import { prisma } from '../../database/prisma.js'
 import { activityService } from '../activity.service.js'
@@ -48,6 +48,7 @@ export const distributionService = {
   /**
    * Preview or apply a daily return distribution.
    * Idempotent via idempotencyKey on DailyReturnRun.
+   * FAILED / PROCESSING runs resume with the same key (no double-pay via new keys).
    */
   async publishReturn(
     actorId: string,
@@ -68,19 +69,36 @@ export const distributionService = {
     const existing = await prisma.dailyReturnRun.findUnique({
       where: { idempotencyKey: body.idempotencyKey },
     })
-    if (existing) return mapDailyReturnRun(existing)
+    if (existing?.status === 'COMPLETED') {
+      return mapDailyReturnRun(existing)
+    }
+    if (existing && existing.status !== 'FAILED' && existing.status !== 'PROCESSING') {
+      return mapDailyReturnRun(existing)
+    }
 
     // Ensure daily return row exists (from closed trades or empty)
     await tradeService.recomputeDailyReturn(date)
     const daily = await prisma.dailyReturn.findUnique({ where: { date } })
     if (!daily) throw notFound('Daily return day not found.')
 
-    // Duplicate completed distribution for same date+basis blocked unless new key with reverse
-    const priorCompleted = await prisma.dailyReturnRun.findFirst({
-      where: { date, status: 'COMPLETED', returnBasis: basis },
+    // Block a second key for the same date+basis when a run already completed or is open.
+    const priorBlocking = await prisma.dailyReturnRun.findFirst({
+      where: {
+        date,
+        returnBasis: basis,
+        status: { in: ['COMPLETED', 'PROCESSING', 'FAILED'] },
+        NOT: existing ? { id: existing.id } : undefined,
+      },
     })
-    if (priorCompleted && !body.preview) {
-      throw conflict('A completed distribution already exists for this date. Use a reversal flow.')
+    if (priorBlocking && !body.preview) {
+      if (priorBlocking.status === 'COMPLETED') {
+        throw conflict(
+          'A completed distribution already exists for this date. Profit reversal is not available; contact operations for manual ledger repair.',
+        )
+      }
+      throw conflict(
+        'A distribution run for this date is already in progress or failed. Resume with the original idempotency key.',
+      )
     }
 
     const wallets = await prisma.wallet.findMany({
@@ -129,35 +147,59 @@ export const distributionService = {
 
     // Negative return: still record distributions as negative amounts without ledger debit for now
     // (capital protection — losses tracked in performance, not forced wallet debit in v1)
-    const run = await prisma.dailyReturnRun.create({
-      data: {
-        dailyReturnId: daily.id,
-        date,
-        returnPct: returnPct.toFixed(6),
-        returnBasis: basis,
-        status: 'PROCESSING',
-        eligibleWallets: lines.length,
-        processedWallets: 0,
-        totalBaseAmount: moneyString(totalBase),
-        totalDistributed: moneyString(0),
-        roundingDelta: moneyString(roundingDelta),
-        idempotencyKey: body.idempotencyKey,
-        createdById: actorId,
-        startedAt: new Date(),
-      },
-    })
+    let run: DailyReturnRun
+    if (existing && (existing.status === 'FAILED' || existing.status === 'PROCESSING')) {
+      run = await prisma.dailyReturnRun.update({
+        where: { id: existing.id },
+        data: {
+          status: 'PROCESSING',
+          completedAt: null,
+          startedAt: existing.startedAt ?? new Date(),
+        },
+      })
+    } else {
+      run = await prisma.dailyReturnRun.create({
+        data: {
+          dailyReturnId: daily.id,
+          date,
+          returnPct: returnPct.toFixed(6),
+          returnBasis: basis,
+          status: 'PROCESSING',
+          eligibleWallets: lines.length,
+          processedWallets: 0,
+          totalBaseAmount: moneyString(totalBase),
+          totalDistributed: moneyString(0),
+          roundingDelta: moneyString(roundingDelta),
+          idempotencyKey: body.idempotencyKey,
+          createdById: actorId,
+          startedAt: new Date(),
+        },
+      })
+    }
 
-    let processed = 0
-    let distributed = d(0)
+    const alreadyPaid = await prisma.profitDistribution.findMany({
+      where: { runId: run.id },
+      select: { idempotencyKey: true, amount: true },
+    })
+    const paidKeys = new Set(alreadyPaid.map((row) => row.idempotencyKey))
+    let processed = alreadyPaid.length
+    let distributed = alreadyPaid.reduce((acc, row) => {
+      const amt = d(row.amount)
+      return amt.gt(0) ? acc.plus(amt) : acc
+    }, d(0))
 
     try {
       for (const line of lines) {
         const idempotencyKey = `run:${run.id}:wallet:${line.wallet.id}`
-        let ledgerTxnId: string | null = null
-        let balanceAfter = d(line.wallet.availableBalance)
+        if (paidKeys.has(idempotencyKey)) {
+          continue
+        }
 
-        if (line.amount.gt(0)) {
-          const posted = await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx) => {
+          let ledgerTxnId: string | null = null
+          let balanceAfter = d(line.wallet.availableBalance)
+
+          if (line.amount.gt(0)) {
             await ledgerService.ensureWalletsForUser(line.wallet.userId, tx)
             const txn = await ledgerService.creditAvailable(tx, {
               userId: line.wallet.userId,
@@ -186,28 +228,32 @@ export const distributionService = {
               })
             }
             const inv = await tx.wallet.findUniqueOrThrow({ where: { id: line.wallet.id } })
-            return { txnId: txn.id, balanceAfter: d(inv.availableBalance) }
-          })
-          ledgerTxnId = posted.txnId
-          balanceAfter = posted.balanceAfter
-        } else if (line.amount.lt(0)) {
-          // Record loss in performance only; do not force negative ledger debit in v1
-          balanceAfter = d(line.wallet.availableBalance)
-        }
+            ledgerTxnId = txn.id
+            balanceAfter = d(inv.availableBalance)
+          } else if (line.amount.lt(0)) {
+            // Record loss in performance only; do not force negative ledger debit in v1
+            balanceAfter = d(line.wallet.availableBalance)
+          }
 
-        await prisma.profitDistribution.create({
-          data: {
-            runId: run.id,
-            userId: line.wallet.userId,
-            date,
-            eligibleBalance: moneyString(line.base),
-            returnPct: returnPct.toFixed(6),
-            grossAmount: moneyString(line.gross),
-            amount: moneyString(line.amount),
-            balanceAfter: moneyString(balanceAfter),
-            ledgerTxnId,
-            idempotencyKey,
-          },
+          const existingDist = await tx.profitDistribution.findUnique({
+            where: { idempotencyKey },
+          })
+          if (!existingDist) {
+            await tx.profitDistribution.create({
+              data: {
+                runId: run.id,
+                userId: line.wallet.userId,
+                date,
+                eligibleBalance: moneyString(line.base),
+                returnPct: returnPct.toFixed(6),
+                grossAmount: moneyString(line.gross),
+                amount: moneyString(line.amount),
+                balanceAfter: moneyString(balanceAfter),
+                ledgerTxnId,
+                idempotencyKey,
+              },
+            })
+          }
         })
 
         await notificationService.notify({
@@ -224,6 +270,14 @@ export const distributionService = {
 
         processed += 1
         distributed = distributed.plus(line.amount.gt(0) ? line.amount : d(0))
+
+        await prisma.dailyReturnRun.update({
+          where: { id: run.id },
+          data: {
+            processedWallets: processed,
+            totalDistributed: moneyString(distributed),
+          },
+        })
       }
 
       const completed = await prisma.dailyReturnRun.update({
@@ -276,7 +330,12 @@ export const distributionService = {
     } catch (err) {
       await prisma.dailyReturnRun.update({
         where: { id: run.id },
-        data: { status: 'FAILED', processedWallets: processed, completedAt: new Date() },
+        data: {
+          status: 'FAILED',
+          processedWallets: processed,
+          totalDistributed: moneyString(distributed),
+          completedAt: new Date(),
+        },
       })
       throw err
     }
