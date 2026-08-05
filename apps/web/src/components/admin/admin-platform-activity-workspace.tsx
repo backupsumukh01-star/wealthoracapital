@@ -5,8 +5,8 @@ import { useMemo, useState } from 'react'
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import { PageHeader } from '@/components/common/page-header'
 import { Input } from '@/components/ui/input'
+import { useAdminActivity, useAdminAudit } from '@/features/admin/hooks'
 import { useAdminOs } from '@/providers/admin-os-provider'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
 
 type EventKind =
   | 'ALL'
@@ -29,52 +29,48 @@ type FeedItem = {
   at: string
 }
 
+function mapActivityKind(kind: string): Exclude<EventKind, 'ALL'> {
+  const k = kind.toUpperCase()
+  if (k.includes('DEPOSIT')) return 'DEPOSIT'
+  if (k.includes('WITHDRAW')) return 'WITHDRAWAL'
+  if (k.includes('KYC')) return 'KYC'
+  if (k.includes('TRADE')) return 'TRADE'
+  if (k.includes('RETURN') || k.includes('PERFORMANCE')) return 'RETURN'
+  if (k.includes('USER') || k.includes('ACCOUNT')) return 'USER'
+  if (k.includes('EMAIL')) return 'EMAIL'
+  if (k.includes('NOTIFY') || k.includes('CAMPAIGN')) return 'NOTIFY'
+  if (k.includes('SUPPORT') || k.includes('TICKET')) return 'SUPPORT'
+  return 'ADMIN'
+}
+
 /** Unified platform activity timeline for operators. */
 export function AdminPlatformActivityWorkspace() {
   const { state } = useAdminOs()
-  const life = useInvestorLifecycle()
+  const { data: activityData } = useAdminActivity()
+  const { data: auditData } = useAdminAudit()
   const [kind, setKind] = useState<EventKind>('ALL')
   const [q, setQ] = useState('')
 
   const feed = useMemo(() => {
     const items: FeedItem[] = []
 
-    for (const a of life.accounts ?? []) {
+    for (const a of activityData?.items ?? []) {
       items.push({
-        id: `u-${a.userId}`,
-        kind: 'USER',
-        title: 'New / updated user',
-        detail: `${a.firstName} ${a.lastName} · ${a.email} · ${a.status}`,
-        at: a.createdAt || new Date().toISOString(),
-      })
-      if (a.kycStatus && a.kycStatus !== 'NOT_STARTED') {
-        items.push({
-          id: `kyc-${a.userId}`,
-          kind: 'KYC',
-          title: `KYC ${a.kycStatus}`,
-          detail: a.email,
-          at: a.createdAt || new Date().toISOString(),
-        })
-      }
-    }
-
-    for (const d of life.deposits ?? []) {
-      items.push({
-        id: `d-${d.id}`,
-        kind: 'DEPOSIT',
-        title: `Deposit ${d.status}`,
-        detail: `${d.amount} · ${d.id}`,
-        at: d.submittedAt,
+        id: `act-${a.id}`,
+        kind: mapActivityKind(a.kind),
+        title: a.title,
+        detail: a.kind,
+        at: a.at,
       })
     }
 
-    for (const w of life.withdrawals ?? []) {
+    for (const a of auditData?.items ?? []) {
       items.push({
-        id: `w-${w.id}`,
-        kind: 'WITHDRAWAL',
-        title: `Withdrawal ${w.status}`,
-        detail: `${w.amount} · ${w.id}`,
-        at: w.requestedAt,
+        id: `aud-api-${a.id}`,
+        kind: 'ADMIN',
+        title: a.action,
+        detail: [a.actorName, a.targetType, a.targetId, a.reason].filter(Boolean).join(' · '),
+        at: a.createdAt,
       })
     }
 
@@ -141,7 +137,7 @@ export function AdminPlatformActivityWorkspace() {
     }
 
     return items.sort((a, b) => (a.at < b.at ? 1 : -1))
-  }, [state, life])
+  }, [state, activityData, auditData])
 
   const filtered = feed.filter((f) => {
     if (kind !== 'ALL' && f.kind !== kind) return false

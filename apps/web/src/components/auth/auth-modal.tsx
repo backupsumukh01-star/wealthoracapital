@@ -3,15 +3,13 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { API_ROUTES, ROUTES } from '@meridian/shared'
+import { API_ROUTES, ERROR_CODES, ROUTES } from '@meridian/shared'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 
 import { AuthDivider } from '@/components/auth/auth-divider'
-import { OtpInput } from '@/components/auth/otp-input'
-import { OtpResend } from '@/components/auth/otp-resend'
 import { PasswordField } from '@/components/auth/password-field'
 import { Button } from '@/components/ui/button'
 import { CheckboxField } from '@/components/ui/checkbox'
@@ -24,30 +22,20 @@ import {
 } from '@/components/ui/dialog'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
-import { useRegister } from '@/features/auth/hooks'
+import { useLogin, useRegister } from '@/features/auth/hooks'
 import { ApiError } from '@/lib/api-client'
 import {
   loginSchema,
   registerSchema,
-  wait,
   type LoginInput,
   type RegisterInput,
 } from '@/lib/auth-schemas'
-import { isOnboardingComplete } from '@/lib/demo-auth'
 import { env } from '@/lib/env'
-import { displayUsername, type InvestorAccount } from '@/lib/investor-lifecycle'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
 import type { AuthModalIntent } from '@/providers/auth-modal-provider'
 import { cn } from '@/lib/cn'
 
-type Step =
-  | 'welcome'
-  | 'login'
-  | 'register'
-  | 'verify'
-  | 'twofa'
-  | 'account-ready'
+type Step = 'welcome' | 'login' | 'register'
 
 function GoogleMark() {
   return (
@@ -83,22 +71,15 @@ export function AuthModal({
 }) {
   const router = useRouter()
   const prefersReducedMotion = usePrefersReducedMotion()
-  const lifecycle = useInvestorLifecycle()
   const registerMutation = useRegister()
+  const loginMutation = useLogin()
   const [step, setStep] = useState<Step>('welcome')
-  const [pendingEmail, setPendingEmail] = useState('')
-  const [pendingAccount, setPendingAccount] = useState<InvestorAccount | null>(null)
-  const [otp, setOtp] = useState('')
-  const [twoFaCode, setTwoFaCode] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     if (!open) return
     setFormError(null)
-    setOtp('')
-    setTwoFaCode('')
-    setPendingAccount(null)
     if (intent === 'login') setStep('login')
     else if (intent === 'register') setStep('register')
     else setStep('welcome')
@@ -122,12 +103,10 @@ export function AuthModal({
     },
   })
 
-  function afterAuth(account: InvestorAccount) {
+  function afterAuth(kycStatus: string) {
     onOpenChange(false)
     const dest =
-      account.kycStatus === 'APPROVED' && isOnboardingComplete()
-        ? ROUTES.dashboard.root
-        : ROUTES.auth.onboarding
+      kycStatus === 'APPROVED' ? ROUTES.dashboard.root : ROUTES.auth.onboarding
     router.push(dest)
     router.refresh()
   }
@@ -141,26 +120,31 @@ export function AuthModal({
   async function onLogin(values: LoginInput) {
     setBusy(true)
     setFormError(null)
-    await wait(500)
-    const result = lifecycle.login(values.identifier, values.password)
-    setBusy(false)
-    if (!result.ok) {
-      if (result.account && !result.account.emailVerified) {
-        setPendingEmail(result.account.email)
-        setStep('verify')
-        toast.message('Verify your email to continue.')
+    try {
+      const session = await loginMutation.mutateAsync({
+        identifier: values.identifier,
+        password: values.password,
+      })
+      toast.success('Welcome back')
+      afterAuth(session.user.kycStatus)
+    } catch (error) {
+      if (error instanceof ApiError && error.code === ERROR_CODES.EMAIL_NOT_VERIFIED) {
+        onOpenChange(false)
+        router.push(
+          `${ROUTES.auth.verifyEmail}?email=${encodeURIComponent(values.identifier)}&from=login`,
+        )
         return
       }
-      setFormError(result.error ?? 'Sign-in failed')
-      return
+      setFormError(
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : 'Sign-in failed',
+      )
+    } finally {
+      setBusy(false)
     }
-    if (result.needsOtp && result.account) {
-      setPendingAccount(result.account)
-      setStep('twofa')
-      return
-    }
-    toast.success('Welcome back')
-    if (result.account) afterAuth(result.account)
   }
 
   async function onRegister(values: RegisterInput) {
@@ -196,40 +180,6 @@ export function AuthModal({
     }
   }
 
-  async function onVerify() {
-    setFormError(null)
-    if (otp.length !== 6) {
-      setFormError('Enter the 6-digit code')
-      return
-    }
-    setBusy(true)
-    await wait(500)
-    const result = lifecycle.verifyEmail(pendingEmail, otp)
-    setBusy(false)
-    if (!result.ok) {
-      setFormError(result.error ?? 'Invalid code')
-      return
-    }
-    setPendingAccount(result.account ?? null)
-    toast.success('Email verified')
-    setStep('account-ready')
-  }
-
-  async function onTwoFa() {
-    if (!pendingAccount) return
-    setBusy(true)
-    setFormError(null)
-    await wait(400)
-    const result = lifecycle.completeLogin(pendingAccount.userId, twoFaCode)
-    setBusy(false)
-    if (!result.ok) {
-      setFormError(result.error ?? 'Invalid code')
-      return
-    }
-    toast.success('Signed in')
-    afterAuth(result.account!)
-  }
-
   const titles: Record<Step, { title: string; description: string }> = {
     welcome: {
       title: 'Welcome to Growzy',
@@ -242,18 +192,6 @@ export function AuthModal({
     register: {
       title: 'Create your account',
       description: 'We will generate a permanent User ID and username for you.',
-    },
-    verify: {
-      title: 'Verify your email',
-      description: `Enter the 6-digit code sent to ${pendingEmail || 'your inbox'}.`,
-    },
-    twofa: {
-      title: 'Authenticator code',
-      description: 'Enter the code from your authenticator app.',
-    },
-    'account-ready': {
-      title: 'Welcome to Growzy',
-      description: 'Complete identity verification before investing.',
     },
   }
 
@@ -464,77 +402,6 @@ export function AuthModal({
                     </button>
                   </p>
                 </form>
-              ) : null}
-
-              {step === 'verify' ? (
-                <div className="space-y-4">
-                  <OtpInput value={otp} onChange={setOtp} autoFocus error={Boolean(formError)} />
-                  <OtpResend
-                    onResend={async () => {
-                      await wait(300)
-                      lifecycle.queueEmail('VERIFY_EMAIL', pendingEmail)
-                      toast.success('OTP resent')
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    fullWidth
-                    size="lg"
-                    loading={busy}
-                    disabled={otp.length !== 6}
-                    onClick={() => void onVerify()}
-                  >
-                    Verify email
-                  </Button>
-                </div>
-              ) : null}
-
-              {step === 'twofa' ? (
-                <div className="space-y-4">
-                  <OtpInput value={twoFaCode} onChange={setTwoFaCode} autoFocus error={Boolean(formError)} />
-                  <Button
-                    type="button"
-                    fullWidth
-                    size="lg"
-                    loading={busy}
-                    disabled={twoFaCode.length !== 6}
-                    onClick={() => void onTwoFa()}
-                  >
-                    Continue
-                  </Button>
-                </div>
-              ) : null}
-
-              {step === 'account-ready' && pendingAccount ? (
-                <div className="space-y-5">
-                  <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-4">
-                    <p className="text-caption text-fg-subtle">Your permanent credentials</p>
-                    <dl className="mt-3 space-y-2 text-body-sm">
-                      <div className="flex justify-between gap-3">
-                        <dt className="text-fg-muted">User ID</dt>
-                        <dd className="font-mono text-fg">{pendingAccount.userId}</dd>
-                      </div>
-                      <div className="flex justify-between gap-3">
-                        <dt className="text-fg-muted">Username</dt>
-                        <dd className="font-mono text-fg">{displayUsername(pendingAccount.username)}</dd>
-                      </div>
-                    </dl>
-                  </div>
-                  <p className="text-body-sm text-fg-muted">
-                    Complete identity verification before you can deposit or withdraw.
-                  </p>
-                  <Button
-                    type="button"
-                    fullWidth
-                    size="lg"
-                    onClick={() => {
-                      onOpenChange(false)
-                      router.push(ROUTES.auth.onboarding)
-                    }}
-                  >
-                    Continue
-                  </Button>
-                </div>
               ) : null}
             </motion.div>
           </AnimatePresence>

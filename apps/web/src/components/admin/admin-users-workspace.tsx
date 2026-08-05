@@ -2,25 +2,25 @@
 
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { ROUTES, type MoneyString } from '@meridian/shared'
+import { ROUTES, type MoneyString, type User } from '@meridian/shared'
 import { Search } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
+import {
+  mapAccountStatus,
+  mapKycStatus,
+  userInitials,
+} from '@/components/admin/admin-api-adapters'
 import { AdminPanel } from '@/components/admin/admin-panel'
 import { AdminAccountPill, AdminKycPill } from '@/components/admin/admin-status-pills'
 import { Money } from '@/components/common/money'
 import { PageHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  ADMIN_INVESTORS,
-  type AdminAccountStatus,
-  type AdminInvestor,
-} from '@/lib/admin-demo-data'
-import type { InvestorAccount, LifecycleStatus } from '@/lib/investor-lifecycle'
+import type { AdminAccountStatus, AdminKycStatus } from '@/lib/admin-demo-data'
 import { cn } from '@/lib/cn'
 import { formatDateTime } from '@/lib/format'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+import { useAdminUsers } from '@/features/admin/hooks'
 
 type FilterChip = 'all' | 'verified' | 'pending' | 'suspended' | 'rejected'
 
@@ -33,8 +33,8 @@ type UserRow = {
   phone: string
   country: string
   avatarInitials: string
-  kycStatus: InvestorAccount['kycStatus'] | AdminInvestor['kycStatus']
-  accountStatus: LifecycleStatus | AdminAccountStatus
+  kycStatus: AdminKycStatus
+  accountStatus: AdminAccountStatus
   walletBalance: MoneyString
   totalDeposited: MoneyString
   totalWithdrawn: MoneyString
@@ -66,43 +66,23 @@ function matchesFilter(row: UserRow, filter: FilterChip) {
   }
 }
 
-function mapAccount(a: InvestorAccount): UserRow {
+function mapUser(u: User): UserRow {
   return {
-    userId: a.userId,
-    username: a.username,
-    firstName: a.firstName,
-    lastName: a.lastName,
-    email: a.email,
-    phone: a.phone,
-    country: a.kyc?.country ?? a.country ?? '—',
-    avatarInitials: `${a.firstName.charAt(0)}${a.lastName.charAt(0)}`.toUpperCase(),
-    kycStatus: a.kycStatus,
-    accountStatus: a.status,
-    walletBalance: a.wallet.availableBalance as MoneyString,
-    totalDeposited: a.wallet.totalDeposited as MoneyString,
-    totalWithdrawn: a.wallet.totalWithdrawn as MoneyString,
-    totalProfit: a.wallet.totalProfit as MoneyString,
-    registeredAt: a.createdAt,
-  }
-}
-
-function mapDemoInvestor(u: AdminInvestor): UserRow {
-  return {
-    userId: u.userId,
-    username: u.username,
+    userId: u.id,
+    username: u.email.split('@')[0] || u.id,
     firstName: u.firstName,
     lastName: u.lastName,
     email: u.email,
-    phone: u.phone,
-    country: u.country,
-    avatarInitials: u.avatarInitials,
-    kycStatus: u.kycStatus,
-    accountStatus: u.accountStatus,
-    walletBalance: u.walletBalance,
-    totalDeposited: u.totalDeposited,
-    totalWithdrawn: u.totalWithdrawn,
-    totalProfit: u.totalProfit,
-    registeredAt: u.registeredAt,
+    phone: u.phone ?? '—',
+    country: u.country ?? '—',
+    avatarInitials: userInitials(u),
+    kycStatus: mapKycStatus(u.kycStatus),
+    accountStatus: mapAccountStatus(u.status, u.kycStatus),
+    walletBalance: '0.00' as MoneyString,
+    totalDeposited: '0.00' as MoneyString,
+    totalWithdrawn: '0.00' as MoneyString,
+    totalProfit: '0.00' as MoneyString,
+    registeredAt: u.createdAt,
   }
 }
 
@@ -119,19 +99,16 @@ function Avatar({ initials }: { initials: string }) {
 
 export function AdminUsersWorkspace() {
   const searchParams = useSearchParams()
-  const { accounts } = useInvestorLifecycle()
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<FilterChip>('all')
+  const { data, isLoading } = useAdminUsers(q.trim() ? { q: q.trim() } : undefined)
 
   useEffect(() => {
     const initial = searchParams.get('q')
     if (initial) setQ(initial)
   }, [searchParams])
 
-  const rows = useMemo(() => {
-    if (accounts.length > 0) return accounts.map(mapAccount)
-    return ADMIN_INVESTORS.map(mapDemoInvestor)
-  }, [accounts])
+  const rows = useMemo(() => (data?.items ?? []).map(mapUser), [data?.items])
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -232,7 +209,7 @@ export function AdminUsersWorkspace() {
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={15} className="px-4 py-12 text-center text-fg-muted">
-                    No investors match this search.
+                    {isLoading ? 'Loading investors…' : 'No investors match this search.'}
                   </td>
                 </tr>
               ) : (

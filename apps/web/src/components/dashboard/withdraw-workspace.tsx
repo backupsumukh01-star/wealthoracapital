@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import type { MoneyString, Withdrawal } from '@meridian/shared'
 import { Bitcoin, Building2, Wallet } from 'lucide-react'
 
 import { Money } from '@/components/common/money'
@@ -20,16 +21,23 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/toast'
-import type { MoneyString } from '@meridian/shared'
-
-import { DEMO_WALLET } from '@/lib/dashboard-data'
+import {
+  useCreateWithdrawal,
+  usePayoutMethods,
+  useWithdrawals,
+} from '@/features/withdrawals/hooks'
+import { ApiError } from '@/lib/api-client'
 import {
   CRYPTO_DEPOSIT_OPTIONS,
-  DEMO_WITHDRAWALS,
   SAVED_CRYPTO_WALLETS,
   SAVED_INR_ACCOUNTS,
 } from '@/lib/investor-demo-data'
 import { formatDateTime } from '@/lib/format'
+import { useSession } from '@/providers/session-provider'
+
+function isCryptoWithdrawal(w: Withdrawal) {
+  return /crypto|usdt|usdc|btc|eth/i.test(w.destinationLabel)
+}
 
 const NETWORK_FEE: Record<string, string> = {
   TRC20: '1.00',
@@ -39,34 +47,80 @@ const NETWORK_FEE: Record<string, string> = {
 }
 
 function WithdrawalHistory({ rail }: { rail?: 'INR' | 'CRYPTO' }) {
-  const rows = DEMO_WITHDRAWALS.filter((w) => !rail || w.rail === rail)
+  const { session } = useSession()
+  const { data, isLoading } = useWithdrawals(undefined, { enabled: Boolean(session) })
+  const rows = (data?.items ?? []).filter((w) => {
+    if (!rail) return true
+    return rail === 'CRYPTO' ? isCryptoWithdrawal(w) : !isCryptoWithdrawal(w)
+  })
   return (
     <Card variant="glass" className="p-5 sm:p-6">
       <SectionHeader title="Withdrawal history" as="h3" description="Paid and open requests." />
-      <ul className="mt-4 divide-y divide-line/70">
-        {rows.map((row) => (
-          <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 py-3.5 first:pt-0">
-            <div className="min-w-0">
-              <p className="text-body-sm font-medium text-fg">{row.id}</p>
-              <p className="text-caption text-fg-subtle">
-                {row.destination} · {formatDateTime(row.createdAt)}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Money value={row.amount} className="text-body-sm font-medium" />
-              <StatusPill status={row.status} />
-            </div>
-          </li>
-        ))}
-      </ul>
+      {isLoading ? (
+        <p className="mt-4 text-body-sm text-fg-subtle">Loading withdrawals…</p>
+      ) : rows.length === 0 ? (
+        <p className="mt-4 text-body-sm text-fg-subtle">No withdrawals yet.</p>
+      ) : (
+        <ul className="mt-4 divide-y divide-line/70">
+          {rows.map((row) => (
+            <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 py-3.5 first:pt-0">
+              <div className="min-w-0">
+                <p className="text-body-sm font-medium text-fg">{row.reference || row.id}</p>
+                <p className="text-caption text-fg-subtle">
+                  {row.destinationLabel} · {formatDateTime(row.createdAt)}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Money value={row.amount} className="text-body-sm font-medium" />
+                <StatusPill status={row.status} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   )
 }
 
 function InrWithdrawPanel() {
+  const { session } = useSession()
+  const { data: payoutMethods } = usePayoutMethods({ enabled: Boolean(session) })
+  const { data: withdrawalsData } = useWithdrawals(undefined, { enabled: Boolean(session) })
+  const createWithdrawal = useCreateWithdrawal()
   const [bankId, setBankId] = useState(SAVED_INR_ACCOUNTS.find((b) => b.primary)?.id ?? 'bank_1')
   const [amount, setAmount] = useState('100')
-  const pending = DEMO_WITHDRAWALS.find((w) => w.status === 'PENDING' && w.rail === 'INR')
+  const [submitting, setSubmitting] = useState(false)
+  const sessionWithdrawals = withdrawalsData?.items ?? []
+  const pending = sessionWithdrawals.find(
+    (w) =>
+      (w.status === 'PENDING' || w.status === 'APPROVED' || w.status === 'PROCESSING') &&
+      !isCryptoWithdrawal(w),
+  )
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const methodId =
+      payoutMethods?.find((m) => m.isDefault)?.id ?? payoutMethods?.[0]?.id
+    if (!methodId) {
+      toast.error('Add a verified payout method before withdrawing.')
+      return
+    }
+    setSubmitting(true)
+    try {
+      await createWithdrawal.mutateAsync({ amount, payoutMethodId: methodId })
+      toast.success('Withdrawal requested', 'Pending desk review.')
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : 'Could not submit withdrawal.',
+      )
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -76,13 +130,7 @@ function InrWithdrawPanel() {
             title="INR withdrawal"
             description="Funds lock immediately on submit until paid or rejected."
           />
-          <form
-            className="mt-5 space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault()
-              toast.success('Withdrawal requested (demo)', 'Pending desk review.')
-            }}
-          >
+          <form className="mt-5 space-y-4" onSubmit={(e) => void onSubmit(e)}>
             <FormField label="Bank account" required>
               <Select value={bankId} onValueChange={setBankId}>
                 <SelectTrigger>
@@ -98,7 +146,11 @@ function InrWithdrawPanel() {
                 </SelectContent>
               </Select>
             </FormField>
-            <FormField label="Amount (USD)" required hint={`Available $${DEMO_WALLET.availableBalance}`}>
+            <FormField
+              label="Amount (USD)"
+              required
+              hint={`Available $${session?.wallet?.availableBalance ?? '0.00'}`}
+            >
               <Input
                 numeric
                 prefix="$"
@@ -107,7 +159,7 @@ function InrWithdrawPanel() {
                 onChange={(e) => setAmount(e.target.value)}
               />
             </FormField>
-            <Button type="submit" className="w-full sm:w-auto">
+            <Button type="submit" className="w-full sm:w-auto" loading={submitting}>
               Withdraw
             </Button>
           </form>
@@ -118,11 +170,11 @@ function InrWithdrawPanel() {
           {pending ? (
             <div className="mt-4 rounded-xl border border-warning/30 bg-warning/10 p-4">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-body-sm font-medium text-fg">{pending.id}</p>
+                <p className="text-body-sm font-medium text-fg">{pending.reference || pending.id}</p>
                 <StatusPill status={pending.status} />
               </div>
               <p className="mt-2 text-caption text-fg-muted">
-                <Money value={pending.amount} /> · {pending.destination}
+                <Money value={pending.amount} /> · {pending.destinationLabel}
               </p>
               <p className="mt-1 text-caption text-fg-subtle">
                 Submitted {formatDateTime(pending.createdAt)}
@@ -139,11 +191,15 @@ function InrWithdrawPanel() {
 }
 
 function CryptoWithdrawPanel() {
+  const { session } = useSession()
+  const { data: payoutMethods } = usePayoutMethods({ enabled: Boolean(session) })
+  const createWithdrawal = useCreateWithdrawal()
   const [coin, setCoin] = useState('USDT')
   const [network, setNetwork] = useState('TRC20')
   const [walletId, setWalletId] = useState(SAVED_CRYPTO_WALLETS[0]?.id ?? '')
   const [customAddress, setCustomAddress] = useState('')
   const [amount, setAmount] = useState('250')
+  const [submitting, setSubmitting] = useState(false)
 
   const coinMeta = CRYPTO_DEPOSIT_OPTIONS.coins.find((c) => c.id === coin)!
   const fee = NETWORK_FEE[network] ?? '1.00'
@@ -154,6 +210,31 @@ function CryptoWithdrawPanel() {
     [coin],
   )
 
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const methodId =
+      payoutMethods?.find((m) => m.isDefault)?.id ?? payoutMethods?.[0]?.id
+    if (!methodId) {
+      toast.error('Add a verified payout method before withdrawing.')
+      return
+    }
+    setSubmitting(true)
+    try {
+      await createWithdrawal.mutateAsync({ amount, payoutMethodId: methodId })
+      toast.success('Crypto withdrawal submitted')
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : 'Could not submit withdrawal.',
+      )
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <div className="space-y-5">
       <Card variant="glass" className="p-5 sm:p-6">
@@ -161,13 +242,7 @@ function CryptoWithdrawPanel() {
           title="Crypto withdrawal"
           description="Double-check network and address. Irreversible once broadcast."
         />
-        <form
-          className="mt-5 grid gap-4 sm:grid-cols-2"
-          onSubmit={(e) => {
-            e.preventDefault()
-            toast.success('Crypto withdrawal submitted (demo)')
-          }}
-        >
+        <form className="mt-5 grid gap-4 sm:grid-cols-2" onSubmit={(e) => void onSubmit(e)}>
           <FormField label="Coin" required>
             <Select
               value={coin}
@@ -251,7 +326,9 @@ function CryptoWithdrawPanel() {
             </p>
           </div>
           <div className="sm:col-span-2">
-            <Button type="submit">Withdraw</Button>
+            <Button type="submit" loading={submitting}>
+              Withdraw
+            </Button>
           </div>
         </form>
       </Card>
@@ -261,6 +338,9 @@ function CryptoWithdrawPanel() {
 }
 
 export function WithdrawWorkspace() {
+  const { session } = useSession()
+  const wallet = session?.wallet
+
   return (
     <div className="space-y-6 lg:space-y-8">
       <PageHeader
@@ -272,12 +352,12 @@ export function WithdrawWorkspace() {
         <StatCard
           label="Available to withdraw"
           icon={Wallet}
-          value={<Money value={DEMO_WALLET.availableBalance} />}
+          value={<Money value={wallet?.availableBalance ?? ('0.00' as MoneyString)} />}
           hint="Balance less amounts locked in pending requests."
         />
         <StatCard
           label="Locked in pending"
-          value={<Money value={DEMO_WALLET.pendingWithdrawal} />}
+          value={<Money value={wallet?.lockedBalance ?? ('0.00' as MoneyString)} />}
         />
         <StatCard label="Minimum withdrawal" value={<Money value={'50.00' as MoneyString} />} />
       </div>

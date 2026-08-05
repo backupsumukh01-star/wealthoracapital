@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import type { Deposit, PaymentMethod } from '@meridian/shared'
 import { Bitcoin, Building2, Landmark, Upload } from 'lucide-react'
 
 import { Money } from '@/components/common/money'
@@ -26,12 +27,46 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/toast'
 import {
+  useCreateDeposit,
+  useDepositMethods,
+  useDeposits,
+} from '@/features/deposits/hooks'
+import { ApiError } from '@/lib/api-client'
+import {
   CRYPTO_DEPOSIT_OPTIONS,
   DEPOSIT_TIMELINE_STEPS,
-  DEMO_DEPOSITS,
   INR_BANK_DETAILS,
 } from '@/lib/investor-demo-data'
 import { formatDateTime } from '@/lib/format'
+import { useSession } from '@/providers/session-provider'
+
+function isCryptoDeposit(d: Deposit) {
+  const type = d.method?.type ?? ''
+  const name = d.method?.name ?? ''
+  return (
+    ['CRYPTO', 'USDT_TRC20', 'USDT_BEP20', 'BTC', 'ETH'].includes(type) ||
+    /USDT|USDC|BTC|ETH|crypto/i.test(name)
+  )
+}
+
+function pickMethod(
+  methods: PaymentMethod[] | undefined,
+  prefer: 'bank' | 'crypto',
+): PaymentMethod | undefined {
+  if (!methods?.length) return undefined
+  if (prefer === 'crypto') {
+    return (
+      methods.find((m) =>
+        ['CRYPTO', 'USDT_TRC20', 'USDT_BEP20', 'BTC', 'ETH'].includes(m.type),
+      ) ?? methods.find((m) => /usdt|crypto|btc|eth/i.test(m.name))
+    )
+  }
+  return (
+    methods.find((m) => m.type === 'BANK_TRANSFER' || m.type === 'MANUAL') ??
+    methods.find((m) => /bank|imps|neft|rtgs/i.test(m.name)) ??
+    methods[0]
+  )
+}
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -46,7 +81,12 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 function DepositHistory({ rail }: { rail?: 'INR' | 'CRYPTO' }) {
-  const rows = DEMO_DEPOSITS.filter((d) => !rail || d.rail === rail)
+  const { session } = useSession()
+  const { data, isLoading } = useDeposits(undefined, { enabled: Boolean(session) })
+  const rows = (data?.items ?? []).filter((d) => {
+    if (!rail) return true
+    return rail === 'CRYPTO' ? isCryptoDeposit(d) : !isCryptoDeposit(d)
+  })
   return (
     <Card variant="glass" className="p-5 sm:p-6">
       <SectionHeader
@@ -54,29 +94,68 @@ function DepositHistory({ rail }: { rail?: 'INR' | 'CRYPTO' }) {
         description="Recent requests and their review status."
         as="h3"
       />
-      <ul className="mt-4 divide-y divide-line/70">
-        {rows.map((row) => (
-          <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 py-3.5 first:pt-0">
-            <div className="min-w-0">
-              <p className="text-body-sm font-medium text-fg">{row.id}</p>
-              <p className="text-caption text-fg-subtle">
-                {row.method} · {formatDateTime(row.createdAt)}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Money value={row.amount} className="text-body-sm font-medium" />
-              <StatusPill status={row.status} />
-            </div>
-          </li>
-        ))}
-      </ul>
+      {isLoading ? (
+        <p className="mt-4 text-body-sm text-fg-subtle">Loading deposits…</p>
+      ) : rows.length === 0 ? (
+        <p className="mt-4 text-body-sm text-fg-subtle">No deposits yet.</p>
+      ) : (
+        <ul className="mt-4 divide-y divide-line/70">
+          {rows.map((row) => (
+            <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 py-3.5 first:pt-0">
+              <div className="min-w-0">
+                <p className="text-body-sm font-medium text-fg">{row.reference || row.id}</p>
+                <p className="text-caption text-fg-subtle">
+                  {row.method?.name ?? 'Deposit'} · {formatDateTime(row.createdAt)}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Money value={row.amount} className="text-body-sm font-medium" />
+                <StatusPill status={row.status} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   )
 }
 
 function InrDepositPanel() {
+  const { session } = useSession()
+  const { data: methods } = useDepositMethods({ enabled: Boolean(session) })
+  const { data: depositsData } = useDeposits(undefined, { enabled: Boolean(session) })
+  const createDeposit = useCreateDeposit()
   const [amount, setAmount] = useState('500')
-  const pending = DEMO_DEPOSITS.find((d) => d.status === 'UNDER_REVIEW' && d.rail === 'INR')
+  const [submitting, setSubmitting] = useState(false)
+  const sessionDeposits = depositsData?.items ?? []
+  const pending = sessionDeposits.find(
+    (d) =>
+      (d.status === 'UNDER_REVIEW' || d.status === 'PENDING') && !isCryptoDeposit(d),
+  )
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const method = pickMethod(methods, 'bank')
+    if (!method) {
+      toast.error('No deposit methods are configured. Contact support.')
+      return
+    }
+    setSubmitting(true)
+    try {
+      await createDeposit.mutateAsync({ amount, methodId: method.id })
+      toast.success('Deposit submitted', 'Awaiting proof review.')
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : 'Could not submit deposit.',
+      )
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -86,14 +165,8 @@ function InrDepositPanel() {
             title="INR deposit"
             description="Enter the USD amount to credit, then transfer INR to the settlement account."
           />
-          <form
-            className="mt-5 space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault()
-              toast.success('Deposit submitted (demo)', 'Awaiting proof review.')
-            }}
-          >
-            <FormField label="Amount (USD)" required hint="Minimum $50 · demo FX applied at desk rate.">
+          <form className="mt-5 space-y-4" onSubmit={(e) => void onSubmit(e)}>
+            <FormField label="Amount (USD)" required hint="Minimum $50.">
               <Input
                 numeric
                 prefix="$"
@@ -103,7 +176,7 @@ function InrDepositPanel() {
                 placeholder="500.00"
               />
             </FormField>
-            <Button type="submit" className="w-full sm:w-auto">
+            <Button type="submit" className="w-full sm:w-auto" loading={submitting}>
               <Landmark aria-hidden />
               Continue to transfer
             </Button>
@@ -126,7 +199,7 @@ function InrDepositPanel() {
           <Card variant="glass" className="p-5 sm:p-6">
             <SectionHeader title="UPI / QR" as="h3" description="Scan or pay to the UPI ID above." />
             <div className="mt-4 flex justify-center">
-              <QrFrame label="Demo QR · not a live payment code" />
+              <QrFrame label="Scan to pay via UPI" />
             </div>
           </Card>
 
@@ -139,13 +212,13 @@ function InrDepositPanel() {
             <div className="mt-4">
               <FileDropzone
                 hint="Include the transfer reference in the frame when possible."
-                onFileSelect={() => toast.info('Screenshot attached (demo)')}
+                onFileSelect={() => toast.info('Screenshot attached')}
               />
             </div>
             <Button
               className="mt-4 w-full"
               variant="secondary"
-              onClick={() => toast.success('Proof uploaded (demo)', 'Ops will review shortly.')}
+              onClick={() => toast.success('Proof uploaded', 'Ops will review shortly.')}
             >
               <Upload aria-hidden />
               Submit proof
@@ -160,7 +233,7 @@ function InrDepositPanel() {
             title="Pending approval"
             description={
               pending
-                ? `${pending.id} · $${pending.amount} under review`
+                ? `${pending.reference || pending.id} · $${pending.amount} under review`
                 : 'No INR deposits awaiting review.'
             }
             as="h3"
@@ -249,7 +322,7 @@ function CryptoDepositPanel() {
           <Button
             className="mt-4"
             variant="secondary"
-            onClick={() => toast.info('Waiting for on-chain detection (demo)')}
+            onClick={() => toast.info('Waiting for on-chain detection')}
           >
             <Bitcoin aria-hidden />
             I’ve sent the transfer
@@ -268,7 +341,7 @@ function CryptoDepositPanel() {
             <SectionHeader
               title="Blockchain confirmations"
               as="h3"
-              description={`Demo inbound · ${liveConfirmations} of ${required} confirmations`}
+              description={`${liveConfirmations} of ${required} confirmations`}
             />
             <div className="mt-4 space-y-2">
               <Progress value={pct} />

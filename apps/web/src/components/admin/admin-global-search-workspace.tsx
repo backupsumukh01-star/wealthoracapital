@@ -8,57 +8,30 @@ import { Search } from 'lucide-react'
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import { PageHeader } from '@/components/common/page-header'
 import { Input } from '@/components/ui/input'
+import { useAdminSearch } from '@/features/admin/hooks'
 import { useAdminOs } from '@/providers/admin-os-provider'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
 
 type Hit = { id: string; kind: string; title: string; subtitle: string; href: string }
 
 /** Cross-module admin search — users, money, CMS, tickets, emails, settings. */
 export function AdminGlobalSearchWorkspace({ initialQuery = '' }: { initialQuery?: string }) {
   const { state } = useAdminOs()
-  const life = useInvestorLifecycle()
   const [q, setQ] = useState(initialQuery)
+  const { data: apiSearch } = useAdminSearch(q)
 
   const hits = useMemo(() => {
     const needle = q.trim().toLowerCase()
     if (needle.length < 2) return [] as Hit[]
     const out: Hit[] = []
 
-    for (const a of life.accounts ?? []) {
-      const hay = `${a.email} ${a.firstName} ${a.lastName} ${a.userId} ${a.username}`.toLowerCase()
-      if (hay.includes(needle)) {
-        out.push({
-          id: a.userId,
-          kind: 'User',
-          title: `${a.firstName} ${a.lastName}`,
-          subtitle: a.email,
-          href: ROUTES.admin.user(a.userId),
-        })
-      }
-    }
-
-    for (const d of life.deposits ?? []) {
-      if (`${d.id} ${d.amount} ${d.status}`.toLowerCase().includes(needle)) {
-        out.push({
-          id: d.id,
-          kind: 'Deposit',
-          title: `Deposit ${d.amount}`,
-          subtitle: d.status,
-          href: ROUTES.admin.deposit(d.id),
-        })
-      }
-    }
-
-    for (const w of life.withdrawals ?? []) {
-      if (`${w.id} ${w.amount} ${w.status}`.toLowerCase().includes(needle)) {
-        out.push({
-          id: w.id,
-          kind: 'Withdrawal',
-          title: `Withdrawal ${w.amount}`,
-          subtitle: w.status,
-          href: ROUTES.admin.withdrawal(w.id),
-        })
-      }
+    for (const h of apiSearch?.hits ?? []) {
+      out.push({
+        id: h.id,
+        kind: h.kind,
+        title: h.title,
+        subtitle: h.subtitle,
+        href: h.href || ROUTES.admin.root,
+      })
     }
 
     for (const t of state.trades) {
@@ -169,7 +142,7 @@ export function AdminGlobalSearchWorkspace({ initialQuery = '' }: { initialQuery
     }
 
     return out.slice(0, 60)
-  }, [q, state, life])
+  }, [q, state, apiSearch])
 
   return (
     <div className="space-y-6 sm:space-y-8">

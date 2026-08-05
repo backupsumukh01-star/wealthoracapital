@@ -4,9 +4,17 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { ROUTES, type MoneyString } from '@meridian/shared'
 import { FileImage } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
+import {
+  type AdminDepositRow,
+  investorName,
+  mapAccountStatus,
+  mapDepositStatus,
+  mapKycStatus,
+  methodLabel,
+} from '@/components/admin/admin-api-adapters'
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import { AdminAccountPill, AdminDepositPill, AdminKycPill } from '@/components/admin/admin-status-pills'
 import { Money } from '@/components/common/money'
@@ -14,27 +22,26 @@ import { PageHeader, SectionHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
 import { Textarea } from '@/components/ui/textarea'
-import type { MoneyDepositStatus } from '@/lib/investor-lifecycle'
+import {
+  useAdminDeposit,
+  useAdminUser,
+  useReviewDeposit,
+} from '@/features/admin/hooks'
 import { formatDateTime } from '@/lib/format'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+
+type DepositDecision = 'APPROVE' | 'REJECT' | 'REQUEST_INFORMATION'
 
 export function AdminDepositDetailWorkspace() {
   const params = useParams<{ depositId: string }>()
   const depositId = decodeURIComponent(params.depositId)
-  const { ready, deposits, accounts, approveDeposit, rejectDeposit, needInfoDeposit } =
-    useInvestorLifecycle()
-
-  const deposit = useMemo(
-    () => deposits.find((d) => d.id === depositId),
-    [deposits, depositId],
-  )
-  const investor = useMemo(
-    () => (deposit ? accounts.find((a) => a.userId === deposit.userId) : undefined),
-    [accounts, deposit],
-  )
+  const { data: depositRaw, isLoading, isError } = useAdminDeposit(depositId)
+  const deposit = depositRaw as AdminDepositRow | undefined
+  const userId = deposit?.user?.id ?? ''
+  const { data: investor } = useAdminUser(userId, { enabled: Boolean(userId) })
+  const reviewDeposit = useReviewDeposit()
   const [reason, setReason] = useState('')
 
-  if (!ready) {
+  if (isLoading) {
     return (
       <div className="space-y-4">
         <PageHeader title="Deposit review" description="Loading deposit…" />
@@ -42,7 +49,7 @@ export function AdminDepositDetailWorkspace() {
     )
   }
 
-  if (!deposit) {
+  if (isError || !deposit) {
     return (
       <div className="space-y-4">
         <PageHeader title="Deposit not found" description={`No deposit matches ${depositId}.`} />
@@ -54,21 +61,27 @@ export function AdminDepositDetailWorkspace() {
   }
 
   const status = deposit.status
-  const actionable =
-    status === 'PENDING' || status === 'UNDER_REVIEW' || status === 'NEED_INFO'
-  const investorName = investor
+  const pillStatus = mapDepositStatus(status)
+  const actionable = status === 'PENDING' || status === 'UNDER_REVIEW'
+  const name = investor
     ? `${investor.firstName} ${investor.lastName}`
-    : deposit.userId
+    : investorName(deposit.user, deposit.user?.id ?? depositId)
 
-  function decide(next: MoneyDepositStatus, title: string) {
-    if ((next === 'REJECTED' || next === 'NEED_INFO') && !reason.trim()) {
+  async function decide(decision: DepositDecision, title: string) {
+    if ((decision === 'REJECT' || decision === 'REQUEST_INFORMATION') && !reason.trim()) {
       toast.error('Reason required')
       return
     }
-    if (next === 'APPROVED') approveDeposit(deposit!.id)
-    else if (next === 'REJECTED') rejectDeposit(deposit!.id, reason.trim())
-    else if (next === 'NEED_INFO') needInfoDeposit(deposit!.id, reason.trim())
-    toast.success(title, { description: reason.trim() || deposit!.id })
+    try {
+      await reviewDeposit.mutateAsync({
+        id: deposit!.id,
+        decision,
+        reason: reason.trim() || undefined,
+      })
+      toast.success(title, { description: reason.trim() || deposit!.id })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Review failed')
+    }
   }
 
   return (
@@ -81,7 +94,7 @@ export function AdminDepositDetailWorkspace() {
             ← Deposits
           </Link>
         }
-        actions={<AdminDepositPill status={status} />}
+        actions={<AdminDepositPill status={pillStatus} />}
       />
 
       <div className="grid gap-5 lg:grid-cols-[1fr_1.1fr]">
@@ -92,13 +105,17 @@ export function AdminDepositDetailWorkspace() {
               <div>
                 <dt className="text-fg-subtle">Investor</dt>
                 <dd className="text-fg">
-                  <Link
-                    href={ROUTES.admin.user(deposit.userId)}
-                    className="text-accent-300 hover:underline"
-                  >
-                    {investorName}
-                  </Link>
-                  <span className="text-fg-subtle"> · {deposit.userId}</span>
+                  {deposit.user?.id ? (
+                    <Link
+                      href={ROUTES.admin.user(deposit.user.id)}
+                      className="text-accent-300 hover:underline"
+                    >
+                      {name}
+                    </Link>
+                  ) : (
+                    name
+                  )}
+                  <span className="text-fg-subtle"> · {deposit.user?.id ?? '—'}</span>
                 </dd>
               </div>
               <div>
@@ -109,7 +126,7 @@ export function AdminDepositDetailWorkspace() {
               </div>
               <div>
                 <dt className="text-fg-subtle">Method</dt>
-                <dd className="text-fg">{deposit.method}</dd>
+                <dd className="text-fg">{methodLabel(deposit.method)}</dd>
               </div>
               <div>
                 <dt className="text-fg-subtle">Reference</dt>
@@ -117,11 +134,11 @@ export function AdminDepositDetailWorkspace() {
               </div>
               <div>
                 <dt className="text-fg-subtle">Submitted</dt>
-                <dd className="text-fg">{formatDateTime(deposit.submittedAt)}</dd>
+                <dd className="text-fg">{formatDateTime(deposit.createdAt)}</dd>
               </div>
               <div>
                 <dt className="text-fg-subtle">Proof file</dt>
-                <dd className="text-fg">{deposit.proofLabel ?? '—'}</dd>
+                <dd className="text-fg">{deposit.hasProof ? 'On file' : '—'}</dd>
               </div>
             </dl>
           </AdminPanel>
@@ -131,33 +148,31 @@ export function AdminDepositDetailWorkspace() {
             {investor ? (
               <div className="space-y-4 px-4 py-4 sm:px-5">
                 <div className="flex flex-wrap gap-2">
-                  <AdminKycPill status={investor.kycStatus} />
-                  <AdminAccountPill status={investor.status} />
+                  <AdminKycPill status={mapKycStatus(investor.kycStatus)} />
+                  <AdminAccountPill status={mapAccountStatus(investor.status, investor.kycStatus)} />
                 </div>
                 <dl className="grid gap-3 text-caption sm:grid-cols-2">
                   <div>
-                    <dt className="text-fg-subtle">Wallet balance</dt>
-                    <dd>
-                      <Money value={investor.wallet.availableBalance as MoneyString} size="sm" />
-                    </dd>
+                    <dt className="text-fg-subtle">Email</dt>
+                    <dd className="text-fg">{investor.email}</dd>
                   </div>
                   <div>
-                    <dt className="text-fg-subtle">Total deposited</dt>
-                    <dd>
-                      <Money value={investor.wallet.totalDeposited as MoneyString} size="sm" />
-                    </dd>
+                    <dt className="text-fg-subtle">Phone</dt>
+                    <dd className="text-fg">{investor.phone ?? '—'}</dd>
                   </div>
                 </dl>
               </div>
             ) : (
-              <p className="px-4 py-4 text-caption text-fg-muted sm:px-5">Investor not found.</p>
+              <p className="px-4 py-4 text-caption text-fg-muted sm:px-5">
+                {deposit.user ? investorName(deposit.user) : 'Investor not found.'}
+              </p>
             )}
           </AdminPanel>
 
           <AdminPanel className="space-y-4 p-4 sm:p-5">
             <SectionHeader
               title="Decision"
-              description="Approval credits the wallet in production. Demo updates local status only."
+              description="Approval credits the wallet in production via the admin API."
             />
             <FormField label="Reason / note" hint="Required when rejecting or requesting info.">
               <Textarea
@@ -170,20 +185,26 @@ export function AdminDepositDetailWorkspace() {
             </FormField>
             {actionable ? (
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" onClick={() => decide('APPROVED', 'Deposit approved')}>
+                <Button
+                  size="sm"
+                  disabled={reviewDeposit.isPending}
+                  onClick={() => void decide('APPROVE', 'Deposit approved')}
+                >
                   Approve
                 </Button>
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={() => decide('NEED_INFO', 'More info requested')}
+                  disabled={reviewDeposit.isPending}
+                  onClick={() => void decide('REQUEST_INFORMATION', 'More info requested')}
                 >
                   Need info
                 </Button>
                 <Button
                   size="sm"
                   variant="danger"
-                  onClick={() => decide('REJECTED', 'Deposit rejected')}
+                  disabled={reviewDeposit.isPending}
+                  onClick={() => void decide('REJECT', 'Deposit rejected')}
                 >
                   Reject
                 </Button>
@@ -200,9 +221,9 @@ export function AdminDepositDetailWorkspace() {
             <div className="flex min-h-[320px] flex-col justify-between rounded-2xl border border-white/10 bg-gradient-to-br from-accent-500/35 via-info/20 to-transparent p-6">
               <FileImage className="size-8 text-accent-300" aria-hidden />
               <div>
-                <p className="text-heading-sm text-fg">{deposit.proofLabel ?? 'Proof'}</p>
+                <p className="text-heading-sm text-fg">{deposit.hasProof ? 'Proof on file' : 'No proof'}</p>
                 <p className="mt-1 text-caption text-fg-subtle">
-                  Zoomable proof viewer placeholder · demo asset
+                  Zoomable proof viewer placeholder
                 </p>
               </div>
             </div>

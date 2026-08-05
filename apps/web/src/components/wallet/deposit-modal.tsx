@@ -24,6 +24,7 @@ import {
   CRYPTO_DEPOSIT_OPTIONS,
   INR_BANK_DETAILS,
 } from '@/lib/investor-demo-data'
+import { WALLET_DEPOSIT_TIMELINE } from '@/mocks/investor'
 import { ApiError } from '@/lib/api-client'
 import {
   useCreateDeposit,

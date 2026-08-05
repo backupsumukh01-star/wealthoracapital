@@ -1,5 +1,6 @@
 'use client'
 
+import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -18,7 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { formatDateTime } from '@/lib/format'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+import { emailAdminService } from '@/services/email-admin.service'
 
 const TEMPLATES: { id: string; subject: string; body: string }[] = [
   {
@@ -56,7 +57,11 @@ const TEMPLATES: { id: string; subject: string; body: string }[] = [
 type TemplateId = string
 
 export function AdminEmailCenter() {
-  const { emails } = useInvestorLifecycle()
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin', 'email-outbox'],
+    queryFn: () => emailAdminService.listOutbox(),
+  })
+  const emails = data?.items ?? []
   const [templateId, setTemplateId] = useState<TemplateId>('Welcome')
   const [to, setTo] = useState('')
   const [subject, setSubject] = useState<string>(TEMPLATES[0]?.subject ?? 'Welcome to Growzy')
@@ -85,8 +90,8 @@ export function AdminEmailCenter() {
       toast.error('To, subject, and body are required')
       return
     }
-    toast.success('Email queued (demo)', {
-      description: `${templateId} → ${to}`,
+    toast.message('Compose send requires email API template key', {
+      description: 'Use Email templates to send a test, or map this form to sendTest.',
     })
   }
 
@@ -94,7 +99,7 @@ export function AdminEmailCenter() {
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="Email center"
-        description="Compose transactional mail from templates, plus the demo lifecycle outbox."
+        description="Compose transactional mail from templates, plus the API outbox."
       />
 
       <Tabs defaultValue="compose">
@@ -107,7 +112,7 @@ export function AdminEmailCenter() {
           <AdminPanel glow>
             <AdminPanelHeader
               title="Compose"
-              description="Templates are mock-only — swap for a real provider later."
+              description="Templates are local drafts — send via the email API when wired."
             />
             <form onSubmit={handleSend} className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
               <FormField label="Template" className="sm:col-span-2">
@@ -156,13 +161,12 @@ export function AdminEmailCenter() {
         <TabsContent value="outbox">
           <AdminPanel>
             <AdminPanelHeader
-              title="Lifecycle outbox"
-              description="Emails queued by the demo investor lifecycle store."
+              title="Email outbox"
+              description="Messages returned by the admin email API."
             />
             {emails.length === 0 ? (
               <p className="p-4 text-body-sm text-fg-muted sm:p-5">
-                No lifecycle emails yet. Register, verify, submit KYC, or reset a password to
-                populate this feed.
+                {isLoading ? 'Loading outbox…' : 'No outbox data from API'}
               </p>
             ) : (
               <ul className="divide-y divide-white/[0.04]">
@@ -170,12 +174,17 @@ export function AdminEmailCenter() {
                   <li key={em.id} className="space-y-1 px-4 py-4 sm:px-5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-body-sm font-medium text-fg">{em.subject}</p>
-                      <span className="text-caption text-fg-subtle">{formatDateTime(em.sentAt)}</span>
+                      <span className="text-caption text-fg-subtle">
+                        {formatDateTime(em.sentAt ?? em.createdAt)}
+                      </span>
                     </div>
                     <p className="text-caption text-fg-muted">
-                      To {em.to} · {em.template}
+                      To {em.to} · {em.templateKey ?? em.status}
                     </p>
-                    <p className="text-body-sm text-fg-subtle">{em.preview}</p>
+                    <p className="text-body-sm text-fg-subtle">
+                      {em.status}
+                      {em.lastError ? ` · ${em.lastError}` : ''}
+                    </p>
                   </li>
                 ))}
               </ul>

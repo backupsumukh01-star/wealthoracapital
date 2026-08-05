@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select'
 import { toast } from '@/components/ui/toast'
 import { CRYPTO_DEPOSIT_OPTIONS } from '@/lib/investor-demo-data'
+import { WALLET_WITHDRAW_TIMELINE } from '@/mocks/investor'
 import { ApiError } from '@/lib/api-client'
 import { useWallet } from '@/features/wallet/hooks'
 import { useCreateWithdrawal, usePayoutMethods } from '@/features/withdrawals/hooks'

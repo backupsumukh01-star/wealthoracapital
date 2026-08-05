@@ -10,19 +10,20 @@ import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
 import { toast } from '@/components/ui/toast'
-import { formatDateTime } from '@/lib/format'
-import { DEMO_OTP } from '@/lib/investor-lifecycle'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+import { useChangePassword } from '@/features/auth/hooks'
+import { ApiError } from '@/lib/api-client'
+import { useSession } from '@/providers/session-provider'
 
 export function SecuritySettingsPanel() {
-  const { session, changePassword, logoutAllDevices, queueEmail, toggle2fa } = useInvestorLifecycle()
-  const [otpSent, setOtpSent] = useState(false)
+  const { session } = useSession()
+  const changePassword = useChangePassword()
+  const [busy, setBusy] = useState(false)
 
   return (
     <div className="min-w-0 max-w-full space-y-4">
       <SettingsCard
         title="Password"
-        description="Requires current password and email OTP. Optionally logout all devices."
+        description="Requires your current password and a new password."
         icon={KeyRound}
       >
         <form
@@ -30,19 +31,30 @@ export function SecuritySettingsPanel() {
           onSubmit={(e) => {
             e.preventDefault()
             const fd = new FormData(e.currentTarget)
-            const result = changePassword(
-              String(fd.get('current') ?? ''),
-              String(fd.get('next') ?? ''),
-              String(fd.get('otp') ?? ''),
-              fd.get('logoutOthers') === 'on',
-            )
-            if (!result.ok) {
-              toast.error(result.error ?? 'Update failed')
+            const currentPassword = String(fd.get('current') ?? '')
+            const newPassword = String(fd.get('next') ?? '')
+            const confirm = String(fd.get('confirm') ?? '')
+            if (newPassword !== confirm) {
+              toast.error('Passwords do not match')
               return
             }
-            toast.success('Password updated')
-            e.currentTarget.reset()
-            setOtpSent(false)
+            setBusy(true)
+            void changePassword
+              .mutateAsync({ currentPassword, newPassword })
+              .then(() => {
+                toast.success('Password updated')
+                e.currentTarget.reset()
+              })
+              .catch((error: unknown) => {
+                toast.error(
+                  error instanceof ApiError
+                    ? error.message
+                    : error instanceof Error
+                      ? error.message
+                      : 'Update failed',
+                )
+              })
+              .finally(() => setBusy(false))
           }}
         >
           <FormField label="Current password" required>
@@ -54,27 +66,9 @@ export function SecuritySettingsPanel() {
           <FormField label="Confirm new password" required>
             <Input name="confirm" type="password" autoComplete="new-password" />
           </FormField>
-          <FormField label="Email OTP" required hint={otpSent ? `Demo: ${DEMO_OTP}` : 'Send OTP first'}>
-            <Input name="otp" inputMode="numeric" maxLength={6} />
-          </FormField>
-          <label className="flex items-center gap-2 text-caption text-fg-muted">
-            <input type="checkbox" name="logoutOthers" className="size-4 rounded border-line" />
-            Logout all other devices
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                if (session) queueEmail('PASSWORD_RESET', session.email)
-                setOtpSent(true)
-                toast.success(`OTP sent · ${DEMO_OTP}`)
-              }}
-            >
-              Send OTP
-            </Button>
-            <Button type="submit">Update password</Button>
-          </div>
+          <Button type="submit" loading={busy}>
+            Update password
+          </Button>
         </form>
       </SettingsCard>
 
@@ -84,26 +78,21 @@ export function SecuritySettingsPanel() {
         icon={MonitorSmartphone}
       >
         <ul className="space-y-2">
-          {(session?.loginHistory ?? []).length === 0 ? (
-            <SettingsRow label="This device" value="Active now" hint="Chrome / Windows" />
-          ) : (
-            session!.loginHistory.map((l) => (
-              <SettingsRow
-                key={l.id}
-                label={l.current ? 'Current session' : formatDateTime(l.at)}
-                value={l.browser}
-                hint={`${l.ip} · ${l.country}`}
-              />
-            ))
-          )}
+          <SettingsRow
+            label="This device"
+            value={session ? 'Active now' : 'Signed out'}
+            hint="Session revoke for other devices will use the production auth flow."
+          />
         </ul>
         <Button
           className="mt-3.5"
           variant="secondary"
-          onClick={() => {
-            logoutAllDevices()
-            toast.success('Other sessions revoked')
-          }}
+          onClick={() =>
+            toast.info(
+              'Session revoke is not available here yet',
+              'Use production auth session management when enabled.',
+            )
+          }
         >
           Sign out other devices
         </Button>
@@ -114,27 +103,22 @@ export function SecuritySettingsPanel() {
         description="Manage authenticator enrolment from Profile · 2FA."
         icon={ShieldCheck}
       >
-        <SettingsRow
-          label="Status"
-          value={session?.twoFactorEnabled ? 'Enabled' : 'Off'}
-        />
+        <SettingsRow label="Status" value="Managed in production auth" />
         <div className="mt-3 flex flex-wrap gap-2">
           <Button asChild variant="secondary">
             <Link href={ROUTES.dashboard.settings.profile}>Open Profile · 2FA</Link>
           </Button>
-          {session?.twoFactorEnabled ? (
-            <Button
-              variant="ghost"
-              onClick={() => {
-                const password = window.prompt('Password to disable 2FA') ?? ''
-                const result = toggle2fa(false, password)
-                if (!result.ok) toast.error(result.error ?? 'Failed')
-                else toast.success('2FA disabled')
-              }}
-            >
-              Disable 2FA
-            </Button>
-          ) : null}
+          <Button
+            variant="ghost"
+            onClick={() =>
+              toast.info(
+                '2FA enrolment uses the production auth flow',
+                'Authenticator setup is not available from this demo panel.',
+              )
+            }
+          >
+            Manage 2FA
+          </Button>
         </div>
       </SettingsCard>
     </div>

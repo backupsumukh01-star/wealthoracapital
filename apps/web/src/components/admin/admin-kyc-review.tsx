@@ -3,15 +3,21 @@
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { ROUTES } from '@meridian/shared'
-import { useMemo, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
+import {
+  mapAccountStatus,
+  mapKycStatus,
+} from '@/components/admin/admin-api-adapters'
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import { AdminAccountPill, AdminKycPill } from '@/components/admin/admin-status-pills'
 import { PageHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+import { useAdminUser } from '@/features/admin/hooks'
+import { kycService } from '@/services/kyc.service'
 
 function DocSlot({ label }: { label: string }) {
   return (
@@ -28,15 +34,50 @@ function DocSlot({ label }: { label: string }) {
 export function AdminKycReviewWorkspace() {
   const params = useParams<{ userId: string }>()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const userId = decodeURIComponent(params.userId)
-  const { ready, accounts, approveKyc, rejectKyc, requestKycResubmit } = useInvestorLifecycle()
-  const account = useMemo(
-    () => accounts.find((a) => a.userId === userId),
-    [accounts, userId],
-  )
+  const { data: account, isLoading, isError } = useAdminUser(userId)
+  const { data: kycDetail } = useQuery({
+    queryKey: ['admin', 'kyc', userId],
+    queryFn: () => kycService.adminGet(userId),
+    enabled: Boolean(userId),
+  })
   const [reason, setReason] = useState('')
 
-  if (!ready) {
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: ['admin', 'kyc'] })
+    void queryClient.invalidateQueries({ queryKey: ['admin', 'user', userId] })
+  }
+
+  const approve = useMutation({
+    mutationFn: () => kycService.adminApprove(userId),
+    onSuccess: () => {
+      invalidate()
+      toast.success('KYC approved')
+      router.push(ROUTES.admin.kyc)
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+  const reject = useMutation({
+    mutationFn: (note: string) => kycService.adminReject(userId, { reason: note }),
+    onSuccess: (_data, note) => {
+      invalidate()
+      toast.message('KYC rejected', { description: note })
+      router.push(ROUTES.admin.kyc)
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+  const resubmit = useMutation({
+    mutationFn: (note: string) => kycService.adminRequestInformation(userId, { reason: note }),
+    onSuccess: (_data, note) => {
+      invalidate()
+      toast.message('Resubmission requested', { description: note })
+      router.push(ROUTES.admin.kyc)
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  if (isLoading) {
     return (
       <div className="space-y-4">
         <PageHeader title="KYC review" description="Loading investor…" />
@@ -44,7 +85,7 @@ export function AdminKycReviewWorkspace() {
     )
   }
 
-  if (!account) {
+  if (isError || !account) {
     return (
       <div className="space-y-4">
         <PageHeader title="KYC review" description={`No investor matches ${userId}.`} />
@@ -55,7 +96,18 @@ export function AdminKycReviewWorkspace() {
     )
   }
 
-  const country = account.kyc?.country ?? account.country ?? '—'
+  const submission = kycDetail as
+    | {
+        city?: string
+        addressLine1?: string
+        occupation?: string
+        dateOfBirth?: string
+        primaryDocumentType?: string
+        country?: string
+      }
+    | undefined
+  const country = submission?.country ?? account.country ?? '—'
+  const busy = approve.isPending || reject.isPending || resubmit.isPending
 
   return (
     <div className="space-y-6">
@@ -69,8 +121,8 @@ export function AdminKycReviewWorkspace() {
         }
         actions={
           <div className="flex flex-wrap gap-2">
-            <AdminKycPill status={account.kycStatus} />
-            <AdminAccountPill status={account.status} />
+            <AdminKycPill status={mapKycStatus(account.kycStatus)} />
+            <AdminAccountPill status={mapAccountStatus(account.status, account.kycStatus)} />
           </div>
         }
       />
@@ -80,16 +132,16 @@ export function AdminKycReviewWorkspace() {
           <AdminPanelHeader title="Personal details" className="border-0 px-0 py-0" />
           <dl className="grid gap-3 text-body-sm sm:grid-cols-2">
             {[
-              ['User ID', account.userId],
-              ['Username', `@${account.username}`],
+              ['User ID', account.id],
+              ['Username', `@${account.email.split('@')[0] ?? account.id}`],
               ['Email', account.email],
-              ['Phone', account.phone],
+              ['Phone', account.phone ?? '—'],
               ['Country', country],
-              ['City', account.kyc?.city ?? '—'],
-              ['Address', account.kyc?.address ?? '—'],
-              ['DOB', account.kyc?.dateOfBirth ?? '—'],
-              ['Occupation', account.kyc?.occupation ?? '—'],
-              ['ID type', account.kyc?.idType?.replaceAll('_', ' ') ?? '—'],
+              ['City', submission?.city ?? '—'],
+              ['Address', submission?.addressLine1 ?? '—'],
+              ['DOB', submission?.dateOfBirth ?? '—'],
+              ['Occupation', submission?.occupation ?? '—'],
+              ['ID type', submission?.primaryDocumentType?.replaceAll('_', ' ') ?? '—'],
             ].map(([k, v]) => (
               <div key={k}>
                 <dt className="text-caption text-fg-subtle">{k}</dt>
@@ -108,40 +160,32 @@ export function AdminKycReviewWorkspace() {
             rows={4}
           />
           <div className="flex flex-wrap gap-2">
-            <Button
-              onClick={() => {
-                approveKyc(account.userId)
-                toast.success('KYC approved')
-                router.push(ROUTES.admin.kyc)
-              }}
-            >
+            <Button disabled={busy} onClick={() => approve.mutate()}>
               Approve
             </Button>
             <Button
               variant="secondary"
               className="text-danger"
+              disabled={busy}
               onClick={() => {
                 if (!reason.trim()) {
                   toast.error('Add a rejection reason')
                   return
                 }
-                rejectKyc(account.userId, reason.trim())
-                toast.message('KYC rejected', { description: reason })
-                router.push(ROUTES.admin.kyc)
+                reject.mutate(reason.trim())
               }}
             >
               Reject
             </Button>
             <Button
               variant="ghost"
+              disabled={busy}
               onClick={() => {
                 if (!reason.trim()) {
                   toast.error('Add a resubmission note')
                   return
                 }
-                requestKycResubmit(account.userId, reason.trim())
-                toast.message('Resubmission requested', { description: reason })
-                router.push(ROUTES.admin.kyc)
+                resubmit.mutate(reason.trim())
               }}
             >
               Request resubmission

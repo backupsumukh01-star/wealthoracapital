@@ -6,6 +6,12 @@ import { FileImage, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
+import {
+  type AdminDepositRow,
+  investorName,
+  mapDepositStatus,
+  methodLabel,
+} from '@/components/admin/admin-api-adapters'
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import { AdminDepositPill } from '@/components/admin/admin-status-pills'
 import { Money } from '@/components/common/money'
@@ -24,22 +30,22 @@ import {
 } from '@/components/ui/sheet'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import type { MoneyDeposit, MoneyDepositStatus } from '@/lib/investor-lifecycle'
+import { useAdminDeposits, useReviewDeposit } from '@/features/admin/hooks'
 import { formatDateTime } from '@/lib/format'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
 
 type TabFilter = 'pending' | 'review' | 'approved' | 'rejected' | 'all'
+type DepositDecision = 'APPROVE' | 'REJECT' | 'REQUEST_INFORMATION'
 
-function matchesTab(status: MoneyDepositStatus, tab: TabFilter) {
+function matchesTab(status: string, tab: TabFilter) {
   switch (tab) {
     case 'pending':
-      return status === 'PENDING' || status === 'NEED_INFO'
+      return status === 'PENDING'
     case 'review':
       return status === 'UNDER_REVIEW'
     case 'approved':
       return status === 'APPROVED'
     case 'rejected':
-      return status === 'REJECTED'
+      return status === 'REJECTED' || status === 'CANCELLED' || status === 'EXPIRED'
     default:
       return true
   }
@@ -55,20 +61,13 @@ function ProofThumb({ label }: { label: string }) {
 }
 
 export function AdminDepositsWorkspace() {
-  const { deposits, accounts, approveDeposit, rejectDeposit, needInfoDeposit } =
-    useInvestorLifecycle()
+  const { data, isLoading } = useAdminDeposits()
+  const reviewDeposit = useReviewDeposit()
+  const deposits = (data?.items ?? []) as AdminDepositRow[]
   const [tab, setTab] = useState<TabFilter>('pending')
   const [q, setQ] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [reason, setReason] = useState('')
-
-  const nameByUserId = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const a of accounts) {
-      map.set(a.userId, `${a.firstName} ${a.lastName}`)
-    }
-    return map
-  }, [accounts])
 
   const selected = useMemo(
     () => (selectedId ? deposits.find((d) => d.id === selectedId) ?? null : null),
@@ -81,72 +80,75 @@ export function AdminDepositsWorkspace() {
       .filter((d) => matchesTab(d.status, tab))
       .filter((d) => {
         if (!needle) return true
-        const name = (nameByUserId.get(d.userId) ?? d.userId).toLowerCase()
+        const name = investorName(d.user, d.user?.id ?? '').toLowerCase()
+        const method = methodLabel(d.method).toLowerCase()
         return (
           d.id.toLowerCase().includes(needle) ||
           d.reference.toLowerCase().includes(needle) ||
-          d.method.toLowerCase().includes(needle) ||
-          d.userId.toLowerCase().includes(needle) ||
+          method.includes(needle) ||
+          (d.user?.id ?? '').toLowerCase().includes(needle) ||
           name.includes(needle)
         )
       })
-      .sort((a, b) => +new Date(a.submittedAt) - +new Date(b.submittedAt))
-  }, [deposits, tab, q, nameByUserId])
-
-  function investorName(userId: string) {
-    return nameByUserId.get(userId) ?? userId
-  }
+      .sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt))
+  }, [deposits, tab, q])
 
   const stats = useMemo(() => {
-    const awaiting = deposits.filter((d) => d.status === 'PENDING' || d.status === 'NEED_INFO').length
+    const awaiting = deposits.filter((d) => d.status === 'PENDING').length
     const review = deposits.filter((d) => d.status === 'UNDER_REVIEW').length
     const approved = deposits.filter((d) => d.status === 'APPROVED').length
     const pendingValue = deposits
-      .filter((d) => d.status === 'PENDING' || d.status === 'UNDER_REVIEW' || d.status === 'NEED_INFO')
+      .filter((d) => d.status === 'PENDING' || d.status === 'UNDER_REVIEW')
       .reduce((sum, d) => sum + Number(d.amount), 0)
     return { awaiting, review, approved, pendingValue: pendingValue.toFixed(2) as MoneyString }
   }, [deposits])
 
-  function openReview(d: MoneyDeposit) {
+  function openReview(d: AdminDepositRow) {
     setSelectedId(d.id)
-    setReason(d.note ?? '')
+    setReason(d.rejectionReason ?? '')
   }
 
-  function decide(action: 'APPROVED' | 'REJECTED' | 'NEED_INFO', toastTitle: string) {
+  async function decide(decision: DepositDecision, toastTitle: string) {
     if (!selected) return
-    if ((action === 'REJECTED' || action === 'NEED_INFO') && !reason.trim()) {
+    if ((decision === 'REJECT' || decision === 'REQUEST_INFORMATION') && !reason.trim()) {
       toast.error('Reason required')
       return
     }
-    if (action === 'APPROVED') approveDeposit(selected.id)
-    else if (action === 'REJECTED') rejectDeposit(selected.id, reason.trim())
-    else needInfoDeposit(selected.id, reason.trim())
-    toast.success(toastTitle, {
-      description: reason.trim() || selected.id,
-    })
-    setSelectedId(null)
-    setReason('')
+    try {
+      await reviewDeposit.mutateAsync({
+        id: selected.id,
+        decision,
+        reason: reason.trim() || undefined,
+      })
+      toast.success(toastTitle, {
+        description: reason.trim() || selected.id,
+      })
+      setSelectedId(null)
+      setReason('')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Review failed')
+    }
   }
 
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="Deposits"
-        description="Match each payment against its proof before crediting. Decisions update local demo state."
+        description="Match each payment against its proof before crediting. Decisions update via the admin API."
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <AdminPanel className="p-4" glow>
           <p className="text-caption text-fg-muted">Awaiting review</p>
-          <p className="mt-2 text-stat-md text-fg">{stats.awaiting}</p>
+          <p className="mt-2 text-stat-md text-fg">{isLoading ? '—' : stats.awaiting}</p>
         </AdminPanel>
         <AdminPanel className="p-4">
           <p className="text-caption text-fg-muted">Under review</p>
-          <p className="mt-2 text-stat-md text-fg">{stats.review}</p>
+          <p className="mt-2 text-stat-md text-fg">{isLoading ? '—' : stats.review}</p>
         </AdminPanel>
         <AdminPanel className="p-4">
-          <p className="text-caption text-fg-muted">Approved (demo set)</p>
-          <p className="mt-2 text-stat-md text-fg">{stats.approved}</p>
+          <p className="text-caption text-fg-muted">Approved</p>
+          <p className="mt-2 text-stat-md text-fg">{isLoading ? '—' : stats.approved}</p>
         </AdminPanel>
         <AdminPanel className="p-4" glow>
           <p className="text-caption text-fg-muted">Value pending</p>
@@ -201,7 +203,7 @@ export function AdminDepositsWorkspace() {
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-12 text-center text-fg-muted">
-                    No deposits in this view.
+                    {isLoading ? 'Loading deposits…' : 'No deposits in this view.'}
                   </td>
                 </tr>
               ) : (
@@ -211,22 +213,22 @@ export function AdminDepositsWorkspace() {
                     className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.025]"
                   >
                     <td className="px-4 py-3">
-                      <ProofThumb label={d.proofLabel ?? 'Proof'} />
+                      <ProofThumb label={d.hasProof ? 'Proof' : 'None'} />
                     </td>
                     <td className="px-4 py-3">
-                      <p className="font-medium text-fg">{investorName(d.userId)}</p>
-                      <p className="font-mono text-[11px] text-fg-subtle">{d.userId}</p>
+                      <p className="font-medium text-fg">{investorName(d.user, d.user?.id ?? '—')}</p>
+                      <p className="font-mono text-[11px] text-fg-subtle">{d.user?.id ?? '—'}</p>
                     </td>
                     <td className="px-4 py-3">
                       <Money value={d.amount as MoneyString} size="sm" />
                     </td>
-                    <td className="px-4 py-3 text-fg-muted">{d.method}</td>
+                    <td className="px-4 py-3 text-fg-muted">{methodLabel(d.method)}</td>
                     <td className="px-4 py-3 font-mono text-[11px] text-fg-muted">{d.reference}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-fg-muted">
-                      {formatDateTime(d.submittedAt)}
+                      {formatDateTime(d.createdAt)}
                     </td>
                     <td className="px-4 py-3">
-                      <AdminDepositPill status={d.status} />
+                      <AdminDepositPill status={mapDepositStatus(d.status)} />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
@@ -266,7 +268,9 @@ export function AdminDepositsWorkspace() {
                 <div className="flex aspect-video flex-col justify-between rounded-xl border border-white/10 bg-gradient-to-br from-accent-500/30 via-info/15 to-transparent p-4">
                   <FileImage className="size-6 text-accent-300" aria-hidden />
                   <div>
-                    <p className="text-caption font-medium text-fg">{selected.proofLabel ?? 'Proof'}</p>
+                    <p className="text-caption font-medium text-fg">
+                      {selected.hasProof ? 'Proof on file' : 'No proof'}
+                    </p>
                     <p className="text-[11px] text-fg-subtle">Screenshot placeholder</p>
                   </div>
                 </div>
@@ -274,7 +278,7 @@ export function AdminDepositsWorkspace() {
                   <div>
                     <dt className="text-fg-subtle">Investor</dt>
                     <dd className="text-fg">
-                      {investorName(selected.userId)} · {selected.userId}
+                      {investorName(selected.user)} · {selected.user?.id ?? '—'}
                     </dd>
                   </div>
                   <div>
@@ -286,17 +290,17 @@ export function AdminDepositsWorkspace() {
                   <div>
                     <dt className="text-fg-subtle">Method / ref</dt>
                     <dd className="text-fg">
-                      {selected.method} · {selected.reference}
+                      {methodLabel(selected.method)} · {selected.reference}
                     </dd>
                   </div>
                   <div>
                     <dt className="text-fg-subtle">Submitted</dt>
-                    <dd className="text-fg">{formatDateTime(selected.submittedAt)}</dd>
+                    <dd className="text-fg">{formatDateTime(selected.createdAt)}</dd>
                   </div>
                   <div>
                     <dt className="text-fg-subtle">Status</dt>
                     <dd className="mt-1">
-                      <AdminDepositPill status={selected.status} />
+                      <AdminDepositPill status={mapDepositStatus(selected.status)} />
                     </dd>
                   </div>
                 </dl>
@@ -311,13 +315,27 @@ export function AdminDepositsWorkspace() {
                 </FormField>
               </SheetBody>
               <SheetFooter>
-                <Button size="sm" onClick={() => decide('APPROVED', 'Deposit approved')}>
+                <Button
+                  size="sm"
+                  disabled={reviewDeposit.isPending}
+                  onClick={() => void decide('APPROVE', 'Deposit approved')}
+                >
                   Approve
                 </Button>
-                <Button size="sm" variant="secondary" onClick={() => decide('NEED_INFO', 'More info requested')}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={reviewDeposit.isPending}
+                  onClick={() => void decide('REQUEST_INFORMATION', 'More info requested')}
+                >
                   Need info
                 </Button>
-                <Button size="sm" variant="danger" onClick={() => decide('REJECTED', 'Deposit rejected')}>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  disabled={reviewDeposit.isPending}
+                  onClick={() => void decide('REJECT', 'Deposit rejected')}
+                >
                   Reject
                 </Button>
               </SheetFooter>

@@ -2,44 +2,34 @@
 
 import { PremiumEmailPreviewStudio } from '@/components/common/premium-email-preview'
 import { PageHeader } from '@/components/common/page-header'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+import { displayUsername } from '@/lib/investor-lifecycle'
+import { useSession } from '@/providers/session-provider'
 
-/** Investor-facing email preview center — full premium catalog. */
+/** Investor-facing email preview center — template catalog only (no lifecycle outbox). */
 export function EmailPreviewWorkspace() {
-  const { session, emails } = useInvestorLifecycle()
+  const { session } = useSession()
+  const emailLocal = session?.user.email.split('@')[0] ?? 'investor'
   const sample = {
-    firstName: session?.firstName ?? 'Ayesha',
-    userId: session?.userId ?? 'GRZ-100001',
-    username: session ? `@${session.username}` : '@ayesha',
+    firstName: session?.user.firstName ?? 'Investor',
+    userId: session?.user.id ?? '—',
+    username: displayUsername(emailLocal),
   }
 
   return (
     <div className="min-w-0 space-y-5">
       <PageHeader
         title="Email preview"
-        description="Premium branded templates for every lifecycle event — unique layouts, desktop & mobile."
+        description="Premium branded templates for account events — unique layouts, desktop & mobile."
       />
 
       <PremiumEmailPreviewStudio sample={sample} />
 
       <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 sm:p-5">
-        <p className="text-body-sm font-medium text-fg">Demo outbox ({emails.length})</p>
-        {emails.length === 0 ? (
-          <p className="mt-3 text-caption text-fg-subtle">
-            Register, verify, submit KYC, or move money to populate the outbox.
-          </p>
-        ) : (
-          <ul className="mt-3 max-h-64 space-y-2 overflow-y-auto">
-            {emails.slice(0, 12).map((em) => (
-              <li key={em.id} className="rounded-lg border border-line/60 px-3 py-2 text-caption">
-                <p className="font-medium text-fg">{em.subject}</p>
-                <p className="text-fg-subtle">
-                  {em.to} · {em.template}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
+        <p className="text-body-sm font-medium text-fg">Outbox</p>
+        <p className="mt-3 text-caption text-fg-subtle">
+          Sent email history is no longer stored in the demo lifecycle. Check your inbox for
+          verification and transactional messages from the API.
+        </p>
       </div>
     </div>
   )

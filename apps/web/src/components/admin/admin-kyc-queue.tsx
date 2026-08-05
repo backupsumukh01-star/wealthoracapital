@@ -1,20 +1,30 @@
 'use client'
 
 import Link from 'next/link'
-import { ROUTES } from '@meridian/shared'
+import { ROUTES, type User } from '@meridian/shared'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, FileImage, RotateCcw, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import {
+  mapAccountStatus,
+  mapKycStatus,
+} from '@/components/admin/admin-api-adapters'
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import { AdminAccountPill, AdminKycPill } from '@/components/admin/admin-status-pills'
 import { PageHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
 import { Textarea } from '@/components/ui/textarea'
-import type { InvestorAccount } from '@/lib/investor-lifecycle'
 import { formatDateTime } from '@/lib/format'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+import { kycService, type KycProfile } from '@/services/kyc.service'
+
+type KycQueueItem = User & { kyc: KycProfile }
+
+const kycAdminKeys = {
+  queue: ['admin', 'kyc', 'queue'] as const,
+}
 
 function DocPreview({
   label,
@@ -48,24 +58,29 @@ function KycReviewCard({
   onApprove,
   onReject,
   onResubmit,
+  busy,
 }: {
-  account: InvestorAccount
+  account: KycQueueItem
   onApprove: (userId: string) => void
   onReject: (userId: string, reason: string) => void
   onResubmit: (userId: string, reason: string) => void
+  busy: boolean
 }) {
   const [reason, setReason] = useState('')
-  const country = account.kyc?.country ?? account.country ?? '—'
+  const country = account.country ?? '—'
+  const submission = account.kyc.submission as
+    | { city?: string; addressLine1?: string; occupation?: string; dateOfBirth?: string; primaryDocumentType?: string }
+    | undefined
 
   return (
     <AdminPanel className="overflow-hidden" glow>
       <AdminPanelHeader
         title={`${account.firstName} ${account.lastName}`}
-        description={`${account.userId} · @${account.username}`}
+        description={`${account.id} · ${account.email}`}
         action={
           <div className="flex flex-wrap gap-2">
-            <AdminKycPill status={account.kycStatus} />
-            <AdminAccountPill status={account.status} />
+            <AdminKycPill status={mapKycStatus(account.kycStatus)} />
+            <AdminAccountPill status={mapAccountStatus(account.status, account.kycStatus)} />
           </div>
         }
       />
@@ -74,13 +89,13 @@ function KycReviewCard({
         <dl className="grid gap-3 text-caption sm:grid-cols-2 lg:grid-cols-3">
           {[
             ['Email', account.email],
-            ['Phone', account.phone],
+            ['Phone', account.phone ?? '—'],
             ['Country', country],
-            ['City', account.kyc?.city ?? '—'],
-            ['Address', account.kyc?.address ?? '—'],
-            ['Occupation', account.kyc?.occupation ?? '—'],
-            ['DOB', account.kyc?.dateOfBirth ?? '—'],
-            ['ID type', account.kyc?.idType?.replaceAll('_', ' ') ?? '—'],
+            ['City', submission?.city ?? '—'],
+            ['Address', submission?.addressLine1 ?? '—'],
+            ['Occupation', submission?.occupation ?? '—'],
+            ['DOB', submission?.dateOfBirth ?? '—'],
+            ['ID type', submission?.primaryDocumentType?.replaceAll('_', ' ') ?? '—'],
             ['Registered', formatDateTime(account.createdAt)],
           ].map(([k, v]) => (
             <div key={k}>
@@ -109,10 +124,11 @@ function KycReviewCard({
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button
             size="sm"
+            disabled={busy}
             onClick={() => {
-              onApprove(account.userId)
+              onApprove(account.id)
               toast.success('KYC approved', {
-                description: `${account.userId} is verified. Deposits unlocked.`,
+                description: `${account.id} is verified. Deposits unlocked.`,
               })
             }}
           >
@@ -122,9 +138,10 @@ function KycReviewCard({
           <Button
             size="sm"
             variant="danger"
+            disabled={busy}
             onClick={() => {
               const note = reason.trim() || 'Documents unclear. Please re-upload.'
-              onReject(account.userId, note)
+              onReject(account.id, note)
               toast.message('KYC rejected', { description: note })
             }}
           >
@@ -134,9 +151,10 @@ function KycReviewCard({
           <Button
             size="sm"
             variant="secondary"
+            disabled={busy}
             onClick={() => {
               const note = reason.trim() || 'Please replace blurry documents.'
-              onResubmit(account.userId, note)
+              onResubmit(account.id, note)
               toast.message('Resubmission requested', { description: note })
             }}
           >
@@ -144,10 +162,10 @@ function KycReviewCard({
             Request resubmission
           </Button>
           <Button asChild size="sm" variant="secondary">
-            <Link href={ROUTES.admin.kycReview(account.userId)}>Open review</Link>
+            <Link href={ROUTES.admin.kycReview(account.id)}>Open review</Link>
           </Button>
           <Button asChild size="sm" variant="ghost">
-            <Link href={ROUTES.admin.user(account.userId)}>Full profile</Link>
+            <Link href={ROUTES.admin.user(account.id)}>Full profile</Link>
           </Button>
         </div>
       </div>
@@ -156,7 +174,36 @@ function KycReviewCard({
 }
 
 export function AdminKycQueue() {
-  const { pendingKycAccounts, approveKyc, rejectKyc, requestKycResubmit } = useInvestorLifecycle()
+  const queryClient = useQueryClient()
+  const { data, isLoading } = useQuery({
+    queryKey: kycAdminKeys.queue,
+    queryFn: () => kycService.adminList({ status: 'UNDER_REVIEW' }),
+  })
+
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: kycAdminKeys.queue })
+  }
+
+  const approve = useMutation({
+    mutationFn: (userId: string) => kycService.adminApprove(userId),
+    onSuccess: invalidate,
+    onError: (err: Error) => toast.error(err.message),
+  })
+  const reject = useMutation({
+    mutationFn: ({ userId, reason }: { userId: string; reason: string }) =>
+      kycService.adminReject(userId, { reason }),
+    onSuccess: invalidate,
+    onError: (err: Error) => toast.error(err.message),
+  })
+  const resubmit = useMutation({
+    mutationFn: ({ userId, reason }: { userId: string; reason: string }) =>
+      kycService.adminRequestInformation(userId, { reason }),
+    onSuccess: invalidate,
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  const pending = (data?.items ?? []) as KycQueueItem[]
+  const busy = approve.isPending || reject.isPending || resubmit.isPending
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -168,7 +215,7 @@ export function AdminKycQueue() {
       <div className="grid gap-3 sm:grid-cols-3">
         <AdminPanel className="p-4" glow>
           <p className="text-caption text-fg-muted">Pending review</p>
-          <p className="mt-2 text-stat-md text-fg">{pendingKycAccounts.length}</p>
+          <p className="mt-2 text-stat-md text-fg">{isLoading ? '—' : pending.length}</p>
         </AdminPanel>
         <AdminPanel className="p-4">
           <p className="text-caption text-fg-muted">SLA</p>
@@ -180,19 +227,20 @@ export function AdminKycQueue() {
         </AdminPanel>
       </div>
 
-      {pendingKycAccounts.length === 0 ? (
+      {pending.length === 0 ? (
         <AdminPanel className="p-10 text-center text-body-sm text-fg-muted">
-          No KYC requests under review.
+          {isLoading ? 'Loading KYC queue…' : 'No KYC requests under review.'}
         </AdminPanel>
       ) : (
         <ul className="space-y-5">
-          {pendingKycAccounts.map((account) => (
-            <li key={account.userId}>
+          {pending.map((account) => (
+            <li key={account.id}>
               <KycReviewCard
                 account={account}
-                onApprove={approveKyc}
-                onReject={rejectKyc}
-                onResubmit={requestKycResubmit}
+                busy={busy}
+                onApprove={(userId) => approve.mutate(userId)}
+                onReject={(userId, reason) => reject.mutate({ userId, reason })}
+                onResubmit={(userId, reason) => resubmit.mutate({ userId, reason })}
               />
             </li>
           ))}

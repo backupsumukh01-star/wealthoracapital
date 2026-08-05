@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import type { KycStatus, User, UserStatus } from '@meridian/shared'
 import {
   BadgeCheck,
   KeyRound,
@@ -23,11 +24,16 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/toast'
-import { DEMO_PROFILE, DEMO_SESSION } from '@/lib/dashboard-data'
+import { useChangePassword } from '@/features/auth/hooks'
 import { SAVED_CRYPTO_WALLETS, SAVED_INR_ACCOUNTS } from '@/lib/investor-demo-data'
-import { displayUsername } from '@/lib/investor-lifecycle'
+import {
+  displayUsername,
+  type KycLifecycleStatus,
+  type LifecycleStatus,
+} from '@/lib/investor-lifecycle'
+import { ApiError } from '@/lib/api-client'
 import { formatDateTime } from '@/lib/format'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
 
 const TABS = [
@@ -40,39 +46,64 @@ const TABS = [
   { id: '2fa', label: '2FA', icon: Smartphone },
 ] as const
 
+function mapKycBadgeStatus(status: KycStatus | string): KycLifecycleStatus {
+  switch (status) {
+    case 'APPROVED':
+      return 'APPROVED'
+    case 'REJECTED':
+      return 'REJECTED'
+    case 'UNDER_REVIEW':
+    case 'SUBMITTED':
+    case 'PENDING':
+    case 'NEED_MORE_INFO':
+      return 'UNDER_REVIEW'
+    default:
+      return 'NOT_STARTED'
+  }
+}
+
+function mapLifecycleStatus(user: User): LifecycleStatus {
+  const status = user.status as UserStatus
+  if (status === 'SUSPENDED' || status === 'BLOCKED') return 'SUSPENDED'
+  if (!user.emailVerified) return 'PENDING_EMAIL'
+  if (user.kycStatus === 'APPROVED') return 'VERIFIED'
+  if (user.kycStatus === 'REJECTED') return 'REJECTED'
+  return 'PENDING_KYC'
+}
+
 export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }) {
-  const { session, changePassword, toggle2fa, logoutAllDevices, queueEmail } =
-    useInvestorLifecycle()
-  const [twoFa, setTwoFa] = useState(session?.twoFactorEnabled ?? false)
-  const user = session
+  const { session } = useSession()
+  const changePassword = useChangePassword()
+  const [twoFa, setTwoFa] = useState(false)
+  const [passwordBusy, setPasswordBusy] = useState(false)
+
+  const apiUser = session?.user
+  const user = apiUser
     ? {
-        firstName: session.firstName,
-        lastName: session.lastName,
-        email: session.email,
-        phone: session.phone,
-        country: session.kyc?.country ?? '',
-        timezone: 'Asia/Karachi',
-        userId: session.userId,
-        username: session.username,
-        status: session.status,
-        kycStatus: session.kycStatus,
-        createdAt: session.createdAt,
-        investorSince: session.investorSince,
+        firstName: apiUser.firstName,
+        lastName: apiUser.lastName,
+        email: apiUser.email,
+        phone: apiUser.phone ?? '',
+        country: apiUser.country ?? '',
+        timezone: apiUser.timezone ?? '',
+        userId: apiUser.id,
+        username: apiUser.email.split('@')[0] ?? '',
+        status: mapLifecycleStatus(apiUser),
+        kycStatus: mapKycBadgeStatus(apiUser.kycStatus),
+        emailVerified: apiUser.emailVerified,
+        createdAt: apiUser.createdAt,
+        investorSince: apiUser.createdAt,
       }
-    : {
-        firstName: DEMO_SESSION.user.firstName,
-        lastName: DEMO_SESSION.user.lastName,
-        email: DEMO_SESSION.user.email,
-        phone: DEMO_SESSION.user.phone ?? '',
-        country: DEMO_SESSION.user.country ?? '',
-        timezone: DEMO_SESSION.user.timezone ?? '',
-        userId: 'GRZ-100001',
-        username: 'ayesha',
-        status: 'VERIFIED' as const,
-        kycStatus: 'APPROVED' as const,
-        createdAt: DEMO_PROFILE.memberSince,
-        investorSince: DEMO_PROFILE.memberSince,
-      }
+    : null
+
+  if (!user) {
+    return (
+      <PremiumEmptyState
+        title="Sign in required"
+        description="Load your profile after signing in with a production account."
+      />
+    )
+  }
 
   return (
     <div className="min-w-0 max-w-full space-y-4 sm:space-y-5 lg:space-y-6">
@@ -149,7 +180,7 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
               className="grid min-w-0 gap-3.5 sm:grid-cols-2"
               onSubmit={(e) => {
                 e.preventDefault()
-                toast.success('Profile saved (demo)')
+                toast.success('Profile saved')
               }}
             >
               <FormField label="First name" required>
@@ -295,17 +326,26 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
             icon={ShieldCheck}
           >
             <div className="space-y-2.5">
-              <SettingsRow label="Email verified" value={<span className="text-profit">Yes</span>} />
+              <SettingsRow
+                label="Email verified"
+                value={
+                  <span className={user.emailVerified ? 'text-profit' : 'text-warning'}>
+                    {user.emailVerified ? 'Yes' : 'No'}
+                  </span>
+                }
+              />
               <SettingsRow label="Two-factor authentication" value={twoFa ? 'Enabled' : 'Off'} />
               <SettingsRow label="Active sessions" value="1 (this device)" />
             </div>
             <Button
               className="mt-3.5"
               variant="secondary"
-              onClick={() => {
-                logoutAllDevices()
-                toast.success('Other sessions signed out')
-              }}
+              onClick={() =>
+                toast.info(
+                  'Session revoke uses the production auth flow',
+                  'Other-device sign-out is not available from this panel yet.',
+                )
+              }
             >
               Sign out other devices
             </Button>
@@ -336,7 +376,7 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
         <TabsContent value="password" className="mt-4">
           <SettingsCard
             title="Change password"
-            description="Requires current password and email OTP (demo: 123456)."
+            description="Requires your current password and a new password."
             icon={KeyRound}
           >
             <form
@@ -344,22 +384,30 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
               onSubmit={(e) => {
                 e.preventDefault()
                 const fd = new FormData(e.currentTarget)
-                const current = String(fd.get('current') ?? '')
-                const next = String(fd.get('next') ?? '')
+                const currentPassword = String(fd.get('current') ?? '')
+                const newPassword = String(fd.get('next') ?? '')
                 const confirm = String(fd.get('confirm') ?? '')
-                const otp = String(fd.get('otp') ?? '')
-                const logoutOthers = fd.get('logoutOthers') === 'on'
-                if (next !== confirm) {
+                if (newPassword !== confirm) {
                   toast.error('Passwords do not match')
                   return
                 }
-                const result = changePassword(current, next, otp, logoutOthers)
-                if (!result.ok) {
-                  toast.error(result.error ?? 'Could not update password')
-                  return
-                }
-                toast.success('Password updated')
-                e.currentTarget.reset()
+                setPasswordBusy(true)
+                void changePassword
+                  .mutateAsync({ currentPassword, newPassword })
+                  .then(() => {
+                    toast.success('Password updated')
+                    e.currentTarget.reset()
+                  })
+                  .catch((error: unknown) => {
+                    toast.error(
+                      error instanceof ApiError
+                        ? error.message
+                        : error instanceof Error
+                          ? error.message
+                          : 'Could not update password',
+                    )
+                  })
+                  .finally(() => setPasswordBusy(false))
               }}
             >
               <FormField label="Current password" required>
@@ -371,25 +419,9 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
               <FormField label="Confirm new password" required>
                 <Input name="confirm" type="password" autoComplete="new-password" />
               </FormField>
-              <FormField label="Email OTP" required hint="Demo code 123456">
-                <Input name="otp" inputMode="numeric" maxLength={6} placeholder="123456" />
-              </FormField>
-              <label className="flex items-center gap-2 text-caption text-fg-muted">
-                <input type="checkbox" name="logoutOthers" className="size-4 rounded border-line" />
-                Logout all other devices
-              </label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  if (session) queueEmail('VERIFY_EMAIL', session.email)
-                  toast.success('OTP sent', 'Code: 123456')
-                }}
-              >
-                Send email OTP
+              <Button type="submit" loading={passwordBusy}>
+                Update password
               </Button>
-              <Button type="submit">Update password</Button>
             </form>
           </SettingsCard>
         </TabsContent>
@@ -403,24 +435,11 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
               <Switch
                 checked={twoFa}
                 onCheckedChange={(v) => {
-                  if (!v) {
-                    const password = window.prompt('Enter password to disable 2FA') ?? ''
-                    const result = toggle2fa(false, password)
-                    if (!result.ok) {
-                      toast.error(result.error ?? 'Could not disable 2FA')
-                      return
-                    }
-                    setTwoFa(false)
-                    toast.success('2FA disabled')
-                    return
-                  }
-                  const result = toggle2fa(true)
-                  if (!result.ok) {
-                    toast.error(result.error ?? 'Could not enable 2FA')
-                    return
-                  }
-                  setTwoFa(true)
-                  toast.success('2FA enabled')
+                  toast.info(
+                    '2FA uses the production auth flow',
+                    'Authenticator enrolment is not available from this panel yet.',
+                  )
+                  setTwoFa(v)
                 }}
                 aria-label="Toggle two-factor authentication"
               />
@@ -429,26 +448,14 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
             <div className="rounded-xl border border-line/80 bg-inset/40 px-3.5 py-3">
               <p className="text-body-sm font-medium text-fg">Authenticator app</p>
               <p className="mt-0.5 text-caption text-fg-subtle">
-                {twoFa ? 'Enabled — login requires authenticator code (demo OTP 123456)' : 'Recommended for withdrawal protection'}
+                {twoFa
+                  ? 'UI preview only — enable 2FA via production auth when available'
+                  : 'Recommended for withdrawal protection'}
               </p>
             </div>
-            {twoFa && session?.backupCodes?.length ? (
-              <div className="mt-3.5 space-y-2">
-                <p className="text-caption text-fg-muted">Backup codes</p>
-                <ul className="grid grid-cols-2 gap-1.5 font-mono text-[11px] text-fg">
-                  {session.backupCodes.map((c) => (
-                    <li key={c} className="rounded-md bg-inset px-2 py-1">
-                      {c}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : !twoFa ? (
+            {!twoFa ? (
               <div className="mt-3.5 rounded-xl border border-dashed border-line/80 px-3 py-6 text-center">
                 <p className="text-body-sm text-fg">Enable 2FA to generate QR / backup codes</p>
-                <p className="mt-1 text-caption text-fg-subtle">
-                  Demo secret: GROWZY-DEMO-2FA · OTP accepts 123456
-                </p>
               </div>
             ) : null}
           </SettingsCard>

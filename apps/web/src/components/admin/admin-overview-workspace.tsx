@@ -12,8 +12,6 @@ import {
   Wallet,
 } from 'lucide-react'
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
@@ -23,21 +21,29 @@ import {
   YAxis,
 } from 'recharts'
 
+import {
+  type AdminDepositRow,
+  type AdminWithdrawalRow,
+  investorName,
+  mapWithdrawalStatus,
+  methodLabel,
+} from '@/components/admin/admin-api-adapters'
 import { AnimatedCounter } from '@/components/admin/animated-counter'
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import { Money } from '@/components/common/money'
 import { PageHeader } from '@/components/common/page-header'
+import { PremiumEmptyState } from '@/components/dashboard/premium-empty-state'
 import { Button } from '@/components/ui/button'
 import {
-  ADMIN_AUM_SERIES,
-  ADMIN_INVESTORS,
-  ADMIN_RETURN_SERIES,
-  ADMIN_STATS,
-  investorName,
-} from '@/lib/admin-demo-data'
+  useAdminDeposits,
+  useAdminReturns,
+  useAdminUsers,
+  useAdminWithdrawals,
+} from '@/features/admin/hooks'
 import { formatDateTime } from '@/lib/format'
 import { useAdminOs } from '@/providers/admin-os-provider'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+import { kycService } from '@/services/kyc.service'
+import { useQuery } from '@tanstack/react-query'
 
 function Kpi({
   label,
@@ -88,15 +94,45 @@ function ChartTip({
 
 export function AdminOverviewWorkspace() {
   const { state: os } = useAdminOs()
-  const { pendingKycAccounts, deposits, withdrawals } = useInvestorLifecycle()
+  const { data: usersData } = useAdminUsers()
+  const { data: depositsData } = useAdminDeposits()
+  const { data: withdrawalsData } = useAdminWithdrawals()
+  const { data: returnsData } = useAdminReturns()
+  const { data: kycQueue } = useQuery({
+    queryKey: ['admin', 'kyc', 'queue', 'overview'],
+    queryFn: () => kycService.adminList({ status: 'UNDER_REVIEW' }),
+  })
+
+  const accounts = usersData?.items ?? []
+  const deposits = (depositsData?.items ?? []) as AdminDepositRow[]
+  const withdrawals = (withdrawalsData?.items ?? []) as AdminWithdrawalRow[]
+  const returns = returnsData?.items ?? []
+  const pendingKycCount = kycQueue?.items?.length ?? 0
+
   const analytics = os.analytics
   const pendingDeps = deposits.filter(
-    (d) => d.status === 'PENDING' || d.status === 'UNDER_REVIEW' || d.status === 'NEED_INFO',
+    (d) => d.status === 'PENDING' || d.status === 'UNDER_REVIEW',
   )
-  const pendingWdr = withdrawals.filter((w) => w.status === 'PENDING' || w.status === 'APPROVED')
-  const recent = [...ADMIN_INVESTORS]
-    .sort((a, b) => +new Date(b.registeredAt) - +new Date(a.registeredAt))
+  const pendingWdr = withdrawals.filter((w) => {
+    const s = mapWithdrawalStatus(w.status)
+    return s === 'PENDING' || s === 'APPROVED'
+  })
+  const recent = [...accounts]
+    .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
     .slice(0, 5)
+
+  const aum = 0
+  const latestReturn = [...returns].sort(
+    (a, b) => +new Date(b.date) - +new Date(a.date),
+  )[0]
+  const monthAgo = Date.now() - 30 * 24 * 3600_000
+  const monthlyGrowthPct = returns
+    .filter((r) => +new Date(r.date) >= monthAgo)
+    .reduce((sum, r) => sum + Number(r.returnPct), 0)
+  const returnSeries = [...returns]
+    .sort((a, b) => +new Date(a.date) - +new Date(b.date))
+    .slice(-7)
+    .map((r) => ({ day: r.date.slice(5), pct: Number(r.returnPct) }))
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -134,14 +170,14 @@ export function AdminOverviewWorkspace() {
         <Kpi label="Active users" icon={Users}>
           <AnimatedCounter value={analytics.activeUsers} />
         </Kpi>
-        <Kpi label="Online now" icon={Users} hint="Demo presence">
+        <Kpi label="Online now" icon={Users}>
           <AnimatedCounter value={analytics.onlineUsers} />
         </Kpi>
         <Kpi label="Pending KYC" icon={FileCheck2}>
-          <AnimatedCounter value={pendingKycAccounts.length || analytics.pendingKyc} />
+          <AnimatedCounter value={pendingKycCount} />
         </Kpi>
         <Kpi label="Assets under management" icon={Wallet}>
-          <Money value={ADMIN_STATS.aum} size="lg" />
+          <Money value={aum.toFixed(2) as MoneyString} size="lg" />
         </Kpi>
       </div>
 
@@ -153,79 +189,69 @@ export function AdminOverviewWorkspace() {
           <Money value={analytics.dailyWithdrawals as MoneyString} size="md" />
         </Kpi>
         <Kpi label="Pending deposits" icon={ArrowDownToLine}>
-          <AnimatedCounter value={pendingDeps.length || analytics.pendingDeposits} />
+          <AnimatedCounter value={pendingDeps.length} />
         </Kpi>
         <Kpi label="Pending withdrawals" icon={ArrowUpFromLine}>
-          <AnimatedCounter value={pendingWdr.length || analytics.pendingWithdrawals} />
+          <AnimatedCounter value={pendingWdr.length} />
         </Kpi>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Kpi label="Today’s published return" icon={TrendingUp} hint="Applied to eligible wallets">
-          <span className="text-profit">
-            +<AnimatedCounter value={Number(ADMIN_STATS.todayReturnPct)} decimals={2} suffix="%" />
-          </span>
+        <Kpi label="Latest published return" icon={TrendingUp} hint="Applied to eligible wallets">
+          {latestReturn ? (
+            <span className="text-profit">
+              +<AnimatedCounter value={Number(latestReturn.returnPct)} decimals={2} suffix="%" />
+            </span>
+          ) : (
+            <span className="text-fg-subtle">No returns yet</span>
+          )}
         </Kpi>
-        <Kpi label="Monthly growth" icon={TrendingUp}>
-          <span className="text-profit">
-            +<AnimatedCounter value={Number(ADMIN_STATS.monthlyGrowthPct)} decimals={2} suffix="%" />
+        <Kpi label="Growth (30d)" icon={TrendingUp}>
+          <span className={monthlyGrowthPct >= 0 ? 'text-profit' : 'text-loss'}>
+            {monthlyGrowthPct >= 0 ? '+' : ''}
+            <AnimatedCounter value={monthlyGrowthPct} decimals={2} suffix="%" />
           </span>
         </Kpi>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-5">
         <AdminPanel className="xl:col-span-3" glow>
-          <AdminPanelHeader title="AUM · 7 days" description="Deposits vs withdrawals overlay" />
-          <div className="h-64 px-2 pb-4 pt-2 sm:h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={ADMIN_AUM_SERIES} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="aumFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="rgb(18 214 160)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="rgb(18 214 160)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="rgb(255 255 255 / 0.06)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill: 'rgb(148 163 184)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis
-                  tick={{ fill: 'rgb(148 163 184)', fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `${(v / 1e6).toFixed(2)}M`}
-                  width={42}
-                />
-                <Tooltip content={<ChartTip />} />
-                <Area
-                  type="monotone"
-                  dataKey="aum"
-                  name="AUM"
-                  stroke="rgb(18 214 160)"
-                  fill="url(#aumFill)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+          <AdminPanelHeader title="Assets under management" description="Sum of investor wallet balances" />
+          <div className="flex h-64 items-center justify-center px-2 pb-4 pt-2 sm:h-72">
+            <PremiumEmptyState
+              title="Historical AUM chart pending"
+              description="A time-series AUM endpoint is not connected yet. Current AUM is shown above."
+              variant="wallet"
+            />
           </div>
         </AdminPanel>
 
         <AdminPanel className="xl:col-span-2" glow>
           <AdminPanelHeader title="Daily returns" description="Last sessions" />
           <div className="h-64 px-2 pb-4 pt-2 sm:h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={ADMIN_RETURN_SERIES} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke="rgb(255 255 255 / 0.06)" vertical={false} />
-                <XAxis dataKey="day" tick={{ fill: 'rgb(148 163 184)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis
-                  tick={{ fill: 'rgb(148 163 184)', fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `${v}%`}
-                  width={36}
-                />
-                <Tooltip content={<ChartTip />} />
-                <Bar dataKey="pct" name="Return %" fill="rgb(42 232 255)" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {returnSeries.length === 0 ? (
+              <PremiumEmptyState
+                title="No published returns yet"
+                description="Daily returns appear here once published."
+                variant="activity"
+              />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={returnSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid stroke="rgb(255 255 255 / 0.06)" vertical={false} />
+                  <XAxis dataKey="day" tick={{ fill: 'rgb(148 163 184)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    tick={{ fill: 'rgb(148 163 184)', fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `${v}%`}
+                    width={36}
+                  />
+                  <Tooltip content={<ChartTip />} />
+                  <Bar dataKey="pct" name="Return %" fill="rgb(42 232 255)" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </AdminPanel>
       </div>
@@ -245,9 +271,9 @@ export function AdminOverviewWorkspace() {
             {pendingDeps.slice(0, 5).map((d) => (
               <li key={d.id} className="flex items-center justify-between gap-3 py-3 text-caption">
                 <div className="min-w-0">
-                  <p className="truncate font-medium text-fg">{investorName(d.userId)}</p>
+                  <p className="truncate font-medium text-fg">{investorName(d.user, d.id)}</p>
                   <p className="text-fg-subtle">
-                    {d.method} · {d.reference}
+                    {methodLabel(d.method)} · {d.reference}
                   </p>
                 </div>
                 <Money value={d.amount} size="sm" />
@@ -270,8 +296,8 @@ export function AdminOverviewWorkspace() {
             {pendingWdr.map((w) => (
               <li key={w.id} className="flex items-center justify-between gap-3 py-3 text-caption">
                 <div className="min-w-0">
-                  <p className="truncate font-medium text-fg">{investorName(w.userId)}</p>
-                  <p className="text-fg-subtle">{w.destinationDetail}</p>
+                  <p className="truncate font-medium text-fg">{investorName(w.user, w.id)}</p>
+                  <p className="text-fg-subtle">{w.destinationLabel}</p>
                 </div>
                 <Money value={w.amount} size="sm" />
               </li>
@@ -289,20 +315,27 @@ export function AdminOverviewWorkspace() {
             </Button>
           }
         />
-        <ul className="divide-y divide-white/[0.05] px-4 sm:px-5">
-          {recent.map((u) => (
-            <li key={u.userId} className="flex flex-wrap items-center justify-between gap-2 py-3 text-caption">
-              <div>
-                <p className="font-medium text-fg">
-                  {u.firstName} {u.lastName}{' '}
-                  <span className="font-mono text-fg-subtle">@{u.username}</span>
-                </p>
-                <p className="text-fg-subtle">{u.userId}</p>
-              </div>
-              <span className="text-fg-muted">{formatDateTime(u.registeredAt)}</span>
-            </li>
-          ))}
-        </ul>
+        {recent.length === 0 ? (
+          <PremiumEmptyState
+            title="No registrations yet"
+            description="New investor sign-ups will show up here."
+          />
+        ) : (
+          <ul className="divide-y divide-white/[0.05] px-4 sm:px-5">
+            {recent.map((u) => (
+              <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-caption">
+                <div>
+                  <p className="font-medium text-fg">
+                    {u.firstName} {u.lastName}{' '}
+                    <span className="font-mono text-fg-subtle">@{u.email.split('@')[0]}</span>
+                  </p>
+                  <p className="text-fg-subtle">{u.id}</p>
+                </div>
+                <span className="text-fg-muted">{formatDateTime(u.createdAt)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </AdminPanel>
     </div>
   )

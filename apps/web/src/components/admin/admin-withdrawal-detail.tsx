@@ -3,9 +3,16 @@
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { ROUTES, type MoneyString } from '@meridian/shared'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
+import {
+  type AdminWithdrawalRow,
+  investorName,
+  mapAccountStatus,
+  mapKycStatus,
+  mapWithdrawalStatus,
+} from '@/components/admin/admin-api-adapters'
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import {
   AdminAccountPill,
@@ -18,33 +25,26 @@ import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
 import { Textarea } from '@/components/ui/textarea'
-import type { MoneyWithdrawalStatus } from '@/lib/investor-lifecycle'
+import {
+  useAdminUser,
+  useAdminWithdrawal,
+  useReviewWithdrawal,
+} from '@/features/admin/hooks'
 import { formatDateTime } from '@/lib/format'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+
+type WithdrawalDecision = 'APPROVE' | 'REJECT' | 'PAID'
 
 export function AdminWithdrawalDetailWorkspace() {
   const params = useParams<{ withdrawalId: string }>()
   const withdrawalId = decodeURIComponent(params.withdrawalId)
-  const {
-    ready,
-    withdrawals,
-    accounts,
-    approveWithdrawal,
-    rejectWithdrawal,
-    markWithdrawalPaid,
-  } = useInvestorLifecycle()
-
-  const withdrawal = useMemo(
-    () => withdrawals.find((w) => w.id === withdrawalId),
-    [withdrawals, withdrawalId],
-  )
-  const investor = useMemo(
-    () => (withdrawal ? accounts.find((a) => a.userId === withdrawal.userId) : undefined),
-    [accounts, withdrawal],
-  )
+  const { data: withdrawalRaw, isLoading, isError } = useAdminWithdrawal(withdrawalId)
+  const withdrawal = withdrawalRaw as AdminWithdrawalRow | undefined
+  const userId = withdrawal?.user?.id ?? ''
+  const { data: investor } = useAdminUser(userId, { enabled: Boolean(userId) })
+  const reviewWithdrawal = useReviewWithdrawal()
   const [reason, setReason] = useState('')
 
-  if (!ready) {
+  if (isLoading) {
     return (
       <div className="space-y-4">
         <PageHeader title="Withdrawal review" description="Loading withdrawal…" />
@@ -52,7 +52,7 @@ export function AdminWithdrawalDetailWorkspace() {
     )
   }
 
-  if (!withdrawal) {
+  if (isError || !withdrawal) {
     return (
       <div className="space-y-4">
         <PageHeader
@@ -67,21 +67,27 @@ export function AdminWithdrawalDetailWorkspace() {
   }
 
   const status = withdrawal.status
-  const actionable = status === 'PENDING' || status === 'APPROVED'
-  const investorName = investor
+  const pillStatus = mapWithdrawalStatus(status)
+  const actionable = pillStatus === 'PENDING' || pillStatus === 'APPROVED'
+  const name = investor
     ? `${investor.firstName} ${investor.lastName}`
-    : withdrawal.userId
-  const balance = (investor?.wallet.availableBalance ?? '0.00') as MoneyString
+    : investorName(withdrawal.user, withdrawal.user?.id ?? withdrawalId)
 
-  function decide(next: MoneyWithdrawalStatus, title: string) {
-    if (next === 'REJECTED' && !reason.trim()) {
+  async function decide(decision: WithdrawalDecision, title: string) {
+    if (decision === 'REJECT' && !reason.trim()) {
       toast.error('Reason required to reject')
       return
     }
-    if (next === 'APPROVED') approveWithdrawal(withdrawal!.id)
-    else if (next === 'REJECTED') rejectWithdrawal(withdrawal!.id, reason.trim())
-    else if (next === 'PAID') markWithdrawalPaid(withdrawal!.id)
-    toast.success(title, { description: reason.trim() || withdrawal!.id })
+    try {
+      await reviewWithdrawal.mutateAsync({
+        id: withdrawal!.id,
+        decision,
+        reason: reason.trim() || undefined,
+      })
+      toast.success(title, { description: reason.trim() || withdrawal!.id })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Review failed')
+    }
   }
 
   return (
@@ -94,12 +100,12 @@ export function AdminWithdrawalDetailWorkspace() {
             ← Withdrawals
           </Link>
         }
-        actions={<AdminWithdrawalPill status={status} />}
+        actions={<AdminWithdrawalPill status={pillStatus} />}
       />
 
       <Alert tone="warning" title="This action sends money">
         Approval is irreversible once the payment leaves. Check the destination against the
-        investor&apos;s saved methods before continuing. Demo updates local status only.
+        investor&apos;s saved methods before continuing. Decisions are applied via the admin API.
       </Alert>
 
       <div className="grid gap-5 lg:grid-cols-2">
@@ -109,13 +115,17 @@ export function AdminWithdrawalDetailWorkspace() {
             <div>
               <dt className="text-fg-subtle">Investor</dt>
               <dd className="text-fg">
-                <Link
-                  href={ROUTES.admin.user(withdrawal.userId)}
-                  className="text-accent-300 hover:underline"
-                >
-                  {investorName}
-                </Link>
-                <span className="text-fg-subtle"> · {withdrawal.userId}</span>
+                {withdrawal.user?.id ? (
+                  <Link
+                    href={ROUTES.admin.user(withdrawal.user.id)}
+                    className="text-accent-300 hover:underline"
+                  >
+                    {name}
+                  </Link>
+                ) : (
+                  name
+                )}
+                <span className="text-fg-subtle"> · {withdrawal.user?.id ?? '—'}</span>
               </dd>
             </div>
             <div>
@@ -125,22 +135,22 @@ export function AdminWithdrawalDetailWorkspace() {
               </dd>
             </div>
             <div>
-              <dt className="text-fg-subtle">Available balance</dt>
+              <dt className="text-fg-subtle">Net amount</dt>
               <dd>
-                <Money value={balance} size="sm" />
+                <Money value={withdrawal.netAmount as MoneyString} size="sm" />
               </dd>
             </div>
             <div>
               <dt className="text-fg-subtle">Destination</dt>
-              <dd className="text-fg">{withdrawal.destination}</dd>
+              <dd className="text-fg">{withdrawal.destinationLabel}</dd>
             </div>
             <div className="sm:col-span-2">
               <dt className="text-fg-subtle">Bank / wallet detail</dt>
-              <dd className="text-fg">{withdrawal.destinationDetail}</dd>
+              <dd className="text-fg">{withdrawal.transactionRef ?? '—'}</dd>
             </div>
             <div>
               <dt className="text-fg-subtle">Requested</dt>
-              <dd className="text-fg">{formatDateTime(withdrawal.requestedAt)}</dd>
+              <dd className="text-fg">{formatDateTime(withdrawal.createdAt)}</dd>
             </div>
           </dl>
         </AdminPanel>
@@ -150,34 +160,24 @@ export function AdminWithdrawalDetailWorkspace() {
           {investor ? (
             <div className="space-y-4 px-4 py-4 sm:px-5">
               <div className="flex flex-wrap gap-2">
-                <AdminKycPill status={investor.kycStatus} />
-                <AdminAccountPill status={investor.status} />
+                <AdminKycPill status={mapKycStatus(investor.kycStatus)} />
+                <AdminAccountPill status={mapAccountStatus(investor.status, investor.kycStatus)} />
               </div>
               <dl className="grid gap-3 text-caption sm:grid-cols-2">
-                <div>
-                  <dt className="text-fg-subtle">Wallet balance</dt>
-                  <dd>
-                    <Money value={investor.wallet.availableBalance as MoneyString} size="sm" />
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-fg-subtle">Total withdrawn</dt>
-                  <dd>
-                    <Money value={investor.wallet.totalWithdrawn as MoneyString} size="sm" />
-                  </dd>
-                </div>
                 <div>
                   <dt className="text-fg-subtle">Email</dt>
                   <dd className="text-fg">{investor.email}</dd>
                 </div>
                 <div>
                   <dt className="text-fg-subtle">Phone</dt>
-                  <dd className="text-fg">{investor.phone}</dd>
+                  <dd className="text-fg">{investor.phone ?? '—'}</dd>
                 </div>
               </dl>
             </div>
           ) : (
-            <p className="px-4 py-4 text-caption text-fg-muted sm:px-5">Investor not found.</p>
+            <p className="px-4 py-4 text-caption text-fg-muted sm:px-5">
+              {withdrawal.user ? investorName(withdrawal.user) : 'Investor not found.'}
+            </p>
           )}
         </AdminPanel>
       </div>
@@ -198,20 +198,29 @@ export function AdminWithdrawalDetailWorkspace() {
         </FormField>
         {actionable ? (
           <div className="flex flex-wrap gap-2">
-            {status === 'PENDING' ? (
-              <Button size="sm" onClick={() => decide('APPROVED', 'Withdrawal approved')}>
+            {pillStatus === 'PENDING' ? (
+              <Button
+                size="sm"
+                disabled={reviewWithdrawal.isPending}
+                onClick={() => void decide('APPROVE', 'Withdrawal approved')}
+              >
                 Approve
               </Button>
             ) : null}
-            {status === 'APPROVED' ? (
-              <Button size="sm" onClick={() => decide('PAID', 'Marked as paid')}>
+            {pillStatus === 'APPROVED' ? (
+              <Button
+                size="sm"
+                disabled={reviewWithdrawal.isPending}
+                onClick={() => void decide('PAID', 'Marked as paid')}
+              >
                 Mark paid
               </Button>
             ) : null}
             <Button
               size="sm"
               variant="danger"
-              onClick={() => decide('REJECTED', 'Withdrawal rejected')}
+              disabled={reviewWithdrawal.isPending}
+              onClick={() => void decide('REJECT', 'Withdrawal rejected')}
             >
               Reject
             </Button>

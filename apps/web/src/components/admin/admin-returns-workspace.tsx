@@ -23,33 +23,38 @@ import {
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { ADMIN_RETURN_HISTORY, ADMIN_STATS } from '@/lib/admin-demo-data'
+import {
+  useAdminReturns,
+  useAdminUsers,
+  usePublishReturn,
+} from '@/features/admin/hooks'
 import { formatDateTime } from '@/lib/format'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
 
-const TRADING_DAY = '2026-08-03'
-const CONFIRM_PHRASE = `APPLY-${TRADING_DAY}`
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10)
+}
 
 export function AdminReturnsWorkspace() {
-  const { accounts, returns, publishDailyReturn } = useInvestorLifecycle()
-  const [returnPct, setReturnPct] = useState(ADMIN_STATS.todayReturnPct)
+  const tradingDay = todayIsoDate()
+  const confirmPhrase = `APPLY-${tradingDay}`
+  const { data: usersData } = useAdminUsers()
+  const { data: returnsData, isLoading } = useAdminReturns()
+  const publishReturn = usePublishReturn()
+  const [returnPct, setReturnPct] = useState('0.00')
   const [notes, setNotes] = useState('')
   const [previewed, setPreviewed] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [confirmText, setConfirmText] = useState('')
 
-  const eligibleAccounts = useMemo(
-    () => accounts.filter((a) => a.kycStatus === 'APPROVED' && a.status === 'VERIFIED'),
-    [accounts],
+  const users = usersData?.items ?? []
+  const returns = returnsData?.items ?? []
+
+  const eligible = useMemo(
+    () => users.filter((a) => a.kycStatus === 'APPROVED' && a.status === 'ACTIVE').length,
+    [users],
   )
-  const eligible = eligibleAccounts.length
-  const aum = useMemo(() => {
-    const sum = eligibleAccounts.reduce(
-      (acc, a) => acc + Number(a.wallet.investedAmount || a.wallet.availableBalance),
-      0,
-    )
-    return sum.toFixed(2) as MoneyString
-  }, [eligibleAccounts])
+  // AUM preview is estimate-only — wallet totals are not on the users list payload.
+  const aum = '0.00' as MoneyString
 
   const distributed = useMemo(() => {
     const pct = Number.parseFloat(returnPct)
@@ -58,34 +63,23 @@ export function AdminReturnsWorkspace() {
     return ((base * pct) / 100).toFixed(2) as MoneyString
   }, [returnPct, aum])
 
-  const history = useMemo(() => {
-    const fromLifecycle = returns.map((r) => ({
-      id: r.id,
-      tradingDay: r.tradingDay,
-      returnPct: r.returnPct,
-      notes: r.notes,
-      status: r.status,
-      eligibleWallets: eligible,
-      distributed: r.distributed as MoneyString,
-      publishedAt: r.publishedAt,
-      publishedBy: 'admin@growzy.com' as string | undefined,
-    }))
-    const ids = new Set(fromLifecycle.map((r) => r.id))
-    const extras = ADMIN_RETURN_HISTORY.filter((r) => !ids.has(r.id)).map((r) => ({
-      id: r.id,
-      tradingDay: r.tradingDay,
-      returnPct: r.returnPct,
-      notes: r.notes,
-      status: r.status,
-      eligibleWallets: r.eligibleWallets,
-      distributed: r.distributed,
-      publishedAt: r.publishedAt,
-      publishedBy: r.publishedBy,
-    }))
-    return [...fromLifecycle, ...extras].sort(
-      (a, b) => +new Date(b.tradingDay) - +new Date(a.tradingDay),
-    )
-  }, [returns, eligible])
+  const history = useMemo(
+    () =>
+      [...returns]
+        .map((r) => ({
+          id: r.id,
+          tradingDay: r.date,
+          returnPct: r.returnPct,
+          notes: notes && r.date === tradingDay ? notes : '',
+          status: r.status,
+          eligibleWallets: r.eligibleWallets,
+          distributed: r.totalDistributed as MoneyString,
+          publishedAt: r.completedAt ?? r.startedAt,
+          publishedBy: undefined as string | undefined,
+        }))
+        .sort((a, b) => +new Date(b.tradingDay) - +new Date(a.tradingDay)),
+    [returns, notes, tradingDay],
+  )
 
   function handlePreview() {
     if (!returnPct.trim() || Number.isNaN(Number.parseFloat(returnPct))) {
@@ -94,30 +88,29 @@ export function AdminReturnsWorkspace() {
     }
     setPreviewed(true)
     toast.success('Preview ready', {
-      description: `${eligible.toLocaleString()} wallets · ≈ $${Number(distributed).toLocaleString('en-US')}`,
+      description: `${eligible.toLocaleString()} wallets · server will compute final distribution`,
     })
   }
 
-  function handlePublish() {
-    if (confirmText !== CONFIRM_PHRASE) {
-      toast.error(`Type ${CONFIRM_PHRASE} to confirm`)
+  async function handlePublish() {
+    if (confirmText !== confirmPhrase) {
+      toast.error(`Type ${confirmPhrase} to confirm`)
       return
     }
-    const result = publishDailyReturn({
-      returnPct,
-      notes,
-      tradingDay: TRADING_DAY,
-    })
-    if (!result.ok) {
-      toast.error(result.error ?? 'Could not publish return')
-      return
+    try {
+      await publishReturn.mutateAsync({
+        date: tradingDay,
+        returnPct,
+      })
+      setConfirmOpen(false)
+      setConfirmText('')
+      setPreviewed(false)
+      toast.success('Daily return published', {
+        description: `+${returnPct}% submitted for ${tradingDay}`,
+      })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not publish return')
     }
-    setConfirmOpen(false)
-    setConfirmText('')
-    setPreviewed(false)
-    toast.success('Daily return published', {
-      description: `+${returnPct}% applied to ${eligible} wallets`,
-    })
   }
 
   return (
@@ -133,7 +126,7 @@ export function AdminReturnsWorkspace() {
       </Alert>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Trading day" value={TRADING_DAY} />
+        <StatCard label="Trading day" value={tradingDay} />
         <StatCard label="Eligible wallets" value={String(eligible)} />
         <StatCard label="AUM base" value={<Money value={aum} size="sm" />} />
         <StatCard label="Run state" value={previewed ? 'Previewed' : 'Draft'} />
@@ -171,7 +164,7 @@ export function AdminReturnsWorkspace() {
               </Button>
               <Button
                 type="button"
-                disabled={!previewed}
+                disabled={!previewed || publishReturn.isPending}
                 onClick={() => setConfirmOpen(true)}
               >
                 Publish
@@ -234,29 +227,37 @@ export function AdminReturnsWorkspace() {
               </tr>
             </thead>
             <tbody>
-              {history.map((run) => (
-                <tr key={run.id} className="border-b border-white/[0.04] last:border-0">
-                  <td className="px-4 py-3 tabular-nums text-fg sm:px-5">{run.tradingDay}</td>
-                  <td className="px-4 py-3 tabular-nums text-profit">+{run.returnPct}%</td>
-                  <td className="px-4 py-3 tabular-nums text-fg-muted">
-                    {run.eligibleWallets.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Money value={run.distributed} size="sm" />
-                  </td>
-                  <td className="px-4 py-3 text-fg-muted">
-                    {run.publishedAt ? formatDateTime(run.publishedAt) : '—'}
-                    {run.publishedBy ? (
-                      <span className="mt-0.5 block text-[11px] text-fg-subtle">{run.publishedBy}</span>
-                    ) : null}
-                  </td>
-                  <td className="px-4 py-3 text-right sm:px-5">
-                    <Button asChild size="sm" variant="ghost">
-                      <Link href={ROUTES.admin.dailyReturnRun(run.id)}>Open</Link>
-                    </Button>
+              {history.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-10 text-center text-fg-muted sm:px-5">
+                    {isLoading ? 'Loading returns…' : 'No published returns yet.'}
                   </td>
                 </tr>
-              ))}
+              ) : (
+                history.map((run) => (
+                  <tr key={run.id} className="border-b border-white/[0.04] last:border-0">
+                    <td className="px-4 py-3 tabular-nums text-fg sm:px-5">{run.tradingDay}</td>
+                    <td className="px-4 py-3 tabular-nums text-profit">+{run.returnPct}%</td>
+                    <td className="px-4 py-3 tabular-nums text-fg-muted">
+                      {run.eligibleWallets.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Money value={run.distributed} size="sm" />
+                    </td>
+                    <td className="px-4 py-3 text-fg-muted">
+                      {run.publishedAt ? formatDateTime(run.publishedAt) : '—'}
+                      {run.publishedBy ? (
+                        <span className="mt-0.5 block text-[11px] text-fg-subtle">{run.publishedBy}</span>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3 text-right sm:px-5">
+                      <Button asChild size="sm" variant="ghost">
+                        <Link href={ROUTES.admin.dailyReturnRun(run.id)}>Open</Link>
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -267,7 +268,7 @@ export function AdminReturnsWorkspace() {
           <DialogHeader>
             <DialogTitle>Confirm daily return</DialogTitle>
             <DialogDescription>
-              Type <span className="font-mono text-fg">{CONFIRM_PHRASE}</span> to apply +{returnPct}%
+              Type <span className="font-mono text-fg">{confirmPhrase}</span> to apply +{returnPct}%
               to {eligible.toLocaleString()} wallets.
             </DialogDescription>
           </DialogHeader>
@@ -275,7 +276,7 @@ export function AdminReturnsWorkspace() {
             <Input
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
-              placeholder={CONFIRM_PHRASE}
+              placeholder={confirmPhrase}
               autoComplete="off"
               className="font-mono"
             />
@@ -284,7 +285,11 @@ export function AdminReturnsWorkspace() {
             <Button type="button" variant="secondary" onClick={() => setConfirmOpen(false)}>
               Cancel
             </Button>
-            <Button type="button" onClick={handlePublish} disabled={confirmText !== CONFIRM_PHRASE}>
+            <Button
+              type="button"
+              onClick={() => void handlePublish()}
+              disabled={confirmText !== confirmPhrase || publishReturn.isPending}
+            >
               Apply return
             </Button>
           </DialogFooter>

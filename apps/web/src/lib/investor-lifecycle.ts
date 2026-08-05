@@ -1,6 +1,6 @@
 /**
- * Investor lifecycle domain — frontend architecture ready for a real API.
- * Demo persistence uses localStorage; swap `persist` / `load` for HTTP later.
+ * Investor lifecycle helpers (legacy types / badges).
+ * Money/auth state is API-backed — this store must not persist balances.
  */
 
 export type LifecycleStatus =
@@ -176,7 +176,6 @@ export type LifecycleStore = {
 }
 
 const STORAGE_KEY = 'growzy_investor_lifecycle_v2'
-export const DEMO_OTP = '123456'
 
 function emptyWallet(): WalletSnapshot {
   return {
@@ -278,136 +277,35 @@ export function kycTimeline(kyc: KycSubmission | null, status: KycLifecycleStatu
   ]
 }
 
-const SEED_ACCOUNT: InvestorAccount = {
-  userId: 'GRZ-100001',
-  username: 'ayesha',
-  firstName: 'Ayesha',
-  lastName: 'Khan',
-  email: 'investor@growzy.com',
-  phone: '+92 300 555 0142',
-  password: 'Growzy2026!',
-  emailVerified: true,
-  status: 'VERIFIED',
-  kycStatus: 'APPROVED',
-  kyc: {
-    country: 'PK',
-    dateOfBirth: '1994-06-12',
-    address: 'Clifton Block 5',
-    city: 'Karachi',
-    occupation: 'Investor',
-    idType: 'PASSPORT',
-    submittedAt: '2025-05-14T12:00:00.000Z',
-    reviewedAt: '2025-05-15T09:00:00.000Z',
-    history: [{ at: '2025-05-15T09:00:00.000Z', action: 'APPROVED', note: 'Seed verified investor' }],
-  },
-  twoFactorEnabled: false,
-  backupCodes: [],
-  createdAt: '2025-05-14T12:00:00.000Z',
-  investorSince: '2025-05-15T09:00:00.000Z',
-  referralCode: 'GRZ-AYESHA',
-  avatarUrl: null,
-  country: 'Pakistan',
-  loginHistory: [
-    {
-      id: 'lg1',
-      at: new Date().toISOString(),
-      ip: '39.50.12.8',
-      country: 'Pakistan',
-      browser: 'Chrome · Windows',
-      current: true,
-    },
-  ],
-  adminNotes: [],
-  wallet: {
-    availableBalance: '12480.75',
-    investedAmount: '10000.00',
-    pendingDeposit: '500.00',
-    pendingWithdrawal: '100.00',
-    totalDeposited: '11000.00',
-    totalWithdrawn: '1000.00',
-    totalProfit: '2480.75',
-    todayProfit: '87.36',
-  },
-}
-
-const SEED_DEPOSITS: MoneyDeposit[] = [
-  {
-    id: 'DEP-2026-884211',
-    userId: 'GRZ-100001',
-    amount: '500.00',
-    method: 'UPI',
-    reference: 'UTR4829103341',
-    status: 'UNDER_REVIEW',
-    submittedAt: '2026-08-02T14:22:00.000Z',
-    proofLabel: 'upi-receipt.jpg',
-    timeline: depositTimeline('UNDER_REVIEW', '2026-08-02T14:22:00.000Z'),
-  },
-]
-
-const SEED_WITHDRAWALS: MoneyWithdrawal[] = [
-  {
-    id: 'WDR-2026-55102',
-    userId: 'GRZ-100001',
-    amount: '100.00',
-    destination: 'Bank',
-    destinationDetail: 'HDFC · ****4521',
-    status: 'PENDING',
-    requestedAt: '2026-08-02T15:40:00.000Z',
-    timeline: withdrawalTimeline('PENDING', '2026-08-02T15:40:00.000Z'),
-  },
-]
-
 function emptyStore(): LifecycleStore {
   return {
-    accounts: [SEED_ACCOUNT],
+    accounts: [],
     emails: [],
-    deposits: SEED_DEPOSITS,
-    withdrawals: SEED_WITHDRAWALS,
-    returns: [
-      {
-        id: 'RR-2026-0802',
-        tradingDay: '2026-08-02',
-        returnPct: '0.72',
-        notes: 'Strong London session',
-        status: 'APPLIED',
-        distributed: '19890.50',
-        publishedAt: '2026-08-02T21:05:00.000Z',
-      },
-    ],
+    deposits: [],
+    withdrawals: [],
+    returns: [],
     sessionUserId: null,
-    usedUsernames: [SEED_ACCOUNT.username],
-    usedUserIds: [SEED_ACCOUNT.userId],
+    usedUsernames: [],
+    usedUserIds: [],
   }
 }
 
 export function loadLifecycleStore(): LifecycleStore {
   if (typeof window === 'undefined') return emptyStore()
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return emptyStore()
-    const parsed = JSON.parse(raw) as LifecycleStore
-    if (!parsed.accounts?.length) return emptyStore()
-    // Migrate older shapes
-    return {
-      ...emptyStore(),
-      ...parsed,
-      deposits: parsed.deposits ?? emptyStore().deposits,
-      withdrawals: parsed.withdrawals ?? emptyStore().withdrawals,
-      returns: parsed.returns ?? emptyStore().returns,
-      accounts: parsed.accounts.map((a) => ({
-        ...a,
-        wallet: a.wallet ?? emptyWallet(),
-      })),
-    }
+    // Purge any legacy money/auth blob — balances must never live in the browser.
+    localStorage.removeItem(STORAGE_KEY)
   } catch {
-    return emptyStore()
+    /* ignore */
   }
+  return emptyStore()
 }
 
-export function saveLifecycleStore(store: LifecycleStore) {
+export function saveLifecycleStore(_store: LifecycleStore) {
+  // Intentionally no-op: do not write wallets, deposits, or passwords to localStorage.
   if (typeof window === 'undefined') return
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(store))
+    localStorage.removeItem(STORAGE_KEY)
   } catch {
     /* ignore */
   }
@@ -487,11 +385,11 @@ const EMAIL_COPY: Record<EmailTemplateId, (meta?: Record<string, string>) => { s
   }),
   VERIFY_EMAIL: () => ({
     subject: 'Verify your Growzy email',
-    preview: `Your verification code is ${DEMO_OTP}. It expires in 10 minutes.`,
+    preview: 'Your verification code was sent to your email. It expires in 10 minutes.',
   }),
   PASSWORD_RESET: () => ({
     subject: 'Reset your Growzy password',
-    preview: `Your reset code is ${DEMO_OTP}.`,
+    preview: 'Your password reset code was sent to your email.',
   }),
   KYC_SUBMITTED: () => ({
     subject: 'KYC submitted — under review',

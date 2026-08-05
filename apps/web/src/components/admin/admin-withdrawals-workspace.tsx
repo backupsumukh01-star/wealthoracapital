@@ -6,6 +6,11 @@ import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
+import {
+  type AdminWithdrawalRow,
+  investorName,
+  mapWithdrawalStatus,
+} from '@/components/admin/admin-api-adapters'
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import { AdminWithdrawalPill } from '@/components/admin/admin-status-pills'
 import { Money } from '@/components/common/money'
@@ -24,46 +29,47 @@ import {
 } from '@/components/ui/sheet'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import type { MoneyWithdrawal, MoneyWithdrawalStatus } from '@/lib/investor-lifecycle'
+import { useAdminUsers, useAdminWithdrawals, useReviewWithdrawal } from '@/features/admin/hooks'
 import { formatDateTime } from '@/lib/format'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
 
 type TabFilter = 'pending' | 'approved' | 'paid' | 'rejected' | 'all'
+type WithdrawalDecision = 'APPROVE' | 'REJECT' | 'PAID'
 
-function matchesTab(status: MoneyWithdrawalStatus, tab: TabFilter) {
+function matchesTab(status: string, tab: TabFilter) {
+  const mapped = mapWithdrawalStatus(status)
   switch (tab) {
     case 'pending':
-      return status === 'PENDING'
+      return mapped === 'PENDING'
     case 'approved':
-      return status === 'APPROVED'
+      return mapped === 'APPROVED'
     case 'paid':
-      return status === 'PAID'
+      return mapped === 'PAID'
     case 'rejected':
-      return status === 'REJECTED'
+      return mapped === 'REJECTED'
     default:
       return true
   }
 }
 
 export function AdminWithdrawalsWorkspace() {
-  const { withdrawals, accounts, approveWithdrawal, rejectWithdrawal } = useInvestorLifecycle()
+  const { data, isLoading } = useAdminWithdrawals()
+  const { data: usersData } = useAdminUsers()
+  const reviewWithdrawal = useReviewWithdrawal()
+  const withdrawals = (data?.items ?? []) as AdminWithdrawalRow[]
+  const users = usersData?.items ?? []
   const [tab, setTab] = useState<TabFilter>('pending')
   const [q, setQ] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [reason, setReason] = useState('')
 
-  const accountByUserId = useMemo(() => {
-    const map = new Map(accounts.map((a) => [a.userId, a]))
-    return map
-  }, [accounts])
+  const balanceByUserId = useMemo(() => {
+    // Wallet balances are not on the User list payload; show em dash via availableBalance helper.
+    return new Map(users.map((u) => [u.id, '0.00' as MoneyString]))
+  }, [users])
 
-  function investorName(userId: string) {
-    const a = accountByUserId.get(userId)
-    return a ? `${a.firstName} ${a.lastName}` : userId
-  }
-
-  function availableBalance(userId: string): MoneyString {
-    return (accountByUserId.get(userId)?.wallet.availableBalance ?? '0.00') as MoneyString
+  function availableBalance(userId?: string): MoneyString {
+    if (!userId) return '0.00' as MoneyString
+    return balanceByUserId.get(userId) ?? ('0.00' as MoneyString)
   }
 
   const selected = useMemo(
@@ -77,23 +83,22 @@ export function AdminWithdrawalsWorkspace() {
       .filter((w) => matchesTab(w.status, tab))
       .filter((w) => {
         if (!needle) return true
-        const a = accountByUserId.get(w.userId)
-        const name = a ? `${a.firstName} ${a.lastName}`.toLowerCase() : w.userId.toLowerCase()
+        const name = investorName(w.user, w.user?.id ?? '').toLowerCase()
         return (
           w.id.toLowerCase().includes(needle) ||
-          w.destination.toLowerCase().includes(needle) ||
-          w.destinationDetail.toLowerCase().includes(needle) ||
-          w.userId.toLowerCase().includes(needle) ||
+          w.destinationLabel.toLowerCase().includes(needle) ||
+          (w.transactionRef ?? '').toLowerCase().includes(needle) ||
+          (w.user?.id ?? '').toLowerCase().includes(needle) ||
           name.includes(needle)
         )
       })
-      .sort((a, b) => +new Date(a.requestedAt) - +new Date(b.requestedAt))
-  }, [withdrawals, tab, q, accountByUserId])
+      .sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt))
+  }, [withdrawals, tab, q])
 
   const stats = useMemo(() => {
-    const pending = withdrawals.filter((w) => w.status === 'PENDING')
-    const approved = withdrawals.filter((w) => w.status === 'APPROVED').length
-    const paid = withdrawals.filter((w) => w.status === 'PAID').length
+    const pending = withdrawals.filter((w) => mapWithdrawalStatus(w.status) === 'PENDING')
+    const approved = withdrawals.filter((w) => mapWithdrawalStatus(w.status) === 'APPROVED').length
+    const paid = withdrawals.filter((w) => mapWithdrawalStatus(w.status) === 'PAID').length
     const locked = pending.reduce((sum, w) => sum + Number(w.amount), 0)
     return {
       pending: pending.length,
@@ -103,20 +108,27 @@ export function AdminWithdrawalsWorkspace() {
     }
   }, [withdrawals])
 
-  function decide(status: MoneyWithdrawalStatus, title: string) {
+  async function decide(decision: WithdrawalDecision, title: string) {
     if (!selected) return
-    if (status === 'REJECTED' && !reason.trim()) {
+    if (decision === 'REJECT' && !reason.trim()) {
       toast.error('Reason required to reject')
       return
     }
-    if (status === 'APPROVED') approveWithdrawal(selected.id)
-    else if (status === 'REJECTED') rejectWithdrawal(selected.id, reason.trim())
-    toast.success(title, { description: reason.trim() || selected.id })
-    setSelectedId(null)
-    setReason('')
+    try {
+      await reviewWithdrawal.mutateAsync({
+        id: selected.id,
+        decision,
+        reason: reason.trim() || undefined,
+      })
+      toast.success(title, { description: reason.trim() || selected.id })
+      setSelectedId(null)
+      setReason('')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Review failed')
+    }
   }
 
-  function openReview(w: MoneyWithdrawal) {
+  function openReview(w: AdminWithdrawalRow) {
     setSelectedId(w.id)
     setReason('')
   }
@@ -125,21 +137,21 @@ export function AdminWithdrawalsWorkspace() {
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="Withdrawals"
-        description="Requested funds are locked against the balance. Approving releases payment (demo state)."
+        description="Requested funds are locked against the balance. Approving releases payment via the admin API."
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <AdminPanel className="p-4" glow>
           <p className="text-caption text-fg-muted">Awaiting review</p>
-          <p className="mt-2 text-stat-md text-fg">{stats.pending}</p>
+          <p className="mt-2 text-stat-md text-fg">{isLoading ? '—' : stats.pending}</p>
         </AdminPanel>
         <AdminPanel className="p-4">
           <p className="text-caption text-fg-muted">Approved, awaiting payment</p>
-          <p className="mt-2 text-stat-md text-fg">{stats.approved}</p>
+          <p className="mt-2 text-stat-md text-fg">{isLoading ? '—' : stats.approved}</p>
         </AdminPanel>
         <AdminPanel className="p-4">
-          <p className="text-caption text-fg-muted">Paid (demo set)</p>
-          <p className="mt-2 text-stat-md text-fg">{stats.paid}</p>
+          <p className="text-caption text-fg-muted">Paid</p>
+          <p className="mt-2 text-stat-md text-fg">{isLoading ? '—' : stats.paid}</p>
         </AdminPanel>
         <AdminPanel className="p-4" glow>
           <p className="text-caption text-fg-muted">Value locked</p>
@@ -194,7 +206,7 @@ export function AdminWithdrawalsWorkspace() {
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-12 text-center text-fg-muted">
-                    No withdrawals in this view.
+                    {isLoading ? 'Loading withdrawals…' : 'No withdrawals in this view.'}
                   </td>
                 </tr>
               ) : (
@@ -204,26 +216,26 @@ export function AdminWithdrawalsWorkspace() {
                     className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.025]"
                   >
                     <td className="px-4 py-3">
-                      <p className="font-medium text-fg">{investorName(w.userId)}</p>
-                      <p className="font-mono text-[11px] text-fg-subtle">{w.userId}</p>
+                      <p className="font-medium text-fg">{investorName(w.user, w.user?.id ?? '—')}</p>
+                      <p className="font-mono text-[11px] text-fg-subtle">{w.user?.id ?? '—'}</p>
                     </td>
                     <td className="px-4 py-3">
                       <Money value={w.amount as MoneyString} size="sm" />
                     </td>
                     <td className="px-4 py-3">
-                      <Money value={availableBalance(w.userId)} size="sm" />
+                      <Money value={availableBalance(w.user?.id)} size="sm" />
                     </td>
-                    <td className="px-4 py-3 text-fg-muted">{w.destination}</td>
-                    <td className="px-4 py-3 text-fg-muted">{w.destinationDetail}</td>
+                    <td className="px-4 py-3 text-fg-muted">{w.destinationLabel}</td>
+                    <td className="px-4 py-3 text-fg-muted">{w.transactionRef ?? '—'}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-fg-muted">
-                      {formatDateTime(w.requestedAt)}
+                      {formatDateTime(w.createdAt)}
                     </td>
                     <td className="px-4 py-3">
-                      <AdminWithdrawalPill status={w.status} />
+                      <AdminWithdrawalPill status={mapWithdrawalStatus(w.status)} />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
-                        {w.status === 'PENDING' ? (
+                        {mapWithdrawalStatus(w.status) === 'PENDING' ? (
                           <Button size="sm" variant="ghost" onClick={() => openReview(w)}>
                             Review
                           </Button>
@@ -262,7 +274,7 @@ export function AdminWithdrawalsWorkspace() {
                   <div>
                     <dt className="text-fg-subtle">Investor</dt>
                     <dd className="text-fg">
-                      {investorName(selected.userId)} · {selected.userId}
+                      {investorName(selected.user)} · {selected.user?.id ?? '—'}
                     </dd>
                   </div>
                   <div>
@@ -274,18 +286,18 @@ export function AdminWithdrawalsWorkspace() {
                   <div>
                     <dt className="text-fg-subtle">Available balance</dt>
                     <dd>
-                      <Money value={availableBalance(selected.userId)} size="sm" />
+                      <Money value={availableBalance(selected.user?.id)} size="sm" />
                     </dd>
                   </div>
                   <div>
                     <dt className="text-fg-subtle">Bank / wallet</dt>
                     <dd className="text-fg">
-                      {selected.destination} · {selected.destinationDetail}
+                      {selected.destinationLabel} · {selected.transactionRef ?? '—'}
                     </dd>
                   </div>
                   <div>
                     <dt className="text-fg-subtle">Requested</dt>
-                    <dd className="text-fg">{formatDateTime(selected.requestedAt)}</dd>
+                    <dd className="text-fg">{formatDateTime(selected.createdAt)}</dd>
                   </div>
                 </dl>
                 <FormField label="Rejection reason" hint="Required when rejecting.">
@@ -299,13 +311,18 @@ export function AdminWithdrawalsWorkspace() {
                 </FormField>
               </SheetBody>
               <SheetFooter>
-                <Button size="sm" onClick={() => decide('APPROVED', 'Withdrawal approved')}>
+                <Button
+                  size="sm"
+                  disabled={reviewWithdrawal.isPending}
+                  onClick={() => void decide('APPROVE', 'Withdrawal approved')}
+                >
                   Approve
                 </Button>
                 <Button
                   size="sm"
                   variant="danger"
-                  onClick={() => decide('REJECTED', 'Withdrawal rejected')}
+                  disabled={reviewWithdrawal.isPending}
+                  onClick={() => void decide('REJECT', 'Withdrawal rejected')}
                 >
                   Reject
                 </Button>

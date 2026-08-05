@@ -8,7 +8,6 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 
 import { AdminOsProvider } from './admin-os-provider'
 import { AuthModalProvider } from './auth-modal-provider'
-import { InvestorLifecycleProvider } from './investor-lifecycle-provider'
 import { NotificationsProvider } from './notifications-provider'
 import { QueryProvider } from './query-provider'
 import { SessionProvider, type Session } from './session-provider'
@@ -27,21 +26,19 @@ export function Providers({
     <ThemeProvider>
       <QueryProvider>
         <SessionProvider session={session}>
-          <InvestorLifecycleProvider>
-            <AdminOsProvider>
-              <AuthModalProvider>
-                <NotificationsProvider>
-                  <MotionConfigProvider>
-                    <TooltipProvider delayDuration={200}>
-                      <LogoIntro />
-                      {children}
-                      <ToastProvider />
-                    </TooltipProvider>
-                  </MotionConfigProvider>
-                </NotificationsProvider>
-              </AuthModalProvider>
-            </AdminOsProvider>
-          </InvestorLifecycleProvider>
+          <AdminOsProvider>
+            <AuthModalProvider>
+              <NotificationsProvider>
+                <MotionConfigProvider>
+                  <TooltipProvider delayDuration={200}>
+                    <LogoIntro />
+                    {children}
+                    <ToastProvider />
+                  </TooltipProvider>
+                </MotionConfigProvider>
+              </NotificationsProvider>
+            </AuthModalProvider>
+          </AdminOsProvider>
         </SessionProvider>
       </QueryProvider>
     </ThemeProvider>
@@ -51,6 +48,5 @@ export function Providers({
 export { useSession } from './session-provider'
 export type { Session } from './session-provider'
 export { useNotifications } from './notifications-provider'
-export { useInvestorLifecycle } from './investor-lifecycle-provider'
 export { useAdminOs } from './admin-os-provider'
 export { useAuthModal } from './auth-modal-provider'
