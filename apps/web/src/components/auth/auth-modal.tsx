@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ROUTES } from '@meridian/shared'
+import { API_ROUTES, ROUTES } from '@meridian/shared'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Controller, useForm } from 'react-hook-form'
@@ -24,11 +24,8 @@ import {
 } from '@/components/ui/dialog'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
-import {
-  DEMO_OTP,
-  displayUsername,
-  type InvestorAccount,
-} from '@/lib/investor-lifecycle'
+import { useRegister } from '@/features/auth/hooks'
+import { ApiError } from '@/lib/api-client'
 import {
   loginSchema,
   registerSchema,
@@ -37,6 +34,8 @@ import {
   type RegisterInput,
 } from '@/lib/auth-schemas'
 import { isOnboardingComplete } from '@/lib/demo-auth'
+import { env } from '@/lib/env'
+import { displayUsername, type InvestorAccount } from '@/lib/investor-lifecycle'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
 import type { AuthModalIntent } from '@/providers/auth-modal-provider'
@@ -85,6 +84,7 @@ export function AuthModal({
   const router = useRouter()
   const prefersReducedMotion = usePrefersReducedMotion()
   const lifecycle = useInvestorLifecycle()
+  const registerMutation = useRegister()
   const [step, setStep] = useState<Step>('welcome')
   const [pendingEmail, setPendingEmail] = useState('')
   const [pendingAccount, setPendingAccount] = useState<InvestorAccount | null>(null)
@@ -132,18 +132,10 @@ export function AuthModal({
     router.refresh()
   }
 
-  async function handleGoogle() {
-    setBusy(true)
+  function handleGoogle() {
     setFormError(null)
-    await wait(600)
-    try {
-      const account = lifecycle.loginWithGoogle()
-      toast.success('Signed in with Google')
-      setPendingAccount(account)
-      setStep('account-ready')
-    } finally {
-      setBusy(false)
-    }
+    const redirectTo = `${env.NEXT_PUBLIC_SITE_URL}${ROUTES.auth.oauthCallback}`
+    window.location.href = `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.auth.google}?redirect=${encodeURIComponent(redirectTo)}`
   }
 
   async function onLogin(values: LoginInput) {
@@ -174,23 +166,31 @@ export function AuthModal({
   async function onRegister(values: RegisterInput) {
     setBusy(true)
     setFormError(null)
-    await wait(700)
     try {
-      const { account } = lifecycle.registerAccount({
+      await registerMutation.mutateAsync({
         firstName: values.firstName,
         lastName: values.lastName,
-        email: values.email,
-        phone: values.phone,
+        email: values.email.trim().toLowerCase(),
+        phone: values.phone.trim(),
         password: values.password,
+        acceptTerms: true,
+        acceptRisk: true,
       })
-      setPendingEmail(account.email)
-      setPendingAccount(account)
-      setStep('verify')
-      toast.success('Welcome email sent', {
-        description: `User ID ${account.userId} · ${displayUsername(account.username)}`,
+      toast.success('Account created', {
+        description: 'Check your email to verify your address, then sign in.',
       })
-    } catch (e) {
-      setFormError(e instanceof Error ? e.message : 'Could not create account')
+      onOpenChange(false)
+      router.push(
+        `${ROUTES.auth.verifyEmail}?email=${encodeURIComponent(values.email.trim().toLowerCase())}&from=register`,
+      )
+    } catch (error) {
+      setFormError(
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : 'Could not create account',
+      )
     } finally {
       setBusy(false)
     }
@@ -245,11 +245,11 @@ export function AuthModal({
     },
     verify: {
       title: 'Verify your email',
-      description: `Enter the 6-digit code sent to ${pendingEmail || 'your inbox'}. Demo: ${DEMO_OTP}`,
+      description: `Enter the 6-digit code sent to ${pendingEmail || 'your inbox'}.`,
     },
     twofa: {
       title: 'Authenticator code',
-      description: 'Enter the code from your authenticator app. Demo: 123456',
+      description: 'Enter the code from your authenticator app.',
     },
     'account-ready': {
       title: 'Welcome to Growzy',
@@ -265,6 +265,7 @@ export function AuthModal({
         className={cn(
           'w-[calc(100vw-1.25rem)] max-w-md p-0 sm:max-w-lg',
           'overflow-hidden border border-white/[0.08]',
+          'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]',
         )}
       >
         <div className="relative overflow-hidden px-5 pb-5 pt-6 sm:px-7 sm:pb-7 sm:pt-8">
@@ -472,7 +473,7 @@ export function AuthModal({
                     onResend={async () => {
                       await wait(300)
                       lifecycle.queueEmail('VERIFY_EMAIL', pendingEmail)
-                      toast.success('OTP resent', { description: `Code: ${DEMO_OTP}` })
+                      toast.success('OTP resent')
                     }}
                   />
                   <Button

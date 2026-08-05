@@ -16,6 +16,8 @@ export type RegisterBody = {
   phone?: string
   country?: string
   referralCode?: string
+  acceptTerms?: boolean
+  acceptRisk?: boolean
 }
 
 /** Auth API — cookies carry session; no tokens in JS. */

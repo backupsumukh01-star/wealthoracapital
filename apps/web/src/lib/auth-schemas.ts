@@ -8,6 +8,7 @@ const passwordRules = z
   .regex(/[A-Z]/, 'Include at least one uppercase letter')
   .regex(/[a-z]/, 'Include at least one lowercase letter')
   .regex(/[0-9]/, 'Include at least one number')
+  .regex(/[^A-Za-z0-9]/, 'Include at least one special character')
 
 export const loginSchema = z.object({
   /** Email or username. */
@@ -96,17 +97,6 @@ export const onboardingKycSchema = z.object({
 })
 
 export type OnboardingKycInput = z.infer<typeof onboardingKycSchema>
-
-/** Demo accounts for dummy login UI — not real auth. */
-export const DUMMY_AUTH = {
-  validEmail: 'investor@growzy.com',
-  validUsername: 'ayesha',
-  validPassword: 'Growzy2026!',
-  lockedEmail: 'locked@growzy.com',
-  unverifiedEmail: 'unverified@growzy.com',
-  /** Accept any OTP equal to this in demo flows. */
-  demoOtp: '123456',
-} as const
 
 export const COUNTRIES = [
   { value: 'PK', label: 'Pakistan' },

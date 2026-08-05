@@ -32,7 +32,8 @@ const config = [
   },
   {
     // The ban applies to primitives only; pages and feature components legitimately use hooks.
-    files: ['src/app/**', 'src/components/{marketing,dashboard,admin,common}/**'],
+    // Feature-facing shells (not ui/motion primitives) may call feature hooks.
+    files: ['src/app/**', 'src/components/{marketing,dashboard,admin,common,auth,wallet}/**'],
     rules: { 'no-restricted-imports': 'off' },
   },
   {

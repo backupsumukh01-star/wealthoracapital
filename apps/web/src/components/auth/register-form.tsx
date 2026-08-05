@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ROUTES } from '@meridian/shared'
+import { API_ROUTES, ROUTES } from '@meridian/shared'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -14,13 +14,14 @@ import { Button } from '@/components/ui/button'
 import { CheckboxField } from '@/components/ui/checkbox'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
-import { registerSchema, wait, type RegisterInput } from '@/lib/auth-schemas'
-import { displayUsername } from '@/lib/investor-lifecycle'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+import { useRegister } from '@/features/auth/hooks'
+import { ApiError } from '@/lib/api-client'
+import { registerSchema, type RegisterInput } from '@/lib/auth-schemas'
+import { env } from '@/lib/env'
 
 export function RegisterForm() {
   const router = useRouter()
-  const { registerAccount, loginWithGoogle } = useInvestorLifecycle()
+  const registerMutation = useRegister()
   const {
     register,
     handleSubmit,
@@ -39,24 +40,36 @@ export function RegisterForm() {
     },
   })
 
+  function handleGoogle() {
+    const redirectTo = `${env.NEXT_PUBLIC_SITE_URL}${ROUTES.auth.oauthCallback}`
+    window.location.href = `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.auth.google}?redirect=${encodeURIComponent(redirectTo)}`
+  }
+
   async function onSubmit(values: RegisterInput) {
-    await wait(700)
     try {
-      const { account } = registerAccount({
+      await registerMutation.mutateAsync({
         firstName: values.firstName,
         lastName: values.lastName,
-        email: values.email,
-        phone: values.phone,
+        email: values.email.trim().toLowerCase(),
+        phone: values.phone.trim(),
         password: values.password,
+        acceptTerms: true,
+        acceptRisk: true,
       })
       toast.success('Account created', {
-        description: `${account.userId} · ${displayUsername(account.username)}`,
+        description: 'Check your email to verify your address, then sign in.',
       })
       router.push(
-        `${ROUTES.auth.verifyEmail}?email=${encodeURIComponent(account.email)}&from=register`,
+        `${ROUTES.auth.verifyEmail}?email=${encodeURIComponent(values.email.trim().toLowerCase())}&from=register`,
       )
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not create account')
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : 'Could not create account'
+      toast.error(message)
     }
   }
 
@@ -76,16 +89,7 @@ export function RegisterForm() {
         </>
       }
     >
-      <SocialLoginButtons
-        googleLabel="Continue with Google"
-        onGoogle={() => {
-          const account = loginWithGoogle()
-          toast.success('Signed in with Google')
-          router.push(
-            account.kycStatus === 'APPROVED' ? ROUTES.dashboard.root : ROUTES.auth.onboarding,
-          )
-        }}
-      />
+      <SocialLoginButtons googleLabel="Continue with Google" onGoogle={handleGoogle} />
 
       <form className="space-y-5" noValidate onSubmit={handleSubmit(onSubmit)}>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -171,7 +175,13 @@ export function RegisterForm() {
           }}
         />
 
-        <Button type="submit" fullWidth size="lg" loading={isSubmitting} loadingText="Creating account…">
+        <Button
+          type="submit"
+          fullWidth
+          size="lg"
+          loading={isSubmitting || registerMutation.isPending}
+          loadingText="Creating account…"
+        >
           Create Account
         </Button>
       </form>
