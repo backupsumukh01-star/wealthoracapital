@@ -4,6 +4,7 @@ import { env } from '../config/env.js'
 import { adminRouter } from './admin.routes.js'
 import { authRouter } from './auth.routes.js'
 import { cmsRouter } from './cms.routes.js'
+import { csrfRouter } from './csrf.routes.js'
 import { depositRouter } from './deposit.routes.js'
 import { docsRouter, sendOpenApiJson, sendRedoc } from './docs.routes.js'
 import { emailTrackingRouter } from './email-tracking.routes.js'
@@ -31,6 +32,7 @@ export function createApiRouter(): Router {
   const router = Router()
 
   router.use(healthRouter)
+  router.use('/v1/csrf', csrfRouter)
   if (env.ENABLE_API_DOCS) {
     router.use('/docs', docsRouter)
     router.get('/openapi.json', (req, res) => {

@@ -3,6 +3,7 @@ import path from 'node:path'
 
 import { Router, type Request, type Response } from 'express'
 
+import { issueCsrfCookie } from '../utils/csrf-cookie.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import { notFound } from '../utils/errors.js'
 
@@ -17,6 +18,7 @@ export const docsRouter = Router()
 
 /** Canonical browser-facing path for the OpenAPI JSON document. */
 export const OPENAPI_JSON_PATH = '/api/openapi.json'
+export const CSRF_BOOTSTRAP_PATH = '/api/v1/csrf'
 
 function resolveOpenApiFile(filename: string): string {
   const candidates = [
@@ -34,7 +36,7 @@ function readOpenApi(filename: string): string {
   return readFileSync(resolveOpenApiFile(filename), 'utf8')
 }
 
-function swaggerHtml(): string {
+function swaggerHtml(bootstrapCsrfToken: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -68,40 +70,60 @@ function swaggerHtml(): string {
       return window.__growzyCsrf || readCsrfCookie() || '';
     }
 
-    window.ui = SwaggerUIBundle({
-      url: ${JSON.stringify(OPENAPI_JSON_PATH)},
-      dom_id: '#swagger-ui',
-      presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
-      layout: 'StandaloneLayout',
-      deepLinking: true,
-      persistAuthorization: true,
-      tryItOutEnabled: true,
-      displayRequestDuration: true,
-      filter: true,
-      withCredentials: true,
-      // Capture csrfToken from login/refresh JSON (and cookie) so Try-it-out can
-      // send X-CSRF-Token even if document.cookie lags behind Set-Cookie.
-      responseInterceptor: function (res) {
-        try {
-          var payload = res.body;
-          if (typeof payload === 'string') {
-            payload = JSON.parse(payload);
+    // Token from Set-Cookie on this HTML response (and embedded for immediate use).
+    rememberCsrfToken(${JSON.stringify(bootstrapCsrfToken)});
+    rememberCsrfToken(readCsrfCookie());
+
+    function mountSwagger() {
+      window.ui = SwaggerUIBundle({
+        url: ${JSON.stringify(OPENAPI_JSON_PATH)},
+        dom_id: '#swagger-ui',
+        presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+        layout: 'StandaloneLayout',
+        deepLinking: true,
+        persistAuthorization: true,
+        tryItOutEnabled: true,
+        displayRequestDuration: true,
+        filter: true,
+        withCredentials: true,
+        responseInterceptor: function (res) {
+          try {
+            var payload = res.body;
+            if (typeof payload === 'string') {
+              payload = JSON.parse(payload);
+            }
+            var token = payload && payload.data && payload.data.csrfToken;
+            rememberCsrfToken(token);
+          } catch (e) { /* ignore non-JSON */ }
+          rememberCsrfToken(readCsrfCookie());
+          return res;
+        },
+        requestInterceptor: function (req) {
+          var token = currentCsrfToken();
+          if (token) {
+            if (!req.headers) req.headers = {};
+            req.headers['X-CSRF-Token'] = token;
           }
-          var token = payload && payload.data && payload.data.csrfToken;
-          rememberCsrfToken(token);
-        } catch (e) { /* ignore non-JSON */ }
-        rememberCsrfToken(readCsrfCookie());
-        return res;
-      },
-      requestInterceptor: function (req) {
-        var token = currentCsrfToken();
-        if (token) {
-          if (!req.headers) req.headers = {};
-          req.headers['X-CSRF-Token'] = token;
+          return req;
         }
-        return req;
-      }
-    });
+      });
+    }
+
+    // Refresh CSRF via dedicated GET so the cookie is definitely present before Try-it-out.
+    fetch(${JSON.stringify(CSRF_BOOTSTRAP_PATH)}, {
+      method: 'GET',
+      credentials: 'include',
+      headers: { 'Accept': 'application/json' }
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (body) {
+        if (body && body.data && body.data.csrfToken) {
+          rememberCsrfToken(body.data.csrfToken);
+        }
+        rememberCsrfToken(readCsrfCookie());
+      })
+      .catch(function () { /* keep bootstrap token */ })
+      .finally(mountSwagger);
   </script>
 </body>
 </html>`
@@ -126,7 +148,8 @@ function redocHtml(): string {
 docsRouter.get(
   '/',
   asyncHandler(async (_req, res) => {
-    res.type('html').send(swaggerHtml())
+    const csrfToken = issueCsrfCookie(res)
+    res.type('html').send(swaggerHtml(csrfToken))
   }),
 )
 
@@ -146,6 +169,7 @@ docsRouter.get(
 
 /** Mounted at `/api/openapi.json` and also available as `/api/docs/json`. */
 export function sendOpenApiJson(_req: Request, res: Response): void {
+  issueCsrfCookie(res)
   res.type('application/json').send(readOpenApi('openapi.json'))
 }
 

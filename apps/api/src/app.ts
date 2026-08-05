@@ -113,6 +113,7 @@ export function createApp() {
         version: '/api/version',
         docs: '/api/docs',
         openapi: '/api/openapi.json',
+        csrf: '/api/v1/csrf',
         docsJson: '/api/docs/json',
         docsYaml: '/api/docs/yaml',
         redoc: '/api/redoc',
