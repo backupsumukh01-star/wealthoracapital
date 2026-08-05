@@ -3,7 +3,7 @@ info:
   title: Growzy API
   version: 1.0.0
   summary: Growzy / Meridian FX investment platform API (Phases 1-6)
-  description: "# Growzy API\n\nComplete OpenAPI **3.1** specification for every Express endpoint.\n\n## Modules\nAuthentication · Users · Profile · Sessions · Admin · Dashboard · RBAC · Permissions · KYC · Wallet · Ledger · Deposits · Withdrawals · Transactions · Trading · Performance · Portfolio · Daily Returns · CMS · Media · Reports · Email · Notifications · Support · Broadcasts · Settings · Feature Flags · Health · Version\n\n## Authentication\n- **Cookie JWT (primary):** `mfx_at` access token (httpOnly). Set by login/refresh.\n- **Refresh cookie:** `mfx_rt` (path `/api/v1/auth` only).\n- **CSRF cookie:** `mfx_csrf` (readable). Header `X-CSRF-Token` accepted.\n- **Bearer JWT:** Documented for clients/gateways; runtime currently validates the access cookie.\n- **Investor:** any authenticated `USER` (or staff acting as user) with investor permissions.\n- **Admin:** `authenticate` + `requireAdminAccess` + fine-grained `requirePermission(...)`.\n\n## Permissions\nSee `x-permission` on each secured operation. Catalog includes `dashboard.view`, `users.*`, `kyc.*`, `wallet.view`, `deposits.*`, `withdrawals.*`, `finance.*`, `trades.*`, `performance.view`, `returns.manage`, `cms.*`, `media.manage`, `emails.manage`, `support.*`, `reports.*`, `broadcasts.manage`, `settings.manage`, `notifications.view`, `profile.*`, `sessions.manage`, `audit.view`, `activity.view`, `roles.view`.\n\n## Response envelope\n```json\n{ \"success\": true, \"data\": {}, \"meta\": { \"requestId\": \"uuid\", \"timestamp\": \"ISO-8601\" } }\n```\nErrors use the same `meta` with `success: false` and `error: { code, message, details? }`.\n\n## Money & pagination\n- Money is always a **decimal string** (never a JSON number).\n- Offset lists: `page`, `limit`, often with `total`/`hasNext` in payload.\n- Cursor lists: `cursor` / `nextCursor`.\n\n## Interactive docs\n- Swagger UI: `/api/docs`\n- OpenAPI JSON: `/api/docs/json`\n- OpenAPI YAML: `/api/docs/yaml`\n- Redoc: `/api/redoc`\n\nRegenerate: `node scripts/generate-openapi.mjs`"
+  description: "# Growzy API\n\nComplete OpenAPI **3.1** specification for every Express endpoint.\n\n## Modules\nAuthentication · Users · Profile · Sessions · Admin · Dashboard · RBAC · Permissions · KYC · Wallet · Ledger · Deposits · Withdrawals · Transactions · Trading · Performance · Portfolio · Daily Returns · CMS · Media · Reports · Email · Notifications · Support · Broadcasts · Settings · Feature Flags · Health · Version\n\n## Authentication\n- **Cookie JWT (primary):** `mfx_at` access token (httpOnly). Set by login/refresh.\n- **Refresh cookie:** `mfx_rt` (path `/api/v1/auth` only).\n- **CSRF cookie:** `mfx_csrf` (readable). Header `X-CSRF-Token` accepted.\n- **Bearer JWT:** Documented for clients/gateways; runtime currently validates the access cookie.\n- **Investor:** any authenticated `USER` (or staff acting as user) with investor permissions.\n- **Admin:** `authenticate` + `requireAdminAccess` + fine-grained `requirePermission(...)`.\n\n## Permissions\nSee `x-permission` on each secured operation. Catalog includes `dashboard.view`, `users.*`, `kyc.*`, `wallet.view`, `deposits.*`, `withdrawals.*`, `finance.*`, `trades.*`, `performance.view`, `returns.manage`, `cms.*`, `media.manage`, `emails.manage`, `support.*`, `reports.*`, `broadcasts.manage`, `settings.manage`, `notifications.view`, `profile.*`, `sessions.manage`, `audit.view`, `activity.view`, `roles.view`.\n\n## Response envelope\n```json\n{ \"success\": true, \"data\": {}, \"meta\": { \"requestId\": \"uuid\", \"timestamp\": \"ISO-8601\" } }\n```\nErrors use the same `meta` with `success: false` and `error: { code, message, details? }`.\n\n## Money & pagination\n- Money is always a **decimal string** (never a JSON number).\n- Offset lists: `page`, `limit`, often with `total`/`hasNext` in payload.\n- Cursor lists: `cursor` / `nextCursor`.\n\n## Interactive docs\n- Swagger UI: `/api/docs`\n- OpenAPI JSON: `/api/openapi.json` (also `/api/docs/json`)\n- OpenAPI YAML: `/api/docs/yaml`\n- Redoc: `/api/redoc`\n\nRegenerate: `node scripts/generate-openapi.mjs`"
   contact:
     name: Growzy Engineering
   license:
@@ -255,9 +255,24 @@ paths:
     get:
       tags:
         - Health
-      summary: OpenAPI JSON
+      summary: OpenAPI JSON (legacy path)
       operationId: docsOpenApiJson
-      description: null
+      description: "Same document as `/api/openapi.json`."
+      security: []
+      responses:
+        200:
+          description: OpenAPI 3.1 document
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/openapi.json:
+    get:
+      tags:
+        - Health
+      summary: OpenAPI JSON
+      operationId: docsOpenApiJsonCanonical
+      description: Canonical OpenAPI 3.1 JSON document used by Swagger UI and Redoc.
       security: []
       responses:
         200:

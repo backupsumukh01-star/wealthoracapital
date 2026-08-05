@@ -25,14 +25,22 @@ describe('API health & docs', () => {
     expect(Object.keys(res.body.paths).length).toBeGreaterThan(100)
   })
 
-  it('GET /api/docs returns swagger html', async () => {
-    const res = await request(app).get('/api/docs').expect(200)
-    expect(res.text).toContain('swagger-ui')
+  it('GET /api/openapi.json serves OpenAPI 3.1', async () => {
+    const res = await request(app).get('/api/openapi.json').expect(200)
+    expect(res.body.openapi).toBe('3.1.0')
+    expect(Object.keys(res.body.paths).length).toBeGreaterThan(100)
   })
 
-  it('GET /api/redoc returns redoc html', async () => {
+  it('GET /api/docs returns swagger html pointing at /api/openapi.json', async () => {
+    const res = await request(app).get('/api/docs').expect(200)
+    expect(res.text).toContain('swagger-ui')
+    expect(res.text).toContain('/api/openapi.json')
+  })
+
+  it('GET /api/redoc returns redoc html pointing at /api/openapi.json', async () => {
     const res = await request(app).get('/api/redoc').expect(200)
     expect(res.text.toLowerCase()).toContain('redoc')
+    expect(res.text).toContain('/api/openapi.json')
   })
 
   it('unknown route returns 404 envelope', async () => {

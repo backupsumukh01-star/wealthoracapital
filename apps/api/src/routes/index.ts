@@ -5,7 +5,7 @@ import { adminRouter } from './admin.routes.js'
 import { authRouter } from './auth.routes.js'
 import { cmsRouter } from './cms.routes.js'
 import { depositRouter } from './deposit.routes.js'
-import { docsRouter, sendRedoc } from './docs.routes.js'
+import { docsRouter, sendOpenApiJson, sendRedoc } from './docs.routes.js'
 import { emailTrackingRouter } from './email-tracking.routes.js'
 import { filesRouter } from './files.routes.js'
 import { healthRouter } from './health.routes.js'
@@ -33,6 +33,9 @@ export function createApiRouter(): Router {
   router.use(healthRouter)
   if (env.ENABLE_API_DOCS) {
     router.use('/docs', docsRouter)
+    router.get('/openapi.json', (req, res) => {
+      sendOpenApiJson(req, res)
+    })
     router.get('/redoc', (req, res) => {
       sendRedoc(req, res)
     })

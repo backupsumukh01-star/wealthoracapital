@@ -9,8 +9,14 @@ import { notFound } from '../utils/errors.js'
 /**
  * Serves OpenAPI artifacts + interactive docs (Swagger UI / Redoc).
  * Spec files live in `apps/api/openapi/` (copied by `node scripts/generate-openapi.mjs`).
+ *
+ * Spec URL is path-absolute (`/api/openapi.json`) so Swagger/Redoc work behind
+ * the Nginx `/api` reverse proxy without hard-coding host or protocol.
  */
 export const docsRouter = Router()
+
+/** Canonical browser-facing path for the OpenAPI JSON document. */
+export const OPENAPI_JSON_PATH = '/api/openapi.json'
 
 function resolveOpenApiFile(filename: string): string {
   const candidates = [
@@ -28,8 +34,7 @@ function readOpenApi(filename: string): string {
   return readFileSync(resolveOpenApiFile(filename), 'utf8')
 }
 
-function swaggerHtml(req: Request): string {
-  const jsonUrl = `${req.protocol}://${req.get('host')}/api/docs/json`
+function swaggerHtml(): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -49,7 +54,7 @@ function swaggerHtml(req: Request): string {
   <script src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-standalone-preset.js" crossorigin></script>
   <script>
     window.ui = SwaggerUIBundle({
-      url: ${JSON.stringify(jsonUrl)},
+      url: ${JSON.stringify(OPENAPI_JSON_PATH)},
       dom_id: '#swagger-ui',
       presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
       layout: 'StandaloneLayout',
@@ -65,8 +70,7 @@ function swaggerHtml(req: Request): string {
 </html>`
 }
 
-function redocHtml(req: Request): string {
-  const jsonUrl = `${req.protocol}://${req.get('host')}/api/docs/json`
+function redocHtml(): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -76,7 +80,7 @@ function redocHtml(req: Request): string {
   <style>body { margin: 0; padding: 0; }</style>
 </head>
 <body>
-  <redoc spec-url="${jsonUrl}" expand-responses="200,201" hide-download-button="false"></redoc>
+  <redoc spec-url="${OPENAPI_JSON_PATH}" expand-responses="200,201" hide-download-button="false"></redoc>
   <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
 </body>
 </html>`
@@ -84,15 +88,15 @@ function redocHtml(req: Request): string {
 
 docsRouter.get(
   '/',
-  asyncHandler(async (req, res) => {
-    res.type('html').send(swaggerHtml(req))
+  asyncHandler(async (_req, res) => {
+    res.type('html').send(swaggerHtml())
   }),
 )
 
 docsRouter.get(
   '/json',
   asyncHandler(async (_req, res) => {
-    res.type('application/json').send(readOpenApi('openapi.json'))
+    sendOpenApiJson(_req, res)
   }),
 )
 
@@ -103,7 +107,12 @@ docsRouter.get(
   }),
 )
 
+/** Mounted at `/api/openapi.json` and also available as `/api/docs/json`. */
+export function sendOpenApiJson(_req: Request, res: Response): void {
+  res.type('application/json').send(readOpenApi('openapi.json'))
+}
+
 /** Mounted separately at `/api/redoc`. */
-export function sendRedoc(req: Request, res: Response): void {
-  res.type('html').send(redocHtml(req))
+export function sendRedoc(_req: Request, res: Response): void {
+  res.type('html').send(redocHtml())
 }

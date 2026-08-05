@@ -41,7 +41,7 @@ services:
       RATE_LIMIT_STORE: redis
       REDIS_REQUIRED: "true"
       COOKIE_SECURE: "true"
-      ENABLE_API_DOCS: "false"
+      ENABLE_API_DOCS: "true"
       CSRF_PROTECTION: "true"
     volumes:
       - prod_uploads:/app/uploads

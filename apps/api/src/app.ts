@@ -36,6 +36,7 @@ export function createApp() {
           req.url === '/api/health/ready' ||
           req.url === '/api/metrics' ||
           Boolean(req.url?.startsWith('/api/docs')) ||
+          req.url === '/api/openapi.json' ||
           req.url === '/api/redoc',
       },
     }),
@@ -111,6 +112,7 @@ export function createApp() {
         health: '/api/health',
         version: '/api/version',
         docs: '/api/docs',
+        openapi: '/api/openapi.json',
         docsJson: '/api/docs/json',
         docsYaml: '/api/docs/yaml',
         redoc: '/api/redoc',

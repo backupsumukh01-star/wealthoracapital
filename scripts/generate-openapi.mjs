@@ -247,10 +247,21 @@ paths['/api/docs'].get.responses = {
 
 pub('get', '/api/docs/json', {
   tags: ['Health'],
-  summary: 'OpenAPI JSON',
+  summary: 'OpenAPI JSON (legacy path)',
   operationId: 'docsOpenApiJson',
+  description: 'Same document as `/api/openapi.json`.',
 })
 paths['/api/docs/json'].get.responses = {
+  200: { description: 'OpenAPI 3.1 document', content: { 'application/json': { schema: { type: 'object' } } } },
+}
+
+pub('get', '/api/openapi.json', {
+  tags: ['Health'],
+  summary: 'OpenAPI JSON',
+  operationId: 'docsOpenApiJsonCanonical',
+  description: 'Canonical OpenAPI 3.1 JSON document used by Swagger UI and Redoc.',
+})
+paths['/api/openapi.json'].get.responses = {
   200: { description: 'OpenAPI 3.1 document', content: { 'application/json': { schema: { type: 'object' } } } },
 }
 
@@ -3015,7 +3026,7 @@ const doc = {
       '',
       '## Interactive docs',
       '- Swagger UI: `/api/docs`',
-      '- OpenAPI JSON: `/api/docs/json`',
+      '- OpenAPI JSON: `/api/openapi.json` (also `/api/docs/json`)',
       '- OpenAPI YAML: `/api/docs/yaml`',
       '- Redoc: `/api/redoc`',
       '',
