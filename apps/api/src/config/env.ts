@@ -98,9 +98,13 @@ function parseEnv(): Env {
     throw new Error('Production JWT secrets must be rotated away from placeholder values')
   }
 
+  // Default ON in every environment (including production). PM2 / bare-metal
+  // deploys often omit ENABLE_API_DOCS; the previous production-off default
+  // left /api/docs, /api/redoc, and /api/openapi.json unregistered (404).
+  // Set ENABLE_API_DOCS=false explicitly to disable.
   const enableDocs =
     parsed.data.ENABLE_API_DOCS === undefined
-      ? parsed.data.NODE_ENV !== 'production'
+      ? true
       : parsed.data.ENABLE_API_DOCS === 'true'
 
   const underTest =
