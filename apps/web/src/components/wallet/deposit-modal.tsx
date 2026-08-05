@@ -23,9 +23,14 @@ import { toast } from '@/components/ui/toast'
 import {
   CRYPTO_DEPOSIT_OPTIONS,
   INR_BANK_DETAILS,
-  WALLET_DEPOSIT_TIMELINE,
 } from '@/lib/investor-demo-data'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+import { ApiError } from '@/lib/api-client'
+import {
+  useCreateDeposit,
+  useDepositMethods,
+  useUploadDepositProof,
+} from '@/features/deposits/hooks'
+import type { PaymentMethod } from '@meridian/shared'
 
 type Rail = 'INR' | 'CRYPTO' | null
 type InrChannel = 'UPI' | 'IMPS' | 'NEFT' | 'RTGS' | null
@@ -39,8 +44,29 @@ type Step =
   | 'crypto'
   | 'done'
 
-function nextReference() {
-  return `DEP-2026-${String(Math.floor(Math.random() * 900000) + 100000)}`
+function pickMethod(
+  methods: PaymentMethod[] | undefined,
+  prefer: 'bank' | 'crypto' | 'mobile',
+): PaymentMethod | undefined {
+  if (!methods?.length) return undefined
+  if (prefer === 'crypto') {
+    return (
+      methods.find((m) =>
+        ['CRYPTO', 'USDT_TRC20', 'USDT_BEP20', 'BTC', 'ETH'].includes(m.type),
+      ) ?? methods.find((m) => /usdt|crypto|btc|eth/i.test(m.name))
+    )
+  }
+  if (prefer === 'mobile') {
+    return (
+      methods.find((m) => m.type === 'MOBILE_WALLET') ??
+      methods.find((m) => /upi|jazz|easypaisa|mobile/i.test(m.name))
+    )
+  }
+  return (
+    methods.find((m) => m.type === 'BANK_TRANSFER' || m.type === 'MANUAL') ??
+    methods.find((m) => /bank|imps|neft|rtgs/i.test(m.name)) ??
+    methods[0]
+  )
 }
 
 export function DepositModal({
@@ -50,7 +76,9 @@ export function DepositModal({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const { submitDeposit } = useInvestorLifecycle()
+  const { data: methods } = useDepositMethods({ enabled: open })
+  const createDeposit = useCreateDeposit()
+  const uploadProof = useUploadDepositProof()
   const [step, setStep] = useState<Step>('rail')
   const [rail, setRail] = useState<Rail>(null)
   const [channel, setChannel] = useState<InrChannel>(null)
@@ -62,6 +90,7 @@ export function DepositModal({
   const [txHash, setTxHash] = useState('')
   const [successOpen, setSuccessOpen] = useState(false)
   const [reference, setReference] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const coinMeta = CRYPTO_DEPOSIT_OPTIONS.coins.find((c) => c.id === coin)
   const addressKey = `${coin}-${network}`
@@ -135,27 +164,40 @@ export function DepositModal({
     else if (step === 'crypto') setStep('rail')
   }
 
-  function submitRequest() {
-    const ref = nextReference()
-    setReference(ref)
-    const result = submitDeposit({
-      amount,
-      method:
-        step === 'crypto'
-          ? `${coin} ${network}`
-          : channel === 'UPI'
-            ? 'UPI'
-            : channel ?? 'Bank transfer',
-      reference: utr || txHash || ref,
-      proofLabel: proof?.name,
-    })
-    if (!result.ok) {
-      toast.error(result.error ?? 'Could not submit deposit')
+  async function submitRequest() {
+    const prefer =
+      step === 'crypto' ? 'crypto' : channel === 'UPI' ? 'mobile' : 'bank'
+    const method = pickMethod(methods, prefer)
+    if (!method) {
+      toast.error('No deposit methods are configured. Contact support.')
       return
     }
-    handleOpenChange(false)
-    setSuccessOpen(true)
-    toast.success('Deposit submitted', result.deposit?.id ?? ref)
+
+    setSubmitting(true)
+    try {
+      const deposit = await createDeposit.mutateAsync({
+        amount,
+        methodId: method.id,
+        userReference: utr || txHash || undefined,
+      })
+      if (proof) {
+        await uploadProof.mutateAsync({ id: deposit.id, file: proof })
+      }
+      setReference(deposit.reference || deposit.id)
+      handleOpenChange(false)
+      setSuccessOpen(true)
+      toast.success('Deposit submitted', deposit.reference)
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : 'Could not submit deposit',
+      )
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const showBack = step !== 'rail'
@@ -295,7 +337,9 @@ export function DepositModal({
             <Button
               className="w-full"
               disabled={!proof}
-              onClick={submitRequest}
+              onClick={() => void submitRequest()}
+              loading={submitting}
+              loadingText="Submitting…"
             >
               Submit request
             </Button>
@@ -337,7 +381,9 @@ export function DepositModal({
             <Button
               className="w-full"
               disabled={!proof || !utr.trim() || !amount || Number(amount) <= 0}
-              onClick={submitRequest}
+              onClick={() => void submitRequest()}
+              loading={submitting}
+              loadingText="Submitting…"
             >
               Submit request
             </Button>
@@ -395,7 +441,12 @@ export function DepositModal({
               />
             </FormField>
 
-            <Button className="w-full" onClick={submitRequest}>
+            <Button
+              className="w-full"
+              onClick={() => void submitRequest()}
+              loading={submitting}
+              loadingText="Submitting…"
+            >
               Submit deposit request
             </Button>
           </div>
