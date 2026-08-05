@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /** Production stubs — empty fixtures. Prefer adminService / feature hooks for live data. */
 
 import type { MoneyString } from '@meridian/shared'

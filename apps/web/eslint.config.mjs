@@ -13,7 +13,13 @@ const config = [
   ...compat.extends('next/core-web-vitals', 'next/typescript'),
   {
     rules: {
-      // Primitives stay dumb: nothing in components/ui may reach into feature code (docs/01 §6).
+      'react/no-danger': 'error',
+    },
+  },
+  {
+    // Primitives stay dumb: only ui/motion components are barred from feature code.
+    files: ['src/components/ui/**', 'src/components/motion/**'],
+    rules: {
       'no-restricted-imports': [
         'error',
         {
@@ -27,14 +33,7 @@ const config = [
           ],
         },
       ],
-      'react/no-danger': 'error',
     },
-  },
-  {
-    // The ban applies to primitives only; pages and feature components legitimately use hooks.
-    // Feature-facing shells (not ui/motion primitives) may call feature hooks.
-    files: ['src/app/**', 'src/components/{marketing,dashboard,admin,common,auth,wallet}/**'],
-    rules: { 'no-restricted-imports': 'off' },
   },
   {
     // JSON-LD is serialised by us and never contains user input (docs/14 §10).

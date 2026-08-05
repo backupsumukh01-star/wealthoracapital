@@ -27,7 +27,6 @@ import {
 import { Logo } from '@/components/common/logo'
 import { Button } from '@/components/ui/button'
 import { MARKETING_NAV, MARKETING_SECONDARY_NAV } from '@/lib/navigation'
-import { useAuthModal } from '@/providers/auth-modal-provider'
 import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
 
@@ -49,7 +48,6 @@ const ICONS: Record<string, LucideIcon> = {
 /** Portal-based drawer — slides from right, overlay + ESC close. */
 export function MobileNav() {
   const pathname = usePathname()
-  const { openAuth } = useAuthModal()
   const { isAuthenticated } = useSession()
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -173,28 +171,17 @@ export function MobileNav() {
               </div>
 
               <div className="shrink-0 space-y-2 border-t border-glass-line px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-                <Button
-                  fullWidth
-                  size="md"
-                  onClick={() => {
-                    setOpen(false)
-                    openAuth('register')
-                  }}
-                >
-                  Get started
-                  <ArrowRight aria-hidden />
+                <Button asChild fullWidth size="md">
+                  <Link href={ROUTES.auth.register} onClick={() => setOpen(false)}>
+                    Get started
+                    <ArrowRight aria-hidden />
+                  </Link>
                 </Button>
                 <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="secondary"
-                    fullWidth
-                    size="md"
-                    onClick={() => {
-                      setOpen(false)
-                      openAuth('login')
-                    }}
-                  >
-                    Login
+                  <Button asChild variant="secondary" fullWidth size="md">
+                    <Link href={ROUTES.auth.login} onClick={() => setOpen(false)}>
+                      Login
+                    </Link>
                   </Button>
                   <Button asChild variant="glass" fullWidth size="md">
                     <Link href={dashboardHref} onClick={() => setOpen(false)}>

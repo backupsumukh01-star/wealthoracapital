@@ -11,7 +11,6 @@ import { Magnetic } from '@/components/motion/magnetic'
 import { Button } from '@/components/ui/button'
 import { SITE } from '@/lib/constants'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
-import { useAuthModal } from '@/providers/auth-modal-provider'
 import { usePublishedLanding } from '@/features/cms/site'
 
 import { HeroMarketCards } from './hero-market-cards'
@@ -27,7 +26,6 @@ const TRUST = [
 /** Premium centered hero — Growzy brand, CTAs, trust, markets, equity visual. */
 export function Hero() {
   const prefersReducedMotion = usePrefersReducedMotion()
-  const { openAuth } = useAuthModal()
   const { landing: cms } = usePublishedLanding()
   const heroMotion = cms.heroMotion
   const intensity = heroMotion?.intensity ?? 1
@@ -108,9 +106,11 @@ export function Hero() {
         <FadeIn delay={0.16}>
           <div className="mt-8 flex w-full max-w-md flex-col gap-3 sm:mt-10 sm:max-w-none sm:flex-row sm:justify-center">
             <Magnetic>
-              <Button size="lg" className="w-full sm:w-auto" onClick={() => openAuth('register')}>
-                {cms.heroPrimaryCta}
-                <ArrowRight aria-hidden />
+              <Button asChild size="lg" className="w-full sm:w-auto">
+                <Link href={ROUTES.auth.register}>
+                  {cms.heroPrimaryCta}
+                  <ArrowRight aria-hidden />
+                </Link>
               </Button>
             </Magnetic>
             <Button asChild size="lg" variant="glass" className="w-full sm:w-auto">

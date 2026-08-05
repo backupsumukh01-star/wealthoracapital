@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /** Production stubs — empty fixtures. Prefer CMS / public performance APIs for live data. */
 
 export type ReviewPlatform = 'Trustpilot' | 'Google' | 'Facebook' | 'Reddit'

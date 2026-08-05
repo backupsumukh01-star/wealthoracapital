@@ -35,7 +35,9 @@ export function InvestorMap({ showHeader = true }: { showHeader?: boolean }) {
     () => Object.fromEntries(INVESTOR_HUBS.map((h) => [h.id, h])) as Record<string, Hub>,
     [],
   )
-  const active = hubsById[activeId] ?? INVESTOR_HUBS[0]!
+  const active = hubsById[activeId] ?? INVESTOR_HUBS[0]
+
+  if (!active) return null
 
   return (
     <RevealOnScroll className="mt-4 w-full min-w-0 sm:mt-6">

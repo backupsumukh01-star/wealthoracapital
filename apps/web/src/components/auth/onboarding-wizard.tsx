@@ -6,7 +6,7 @@ import { ROUTES } from '@meridian/shared'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Camera, Check, FileUp, ShieldCheck, Sparkles } from 'lucide-react'
+import { Camera, FileUp, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { AuthCard } from '@/components/auth/auth-card'
@@ -41,7 +41,6 @@ import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
 
 const STEPS = [
-  { id: 1, label: 'Welcome' },
   { id: 2, label: 'Identity' },
   { id: 3, label: 'Documents' },
   { id: 4, label: 'Review' },
@@ -65,7 +64,7 @@ export function OnboardingWizard() {
   const uploadDoc = useUploadKycDocument()
   const submitKyc = useSubmitKyc()
 
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(2)
   const [front, setFront] = useState<File | null>(null)
   const [back, setBack] = useState<File | null>(null)
   const [selfie, setSelfie] = useState<File | null>(null)
@@ -96,7 +95,10 @@ export function OnboardingWizard() {
     }
   }, [sessionLoading, isAuthenticated, router])
 
-  const progress = useMemo(() => (step / STEPS.length) * 100, [step])
+  const progress = useMemo(() => {
+    const index = STEPS.findIndex((item) => item.id === step)
+    return ((Math.max(index, 0) + 1) / STEPS.length) * 100
+  }, [step])
   const badge = kycStatusBadge(kycStatus)
 
   async function onContinueIdentity(values: OnboardingKycInput) {
@@ -233,12 +235,8 @@ export function OnboardingWizard() {
   return (
     <>
       <AuthCard
-        title={step === 1 ? 'Welcome to Growzy' : 'Identity verification'}
-        description={
-          step === 1
-            ? 'Complete identity verification before investing.'
-            : 'Cannot deposit until KYC is approved.'
-        }
+        title="Identity verification"
+        description="Cannot deposit until KYC is approved."
         className="sm:max-w-none"
       >
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-caption">
@@ -302,32 +300,6 @@ export function OnboardingWizard() {
             exit={prefersReducedMotion ? undefined : { opacity: 0, x: -10 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
           >
-            {step === 1 ? (
-              <div className="space-y-5">
-                <div className="rounded-2xl border border-white/[0.08] bg-gradient-to-br from-accent-500/10 to-transparent p-5">
-                  <Sparkles className="mb-3 size-6 text-accent-300" aria-hidden />
-                  <p className="text-heading-md text-fg">Welcome to Growzy</p>
-                  <p className="mt-2 text-body-sm text-fg-muted">
-                    Complete your identity verification before investing. Deposits and withdrawals
-                    unlock after compliance approval.
-                  </p>
-                </div>
-                <ul className="space-y-2 text-body-sm text-fg-muted">
-                  <li className="flex gap-2">
-                    <ShieldCheck className="mt-0.5 size-4 shrink-0 text-accent-300" aria-hidden />
-                    Government ID + selfie required
-                  </li>
-                  <li className="flex gap-2">
-                    <Check className="mt-0.5 size-4 shrink-0 text-accent-300" aria-hidden />
-                    Review typically 24–48 hours
-                  </li>
-                </ul>
-                <Button type="button" fullWidth size="lg" onClick={() => setStep(2)}>
-                  Continue
-                </Button>
-              </div>
-            ) : null}
-
             {step === 2 ? (
               <form
                 className="space-y-4"
@@ -388,12 +360,9 @@ export function OnboardingWizard() {
                   />
                 </FormField>
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <Button type="button" variant="ghost" className="sm:flex-1" onClick={() => setStep(1)}>
-                    Back
-                  </Button>
                   <Button
                     type="submit"
-                    className="sm:flex-[2]"
+                    className="w-full"
                     size="lg"
                     loading={savingProfile}
                     loadingText="Saving…"

@@ -175,8 +175,6 @@ export type LifecycleStore = {
   usedUserIds: string[]
 }
 
-const STORAGE_KEY = 'growzy_investor_lifecycle_v2'
-
 function emptyWallet(): WalletSnapshot {
   return {
     availableBalance: '0.00',
@@ -291,24 +289,11 @@ function emptyStore(): LifecycleStore {
 }
 
 export function loadLifecycleStore(): LifecycleStore {
-  if (typeof window === 'undefined') return emptyStore()
-  try {
-    // Purge any legacy money/auth blob — balances must never live in the browser.
-    localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    /* ignore */
-  }
   return emptyStore()
 }
 
 export function saveLifecycleStore(_store: LifecycleStore) {
-  // Intentionally no-op: do not write wallets, deposits, or passwords to localStorage.
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    /* ignore */
-  }
+  // Intentionally no-op: wallets, deposits and credentials are API-owned.
 }
 
 export { emptyWallet, moneyAdd, moneySub }

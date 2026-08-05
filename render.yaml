@@ -18,6 +18,7 @@ services:
   - type: web
     name: growzy-api
     runtime: node
+    branch: main
     plan: starter
     region: oregon
     rootDir: .
@@ -104,6 +105,7 @@ services:
   - type: web
     name: growzy-web
     runtime: node
+    branch: main
     plan: starter
     region: oregon
     rootDir: .

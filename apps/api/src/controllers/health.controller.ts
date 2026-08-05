@@ -80,6 +80,8 @@ export const healthController = {
     sendSuccess(res, {
       name: env.APP_NAME,
       version: APP_VERSION,
+      commit: process.env.RENDER_GIT_COMMIT ?? process.env.GIT_COMMIT ?? 'local',
+      branch: process.env.RENDER_GIT_BRANCH ?? process.env.GIT_BRANCH ?? 'local',
       api: 'v1',
       node: process.version,
     })

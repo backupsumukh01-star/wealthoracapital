@@ -1,11 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { LifeBuoy, MessageCircle, MessagesSquare, Ticket } from 'lucide-react'
+import { LifeBuoy, MessageCircle, Ticket } from 'lucide-react'
 
 import { PageHeader, SectionHeader } from '@/components/common/page-header'
 import { PremiumEmptyState } from '@/components/dashboard/premium-empty-state'
-import { SupportChatWidget } from '@/components/dashboard/support-chat-widget'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { FormField } from '@/components/ui/form-field'
@@ -59,12 +58,8 @@ export function SupportWorkspace() {
         }
       />
 
-      <Tabs defaultValue="chat">
+      <Tabs defaultValue="ticket">
         <TabsList className="w-full flex-wrap sm:w-auto">
-          <TabsTrigger value="chat">
-            <MessagesSquare aria-hidden />
-            Live Chat
-          </TabsTrigger>
           <TabsTrigger value="whatsapp">
             <MessageCircle aria-hidden />
             WhatsApp
@@ -78,10 +73,6 @@ export function SupportWorkspace() {
             FAQ
           </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="chat" className="mt-4">
-          <SupportChatWidget />
-        </TabsContent>
 
         <TabsContent value="whatsapp" className="mt-4">
           <Card variant="glass" className="p-5 sm:p-6">

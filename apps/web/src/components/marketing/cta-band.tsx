@@ -6,10 +6,8 @@ import { ArrowRight } from 'lucide-react'
 
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { Button } from '@/components/ui/button'
-import { useAuthModal } from '@/providers/auth-modal-provider'
 
 export function CtaBand() {
-  const { openAuth } = useAuthModal()
   return (
     <section className="section-y" aria-labelledby="cta-heading">
       <div className="container-page">
@@ -35,12 +33,14 @@ export function CtaBand() {
 
             <div className="mx-auto mt-6 flex w-full max-w-[340px] flex-col items-stretch justify-center gap-2.5 sm:mt-8 sm:max-w-none sm:flex-row sm:items-center">
               <Button
+                asChild
                 size="lg"
                 className="w-full bg-fg text-fg-inverse shadow-e3 hover:bg-fg/90 sm:w-auto"
-                onClick={() => openAuth('register')}
               >
-                Create your account
-                <ArrowRight aria-hidden />
+                <Link href={ROUTES.auth.register}>
+                  Create your account
+                  <ArrowRight aria-hidden />
+                </Link>
               </Button>
               <Button asChild size="lg" variant="glass" className="w-full sm:w-auto">
                 <Link href={ROUTES.marketing.contact}>Talk to support</Link>

@@ -1,6 +1,5 @@
 /**
- * Store facades — business state lives in providers today.
- * When the API is live, React Query + these facades replace localStorage stores.
+ * Store facades — business state lives in APIs and React Query.
  *
  * Separation:
  * - UI state: modals, filters, command palette (component-local / URL)
@@ -8,9 +7,6 @@
  */
 
 export const STORE_KEYS = {
-  /** Legacy key — purged on load; never write money here. */
-  investorLifecycle: 'growzy_investor_lifecycle_v2',
-  adminOs: 'growzy_admin_os_v5',
   notifications: 'growzy_notifications_v2',
 } as const
 

@@ -8,7 +8,6 @@ import { Logo } from '@/components/common/logo'
 import { Button } from '@/components/ui/button'
 import { MARKETING_NAV } from '@/lib/navigation'
 import { useScrolled } from '@/hooks/use-scrolled'
-import { useAuthModal } from '@/providers/auth-modal-provider'
 import { usePublishedPlatform } from '@/features/cms/site'
 import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
@@ -24,7 +23,6 @@ function isNavActive(pathname: string, href: string) {
 export function NavBar() {
   const pathname = usePathname()
   const scrolled = useScrolled(12)
-  const { openAuth } = useAuthModal()
   const { platform, isSuccess } = usePublishedPlatform()
   const { isAuthenticated } = useSession()
   const dashboardHref = isAuthenticated ? ROUTES.dashboard.root : ROUTES.auth.login
@@ -89,16 +87,11 @@ export function NavBar() {
           <Button asChild variant="ghost" size="sm" className="hidden lg:inline-flex">
             <Link href={dashboardHref}>Dashboard</Link>
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="hidden sm:inline-flex"
-            onClick={() => openAuth('login')}
-          >
-            Login
+          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+            <Link href={ROUTES.auth.login}>Login</Link>
           </Button>
-          <Button size="sm" className="hidden sm:inline-flex" onClick={() => openAuth('register')}>
-            Get started
+          <Button asChild size="sm" className="hidden sm:inline-flex">
+            <Link href={ROUTES.auth.register}>Get started</Link>
           </Button>
           <MobileNav />
         </div>

@@ -1,7 +1,7 @@
 /**
  * Growzy Admin Operating System — CMS + ops draft state.
  * Defaults are empty; live content should come from CMS / admin APIs.
- * Persisted in localStorage for offline draft editing until publish.
+ * In-memory compatibility shape while remaining admin screens migrate to APIs.
  */
 
 import {
@@ -19,8 +19,6 @@ import {
   type SiteSeoSettings,
   type TickerDisplaySettings,
 } from '@/lib/admin-cms-extras'
-
-export const ADMIN_OS_KEY = 'growzy_admin_os_v5'
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -610,24 +608,11 @@ export function createDefaultAdminOs(): AdminOsState {
 }
 
 export function loadAdminOs(): AdminOsState {
-  if (typeof window === 'undefined') return createDefaultAdminOs()
-  try {
-    // Purge legacy Admin OS blob — CMS/ops state must come from APIs, not the browser.
-    window.localStorage.removeItem(ADMIN_OS_KEY)
-  } catch {
-    /* ignore */
-  }
   return createDefaultAdminOs()
 }
 
 export function saveAdminOs(_state: AdminOsState) {
-  // Intentionally no-op: never write CMS/ops/mock money to localStorage.
-  if (typeof window === 'undefined') return
-  try {
-    window.localStorage.removeItem(ADMIN_OS_KEY)
-  } catch {
-    /* ignore */
-  }
+  // Intentionally no-op: never write CMS/ops state to browser storage.
 }
 
 export function pushAudit(

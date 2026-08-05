@@ -90,6 +90,7 @@ export type CmsPublicPage = {
   slug: string
   title: string
   body: string
+  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
   updatedAt?: string
 }
 

@@ -32,7 +32,6 @@ import {
   loadAdminOs,
   pushAudit,
   createDefaultAdminOs,
-  ADMIN_OS_KEY,
 } from '@/lib/admin-os-store'
 import { pushRevision } from '@/lib/admin-cms-extras'
 import { applyCmsBootstrap } from '@/lib/cms-bootstrap-map'
@@ -119,13 +118,6 @@ export function AdminOsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false
-    // Clear any legacy Admin OS blob immediately.
-    try {
-      window.localStorage.removeItem(ADMIN_OS_KEY)
-    } catch {
-      /* ignore */
-    }
-
     setState(loadAdminOs())
 
     ;(async () => {

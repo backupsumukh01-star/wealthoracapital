@@ -7,7 +7,6 @@ import { MotionConfigProvider } from '@/components/motion/motion-config'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 import { AdminOsProvider } from './admin-os-provider'
-import { AuthModalProvider } from './auth-modal-provider'
 import { NotificationsProvider } from './notifications-provider'
 import { QueryProvider } from './query-provider'
 import { SessionProvider, type Session } from './session-provider'
@@ -27,17 +26,15 @@ export function Providers({
       <QueryProvider>
         <SessionProvider session={session}>
           <AdminOsProvider>
-            <AuthModalProvider>
-              <NotificationsProvider>
-                <MotionConfigProvider>
-                  <TooltipProvider delayDuration={200}>
-                    <LogoIntro />
-                    {children}
-                    <ToastProvider />
-                  </TooltipProvider>
-                </MotionConfigProvider>
-              </NotificationsProvider>
-            </AuthModalProvider>
+            <NotificationsProvider>
+              <MotionConfigProvider>
+                <TooltipProvider delayDuration={200}>
+                  <LogoIntro />
+                  {children}
+                  <ToastProvider />
+                </TooltipProvider>
+              </MotionConfigProvider>
+            </NotificationsProvider>
           </AdminOsProvider>
         </SessionProvider>
       </QueryProvider>
@@ -49,4 +46,3 @@ export { useSession } from './session-provider'
 export type { Session } from './session-provider'
 export { useNotifications } from './notifications-provider'
 export { useAdminOs } from './admin-os-provider'
-export { useAuthModal } from './auth-modal-provider'

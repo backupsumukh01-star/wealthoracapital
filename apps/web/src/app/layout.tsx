@@ -60,11 +60,16 @@ export const viewport: Viewport = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const release = process.env.RENDER_GIT_COMMIT ?? process.env.GIT_COMMIT ?? 'local'
+
   return (
     // `suppressHydrationWarning` is required by next-themes, which writes the theme class on the
     // html element before React hydrates to avoid a flash of the wrong theme.
     <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="min-h-dvh overflow-x-clip bg-base font-sans text-fg antialiased">
+      <body
+        data-release={release}
+        className="min-h-dvh overflow-x-clip bg-base font-sans text-fg antialiased"
+      >
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-accent focus:px-4 focus:py-2 focus:text-accent-foreground"

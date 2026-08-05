@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /** Production stubs — empty fixtures. Prefer wallet/trade/performance API hooks. */
 
 import type { MoneyString } from '@meridian/shared'
@@ -46,6 +48,8 @@ export const DEMO_SESSION: AppSession = {
     timezone: '',
     avatarUrl: null,
     role: 'USER',
+    staffRole: null,
+    permissions: [],
     status: 'ACTIVE',
     kycStatus: 'NOT_STARTED',
     emailVerified: false,

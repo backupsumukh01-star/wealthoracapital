@@ -18,7 +18,6 @@ import { PremiumProfileCard } from '@/components/dashboard/premium-profile-card'
 import { TradeCards } from '@/components/dashboard/trade-cards'
 import { WalletFab } from '@/components/dashboard/wallet-fab'
 import { WealthQuickActions } from '@/components/dashboard/wealth-quick-actions'
-import { WelcomeSection } from '@/components/dashboard/welcome-section'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { DepositModal } from '@/components/wallet/deposit-modal'
 import { WithdrawModal } from '@/components/wallet/withdraw-modal'
@@ -73,8 +72,6 @@ export function WealthHome() {
   return (
     <>
       <div className="space-y-6 lg:space-y-8">
-        <WelcomeSection />
-
         <AccountStatusBanner />
 
         {cmsReady && cmsBoot?.platform.riskDisclaimer ? (

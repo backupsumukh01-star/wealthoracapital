@@ -16,7 +16,7 @@ import type { SupportTicket } from '@/types/domain'
 const selectClass =
   'h-8 rounded-lg border border-white/10 bg-inset/60 px-2 text-caption text-fg'
 
-type TicketRow = SupportTicket & {
+type TicketRow = Omit<SupportTicket, 'priority' | 'messages'> & {
   priority: NonNullable<SupportTicket['priority']> | 'URGENT'
   messages: Array<{ id: string; from: string; body: string; at: string }>
 }

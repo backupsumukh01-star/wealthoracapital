@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /** Production stubs — empty money fixtures. Prefer deposit/withdraw API hooks. */
 
 export type DepositRail = 'INR' | 'CRYPTO'
