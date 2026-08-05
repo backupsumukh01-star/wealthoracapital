@@ -12,6 +12,9 @@ export default defineConfig({
       CSRF_PROTECTION: 'false',
       ENABLE_API_DOCS: 'true',
       METRICS_ENABLED: 'true',
+      // Host-only cookies in tests — parent shells may export COOKIE_DOMAIN for prod-like local.
+      COOKIE_DOMAIN: '',
+      COOKIE_SECURE: 'false',
     },
     coverage: {
       provider: 'v8',

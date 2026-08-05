@@ -10,6 +10,9 @@ loadDotenv()
 process.env.NODE_ENV ||= 'test'
 process.env.CSRF_PROTECTION = 'false'
 process.env.ENABLE_API_DOCS ||= 'true'
+// Force host-only cookies so supertest agents receive auth cookies (shell may export COOKIE_DOMAIN).
+process.env.COOKIE_DOMAIN = ''
+process.env.COOKIE_SECURE = 'false'
 process.env.JWT_ACCESS_SECRET ||= 'test-access-secret-min-32-characters-long!!'
 process.env.JWT_REFRESH_SECRET ||= 'test-refresh-secret-min-32-characters-long!'
 process.env.DATABASE_URL ||=
