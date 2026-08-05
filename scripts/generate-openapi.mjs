@@ -2502,7 +2502,14 @@ const components = {
       in: 'cookie',
       name: 'mfx_csrf',
       description:
-        'Readable CSRF cookie set with login/refresh. Header `X-CSRF-Token` is accepted; server-side CSRF enforcement is planned.',
+        'Readable CSRF cookie set with login/refresh. Swagger UI and the web app copy this value into the `X-CSRF-Token` header for cookie-authenticated mutating requests.',
+    },
+    csrfHeader: {
+      type: 'apiKey',
+      in: 'header',
+      name: 'X-CSRF-Token',
+      description:
+        'Must match the `mfx_csrf` cookie when an access-token cookie is present on POST/PUT/PATCH/DELETE. Swagger UI attaches this automatically from the cookie.',
     },
     bearerAuth: {
       type: 'http',
@@ -3005,7 +3012,7 @@ const doc = {
       '## Authentication',
       '- **Cookie JWT (primary):** `mfx_at` access token (httpOnly). Set by login/refresh.',
       '- **Refresh cookie:** `mfx_rt` (path `/api/v1/auth` only).',
-      '- **CSRF cookie:** `mfx_csrf` (readable). Header `X-CSRF-Token` accepted.',
+      '- **CSRF cookie:** `mfx_csrf` (readable). Mutating requests with `mfx_at` require matching header `X-CSRF-Token`. Swagger UI attaches this automatically.',
       '- **Bearer JWT:** Documented for clients/gateways; runtime currently validates the access cookie.',
       '- **Investor:** any authenticated `USER` (or staff acting as user) with investor permissions.',
       '- **Admin:** `authenticate` + `requireAdminAccess` + fine-grained `requirePermission(...)`.',

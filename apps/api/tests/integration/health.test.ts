@@ -35,6 +35,9 @@ describe('API health & docs', () => {
     const res = await request(app).get('/api/docs').expect(200)
     expect(res.text).toContain('swagger-ui')
     expect(res.text).toContain('/api/openapi.json')
+    expect(res.text).toContain('X-CSRF-Token')
+    expect(res.text).toContain('requestInterceptor')
+    expect(res.text).toContain('mfx_csrf')
   })
 
   it('GET /api/redoc returns redoc html pointing at /api/openapi.json', async () => {

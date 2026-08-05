@@ -53,6 +53,11 @@ function swaggerHtml(): string {
   <script src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-bundle.js" crossorigin></script>
   <script src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-standalone-preset.js" crossorigin></script>
   <script>
+    function readCsrfCookie() {
+      var match = document.cookie.match(/(?:^|; )mfx_csrf=([^;]*)/);
+      return match ? decodeURIComponent(match[1]) : '';
+    }
+
     window.ui = SwaggerUIBundle({
       url: ${JSON.stringify(OPENAPI_JSON_PATH)},
       dom_id: '#swagger-ui',
@@ -63,7 +68,17 @@ function swaggerHtml(): string {
       tryItOutEnabled: true,
       displayRequestDuration: true,
       filter: true,
-      withCredentials: true
+      withCredentials: true,
+      // Double-submit CSRF: after login/refresh the readable mfx_csrf cookie is set.
+      // Mirror the web client by copying it onto X-CSRF-Token for mutating calls.
+      requestInterceptor: function (req) {
+        var token = readCsrfCookie();
+        if (token) {
+          if (!req.headers) req.headers = {};
+          req.headers['X-CSRF-Token'] = token;
+        }
+        return req;
+      }
     });
   </script>
 </body>
