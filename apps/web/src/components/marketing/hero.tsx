@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { SITE } from '@/lib/constants'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { useAuthModal } from '@/providers/auth-modal-provider'
-import { useAdminOs } from '@/providers/admin-os-provider'
+import { usePublishedLanding } from '@/features/cms/site'
 
 import { HeroMarketCards } from './hero-market-cards'
 import { HeroVisual } from './hero-visual'
@@ -28,7 +28,7 @@ const TRUST = [
 export function Hero() {
   const prefersReducedMotion = usePrefersReducedMotion()
   const { openAuth } = useAuthModal()
-  const { publishedLanding: cms } = useAdminOs()
+  const { landing: cms } = usePublishedLanding()
   const heroMotion = cms.heroMotion
   const intensity = heroMotion?.intensity ?? 1
   const showGlow = !prefersReducedMotion && (heroMotion?.glowEnabled ?? true)

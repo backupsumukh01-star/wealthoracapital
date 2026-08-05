@@ -20,23 +20,33 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/components/ui/toast'
-import { SUPPORT_FAQS } from '@/lib/investor-demo-data'
+import { usePublishedFaqs, usePublishedLanding, usePublishedPlatform, usePublicSettings } from '@/features/cms/site'
 import { cn } from '@/lib/cn'
-import { useAdminOs } from '@/providers/admin-os-provider'
-
-const WHATSAPP_URL = 'https://wa.me/15551234567?text=Hi%20Growzy%20support'
+import { supportService } from '@/services/support.service'
 
 export function SupportWorkspace() {
   const [openFaq, setOpenFaq] = useState<number | null>(0)
-  const { ready, state } = useAdminOs()
-  const support = ready ? state.platformCms.supportBlock : null
-  const whatsapp = ready ? state.global.supportWhatsApp : ''
+  const [category, setCategory] = useState('deposit')
+  const [subject, setSubject] = useState('')
+  const [details, setDetails] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const { platform, isSuccess: platformReady } = usePublishedPlatform()
+  const { landing } = usePublishedLanding()
+  const { faqs } = usePublishedFaqs()
+  const { data: publicSettings } = usePublicSettings()
+
+  const support = platformReady ? platform.supportBlock : null
+  const supportEmail = publicSettings?.supportEmail || landing.supportEmail
+  const whatsapp = landing.whatsapp
   const waHref =
     whatsapp && whatsapp.startsWith('http')
       ? whatsapp
       : whatsapp
         ? `https://wa.me/${whatsapp.replace(/\D/g, '')}`
-        : WHATSAPP_URL
+        : supportEmail
+          ? `mailto:${supportEmail}`
+          : undefined
 
   return (
     <div className="space-y-6 lg:space-y-8">
@@ -80,15 +90,28 @@ export function SupportWorkspace() {
               description="Message the desk on WhatsApp for deposit proofs and payout questions."
             />
             <p className="mt-4 text-body-sm text-fg-muted">
-              Have your User ID and any deposit/withdrawal reference ready. Demo number only —
-              replace before launch.
+              Have your User ID and any deposit/withdrawal reference ready.
+              {supportEmail ? (
+                <>
+                  {' '}
+                  Or email{' '}
+                  <a className="text-accent-300 underline-offset-2 hover:underline" href={`mailto:${supportEmail}`}>
+                    {supportEmail}
+                  </a>
+                  .
+                </>
+              ) : null}
             </p>
-            <Button asChild className="mt-5">
-              <a href={waHref} target="_blank" rel="noopener noreferrer">
-                <MessageCircle aria-hidden />
-                Open WhatsApp
-              </a>
-            </Button>
+            {waHref ? (
+              <Button asChild className="mt-5">
+                <a href={waHref} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle aria-hidden />
+                  {whatsapp ? 'Open WhatsApp' : 'Email support'}
+                </a>
+              </Button>
+            ) : (
+              <p className="mt-5 text-body-sm text-fg-subtle">Support contact is not configured yet.</p>
+            )}
           </Card>
         </TabsContent>
 
@@ -100,13 +123,28 @@ export function SupportWorkspace() {
             />
             <form
               className="mt-5 max-w-xl space-y-4"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault()
-                toast.success('Ticket created (demo)', 'TKT-2026-00412')
+                if (!subject.trim() || !details.trim()) return
+                setSubmitting(true)
+                try {
+                  const ticket = await supportService.create({
+                    subject,
+                    body: details,
+                    category,
+                  })
+                  toast.success('Ticket created', ticket.id)
+                  setSubject('')
+                  setDetails('')
+                } catch {
+                  toast.error('Could not create ticket. Please try again.')
+                } finally {
+                  setSubmitting(false)
+                }
               }}
             >
               <FormField label="Category" required>
-                <Select defaultValue="deposit">
+                <Select value={category} onValueChange={setCategory}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -119,12 +157,21 @@ export function SupportWorkspace() {
                 </Select>
               </FormField>
               <FormField label="Subject" required>
-                <Input placeholder="Short summary" />
+                <Input
+                  placeholder="Short summary"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                />
               </FormField>
               <FormField label="Details" required>
-                <Textarea rows={5} placeholder="Describe the issue and include references…" />
+                <Textarea
+                  rows={5}
+                  placeholder="Describe the issue and include references…"
+                  value={details}
+                  onChange={(e) => setDetails(e.target.value)}
+                />
               </FormField>
-              <Button type="submit">
+              <Button type="submit" loading={submitting}>
                 <Ticket aria-hidden />
                 Submit ticket
               </Button>
@@ -135,7 +182,7 @@ export function SupportWorkspace() {
         <TabsContent value="faq" className="mt-4">
           <Card variant="glass" className="p-5 sm:p-6">
             <SectionHeader title="FAQ" description="Quick answers for common investor questions." />
-            {SUPPORT_FAQS.length === 0 ? (
+            {faqs.length === 0 ? (
               <PremiumEmptyState
                 variant="support"
                 title="No FAQs yet"
@@ -143,17 +190,17 @@ export function SupportWorkspace() {
               />
             ) : (
               <ul className="mt-5 space-y-2">
-                {SUPPORT_FAQS.map((item, index) => {
+                {faqs.map((item, index) => {
                   const open = openFaq === index
                   return (
-                    <li key={item.q} className="overflow-hidden rounded-xl border border-line">
+                    <li key={item.id || item.question} className="overflow-hidden rounded-xl border border-line">
                       <button
                         type="button"
                         className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left text-body-sm font-medium text-fg hover:bg-hover/40"
                         aria-expanded={open}
                         onClick={() => setOpenFaq(open ? null : index)}
                       >
-                        {item.q}
+                        {item.question}
                         <span
                           className={cn(
                             'text-fg-subtle transition-transform duration-200',
@@ -166,7 +213,7 @@ export function SupportWorkspace() {
                       </button>
                       {open ? (
                         <p className="border-t border-line bg-inset/30 px-4 py-3 text-body-sm text-fg-muted">
-                          {item.a}
+                          {item.answer}
                         </p>
                       ) : null}
                     </li>

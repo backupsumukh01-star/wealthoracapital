@@ -20,7 +20,8 @@ export async function hasSessionCookie(): Promise<boolean> {
   return cookieStore.has(COOKIES.investorAccess)
 }
 
+/** @deprecated Admin and investor sessions share the same `mfx_at` cookie — use `hasSessionCookie`. */
 export async function hasAdminSessionCookie(): Promise<boolean> {
   const cookieStore = await cookies()
-  return cookieStore.has(COOKIES.adminAccess)
+  return cookieStore.has(COOKIES.investorAccess)
 }

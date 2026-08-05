@@ -70,6 +70,7 @@ export const adminWalletAdjustSchema = z.object({
   amount: money,
   direction: z.enum(['CREDIT', 'DEBIT']),
   reason: z.string().min(3).max(500),
+  idempotencyKey: z.string().min(8).max(120),
 })
 
 export const paymentMethodCreateSchema = z.object({

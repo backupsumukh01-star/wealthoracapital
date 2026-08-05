@@ -1,6 +1,6 @@
 'use client'
 
-import type { ElementType, ReactNode } from 'react'
+import { useState, type ElementType, type ReactNode } from 'react'
 
 import { cn } from '@/lib/cn'
 
@@ -21,9 +21,9 @@ export interface RevealOnScrollProps {
 /**
  * Scroll reveal: opacity 0→1 and a soft rise, triggered once when entering view.
  *
- * Only opacity and transform animate, so text is readable before the animation finishes and
- * nothing reflows. A section that re-animates on every scroll pass is noise, so `once` is not
- * configurable.
+ * After the reveal finishes we swap to a plain element (no Framer transform).
+ * Persistent transforms create compositor layers that can steal clicks from
+ * sticky/fixed chrome while the page is scrolled.
  */
 export function RevealOnScroll({
   children,
@@ -35,6 +35,12 @@ export function RevealOnScroll({
   amount = 0.15,
 }: RevealOnScrollProps) {
   const Component = useMotionComponent(as)
+  const [revealed, setRevealed] = useState(false)
+  const Tag = as
+
+  if (revealed) {
+    return <Tag className={cn(className)}>{children}</Tag>
+  }
 
   return (
     <Component
@@ -42,6 +48,7 @@ export function RevealOnScroll({
       whileInView={{ opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true, amount }}
       transition={{ duration: DURATION.slower, delay, ease: EASE_OUT }}
+      onAnimationComplete={() => setRevealed(true)}
       className={cn(className)}
     >
       {children}

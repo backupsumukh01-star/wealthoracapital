@@ -1,13 +1,15 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { StaffRole, type Role } from '@meridian/shared'
+import { useEffect } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { ROUTES, type Role, type StaffRole } from '@meridian/shared'
 
 import { ProtectedRoute } from '@/components/auth/protected-route'
-import { hasAdminSession } from '@/lib/demo-admin-auth'
-import { hasDemoSession } from '@/lib/demo-auth'
 import { useSession } from '@/providers/session-provider'
 import type { Permission } from '@/config/permissions.config'
+import { ADMIN_ROUTE_PERMISSIONS } from '@/config/admin-route-permissions'
+import { INVESTOR_ROUTE_PERMISSIONS } from '@/config/investor-route-permissions'
 
 export { ProtectedRoute }
 
@@ -31,11 +33,12 @@ export function RoleGate({
 
 /** Guest-only surfaces (login/register) — UI hint; middleware also redirects. */
 export function GuestGate({ children, fallback = null }: { children: ReactNode; fallback?: ReactNode }) {
-  if (typeof window !== 'undefined' && hasDemoSession()) return <>{fallback}</>
+  const { isAuthenticated } = useSession()
+  if (isAuthenticated) return <>{fallback}</>
   return <>{children}</>
 }
 
-/** Any authenticated investor (demo cookie or session). */
+/** Any authenticated investor. */
 export function InvestorGate({
   children,
   fallback = null,
@@ -46,10 +49,6 @@ export function InvestorGate({
   return <ProtectedRoute fallback={fallback}>{children}</ProtectedRoute>
 }
 
-/**
- * Verified investor gate — when API is live, check `user.kycStatus === APPROVED`
- * and `emailVerified`. Demo: session cookie only.
- */
 export function VerifiedInvestorGate({
   children,
   fallback = null,
@@ -60,7 +59,7 @@ export function VerifiedInvestorGate({
   return <ProtectedRoute fallback={fallback}>{children}</ProtectedRoute>
 }
 
-/** Admin console presence gate (demo admin cookie). */
+/** Admin console presence gate — staff session required. */
 export function AdminGate({
   children,
   fallback = null,
@@ -68,14 +67,11 @@ export function AdminGate({
   children: ReactNode
   fallback?: ReactNode
 }) {
-  if (typeof window !== 'undefined' && !hasAdminSession()) return <>{fallback}</>
+  const { isStaff } = useSession()
+  if (!isStaff) return <>{fallback}</>
   return <>{children}</>
 }
 
-/**
- * Staff role gate — prepared for JWT claims / `/admin/me`.
- * Demo: Super Admin path always allows when admin cookie present.
- */
 export function StaffRoleGate({
   roles,
   children,
@@ -85,26 +81,92 @@ export function StaffRoleGate({
   children: ReactNode
   fallback?: ReactNode
 }) {
-  if (typeof window !== 'undefined' && !hasAdminSession()) return <>{fallback}</>
-  // Until staff role is on the session, treat console operators as SUPER_ADMIN in demo.
-  const current: StaffRole = StaffRole.SUPER_ADMIN
-  if (!roles.includes(current)) return <>{fallback}</>
+  const { isStaff, staffRole, role } = useSession()
+  if (!isStaff) return <>{fallback}</>
+  if (role === 'SUPER_ADMIN' || staffRole === 'SUPER_ADMIN') return <>{children}</>
+  if (role === 'ADMIN' || staffRole === 'ADMIN') return <>{children}</>
+  if (!staffRole || !roles.includes(staffRole)) return <>{fallback}</>
+  return <>{children}</>
+}
+
+export function PermissionGate({
+  permission,
+  anyOf,
+  children,
+  fallback = null,
+}: {
+  permission?: Permission | string
+  anyOf?: Array<Permission | string>
+  children: ReactNode
+  fallback?: ReactNode
+}) {
+  const { can, canAny } = useSession()
+  const ok = anyOf?.length ? canAny(anyOf) : permission ? can(permission) : false
+  if (!ok) return <>{fallback}</>
   return <>{children}</>
 }
 
 /**
- * Permission gate — prepared for RBAC matrix from `adminService.roles()`.
- * Demo: allow all when admin session exists.
+ * Redirects away when the current admin path requires a permission the session lacks.
+ * Mount once inside the admin layout.
  */
-export function PermissionGate({
-  permission: _permission,
-  children,
-  fallback = null,
-}: {
-  permission: Permission
-  children: ReactNode
-  fallback?: ReactNode
-}) {
-  if (typeof window !== 'undefined' && !hasAdminSession()) return <>{fallback}</>
+export function AdminPermissionRouteGuard({ children }: { children: ReactNode }) {
+  const pathname = usePathname()
+  const router = useRouter()
+  const { isStaff, isLoading, canAny, can } = useSession()
+
+  useEffect(() => {
+    if (isLoading || !isStaff) return
+    const required = matchAdminRoutePermission(pathname)
+    if (!required) return
+    const ok = Array.isArray(required) ? canAny(required) : can(required)
+    if (!ok) {
+      router.replace(ROUTES.admin.root)
+    }
+  }, [pathname, isLoading, isStaff, can, canAny, router])
+
   return <>{children}</>
+}
+
+/**
+ * Redirects away when the current investor path requires a permission the session lacks.
+ */
+export function InvestorPermissionRouteGuard({ children }: { children: ReactNode }) {
+  const pathname = usePathname()
+  const router = useRouter()
+  const { isAuthenticated, isLoading, canAny, can } = useSession()
+
+  useEffect(() => {
+    if (isLoading || !isAuthenticated) return
+    const required = matchRoutePermission(pathname, INVESTOR_ROUTE_PERMISSIONS)
+    if (!required) return
+    const ok = Array.isArray(required) ? canAny(required) : can(required)
+    if (!ok) {
+      // Prefer profile as fallback — every authenticated user has profile.view.
+      // Avoid redirect loops when the current path already is the fallback.
+      const fallback = ROUTES.dashboard.settings.profile
+      if (pathname !== fallback) {
+        router.replace(fallback)
+      }
+    }
+  }, [pathname, isLoading, isAuthenticated, can, canAny, router])
+
+  return <>{children}</>
+}
+
+function matchAdminRoutePermission(pathname: string): string | string[] | null {
+  return matchRoutePermission(pathname, ADMIN_ROUTE_PERMISSIONS)
+}
+
+function matchRoutePermission(
+  pathname: string,
+  map: Record<string, string | string[]>,
+): string | string[] | null {
+  const entries = Object.entries(map).sort((a, b) => b[0].length - a[0].length)
+  for (const [prefix, permission] of entries) {
+    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
+      return permission
+    }
+  }
+  return null
 }

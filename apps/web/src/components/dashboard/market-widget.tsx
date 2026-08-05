@@ -1,16 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 
-import { AnimatedNumber } from '@/components/motion/animated-number'
 import { MarketClocks } from '@/components/dashboard/market-clocks'
-import { useLiveDrift } from '@/hooks/use-live-drift'
+import { Percent } from '@/components/common/percent'
+import { usePublicTrades, useTradePairs, useTradeStats } from '@/features/trades/hooks'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
-import { MARKET_SNAPSHOT } from '@/lib/dashboard-data'
 import { cn } from '@/lib/cn'
 
 function MiniSpark({ values, positive }: { values: number[]; positive: boolean }) {
+  if (values.length < 2) {
+    return <span className="inline-block h-7 w-16" aria-hidden />
+  }
   const min = Math.min(...values)
   const max = Math.max(...values)
   const span = max - min || 1
@@ -39,32 +41,20 @@ function MiniSpark({ values, positive }: { values: number[]; positive: boolean }
   )
 }
 
-function LiveMarketRow({
+function MarketRow({
   symbol,
   price,
   changePct,
-  decimals,
   spark,
   delay,
 }: {
   symbol: string
   price: string
   changePct: string
-  decimals: number
   spark: number[]
   delay: number
 }) {
-  const base = Number(price)
-  const maxDelta =
-    decimals >= 4 ? 0.00035 : decimals === 2 ? (base > 1000 ? 0.8 : 0.06) : base > 1000 ? 18 : 2.5
-  const live = useLiveDrift(base, {
-    intervalMs: 2800 + delay * 400,
-    maxDelta,
-    decimals,
-    startAfterMs: 900 + delay * 200,
-  })
   const positive = Number(changePct) >= 0
-  const tickUp = live >= base
 
   return (
     <motion.li
@@ -76,25 +66,17 @@ function LiveMarketRow({
     >
       <div className="min-w-0">
         <p className="text-body-sm font-medium text-fg">{symbol}</p>
-        <p
-          className={cn(
-            'tabular-nums text-caption transition-colors',
-            tickUp ? 'text-profit' : 'text-loss',
-          )}
-        >
-          <AnimatedNumber value={live} decimals={decimals} duration={0.55} />
-        </p>
+        <p className="tabular-nums text-caption text-fg-muted">{price}</p>
       </div>
-      <MiniSpark values={[...spark]} positive={positive} />
-      <p
+      <MiniSpark values={spark} positive={positive} />
+      <Percent
+        value={changePct}
+        showArrow
         className={cn(
           'w-14 text-right text-caption font-medium tabular-nums',
           positive ? 'text-profit' : 'text-loss',
         )}
-      >
-        {positive ? '+' : ''}
-        {changePct}%
-      </p>
+      />
     </motion.li>
   )
 }
@@ -102,6 +84,48 @@ function LiveMarketRow({
 export function MarketWidget() {
   const prefersReducedMotion = usePrefersReducedMotion()
   const [pulse, setPulse] = useState(true)
+  const { data: trades = [], isLoading: tradesLoading } = usePublicTrades()
+  const { data: pairs = [] } = useTradePairs()
+  const { data: stats } = useTradeStats()
+
+  const rows = useMemo(() => {
+    const byPair = new Map<
+      string,
+      { symbol: string; price: string; changePct: string; spark: number[] }
+    >()
+
+    for (const trade of trades) {
+      const existing = byPair.get(trade.pair)
+      const pct = Number(trade.returnPct)
+      if (!existing) {
+        byPair.set(trade.pair, {
+          symbol: trade.pair,
+          price: trade.exitPrice || trade.entryPrice || '—',
+          changePct: String(trade.returnPct),
+          spark: Number.isFinite(pct) ? [pct] : [],
+        })
+      } else {
+        existing.spark.push(Number.isFinite(pct) ? pct : 0)
+        existing.price = trade.exitPrice || trade.entryPrice || existing.price
+        existing.changePct = String(trade.returnPct)
+      }
+    }
+
+    let list = Array.from(byPair.values())
+    if (!list.length && pairs.length) {
+      list = pairs.slice(0, 6).map((symbol) => ({
+        symbol,
+        price: '—',
+        changePct: stats?.avgReturnPct ?? '0',
+        spark: [],
+      }))
+    }
+
+    return list.slice(0, 6).map((row) => ({
+      ...row,
+      spark: row.spark.length >= 2 ? row.spark.slice(-8) : row.spark,
+    }))
+  }, [pairs, stats?.avgReturnPct, trades])
 
   useEffect(() => {
     if (prefersReducedMotion) return
@@ -135,19 +159,24 @@ export function MarketWidget() {
 
       <MarketClocks className="mt-4 border-b border-line/60 pb-4" />
 
-      <ul className="mt-2 space-y-0.5">
-        {MARKET_SNAPSHOT.map((m, i) => (
-          <LiveMarketRow
-            key={m.id}
-            symbol={m.symbol}
-            price={m.price}
-            changePct={m.changePct}
-            decimals={m.decimals}
-            spark={[...m.spark]}
-            delay={i}
-          />
-        ))}
-      </ul>
+      {tradesLoading ? (
+        <p className="mt-4 text-body-sm text-fg-subtle">Loading markets…</p>
+      ) : rows.length === 0 ? (
+        <p className="mt-4 text-body-sm text-fg-subtle">No market pairs published yet.</p>
+      ) : (
+        <ul className="mt-2 space-y-0.5">
+          {rows.map((m, i) => (
+            <MarketRow
+              key={m.symbol}
+              symbol={m.symbol}
+              price={m.price}
+              changePct={m.changePct}
+              spark={m.spark}
+              delay={i}
+            />
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

@@ -21,6 +21,8 @@ authRouter.post('/login', authRateLimiter, validate(loginSchema), authController
 authRouter.post('/logout', optionalAuthenticate, authController.logout)
 authRouter.post('/refresh', authRateLimiter, authController.refresh)
 authRouter.get('/me', authenticate, authController.me)
+authRouter.get('/google', authRateLimiter, authController.googleStart)
+authRouter.get('/google/callback', authRateLimiter, authController.googleCallback)
 authRouter.post('/verify-email', authRateLimiter, validate(verifyEmailSchema), authController.verifyEmail)
 authRouter.post(
   '/verify-email/resend',

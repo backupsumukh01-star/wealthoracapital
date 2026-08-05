@@ -1,18 +1,18 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { ROUTES } from '@meridian/shared'
 
 import { LoadingScreen } from '@/components/auth/loading-screen'
-import { hasDemoSession } from '@/lib/demo-auth'
+import { useSession } from '@/providers/session-provider'
 
 /**
  * Client-side route gate for authenticated investor surfaces.
  *
- * Complements middleware (cookie presence). Unauthenticated users are sent to Login
- * with `?next=` so they return after signing in. Replace `hasDemoSession` with
- * `/auth/me` when the API is connected.
+ * Complements middleware (cookie presence). Reads the real session from `/auth/me` via
+ * `useSession`; unauthenticated users are sent to Login with `?next=` so they return after
+ * signing in.
  */
 export function ProtectedRoute({
   children,
@@ -23,20 +23,15 @@ export function ProtectedRoute({
 }) {
   const router = useRouter()
   const pathname = usePathname()
-  const [ready, setReady] = useState(false)
-  const [allowed, setAllowed] = useState(false)
+  const { isAuthenticated, isLoading } = useSession()
 
   useEffect(() => {
-    const ok = hasDemoSession()
-    setAllowed(ok)
-    setReady(true)
-    if (!ok) {
-      const next = encodeURIComponent(pathname || ROUTES.dashboard.root)
-      router.replace(`${ROUTES.auth.login}?next=${next}`)
-    }
-  }, [pathname, router])
+    if (isLoading || isAuthenticated) return
+    const next = encodeURIComponent(pathname || ROUTES.dashboard.root)
+    router.replace(`${ROUTES.auth.login}?next=${next}`)
+  }, [isLoading, isAuthenticated, pathname, router])
 
-  if (!ready) return <>{fallback ?? <LoadingScreen label="Checking session…" />}</>
-  if (!allowed) return <>{fallback ?? <LoadingScreen label="Redirecting to login…" />}</>
+  if (isLoading) return <>{fallback ?? <LoadingScreen label="Checking session…" />}</>
+  if (!isAuthenticated) return <>{fallback ?? <LoadingScreen label="Redirecting to login…" />}</>
   return <>{children}</>
 }

@@ -46,7 +46,7 @@ export function AdminTradeForm() {
       toast.error('Fill pair, entry, exit, and profit %')
       return
     }
-    toast.success('Trade published (demo)', {
+    toast.success('Trade published', {
       description: `${direction} ${pair} · ${profitPct}%`,
     })
     router.push(ROUTES.admin.trades)
@@ -145,7 +145,7 @@ export function AdminTradeForm() {
                 </p>
               </div>
               <div>
-                <p className="text-caption text-fg-subtle">Est. desk P&amp;L (demo)</p>
+                <p className="text-caption text-fg-subtle">Est. desk P&amp;L</p>
                 <div className="mt-0.5">
                   {estimatedUsd ? <Money value={estimatedUsd} size="md" signed /> : '—'}
                 </div>

@@ -12,6 +12,7 @@ import { filesRouter } from './files.routes.js'
 import { healthRouter } from './health.routes.js'
 import { kycRouter } from './kyc.routes.js'
 import { notificationRouter } from './notification.routes.js'
+import { paymentWebhookRouter } from './payment-webhook.routes.js'
 import { performanceRouter } from './performance.routes.js'
 import { portfolioRouter } from './portfolio.routes.js'
 import { profileRouter } from './profile.routes.js'
@@ -49,6 +50,7 @@ export function createApiRouter(): Router {
   router.use('/v1/wallet', walletRouter)
   router.use('/v1/deposits', depositRouter)
   router.use('/v1/withdrawals', withdrawalRouter)
+  router.use('/v1/webhooks', paymentWebhookRouter)
   router.use('/v1/transactions', transactionRouter)
   router.use('/v1/trades', tradeRouter)
   router.use('/v1/performance', performanceRouter)

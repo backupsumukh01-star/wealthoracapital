@@ -36,8 +36,10 @@ export function CountUp({
   const isInView = useInView(ref, { once: true, amount: 0.4 })
   const prefersReducedMotion = usePrefersReducedMotion()
 
-  const target = Number(value)
-  const isNumeric = Number.isFinite(target)
+  const trimmed = value.trim()
+  const target = Number(trimmed)
+  // An empty string is not "zero" — treat it as missing data, not a real numeric value.
+  const isNumeric = trimmed !== '' && Number.isFinite(target)
   const [display, setDisplay] = useState(isNumeric ? 0 : Number.NaN)
 
   useEffect(() => {
@@ -62,17 +64,23 @@ export function CountUp({
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,
       }).format(display)
-    : value
+    : '—'
 
   return (
     <span ref={ref} data-numeric className={cn('tabular-nums', className)}>
       {/* The final value is always in the DOM for assistive technology, animation or not. */}
       <span aria-hidden>
-        {prefix}
-        {formatted}
-        {suffix}
+        {isNumeric ? (
+          <>
+            {prefix}
+            {formatted}
+            {suffix}
+          </>
+        ) : (
+          formatted
+        )}
       </span>
-      <span className="sr-only">{`${prefix}${value}${suffix}`}</span>
+      <span className="sr-only">{isNumeric ? `${prefix}${value}${suffix}` : formatted}</span>
     </span>
   )
 }

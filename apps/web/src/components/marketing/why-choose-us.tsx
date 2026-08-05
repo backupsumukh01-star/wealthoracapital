@@ -13,7 +13,7 @@ import {
 import { Section } from '@/components/common/section'
 import { WHY_CHOOSE_US } from '@/lib/landing-data'
 
-const ICONS: Record<(typeof WHY_CHOOSE_US)[number]['icon'], LucideIcon> = {
+const ICONS: Record<string, LucideIcon> = {
   cpu: Cpu,
   'badge-check': BadgeCheck,
   candlestick: CandlestickChart,
@@ -34,7 +34,7 @@ export function WhyChooseUs() {
     >
       <ul className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-3">
         {WHY_CHOOSE_US.map((item) => {
-          const Icon = ICONS[item.icon]
+          const Icon = ICONS[item.icon] ?? Shield
           return (
             <li key={item.title}>
               <article className="flex h-[120px] flex-col rounded-xl border border-white/[0.07] bg-raised/60 p-2.5 sm:h-[132px] sm:p-3.5">

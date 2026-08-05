@@ -2,8 +2,34 @@
 
 import { ExternalLink } from 'lucide-react'
 
-import { UPI_APPS } from '@/lib/investor-demo-data'
+import { useDepositMethods } from '@/features/deposits/hooks'
 import { cn } from '@/lib/cn'
+
+type UpiApp = {
+  id: string
+  name: string
+  deepLink: string
+  brand: string
+}
+
+function appsFromMethods(
+  methods: Array<{ id: string; name: string; accountDetails: Record<string, string> }> | undefined,
+): UpiApp[] {
+  if (!methods?.length) return []
+  const apps: UpiApp[] = []
+  for (const method of methods) {
+    const details = method.accountDetails ?? {}
+    const deepLink = details.deepLink || details.upiLink || details.upiUri
+    if (!deepLink) continue
+    apps.push({
+      id: method.id,
+      name: details.appName || method.name,
+      deepLink,
+      brand: details.brand || '#12D6A0',
+    })
+  }
+  return apps
+}
 
 export function UpiAppCards({
   amount,
@@ -14,12 +40,17 @@ export function UpiAppCards({
   onOpened?: (appId: string) => void
   className?: string
 }) {
+  const { data: methods } = useDepositMethods()
+  const apps = appsFromMethods(methods)
+
+  if (!apps.length) return null
+
   return (
     <div className={cn('grid gap-3', className)}>
-      {UPI_APPS.map((app) => {
+      {apps.map((app) => {
         const href =
           amount && Number(amount) > 0
-            ? `${app.deepLink}&am=${encodeURIComponent(amount)}`
+            ? `${app.deepLink}${app.deepLink.includes('?') ? '&' : '?'}am=${encodeURIComponent(amount)}`
             : app.deepLink
 
         return (

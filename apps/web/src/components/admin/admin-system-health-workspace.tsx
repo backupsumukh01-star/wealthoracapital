@@ -1,15 +1,16 @@
 'use client'
 
 import { RefreshCw } from 'lucide-react'
+import { useEffect } from 'react'
 import { toast } from 'sonner'
 
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import { PageHeader } from '@/components/common/page-header'
 import { PremiumEmptyState } from '@/components/dashboard/premium-empty-state'
 import { Button } from '@/components/ui/button'
+import { useAdminHealth } from '@/features/admin/hooks'
 import type { HealthTone } from '@/lib/admin-cms-extras'
 import { cn } from '@/lib/cn'
-import { useAdminHealth } from '@/features/admin/hooks'
 import type { AdminHealthSnapshot } from '@/types/domain'
 
 const TONE: Record<HealthTone, string> = {
@@ -29,24 +30,59 @@ const EMPTY_HEALTH: AdminHealthSnapshot = {
   version: '—',
   environment: 'production',
   metrics: [],
+  logs: { system: [], audit: [], errors: [] },
+}
+
+const GROUPS = [
+  { id: 'infra', title: 'Infrastructure' },
+  { id: 'services', title: 'Services & queues' },
+  { id: 'ops', title: 'Operations' },
+  { id: 'security', title: 'Logs & audit' },
+] as const
+
+function LogTable({
+  rows,
+  empty,
+}: {
+  rows: Array<{ id: string; at: string; primary: string; secondary: string }>
+  empty: string
+}) {
+  if (rows.length === 0) {
+    return <p className="px-4 py-6 text-caption text-fg-subtle sm:px-5">{empty}</p>
+  }
+  return (
+    <ul className="divide-y divide-white/[0.05]">
+      {rows.map((r) => (
+        <li key={r.id} className="flex flex-col gap-0.5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="min-w-0">
+            <p className="truncate text-body-sm text-fg">{r.primary}</p>
+            <p className="truncate text-caption text-fg-muted">{r.secondary}</p>
+          </div>
+          <p className="shrink-0 text-[11px] tabular-nums text-fg-subtle">
+            {r.at.slice(0, 19).replace('T', ' ')}
+          </p>
+        </li>
+      ))}
+    </ul>
+  )
 }
 
 export function AdminSystemHealthWorkspace() {
   const { data, isFetching, refetch, isError } = useAdminHealth()
   const h = data ?? EMPTY_HEALTH
 
-  const groups = [
-    { id: 'infra' as const, title: 'Infrastructure' },
-    { id: 'services' as const, title: 'Services' },
-    { id: 'ops' as const, title: 'Operations' },
-    { id: 'security' as const, title: 'Security & audit' },
-  ]
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      void refetch()
+    }, 30_000)
+    return () => window.clearInterval(id)
+  }, [refetch])
 
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="System Health"
-        description="Live operational signals for database, API, jobs, queues, and money queues."
+        description="Live production metrics — API, database, Redis, queues, storage, money flows, and logs."
         actions={
           <Button
             type="button"
@@ -62,7 +98,7 @@ export function AdminSystemHealthWorkspace() {
               }
             }}
           >
-            <RefreshCw aria-hidden />
+            <RefreshCw aria-hidden className={cn(isFetching && 'animate-spin')} />
             Refresh
           </Button>
         }
@@ -73,7 +109,7 @@ export function AdminSystemHealthWorkspace() {
           <div className="p-4 sm:p-5">
             <PremiumEmptyState
               title="Health API unavailable"
-              description="Connect the admin health endpoint to see live probes."
+              description="GET /admin/health failed. Check operator session and API connectivity."
             />
           </div>
         </AdminPanel>
@@ -96,26 +132,24 @@ export function AdminSystemHealthWorkspace() {
           <div className="p-4 sm:p-5">
             <p className="text-caption text-fg-subtle">Last refresh</p>
             <p className="mt-1 text-heading-sm tabular-nums text-fg">
-              {h.refreshedAt.slice(0, 19).replace('T', ' ')}
+              {h.refreshedAt.slice(0, 19).replace('T', ' ')} UTC
             </p>
           </div>
         </AdminPanel>
       </div>
 
-      {h.metrics.length === 0 ? (
+      {h.metrics.length === 0 && !isError ? (
         <AdminPanel>
           <div className="p-4 sm:p-5">
             <PremiumEmptyState
               title="No health metrics yet"
-              description="Metrics will appear here once the backend probes are connected."
+              description="Metrics will appear here once the backend probes respond."
             />
           </div>
         </AdminPanel>
       ) : null}
 
-      {groups
-        .filter((g) => h.metrics.some((m) => m.group === g.id))
-        .map((g) => (
+      {GROUPS.filter((g) => h.metrics.some((m) => m.group === g.id)).map((g) => (
         <AdminPanel key={g.id}>
           <AdminPanelHeader title={g.title} />
           <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3 sm:p-5">
@@ -124,10 +158,7 @@ export function AdminSystemHealthWorkspace() {
               .map((m) => (
                 <article
                   key={m.id}
-                  className={cn(
-                    'rounded-2xl border p-4 transition-colors',
-                    TONE[m.tone],
-                  )}
+                  className={cn('rounded-2xl border p-4 transition-colors', TONE[m.tone])}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-caption opacity-80">{m.label}</p>
@@ -140,6 +171,45 @@ export function AdminSystemHealthWorkspace() {
           </div>
         </AdminPanel>
       ))}
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        <AdminPanel>
+          <AdminPanelHeader title="System Logs" description="Recent in-process API events." />
+          <LogTable
+            empty="No system log entries buffered yet."
+            rows={(h.logs?.system ?? []).map((l) => ({
+              id: l.id,
+              at: l.at,
+              primary: l.message,
+              secondary: l.level.toUpperCase(),
+            }))}
+          />
+        </AdminPanel>
+        <AdminPanel>
+          <AdminPanelHeader title="Audit Logs" description="Latest rows from audit_logs." />
+          <LogTable
+            empty="No audit entries."
+            rows={(h.logs?.audit ?? []).map((l) => ({
+              id: l.id,
+              at: l.at,
+              primary: `${l.module} · ${l.action}`,
+              secondary: l.actorId ? `actor ${l.actorId.slice(0, 8)}…` : 'system',
+            }))}
+          />
+        </AdminPanel>
+        <AdminPanel>
+          <AdminPanelHeader title="Error Logs" description="Buffered 5xx and job failures." />
+          <LogTable
+            empty="No recent errors."
+            rows={(h.logs?.errors ?? []).map((l) => ({
+              id: l.id,
+              at: l.at,
+              primary: l.message,
+              secondary: l.level.toUpperCase(),
+            }))}
+          />
+        </AdminPanel>
+      </div>
     </div>
   )
 }

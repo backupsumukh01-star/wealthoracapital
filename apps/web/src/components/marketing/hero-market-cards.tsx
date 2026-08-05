@@ -1,19 +1,39 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import type { Trade } from '@meridian/shared'
 
-import { FOREX_TICKER } from '@/lib/landing-data'
+import { usePublicTrades } from '@/features/trades/hooks'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { cn } from '@/lib/cn'
 
-/** Glass market cards — horizontal auto-scroll on mobile, 3-up on desktop. */
+type Card = { pair: string; price: string; change: string }
+
+function latestPerPair(trades: Trade[]): Card[] {
+  const seen = new Map<string, Trade>()
+  for (const t of trades) {
+    if (!seen.has(t.pair)) seen.set(t.pair, t)
+  }
+  return Array.from(seen.values())
+    .slice(0, 3)
+    .map((t) => ({
+      pair: t.pair,
+      price: t.exitPrice,
+      change: String(t.returnPct).replace(/^\+/, ''),
+    }))
+}
+
+/** Glass market cards from recently published trades — horizontal auto-scroll on mobile. */
 export function HeroMarketCards() {
   const prefersReducedMotion = usePrefersReducedMotion()
+  const { data: trades = [] } = usePublicTrades()
   const scrollerRef = useRef<HTMLDivElement>(null)
   const pausedRef = useRef(false)
 
+  const cards = useMemo(() => latestPerPair(trades), [trades])
+
   useEffect(() => {
-    if (prefersReducedMotion) return
+    if (prefersReducedMotion || cards.length === 0) return
     const el = scrollerRef.current
     if (!el) return
 
@@ -36,9 +56,9 @@ export function HeroMarketCards() {
 
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [prefersReducedMotion])
+  }, [prefersReducedMotion, cards.length])
 
-  const cards = FOREX_TICKER.slice(0, 3)
+  if (cards.length === 0) return null
 
   return (
     <div className="w-full min-w-0">
@@ -84,7 +104,7 @@ export function HeroMarketCards() {
           )
         })}
       </div>
-      <p className="mt-2 text-center text-[11px] text-fg-subtle">Indicative market prices</p>
+      <p className="mt-2 text-center text-[11px] text-fg-subtle">Recently published trades</p>
     </div>
   )
 }

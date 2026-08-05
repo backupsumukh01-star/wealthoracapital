@@ -48,9 +48,15 @@ export const adminService = {
     return apiClient<{ items: Deposit[] }>(`${API_ROUTES.admin.deposits}${qs ? `?${qs}` : ''}`)
   },
 
+  deposit: (id: string) => apiClient<Deposit>(`${API_ROUTES.admin.deposits}/${id}`),
+
   reviewDeposit: (
     id: string,
-    body: { decision: 'APPROVE' | 'REJECT'; reason?: string; creditedAmount?: string },
+    body: {
+      decision: 'APPROVE' | 'REJECT' | 'REQUEST_INFORMATION'
+      reason?: string
+      creditedAmount?: string
+    },
   ) =>
     apiClient<Deposit>(`${API_ROUTES.admin.deposits}/${id}/review`, {
       method: 'POST',
@@ -67,6 +73,9 @@ export const adminService = {
     )
   },
 
+  withdrawal: (id: string) =>
+    apiClient<Withdrawal>(`${API_ROUTES.admin.withdrawals}/${id}`),
+
   reviewWithdrawal: (
     id: string,
     body: { decision: 'APPROVE' | 'REJECT' | 'PAID'; reason?: string },
@@ -76,6 +85,72 @@ export const adminService = {
       body,
       idempotencyKey: `wd-review-${id}-${body.decision}`,
     }),
+
+  suspendUser: (id: string, reason?: string) =>
+    apiClient<User>(`${API_ROUTES.admin.users}/${id}/suspend`, {
+      method: 'POST',
+      body: { reason },
+    }),
+
+  enableUser: (id: string, reason?: string) =>
+    apiClient<User>(`${API_ROUTES.admin.users}/${id}/enable`, {
+      method: 'POST',
+      body: { reason },
+    }),
+
+  updateUser: (
+    id: string,
+    body: Partial<{
+      firstName: string
+      lastName: string
+      phone: string | null
+      country: string | null
+      timezone: string
+      role: User['role']
+      staffRole: User['staffRole']
+    }>,
+  ) =>
+    apiClient<User & { revokedSessions?: number }>(`${API_ROUTES.admin.users}/${id}`, {
+      method: 'PATCH',
+      body,
+    }),
+
+  forceLogoutUser: (id: string) =>
+    apiClient<{ revokedSessions: number }>(`${API_ROUTES.admin.users}/${id}/force-logout`, {
+      method: 'POST',
+      body: {},
+    }),
+
+  wallets: (query?: { q?: string }) => {
+    const params = new URLSearchParams()
+    if (query?.q) params.set('q', query.q)
+    const qs = params.toString()
+    return apiClient<{
+      items: Array<{
+        user: { id: string; email: string; firstName: string; lastName: string }
+        availableBalance: string
+        balance: string
+        lockedBalance: string
+      }>
+    }>(`${API_ROUTES.admin.wallets}${qs ? `?${qs}` : ''}`)
+  },
+
+  adjustWallet: (
+    userId: string,
+    body: { amount: string; direction: 'CREDIT' | 'DEBIT'; reason: string; idempotencyKey?: string },
+  ) => {
+    const idempotencyKey = body.idempotencyKey ?? crypto.randomUUID()
+    return apiClient(`${API_ROUTES.admin.wallets}/${userId}/adjust`, {
+      method: 'POST',
+      body: {
+        amount: body.amount,
+        direction: body.direction,
+        reason: body.reason,
+        idempotencyKey,
+      },
+      idempotencyKey,
+    })
+  },
 
   trades: () => apiClient<{ items: Trade[] }>(API_ROUTES.admin.trades),
 
@@ -102,9 +177,14 @@ export const adminService = {
   },
 
   roles: () =>
-    apiClient<Array<{ roleKey: string; label: string; permissions: Record<string, boolean> }>>(
-      API_ROUTES.admin.roles,
-    ),
+    apiClient<{
+      items: Array<{ roleKey: string; label: string; permissions: string[] }>
+      matrix: {
+        permissions: string[]
+        roles: Array<{ roleKey: string; label: string }>
+        matrix: Record<string, Record<string, boolean>>
+      }
+    }>(API_ROUTES.admin.roles),
 
   updateRoles: (
     rows: Array<{ roleKey: string; label: string; permissions: Record<string, boolean> }>,
@@ -125,4 +205,84 @@ export const adminService = {
       method: 'POST',
       body,
     }),
+
+  paymentMethods: () =>
+    apiClient<import('@meridian/shared').PaymentMethod[]>(API_ROUTES.admin.paymentMethods),
+
+  createPaymentMethod: (body: {
+    name: string
+    type: string
+    instructions: string
+    accountDetails?: Record<string, string>
+    network?: string
+    minAmount?: string
+    maxAmount?: string | null
+    isActive?: boolean
+  }) =>
+    apiClient<import('@meridian/shared').PaymentMethod>(API_ROUTES.admin.paymentMethods, {
+      method: 'POST',
+      body,
+    }),
+
+  updatePaymentMethod: (
+    id: string,
+    body: Partial<{
+      name: string
+      instructions: string
+      accountDetails: Record<string, string>
+      network: string
+      minAmount: string
+      maxAmount: string | null
+      isActive: boolean
+    }>,
+  ) =>
+    apiClient<import('@meridian/shared').PaymentMethod>(`${API_ROUTES.admin.paymentMethods}/${id}`, {
+      method: 'PATCH',
+      body,
+    }),
+
+  deletePaymentMethod: (id: string) =>
+    apiClient(`${API_ROUTES.admin.paymentMethods}/${id}`, { method: 'DELETE' }),
+
+  walletAddresses: () =>
+    apiClient<
+      Array<{
+        id: string
+        label: string
+        network: string
+        address: string
+        memo: string | null
+        qrCodeKey: string | null
+        isDefault: boolean
+        isActive: boolean
+        paymentMethodId: string | null
+      }>
+    >(API_ROUTES.admin.walletAddresses),
+
+  createWalletAddress: (body: {
+    label: string
+    network: string
+    address: string
+    memo?: string
+    qrCodeKey?: string
+    isDefault?: boolean
+    isActive?: boolean
+    paymentMethodId?: string
+  }) => apiClient(API_ROUTES.admin.walletAddresses, { method: 'POST', body }),
+
+  updateWalletAddress: (
+    id: string,
+    body: Partial<{
+      label: string
+      network: string
+      address: string
+      memo: string
+      qrCodeKey: string
+      isDefault: boolean
+      isActive: boolean
+    }>,
+  ) => apiClient(`${API_ROUTES.admin.walletAddresses}/${id}`, { method: 'PATCH', body }),
+
+  deleteWalletAddress: (id: string) =>
+    apiClient(`${API_ROUTES.admin.walletAddresses}/${id}`, { method: 'DELETE' }),
 }

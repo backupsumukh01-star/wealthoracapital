@@ -12,15 +12,15 @@ export type Role = (typeof Role)[keyof typeof Role]
 
 /**
  * Fine-grained operator roles for admin RBAC.
- * Distinct from `Role` so investor sessions stay USER | ADMIN | SUPER_ADMIN.
+ * Must match Prisma `StaffRole` enum exactly.
  */
 export const StaffRole = {
   SUPER_ADMIN: 'SUPER_ADMIN',
-  FINANCE_MANAGER: 'FINANCE_MANAGER',
-  COMPLIANCE_KYC: 'COMPLIANCE_KYC',
-  TRADING_MANAGER: 'TRADING_MANAGER',
-  SUPPORT_AGENT: 'SUPPORT_AGENT',
-  CONTENT_MANAGER: 'CONTENT_MANAGER',
+  ADMIN: 'ADMIN',
+  FINANCE: 'FINANCE',
+  SUPPORT: 'SUPPORT',
+  KYC: 'KYC',
+  CONTENT: 'CONTENT',
   VIEWER: 'VIEWER',
 } as const
 export type StaffRole = (typeof StaffRole)[keyof typeof StaffRole]

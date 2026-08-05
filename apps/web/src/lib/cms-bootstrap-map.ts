@@ -30,6 +30,8 @@ export function mapPlatformCms(doc: PlatformCmsDocument, fallback: PlatformCms):
 export function mapLandingCms(raw: unknown, fallback: LandingCms): LandingCms {
   const r = asRecord(raw)
   const motion = asRecord(r.heroMotion)
+  const social = asRecord(r.social)
+  const popup = asRecord(r.homepagePopup)
   return {
     ...fallback,
     logoUrl: str(r.logoUrl, fallback.logoUrl),
@@ -50,6 +52,20 @@ export function mapLandingCms(raw: unknown, fallback: LandingCms): LandingCms {
     supportEmail: str(r.supportEmail, fallback.supportEmail),
     whatsapp: str(r.whatsapp, fallback.whatsapp),
     telegram: str(r.telegram, fallback.telegram),
+    social: {
+      twitter: str(social.twitter, fallback.social.twitter),
+      linkedin: str(social.linkedin, fallback.social.linkedin),
+      facebook: str(social.facebook, fallback.social.facebook),
+      instagram: str(social.instagram, fallback.social.instagram),
+      discord: str(social.discord, fallback.social.discord),
+    },
+    homepagePopup: {
+      enabled:
+        typeof popup.enabled === 'boolean' ? popup.enabled : fallback.homepagePopup.enabled,
+      title: str(popup.title, fallback.homepagePopup.title),
+      body: str(popup.body, fallback.homepagePopup.body),
+      cta: str(popup.cta, fallback.homepagePopup.cta),
+    },
     announcementsBanner: str(r.announcementsBanner, fallback.announcementsBanner),
     heroMotion: {
       particlesEnabled:

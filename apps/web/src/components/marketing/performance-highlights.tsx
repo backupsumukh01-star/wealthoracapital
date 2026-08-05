@@ -14,12 +14,13 @@ import {
 import { Section } from '@/components/common/section'
 import { CountUp } from '@/components/motion/count-up'
 import { StaggerGroup, StaggerItem } from '@/components/motion/stagger-group'
+import { usePublishedLanding } from '@/features/cms/site'
+import { usePublicPerformance } from '@/features/performance/hooks'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { cn } from '@/lib/cn'
 
 import { HistoricalNote } from './historical-note'
 import { MiniSparkline } from './mini-sparkline'
-import { useAdminOs } from '@/providers/admin-os-provider'
 
 const HIGHLIGHT_META: {
   key: string
@@ -91,20 +92,29 @@ const HIGHLIGHT_META: {
   },
 ]
 
-/** Premium performance preview cards — values from published landing + performance CMS. */
+function numericOrDash(value: string | null | undefined) {
+  if (value == null || value === '' || value === '0' || value === '0.00') return null
+  return value
+}
+
+/** Premium performance preview cards — published landing + public performance API only. */
 export function PerformanceHighlights() {
   const prefersReducedMotion = usePrefersReducedMotion()
-  const { publishedLanding: cms, state } = useAdminOs()
+  const { landing: cms } = usePublishedLanding()
+  const { data: pub } = usePublicPerformance()
 
   const highlights = HIGHLIGHT_META.map((meta) => {
-    let value = '0'
-    if (meta.key === 'avg') value = cms.avgMonthlyReturn || '4.8'
-    else if (meta.key === 'win') value = cms.winRate || state.performance.winningPct || '81.2'
-    else if (meta.key === 'best') value = cms.bestDay || state.performance.bestDay || '8.2'
-    else if (meta.key === 'worst') value = (state.performance.worstDay || '4.2').replace('-', '')
-    else if (meta.key === 'yearly') value = state.performance.yearlyReturn || '54.8'
-    else if (meta.key === 'investors') value = cms.investorCount || '312'
-    return { ...meta, value }
+    let raw: string | null = null
+    if (meta.key === 'avg') raw = numericOrDash(cms.avgMonthlyReturn)
+    else if (meta.key === 'win') raw = numericOrDash(cms.winRate) ?? numericOrDash(pub?.analytics.winRate)
+    else if (meta.key === 'best')
+      raw = numericOrDash(cms.bestDay) ?? numericOrDash(pub?.analytics.bestTrade?.returnPct ?? undefined)
+    else if (meta.key === 'worst') {
+      const w = numericOrDash(pub?.analytics.worstTrade?.returnPct ?? undefined)
+      raw = w ? String(w).replace('-', '') : null
+    } else if (meta.key === 'yearly') raw = numericOrDash(pub?.summary?.roiPct)
+    else if (meta.key === 'investors') raw = numericOrDash(cms.investorCount)
+    return { ...meta, value: raw ?? '0', empty: !raw }
   })
 
   return (
@@ -119,9 +129,9 @@ export function PerformanceHighlights() {
           const Icon = item.icon
           return (
             <StaggerItem key={item.label}>
-              <article className="card-fill group h-full p-4 transition-transform duration-[160ms] hover:-translate-y-1 sm:p-5">
+              <article className="card-fill group relative h-full p-4 transition-transform duration-[160ms] hover:-translate-y-1 sm:p-5">
                 <div
-                  className="pointer-events-none absolute -right-10 -top-10 size-32 rounded-full bg-accent-500/10 blur-3xl opacity-70 transition-opacity group-hover:opacity-100"
+                  className="pointer-events-none absolute -right-10 -top-10 size-32 rounded-full bg-accent-500/10 opacity-70 blur-3xl transition-opacity group-hover:opacity-100"
                   aria-hidden
                 />
                 <div className="relative flex items-start justify-between gap-3">
@@ -137,18 +147,17 @@ export function PerformanceHighlights() {
                     <Icon className="size-4" aria-hidden />
                   </motion.span>
                 </div>
-                <p
-                  className={cn(
-                    'text-stat-lg relative mt-4 break-words sm:text-stat-xl',
-                    item.positive === false ? 'text-fg' : 'text-fg',
+                <p className="text-stat-lg relative mt-4 break-words text-fg sm:text-stat-xl">
+                  {item.empty ? (
+                    <span className="text-fg-subtle">—</span>
+                  ) : (
+                    <CountUp
+                      value={item.value}
+                      prefix={item.prefix ?? (item.positive === false ? '−' : '')}
+                      suffix={item.suffix ?? ''}
+                      decimals={item.decimals ?? 0}
+                    />
                   )}
-                >
-                  <CountUp
-                    value={item.value}
-                    prefix={item.prefix ?? (item.positive === false ? '−' : '')}
-                    suffix={item.suffix ?? ''}
-                    decimals={item.decimals ?? 0}
-                  />
                 </p>
                 <div className="relative mt-3">
                   <MiniSparkline

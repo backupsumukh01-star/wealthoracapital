@@ -18,7 +18,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
       rows={rows}
       aria-invalid={invalid || undefined}
       className={cn(
-        'w-full resize-y rounded-xl border bg-inset/80 px-3.5 py-2.5 text-sm text-fg',
+        'w-full resize-y rounded-xl border bg-inset/80 px-3.5 py-2.5 text-base text-fg',
         'shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]',
         'transition-[border-color,box-shadow,background-color] duration-[180ms] ease-out-soft',
         'placeholder:text-fg-subtle',

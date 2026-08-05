@@ -23,7 +23,8 @@ export const reportService = {
   distributions: () =>
     apiClient<{ items: ProfitDistribution[] }>(API_ROUTES.performance.distributions),
 
-  publicPerformance: () => apiClient<unknown>(API_ROUTES.performance.public),
+  publicPerformance: () =>
+    apiClient<import('@/types/domain').PublicPerformancePayload>(API_ROUTES.performance.public),
 
   export: (body: {
     type: string

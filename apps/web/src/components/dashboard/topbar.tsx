@@ -13,7 +13,6 @@ import { NotificationSheet } from '@/components/dashboard/notification-sheet'
 import { SidebarNav } from '@/components/dashboard/sidebar'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { DEMO_PROFILE } from '@/lib/dashboard-data'
 import { useSession } from '@/providers/session-provider'
 
 function greetingForHour(hour: number) {
@@ -31,11 +30,24 @@ export function Topbar() {
 
   useEffect(() => setOpen(false), [pathname])
 
-  const firstName = session?.user.firstName ?? DEMO_PROFILE.firstName
+  const firstName = session?.user.firstName ?? 'Investor'
+  const verified = session?.user.kycStatus === 'APPROVED'
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex min-h-topbar shrink-0 items-center gap-2 border-b border-glass-line bg-base/85 px-4 pt-[env(safe-area-inset-top)] shadow-e2 backdrop-blur-xl sm:gap-3 lg:px-8">
+      {/*
+        Fixed to the viewport (not sticky). Sidebar column is `w-sidebar + p-3*2` on lg;
+        left offset keeps the bar aligned to the content column only.
+      */}
+      <header
+        className={[
+          'pointer-events-auto fixed top-0 right-0 z-[100]',
+          'left-0 lg:left-[calc(var(--sidebar-width)+1.5rem)]',
+          'flex h-[calc(var(--topbar-height)+env(safe-area-inset-top,0px))] items-center gap-2',
+          'border-b border-glass-line bg-base/85 px-4 pt-[env(safe-area-inset-top,0px)]',
+          'shadow-e2 backdrop-blur-xl sm:gap-3 lg:px-8',
+        ].join(' ')}
+      >
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button
@@ -62,14 +74,16 @@ export function Topbar() {
             <p className="truncate text-[11px] text-fg-subtle sm:text-caption">
               {greeting}, {firstName}
             </p>
-            <span className="hidden items-center gap-1 rounded-full border border-profit/30 bg-profit/10 px-1.5 py-0.5 text-[10px] font-medium text-profit sm:inline-flex">
-              <BadgeCheck className="size-3" aria-hidden />
-              Verified investor
-            </span>
+            {verified ? (
+              <span className="hidden items-center gap-1 rounded-full border border-profit/30 bg-profit/10 px-1.5 py-0.5 text-[10px] font-medium text-profit sm:inline-flex">
+                <BadgeCheck className="size-3" aria-hidden />
+                Verified investor
+              </span>
+            ) : null}
           </div>
         </div>
 
-        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+        <div className="relative z-[1] ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
           <Button asChild size="sm" className="hidden h-10 min-h-10 shadow-glow sm:inline-flex">
             <Link href={`${ROUTES.dashboard.wallet}?action=deposit`}>
               <ArrowDownToLine aria-hidden />

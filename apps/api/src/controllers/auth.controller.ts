@@ -5,13 +5,19 @@ import {
   accessTokenCookieOptions,
   clearAccessTokenCookieOptions,
   clearCsrfCookieOptions,
+  clearOauthStateCookieOptions,
   clearRefreshTokenCookieOptions,
   csrfCookieOptions,
+  oauthStateCookieOptions,
   refreshTokenCookieOptions,
 } from '../config/cookies.js'
+import { env } from '../config/env.js'
 import { authService } from '../services/auth.service.js'
+import { googleOAuthService } from '../services/google-oauth.service.js'
 import type { AuthTokens } from '../types/auth.types.js'
 import { asyncHandler } from '../utils/async-handler.js'
+import { AppError } from '../utils/errors.js'
+import { logger } from '../utils/logger.js'
 import { sendSuccess } from '../utils/response.js'
 import type {
   ChangePasswordInput,
@@ -49,6 +55,24 @@ function clearAuthCookies(res: Response): void {
   res.cookie(COOKIE_NAMES.accessToken, '', clearAccessTokenCookieOptions())
   res.cookie(COOKIE_NAMES.refreshToken, '', clearRefreshTokenCookieOptions())
   res.cookie(COOKIE_NAMES.csrf, '', clearCsrfCookieOptions())
+}
+
+function oauthFailureRedirect(errorCode: string): string {
+  const base = `${env.APP_URL.replace(/\/$/, '')}/oauth/callback`
+  const url = new URL(base)
+  url.searchParams.set('error', errorCode)
+  return url.toString()
+}
+
+function mapOAuthError(err: unknown): string {
+  if (err instanceof AppError) {
+    if (err.statusCode === 503) return 'not_configured'
+    if (err.code === 'ACCOUNT_SUSPENDED') return 'account_suspended'
+    if (err.statusCode === 403) return 'forbidden'
+    if (err.statusCode === 401) return 'invalid_state'
+    return 'oauth_failed'
+  }
+  return 'oauth_failed'
 }
 
 export const authController = {
@@ -133,5 +157,65 @@ export const authController = {
     }
     await authService.revokeSession(req.user!.id, sessionId, req.user!.sessionId)
     sendSuccess(res, null)
+  }),
+
+  /** GET /auth/google — redirect to Google consent screen. */
+  googleStart: asyncHandler(async (req, res) => {
+    if (!googleOAuthService.isConfigured()) {
+      res.redirect(302, oauthFailureRedirect('not_configured'))
+      return
+    }
+    const redirect = typeof req.query.redirect === 'string' ? req.query.redirect : undefined
+    const { url, stateCookie, stateCookieMaxAgeMs } = googleOAuthService.createAuthorizationRedirect({
+      redirect,
+    })
+    res.cookie(COOKIE_NAMES.oauthState, stateCookie, oauthStateCookieOptions(stateCookieMaxAgeMs))
+    res.redirect(302, url)
+  }),
+
+  /** GET /auth/google/callback — exchange code, set JWT cookies, redirect to web. */
+  googleCallback: asyncHandler(async (req, res) => {
+    const clearState = () => {
+      res.cookie(COOKIE_NAMES.oauthState, '', clearOauthStateCookieOptions())
+    }
+
+    try {
+      const errorParam = typeof req.query.error === 'string' ? req.query.error : undefined
+      if (errorParam) {
+        clearState()
+        res.redirect(
+          302,
+          oauthFailureRedirect(errorParam === 'access_denied' ? 'access_denied' : 'oauth_failed'),
+        )
+        return
+      }
+
+      const code = typeof req.query.code === 'string' ? req.query.code : undefined
+      const state = typeof req.query.state === 'string' ? req.query.state : undefined
+      const nonceCookie = req.cookies?.[COOKIE_NAMES.oauthState] as string | undefined
+
+      if (!code) {
+        clearState()
+        res.redirect(302, oauthFailureRedirect('oauth_failed'))
+        return
+      }
+
+      const frontendRedirect = googleOAuthService.parseAndValidateState(state, nonceCookie)
+      const { accessToken } = await googleOAuthService.exchangeCode(code)
+      const profile = await googleOAuthService.fetchProfile(accessToken)
+      const { tokens } = await googleOAuthService.completeLogin(profile, {
+        ip: clientIp(req),
+        userAgent: req.get('user-agent') ?? null,
+      })
+
+      setAuthCookies(res, tokens)
+      clearState()
+      res.redirect(302, frontendRedirect)
+    } catch (err) {
+      clearState()
+      const code = mapOAuthError(err)
+      logger.warn({ err, code }, 'Google OAuth callback failed')
+      res.redirect(302, oauthFailureRedirect(code))
+    }
   }),
 }

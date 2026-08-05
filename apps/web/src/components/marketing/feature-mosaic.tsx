@@ -71,7 +71,7 @@ export function FeatureMosaic() {
 
                 {'rails' in feature && feature.rails ? (
                   <ul className="relative mt-6 grid grid-cols-3 gap-2 sm:grid-cols-5">
-                    {feature.rails.map((rail) => (
+                    {feature.rails.map((rail: string) => (
                       <li
                         key={rail}
                         className="flex h-12 items-center justify-center rounded-xl border border-line bg-inset/50 text-caption font-medium text-fg-muted transition-colors group-hover:border-accent-800"

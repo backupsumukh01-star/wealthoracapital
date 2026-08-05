@@ -16,7 +16,8 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
 }
 
 const fieldBase = [
-  'h-12 w-full rounded-xl border bg-inset/80 px-3.5 text-sm text-fg',
+  // text-base (16px) prevents iOS Safari focus zoom on form fields.
+  'h-12 w-full rounded-xl border bg-inset/80 px-3.5 text-base text-fg',
   'shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]',
   'transition-[border-color,box-shadow,background-color] duration-[180ms] ease-out-soft',
   'placeholder:text-fg-subtle',

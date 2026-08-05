@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Bitcoin, Building2, Plus } from 'lucide-react'
 
 import { BankCard } from '@/components/wallet/bank-card'
@@ -18,8 +18,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from '@/components/ui/toast'
-import { CRYPTO_DEPOSIT_OPTIONS } from '@/lib/investor-demo-data'
-import { WALLET_WITHDRAW_TIMELINE } from '@/mocks/investor'
 import { ApiError } from '@/lib/api-client'
 import { useWallet } from '@/features/wallet/hooks'
 import { useCreateWithdrawal, usePayoutMethods } from '@/features/withdrawals/hooks'
@@ -46,6 +44,77 @@ type CryptoWallet = {
   primary?: boolean
 }
 
+const WALLET_WITHDRAW_TIMELINE = [
+  { id: 'request', label: 'Requested', done: false, current: true },
+  { id: 'approve', label: 'Approved', done: false },
+  { id: 'paid', label: 'Paid', done: false },
+]
+
+const DEFAULT_CRYPTO_COINS = [
+  { id: 'USDT', label: 'USDT', networks: ['TRC20', 'ERC20', 'BEP20'] },
+  { id: 'USDC', label: 'USDC', networks: ['ERC20', 'BEP20'] },
+  { id: 'BTC', label: 'BTC', networks: ['Bitcoin'] },
+  { id: 'ETH', label: 'ETH', networks: ['ERC20'] },
+]
+
+function isCryptoType(type: string) {
+  return ['CRYPTO', 'USDT_TRC20', 'USDT_BEP20', 'BTC', 'ETH'].includes(type)
+}
+
+function mapPayoutBanks(
+  methods: Array<{
+    id: string
+    label: string
+    type: string
+    maskedDetails: string
+    isDefault: boolean
+  }>,
+): BankAccount[] {
+  return methods
+    .filter((m) => !isCryptoType(m.type))
+    .map((m) => ({
+      id: m.id,
+      label: m.label,
+      bankName: m.label,
+      accountNumberMasked: m.maskedDetails,
+      ifsc: '',
+      primary: m.isDefault,
+    }))
+}
+
+function mapPayoutWallets(
+  methods: Array<{
+    id: string
+    label: string
+    type: string
+    maskedDetails: string
+    isDefault: boolean
+  }>,
+): CryptoWallet[] {
+  return methods
+    .filter((m) => isCryptoType(m.type))
+    .map((m) => ({
+      id: m.id,
+      label: m.label,
+      network: m.type.includes('TRC20')
+        ? 'TRC20'
+        : m.type.includes('BEP20')
+          ? 'BEP20'
+          : m.type === 'BTC'
+            ? 'Bitcoin'
+            : 'ERC20',
+      address: m.maskedDetails,
+      coin: m.type.includes('USDT')
+        ? 'USDT'
+        : m.type === 'BTC'
+          ? 'BTC'
+          : m.type === 'ETH'
+            ? 'ETH'
+            : 'CRYPTO',
+      primary: m.isDefault,
+    }))
+}
+
 export function WithdrawModal({
   open,
   onOpenChange,
@@ -63,6 +132,8 @@ export function WithdrawModal({
   const availableBalance = wallet?.availableBalance ?? '0.00'
   const [step, setStep] = useState<Step>('rail')
   const [rail, setRail] = useState<Rail>(null)
+  const apiBanks = useMemo(() => mapPayoutBanks(payoutMethods ?? []), [payoutMethods])
+  const apiWallets = useMemo(() => mapPayoutWallets(payoutMethods ?? []), [payoutMethods])
   const [banks, setBanks] = useState<BankAccount[]>(initialBanks)
   const [wallets, setWallets] = useState<CryptoWallet[]>(initialWallets)
   const [bankId, setBankId] = useState(initialBanks.find((b) => b.primary)?.id ?? initialBanks[0]?.id)
@@ -75,19 +146,43 @@ export function WithdrawModal({
   const [submitting, setSubmitting] = useState(false)
   const [payoutMethodId, setPayoutMethodId] = useState<string | undefined>()
 
-  // Add bank form
   const [newBankName, setNewBankName] = useState('')
   const [newAccountName, setNewAccountName] = useState('')
   const [newAccountNumber, setNewAccountNumber] = useState('')
   const [newIfsc, setNewIfsc] = useState('')
 
-  // Add wallet form
   const [newLabel, setNewLabel] = useState('')
   const [newCoin, setNewCoin] = useState('USDT')
   const [newNetwork, setNewNetwork] = useState('TRC20')
   const [newAddress, setNewAddress] = useState('')
 
-  const coinMeta = CRYPTO_DEPOSIT_OPTIONS.coins.find((c) => c.id === newCoin)
+  const coinMeta = DEFAULT_CRYPTO_COINS.find((c) => c.id === newCoin)
+
+  useEffect(() => {
+    if (!open) return
+    if (apiBanks.length) {
+      setBanks(apiBanks)
+      setBankId((current) =>
+        current && apiBanks.some((b) => b.id === current)
+          ? current
+          : (apiBanks.find((b) => b.primary)?.id ?? apiBanks[0]?.id),
+      )
+    } else if (!initialBanks.length) {
+      setBanks([])
+      setBankId(undefined)
+    }
+    if (apiWallets.length) {
+      setWallets(apiWallets)
+      setWalletId((current) =>
+        current && apiWallets.some((w) => w.id === current)
+          ? current
+          : (apiWallets.find((w) => w.primary)?.id ?? apiWallets[0]?.id),
+      )
+    } else if (!initialWallets.length) {
+      setWallets([])
+      setWalletId(undefined)
+    }
+  }, [apiBanks, apiWallets, initialBanks.length, initialWallets.length, open])
 
   useEffect(() => {
     if (!open || !payoutMethods?.length) return
@@ -125,6 +220,8 @@ export function WithdrawModal({
   async function submitWithdrawalRequest() {
     const methodId =
       payoutMethodId ??
+      bankId ??
+      walletId ??
       payoutMethods?.find((m) => m.isDefault)?.id ??
       payoutMethods?.[0]?.id
 
@@ -219,6 +316,7 @@ export function WithdrawModal({
 
   const meta = titles[step]
   const showBack = step !== 'rail'
+  const noPayoutMethods = open && payoutMethods !== undefined && payoutMethods.length === 0
 
   return (
     <>
@@ -239,6 +337,10 @@ export function WithdrawModal({
             <ArrowLeft className="size-3.5" aria-hidden />
             Back
           </button>
+        ) : null}
+
+        {noPayoutMethods && step === 'rail' ? (
+          <p className="mb-4 text-body-sm text-fg-muted">No payment methods configured</p>
         ) : null}
 
         {step === 'rail' ? (
@@ -268,7 +370,7 @@ export function WithdrawModal({
         {step === 'inr' ? (
           <div className="space-y-4">
             {banks.length === 0 ? (
-              <p className="text-body-sm text-fg-muted">No bank accounts yet.</p>
+              <p className="text-body-sm text-fg-muted">No payment methods configured</p>
             ) : (
               <div className="space-y-3">
                 {banks.map((b) => (
@@ -280,7 +382,10 @@ export function WithdrawModal({
                     accountNumber={b.accountNumberMasked}
                     ifsc={b.ifsc}
                     selected={bankId === b.id}
-                    onSelect={() => setBankId(b.id)}
+                    onSelect={() => {
+                      setBankId(b.id)
+                      setPayoutMethodId(b.id)
+                    }}
                   />
                 ))}
               </div>
@@ -344,7 +449,7 @@ export function WithdrawModal({
         {step === 'crypto' ? (
           <div className="space-y-4">
             {wallets.length === 0 ? (
-              <p className="text-body-sm text-fg-muted">No crypto wallets yet.</p>
+              <p className="text-body-sm text-fg-muted">No payment methods configured</p>
             ) : (
               <div className="space-y-3">
                 {wallets.map((w) => (
@@ -355,7 +460,10 @@ export function WithdrawModal({
                     network={w.network}
                     address={w.address}
                     selected={walletId === w.id}
-                    onSelect={() => setWalletId(w.id)}
+                    onSelect={() => {
+                      setWalletId(w.id)
+                      setPayoutMethodId(w.id)
+                    }}
                   />
                 ))}
               </div>
@@ -404,7 +512,7 @@ export function WithdrawModal({
                   value={newCoin}
                   onValueChange={(v) => {
                     setNewCoin(v)
-                    const next = CRYPTO_DEPOSIT_OPTIONS.coins.find((c) => c.id === v)
+                    const next = DEFAULT_CRYPTO_COINS.find((c) => c.id === v)
                     setNewNetwork(next?.networks[0] ?? 'TRC20')
                   }}
                 >
@@ -412,7 +520,7 @@ export function WithdrawModal({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {CRYPTO_DEPOSIT_OPTIONS.coins.map((c) => (
+                    {DEFAULT_CRYPTO_COINS.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.label}
                       </SelectItem>

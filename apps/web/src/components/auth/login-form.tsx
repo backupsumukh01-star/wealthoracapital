@@ -3,14 +3,13 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ROUTES } from '@meridian/shared'
+import { API_ROUTES, ERROR_CODES, ROUTES } from '@meridian/shared'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 
 import { AuthCard } from '@/components/auth/auth-card'
 import { ErrorDialog } from '@/components/auth/success-dialog'
-import { OtpInput } from '@/components/auth/otp-input'
 import { PasswordField } from '@/components/auth/password-field'
 import { SocialLoginButtons } from '@/components/auth/social-login-buttons'
 import { Alert } from '@/components/ui/alert'
@@ -18,19 +17,17 @@ import { Button } from '@/components/ui/button'
 import { CheckboxField } from '@/components/ui/checkbox'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
-import { loginSchema, wait, type LoginInput } from '@/lib/auth-schemas'
-import { isOnboardingComplete } from '@/lib/demo-auth'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+import { useLogin } from '@/features/auth/hooks'
+import { ApiError } from '@/lib/api-client'
+import { loginSchema, type LoginInput } from '@/lib/auth-schemas'
+import { env } from '@/lib/env'
 
 export function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { login, loginWithGoogle, completeLogin } = useInvestorLifecycle()
+  const login = useLogin()
   const [formError, setFormError] = useState<string | null>(null)
   const [errorOpen, setErrorOpen] = useState(false)
-  const [twoFaUserId, setTwoFaUserId] = useState<string | null>(null)
-  const [twoFaCode, setTwoFaCode] = useState('')
-  const [twoFaBusy, setTwoFaBusy] = useState(false)
   const {
     register,
     handleSubmit,
@@ -41,99 +38,77 @@ export function LoginForm() {
     defaultValues: { identifier: '', password: '', rememberMe: false },
   })
 
+  const oauth = searchParams.get('oauth')
   const banner =
     searchParams.get('verified') === '1'
       ? 'Email verified. You can sign in now.'
       : searchParams.get('reset') === '1'
         ? 'Password updated. Sign in with your new password.'
-        : searchParams.get('oauth') === 'failed'
-          ? 'Google sign-in did not complete. Try again or use email.'
-          : null
+        : oauth === 'access_denied'
+          ? 'Google sign-in was cancelled. Try again or use email.'
+          : oauth === 'not_configured'
+            ? 'Google sign-in is not configured on this environment.'
+            : oauth === 'invalid_state'
+              ? 'Google sign-in expired. Please try again.'
+              : oauth === 'account_suspended'
+                ? 'This account has been suspended.'
+                : oauth === 'forbidden'
+                  ? 'Google sign-in was blocked for this account.'
+                  : oauth === 'failed' || oauth === 'oauth_failed'
+                    ? 'Google sign-in did not complete. Try again or use email.'
+                    : null
 
-  function goAfterLogin(kycApproved: boolean) {
+  const bannerTone = oauth && oauth !== 'verified' ? 'danger' : 'success'
+
+  function goAfterLogin(kycStatus: string) {
     const next = searchParams.get('next')
     const dest =
       next && next.startsWith('/') && !next.startsWith('//')
         ? next
-        : kycApproved && isOnboardingComplete()
+        : kycStatus === 'APPROVED'
           ? ROUTES.dashboard.root
           : ROUTES.auth.onboarding
     router.push(dest)
     router.refresh()
   }
 
+  function handleGoogle() {
+    const redirectTo = `${env.NEXT_PUBLIC_SITE_URL}${ROUTES.auth.oauthCallback}`
+    window.location.href = `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.auth.google}?redirect=${encodeURIComponent(redirectTo)}`
+  }
+
   async function onSubmit(values: LoginInput) {
     setFormError(null)
-    await wait(500)
-    const result = login(values.identifier, values.password)
-    if (!result.ok) {
-      if (result.account && !result.account.emailVerified) {
-        toast.message('Verify your email to continue.')
-        router.push(
-          `${ROUTES.auth.verifyEmail}?email=${encodeURIComponent(result.account.email)}&from=login`,
-        )
+    try {
+      const session = await login.mutateAsync({
+        identifier: values.identifier,
+        password: values.password,
+      })
+      toast.success('Signed in successfully.')
+      goAfterLogin(session.user.kycStatus)
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.code === ERROR_CODES.EMAIL_NOT_VERIFIED) {
+          toast.message('Verify your email to continue.')
+          router.push(
+            `${ROUTES.auth.verifyEmail}?email=${encodeURIComponent(values.identifier)}&from=login`,
+          )
+          return
+        }
+        setFormError(error.message)
+        setErrorOpen(true)
         return
       }
-      setFormError(result.error ?? 'Sign-in failed')
+      setFormError('Sign-in failed')
       setErrorOpen(true)
-      return
     }
-    if (result.needsOtp && result.account) {
-      setTwoFaUserId(result.account.userId)
-      return
-    }
-    toast.success('Signed in successfully.')
-    goAfterLogin(result.account?.kycStatus === 'APPROVED')
-  }
-
-  async function submitTwoFa() {
-    if (!twoFaUserId) return
-    setTwoFaBusy(true)
-    await wait(400)
-    const result = completeLogin(twoFaUserId, twoFaCode)
-    setTwoFaBusy(false)
-    if (!result.ok) {
-      setFormError(result.error ?? 'Invalid code')
-      setErrorOpen(true)
-      return
-    }
-    toast.success('Signed in successfully.')
-    goAfterLogin(result.account?.kycStatus === 'APPROVED')
-  }
-
-  if (twoFaUserId) {
-    return (
-      <AuthCard
-        title="Authenticator code"
-        description="Enter the 6-digit code from your authenticator app. Demo OTP: 123456"
-      >
-        <OtpInput value={twoFaCode} onChange={setTwoFaCode} autoFocus />
-        <Button
-          type="button"
-          fullWidth
-          size="lg"
-          loading={twoFaBusy}
-          disabled={twoFaCode.length !== 6}
-          onClick={() => void submitTwoFa()}
-        >
-          Continue
-        </Button>
-      </AuthCard>
-    )
   }
 
   return (
     <>
       <AuthCard
         title="Welcome back"
-        description={
-          <>
-            Sign in to your Growzy account.
-            <span className="mt-1 block text-caption text-fg-subtle">
-              Demo: investor@growzy.com or ayesha · Growzy2026!
-            </span>
-          </>
-        }
+        description="Sign in to your Growzy account."
         footer={
           <>
             No account yet?{' '}
@@ -146,18 +121,14 @@ export function LoginForm() {
           </>
         }
       >
-        <SocialLoginButtons
-          googleLabel="Continue with Google"
-          onGoogle={() => {
-            const account = loginWithGoogle()
-            toast.success('Signed in with Google')
-            goAfterLogin(account.kycStatus === 'APPROVED')
-          }}
-        />
+        <SocialLoginButtons googleLabel="Continue with Google" onGoogle={handleGoogle} />
 
         <form className="space-y-5" noValidate onSubmit={handleSubmit(onSubmit)}>
           {banner ? (
-            <Alert tone="success" title="Ready to continue">
+            <Alert
+              tone={bannerTone === 'danger' ? 'danger' : 'success'}
+              title={bannerTone === 'danger' ? 'Google sign-in' : 'Ready to continue'}
+            >
               {banner}
             </Alert>
           ) : null}
@@ -204,7 +175,13 @@ export function LoginForm() {
             </Link>
           </div>
 
-          <Button type="submit" fullWidth size="lg" loading={isSubmitting} loadingText="Signing in…">
+          <Button
+            type="submit"
+            fullWidth
+            size="lg"
+            loading={isSubmitting || login.isPending}
+            loadingText="Signing in…"
+          >
             Login
           </Button>
         </form>

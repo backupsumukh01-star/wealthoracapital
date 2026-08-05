@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express'
 
-import { hasPermission, isStaffUser, type Permission } from '../config/permissions.js'
+import { isStaffUser, resolvePermissions, type Permission } from '../config/permissions.js'
 import { forbidden, unauthorized } from '../utils/errors.js'
 
 export function requirePermission(...permissions: Permission[]) {
@@ -10,12 +10,12 @@ export function requirePermission(...permissions: Permission[]) {
       return
     }
 
-    const allowed = permissions.every((permission) =>
-      hasPermission(
-        { role: req.user!.role, staffRole: req.user!.staffRole },
-        permission,
-      ),
+    const granted = new Set(
+      req.user.permissions?.length
+        ? req.user.permissions
+        : resolvePermissions({ role: req.user.role, staffRole: req.user.staffRole }),
     )
+    const allowed = permissions.every((permission) => granted.has(permission))
 
     if (!allowed) {
       next(forbidden('Missing required permission.'))

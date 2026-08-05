@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ROUTES } from '@meridian/shared'
@@ -8,10 +7,10 @@ import { ROUTES } from '@meridian/shared'
 import { Logo } from '@/components/common/logo'
 import { Button } from '@/components/ui/button'
 import { MARKETING_NAV } from '@/lib/navigation'
-import { hasDemoSession } from '@/lib/demo-auth'
 import { useScrolled } from '@/hooks/use-scrolled'
 import { useAuthModal } from '@/providers/auth-modal-provider'
-import { useAdminOs } from '@/providers/admin-os-provider'
+import { usePublishedPlatform } from '@/features/cms/site'
+import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
 
 import { MobileNav } from './mobile-nav'
@@ -26,19 +25,16 @@ export function NavBar() {
   const pathname = usePathname()
   const scrolled = useScrolled(12)
   const { openAuth } = useAuthModal()
-  const { ready, state } = useAdminOs()
-  const [dashboardHref, setDashboardHref] = useState<string>(ROUTES.auth.login)
+  const { platform, isSuccess } = usePublishedPlatform()
+  const { isAuthenticated } = useSession()
+  const dashboardHref = isAuthenticated ? ROUTES.dashboard.root : ROUTES.auth.login
 
   const navItems =
-    ready && state.platformCms.marketingNav.some((n) => n.enabled)
-      ? state.platformCms.marketingNav
+    isSuccess && platform.marketingNav.some((n) => n.enabled)
+      ? platform.marketingNav
           .filter((n) => n.enabled)
           .map((n) => ({ label: n.label, href: n.href }))
       : MARKETING_NAV
-
-  useEffect(() => {
-    setDashboardHref(hasDemoSession() ? ROUTES.dashboard.root : ROUTES.auth.login)
-  }, [pathname])
 
   return (
     <header

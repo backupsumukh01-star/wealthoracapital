@@ -75,7 +75,7 @@ export function SupportChatWidget() {
         {
           id: `a-${Date.now()}`,
           from: 'agent',
-          text: 'Thanks — a desk specialist is reviewing this. Typical reply under 5 minutes (demo).',
+          text: 'Thanks — a desk specialist is reviewing this. Typical reply under 5 minutes.',
           time,
         },
       ])

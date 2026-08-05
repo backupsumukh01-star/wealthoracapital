@@ -8,11 +8,14 @@ import { SectionHeader } from '@/components/common/page-header'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { DEMO_PROFILE } from '@/lib/dashboard-data'
 import { formatDate, initialsOf } from '@/lib/format'
+import { useSession } from '@/providers/session-provider'
 
 export function ProfileWidget() {
-  const fullName = `${DEMO_PROFILE.firstName} ${DEMO_PROFILE.lastName}`
+  const { session } = useSession()
+  const firstName = session?.user.firstName ?? 'Investor'
+  const lastName = session?.user.lastName ?? ''
+  const fullName = `${firstName} ${lastName}`.trim()
 
   return (
     <Card variant="glass" padded="md" className="h-full">
@@ -20,30 +23,26 @@ export function ProfileWidget() {
 
       <div className="flex items-center gap-4">
         <Avatar size="lg">
-          <AvatarImage src={DEMO_PROFILE.avatarUrl ?? undefined} alt="" />
-          <AvatarFallback>
-            {initialsOf(DEMO_PROFILE.firstName, DEMO_PROFILE.lastName)}
-          </AvatarFallback>
+          <AvatarImage src={session?.user.avatarUrl ?? undefined} alt="" />
+          <AvatarFallback>{initialsOf(firstName, lastName)}</AvatarFallback>
         </Avatar>
         <div className="min-w-0">
           <p className="truncate text-heading-sm text-fg">{fullName}</p>
-          <p className="truncate text-caption text-fg-subtle">{DEMO_PROFILE.email}</p>
+          <p className="truncate text-caption text-fg-subtle">{session?.user.email ?? 'Not signed in'}</p>
         </div>
       </div>
 
       <dl className="mt-5 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <dt className="text-body-sm text-fg-muted">Member since</dt>
-          <dd className="text-body-sm text-fg">{formatDate(DEMO_PROFILE.memberSince)}</dd>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <dt className="text-body-sm text-fg-muted">Investment plan</dt>
-          <dd className="text-body-sm font-medium text-fg">{DEMO_PROFILE.plan}</dd>
+          <dd className="text-body-sm text-fg">
+            {session?.user.createdAt ? formatDate(session.user.createdAt) : '—'}
+          </dd>
         </div>
         <div className="flex items-center justify-between gap-3">
           <dt className="text-body-sm text-fg-muted">Verification</dt>
           <dd>
-            <StatusBadge status="VERIFIED" />
+            <StatusBadge status={session?.user.kycStatus === 'APPROVED' ? 'VERIFIED' : 'PENDING'} />
           </dd>
         </div>
       </dl>

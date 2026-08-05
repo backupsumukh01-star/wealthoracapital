@@ -8,19 +8,25 @@ import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import { PageHeader } from '@/components/common/page-header'
 import { StatCard } from '@/components/common/stat-card'
 import { Button } from '@/components/ui/button'
+import { useAdminTrades } from '@/features/admin/hooks'
 import { formatDateTime } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { useAdminOs } from '@/providers/admin-os-provider'
-import { ADMIN_TRADES } from '@/lib/admin-demo-data'
 
 export function AdminTradeDetail() {
   const params = useParams<{ tradeId: string }>()
   const tradeId = decodeURIComponent(params.tradeId)
-  const { state } = useAdminOs()
-  const fromOs = state.trades.find((t) => t.id === tradeId)
-  const legacy = ADMIN_TRADES.find((t) => t.id === tradeId)
+  const { data, isLoading } = useAdminTrades()
+  const trade = (data?.items ?? []).find((t) => t.id === tradeId)
 
-  if (!fromOs && !legacy) {
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Trade" description="Loading…" />
+      </div>
+    )
+  }
+
+  if (!trade) {
     return (
       <div className="space-y-4">
         <PageHeader title="Trade not found" description={`No trade matches ${tradeId}.`} />
@@ -31,37 +37,9 @@ export function AdminTradeDetail() {
     )
   }
 
-  const trade = fromOs
-    ? {
-        id: fromOs.id,
-        pair: fromOs.pair,
-        direction: fromOs.direction,
-        entry: fromOs.entry,
-        exit: fromOs.exit,
-        profitPct: fromOs.profitPct,
-        tradingDay: fromOs.tradingDay,
-        notes: fromOs.notes,
-        publishedAt: fromOs.publishedAt ?? fromOs.createdAt,
-        publishedBy: 'ops@growzy.com',
-        status: fromOs.status,
-        risk: fromOs.risk,
-      }
-    : {
-        id: legacy!.id,
-        pair: legacy!.pair,
-        direction: legacy!.direction,
-        entry: legacy!.entry,
-        exit: legacy!.exit,
-        profitPct: legacy!.profitPct,
-        tradingDay: legacy!.tradingDay,
-        notes: legacy!.notes,
-        publishedAt: legacy!.publishedAt,
-        publishedBy: legacy!.publishedBy,
-        status: 'PUBLISHED' as const,
-        risk: '—',
-      }
-
-  const negative = trade.profitPct.trim().startsWith('-')
+  const profitPct = String(trade.returnPct)
+  const negative = profitPct.trim().startsWith('-')
+  const status = trade.isPublic ? 'PUBLISHED' : 'DRAFT'
 
   return (
     <div className="min-w-0 space-y-6 sm:space-y-8">
@@ -80,19 +58,19 @@ export function AdminTradeDetail() {
               negative ? 'border-loss/25 bg-loss/15 text-loss' : 'border-profit/25 bg-profit/15 text-profit',
             )}
           >
-            {trade.status}
+            {status}
           </span>
         }
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Trade ID" value={trade.id} />
-        <StatCard label="Trading day" value={trade.tradingDay} />
+        <StatCard label="Trading day" value={trade.date} />
         <StatCard
           label="Profit %"
-          value={`${negative ? '' : '+'}${trade.profitPct}%`}
+          value={`${negative ? '' : '+'}${profitPct}%`}
         />
-        <StatCard label="Risk" value={trade.risk} />
+        <StatCard label="Outcome" value={trade.outcome} />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[1.3fr_1fr]">
@@ -109,11 +87,11 @@ export function AdminTradeDetail() {
             </div>
             <div>
               <dt className="text-caption text-fg-subtle">Buy / Entry</dt>
-              <dd className="mt-0.5 tabular-nums text-fg">{trade.entry}</dd>
+              <dd className="mt-0.5 tabular-nums text-fg">{trade.entryPrice}</dd>
             </div>
             <div>
               <dt className="text-caption text-fg-subtle">Sell / Exit</dt>
-              <dd className="mt-0.5 tabular-nums text-fg">{trade.exit}</dd>
+              <dd className="mt-0.5 tabular-nums text-fg">{trade.exitPrice}</dd>
             </div>
             <div className="sm:col-span-2">
               <dt className="text-caption text-fg-subtle">Notes</dt>
@@ -126,12 +104,14 @@ export function AdminTradeDetail() {
           <AdminPanelHeader title="Publication" />
           <dl className="space-y-3 p-4 text-body-sm sm:p-5">
             <div>
-              <dt className="text-caption text-fg-subtle">Published at</dt>
-              <dd className="mt-0.5 text-fg">{formatDateTime(trade.publishedAt)}</dd>
+              <dt className="text-caption text-fg-subtle">Closed at</dt>
+              <dd className="mt-0.5 text-fg">
+                {trade.closedAt ? formatDateTime(trade.closedAt) : '—'}
+              </dd>
             </div>
             <div>
-              <dt className="text-caption text-fg-subtle">Published by</dt>
-              <dd className="mt-0.5 text-fg">{trade.publishedBy}</dd>
+              <dt className="text-caption text-fg-subtle">Visibility</dt>
+              <dd className="mt-0.5 text-fg">{trade.isPublic ? 'Public' : 'Internal draft'}</dd>
             </div>
             <p className="text-caption text-fg-subtle">
               A published trade cannot be deleted. It can be marked archived in the trade manager.

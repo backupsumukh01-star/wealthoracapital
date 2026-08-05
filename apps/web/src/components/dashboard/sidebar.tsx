@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { ROUTES } from '@meridian/shared'
+import { useMemo } from 'react'
 
 import { Logo } from '@/components/common/logo'
 import { Badge } from '@/components/ui/badge'
@@ -11,13 +12,30 @@ import {
   LOGOUT_LINK,
   isRouteActive,
   type NavItem,
+  type NavSection,
 } from '@/lib/navigation'
-import { clearDemoSession } from '@/lib/demo-auth'
+import { useLogout } from '@/features/auth/hooks'
 import { env } from '@/lib/env'
 import { cn } from '@/lib/cn'
+import { useSession } from '@/providers/session-provider'
+
+function useVisibleDashboardNav(): NavSection[] {
+  const { can, canAny } = useSession()
+  return useMemo(() => {
+    return DASHBOARD_NAV.map((section) => ({
+      ...section,
+      items: section.items.filter((item) => {
+        if (item.badge === 'v1.1' && !env.NEXT_PUBLIC_ENABLE_REFERRALS) return false
+        if (!item.permission) return true
+        return Array.isArray(item.permission) ? canAny(item.permission) : can(item.permission)
+      }),
+    })).filter((section) => section.items.length > 0)
+  }, [can, canAny])
+}
 
 /**
  * Premium glass sidebar — wealth platform navigation.
+ * Menus are filtered by session permissions from `/auth/me`.
  */
 export function Sidebar({ className }: { className?: string }) {
   return (
@@ -41,20 +59,20 @@ export function Sidebar({ className }: { className?: string }) {
 }
 
 export function SidebarNav({ className }: { className?: string }) {
+  const sections = useVisibleDashboardNav()
+
   return (
     <nav className={className} aria-label="Account">
       <div className="space-y-7">
-        {DASHBOARD_NAV.map((section) => (
+        {sections.map((section) => (
           <div key={section.label}>
             <h2 className="px-3 pb-2 text-overline text-fg-subtle">{section.label}</h2>
             <ul className="space-y-0.5">
-              {section.items
-                .filter((item) => item.badge !== 'v1.1' || env.NEXT_PUBLIC_ENABLE_REFERRALS)
-                .map((item) => (
-                  <li key={`${item.label}-${item.href}`}>
-                    <SidebarLink item={item} />
-                  </li>
-                ))}
+              {section.items.map((item) => (
+                <li key={`${item.label}-${item.href}`}>
+                  <SidebarLink item={item} />
+                </li>
+              ))}
             </ul>
           </div>
         ))}
@@ -65,6 +83,7 @@ export function SidebarNav({ className }: { className?: string }) {
 
 function LogoutButton() {
   const router = useRouter()
+  const logout = useLogout()
   const item = LOGOUT_LINK
   const Icon = item.icon!
 
@@ -72,9 +91,10 @@ function LogoutButton() {
     <button
       type="button"
       onClick={() => {
-        clearDemoSession()
-        router.push(ROUTES.auth.login)
-        router.refresh()
+        void logout.mutateAsync().catch(() => undefined).finally(() => {
+          router.push(ROUTES.auth.login)
+          router.refresh()
+        })
       }}
       className={cn(
         'group flex w-full items-center gap-3 rounded-xl px-3 py-2.5',
@@ -120,17 +140,16 @@ function SidebarLink({ item }: { item: NavItem }) {
       {Icon ? (
         <Icon
           className={cn(
-            'size-[22px] shrink-0 transition-transform duration-300',
-            active && 'scale-110 text-accent-300',
-            !active && 'group-hover:scale-105',
+            'size-[22px] shrink-0 transition-colors',
+            active ? 'text-accent-300' : 'text-fg-subtle group-hover:text-fg-muted',
           )}
           aria-hidden
         />
       ) : null}
       <span className="truncate">{item.label}</span>
-      {item.badge === 'v1.1' ? (
+      {item.badge ? (
         <Badge tone="outline" size="sm" className="ml-auto">
-          Soon
+          {item.badge}
         </Badge>
       ) : null}
     </Link>

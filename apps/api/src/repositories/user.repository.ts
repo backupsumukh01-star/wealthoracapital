@@ -75,6 +75,12 @@ export const userRepository = {
     })
   },
 
+  findByGoogleId(googleId: string): Promise<User | null> {
+    return prisma.user.findFirst({
+      where: { googleId, deletedAt: null },
+    })
+  },
+
   findByReferralCode(referralCode: string): Promise<User | null> {
     return prisma.user.findFirst({
       where: { referralCode, deletedAt: null },

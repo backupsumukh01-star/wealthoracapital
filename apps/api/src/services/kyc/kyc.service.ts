@@ -12,6 +12,8 @@ import { createHash, randomBytes } from 'node:crypto'
 import { kycRepository } from '../../repositories/kyc.repository.js'
 import { userRepository } from '../../repositories/user.repository.js'
 import { badRequest, forbidden, notFound } from '../../utils/errors.js'
+import { assertUploadMagicBytes } from '../../utils/upload-magic.js'
+import { transactionalMailer } from '../../emails/transactional.js'
 import { activityService } from '../activity.service.js'
 import { auditService } from '../audit.service.js'
 import { notificationService } from '../notification.service.js'
@@ -200,6 +202,7 @@ export const kycService = {
     if (file.size > MAX_BYTES) {
       throw badRequest('File exceeds the 8MB limit.')
     }
+    assertUploadMagicBytes(file.buffer, file.mimetype)
 
     const locked = await kycRepository.findActiveLock(userId)
     if (locked) throw forbidden('KYC is locked while under review.')
@@ -334,6 +337,7 @@ export const kycService = {
     await appendHistory(submission.id, 'UNDER_REVIEW', userId, 'Moved to under review')
     await recordActivity(userId, userId, 'KYC_SUBMITTED', 'KYC submitted', context)
     await notifyKyc(userId, 'KYC submitted', 'Your verification documents are under review.')
+    await transactionalMailer.kycSubmitted(userId)
     await auditService.record({
       actorId: userId,
       targetUserId: userId,
@@ -607,6 +611,11 @@ export const kycService = {
     await appendHistory(submission.id, historyAction, actorId, body.reason)
     await recordActivity(submission.userId, actorId, activityKind, notifyTitle, context)
     await notifyKyc(submission.userId, notifyTitle, notifyBody)
+    if (decision === 'APPROVE') {
+      await transactionalMailer.kycApproved(submission.userId)
+    } else if (decision === 'REJECT') {
+      await transactionalMailer.kycRejected(submission.userId, body.reason ?? 'Verification rejected')
+    }
     await auditService.record({
       actorId,
       targetUserId: submission.userId,

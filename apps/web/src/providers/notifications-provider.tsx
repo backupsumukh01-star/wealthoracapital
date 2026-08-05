@@ -1,24 +1,17 @@
 'use client'
 
+import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react'
+import { formatRelative, type Notification, type NotificationType } from '@meridian/shared'
+
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react'
+  useArchiveNotification,
+  useMarkAllRead,
+  useMarkRead,
+  useNotifications as useNotificationsQuery,
+} from '@/features/notifications/hooks'
+import { useSession } from '@/providers/session-provider'
 
-import { RECENT_NOTIFICATIONS } from '@/lib/dashboard-data'
-
-export type NotificationType =
-  | 'DAILY_PROFIT'
-  | 'DEPOSIT_APPROVED'
-  | 'WITHDRAWAL_APPROVED'
-  | 'ANNOUNCEMENT'
-  | 'SECURITY'
-
+export type { NotificationType }
 export type NotificationCategory = 'money' | 'security' | 'all'
 
 export type AppNotification = {
@@ -33,162 +26,109 @@ export type AppNotification = {
   category: NotificationCategory
 }
 
-const STORAGE_KEY = 'growzy_notifications_v2'
+const SECURITY_TYPES = new Set<NotificationType>([
+  'ACCOUNT_SECURITY',
+  'KYC_APPROVED',
+  'KYC_REJECTED',
+  'KYC_INFO_REQUESTED',
+])
+
+const MONEY_TYPES = new Set<NotificationType>([
+  'DEPOSIT_SUBMITTED',
+  'DEPOSIT_APPROVED',
+  'DEPOSIT_REJECTED',
+  'WITHDRAWAL_SUBMITTED',
+  'WITHDRAWAL_APPROVED',
+  'WITHDRAWAL_REJECTED',
+  'WITHDRAWAL_PAID',
+  'DAILY_PROFIT',
+  'DAILY_LOSS',
+])
 
 function categoryOf(type: NotificationType): NotificationCategory {
-  if (type === 'SECURITY') return 'security'
-  if (type === 'ANNOUNCEMENT') return 'all'
-  return 'money'
+  if (SECURITY_TYPES.has(type)) return 'security'
+  if (MONEY_TYPES.has(type)) return 'money'
+  return 'all'
 }
 
-function seedNotifications(): AppNotification[] {
-  return RECENT_NOTIFICATIONS.map((n) => ({
+function isToday(iso: string): boolean {
+  const date = new Date(iso)
+  const now = new Date()
+  return (
+    date.getUTCFullYear() === now.getUTCFullYear() &&
+    date.getUTCMonth() === now.getUTCMonth() &&
+    date.getUTCDate() === now.getUTCDate()
+  )
+}
+
+function toAppNotification(n: Notification): AppNotification {
+  return {
     id: n.id,
     type: n.type,
     title: n.title,
     body: n.body,
-    time: n.time,
-    unread: n.unread,
+    time: formatRelative(n.createdAt),
+    unread: n.readAt === null,
     archived: false,
-    group: n.unread ? 'Today' : 'Earlier',
+    group: isToday(n.createdAt) ? 'Today' : 'Earlier',
     category: categoryOf(n.type),
-  }))
-}
-
-function readStored(): AppNotification[] | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = window.sessionStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as AppNotification[]
-    if (!Array.isArray(parsed) || parsed.length === 0) return null
-    return parsed
-  } catch {
-    return null
-  }
-}
-
-function persist(items: AppNotification[]) {
-  try {
-    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(items))
-  } catch {
-    /* ignore */
   }
 }
 
 type NotificationsContextValue = {
   items: AppNotification[]
   unreadCount: number
+  isLoading: boolean
   markRead: (id: string) => void
   markAllRead: () => void
   archive: (id: string) => void
-  pushNotification: (input: {
-    type: NotificationType
-    title: string
-    body: string
-  }) => void
-  /** @deprecated use pushNotification */
-  receiveDemo: () => void
 }
 
 const NotificationsContext = createContext<NotificationsContextValue | null>(null)
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<AppNotification[]>(() => seedNotifications())
-  const [hydrated, setHydrated] = useState(false)
+  const { isAuthenticated } = useSession()
 
-  useEffect(() => {
-    const stored = readStored()
-    if (stored) setItems(stored)
-    setHydrated(true)
-  }, [])
+  const { data, isLoading } = useNotificationsQuery(undefined, { enabled: isAuthenticated })
+  const markReadMutation = useMarkRead()
+  const markAllReadMutation = useMarkAllRead()
+  const archiveMutation = useArchiveNotification()
 
-  useEffect(() => {
-    if (!hydrated) return
-    persist(items)
-  }, [items, hydrated])
+  const items = useMemo(() => {
+    if (!isAuthenticated || !data) return []
+    return data.items.map(toAppNotification)
+  }, [isAuthenticated, data])
 
-  const pushNotification = useCallback(
-    (input: { type: NotificationType; title: string; body: string }) => {
-      const id = `n-${Date.now()}`
-      setItems((prev) => [
-        {
-          id,
-          type: input.type,
-          title: input.title,
-          body: input.body,
-          time: 'Just now',
-          unread: true,
-          archived: false,
-          group: 'Today',
-          category: categoryOf(input.type),
-        },
-        ...prev,
-      ])
+  const markRead = useCallback(
+    (id: string) => {
+      markReadMutation.mutate(id)
     },
-    [],
+    [markReadMutation],
   )
-
-  useEffect(() => {
-    function onNotify(e: Event) {
-      const detail = (e as CustomEvent).detail as {
-        type?: NotificationType
-        title?: string
-        body?: string
-      }
-      if (!detail?.title || !detail?.body) return
-      pushNotification({
-        type: detail.type ?? 'ANNOUNCEMENT',
-        title: detail.title,
-        body: detail.body,
-      })
-    }
-    window.addEventListener('growzy:notify', onNotify)
-    return () => window.removeEventListener('growzy:notify', onNotify)
-  }, [pushNotification])
-
-  const markRead = useCallback((id: string) => {
-    setItems((prev) =>
-      prev.map((n) => (n.id === id && n.unread ? { ...n, unread: false } : n)),
-    )
-  }, [])
 
   const markAllRead = useCallback(() => {
-    setItems((prev) => prev.map((n) => (n.unread ? { ...n, unread: false } : n)))
-  }, [])
+    markAllReadMutation.mutate()
+  }, [markAllReadMutation])
 
-  const archive = useCallback((id: string) => {
-    setItems((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, archived: true, unread: false } : n)),
-    )
-  }, [])
-
-  const receiveDemo = useCallback(() => {
-    pushNotification({
-      type: 'DAILY_PROFIT',
-      title: 'Live desk update',
-      body: 'A new return was posted to your wallet (demo).',
-    })
-  }, [pushNotification])
-
-  const unreadCount = useMemo(
-    () => items.filter((n) => n.unread && !n.archived).length,
-    [items],
+  const archive = useCallback(
+    (id: string) => {
+      archiveMutation.mutate(id)
+    },
+    [archiveMutation],
   )
 
-  const visible = useMemo(() => items.filter((n) => !n.archived), [items])
+  const unreadCount = useMemo(() => items.filter((n) => n.unread).length, [items])
 
-  const value = useMemo(
+  const value = useMemo<NotificationsContextValue>(
     () => ({
-      items: visible,
+      items,
       unreadCount,
+      isLoading: isAuthenticated ? isLoading : false,
       markRead,
       markAllRead,
       archive,
-      pushNotification,
-      receiveDemo,
     }),
-    [visible, unreadCount, markRead, markAllRead, archive, pushNotification, receiveDemo],
+    [items, unreadCount, isLoading, isAuthenticated, markRead, markAllRead, archive],
   )
 
   return (

@@ -1,4 +1,3 @@
-import { listRoleCatalog } from '../config/permissions.js'
 import { activityService } from '../services/activity.service.js'
 import { auditService } from '../services/audit.service.js'
 import { dashboardService } from '../services/dashboard.service.js'
@@ -48,6 +47,10 @@ export const adminDashboardController = {
   }),
 
   roles: asyncHandler(async (_req, res) => {
-    sendSuccess(res, { items: listRoleCatalog() })
+    const { buildPermissionMatrix, listRoleCatalog } = await import('../config/permissions.js')
+    sendSuccess(res, {
+      items: listRoleCatalog(),
+      matrix: buildPermissionMatrix(),
+    })
   }),
 }

@@ -39,7 +39,7 @@ const contactSchema = z.object({
 
 type ContactInput = z.infer<typeof contactSchema>
 
-/** Client-side contact form (demo) — validation + success UI only. */
+/** Client-side contact form — validation + success UI only. */
 export function ContactForm() {
   const [sent, setSent] = useState(false)
   const {

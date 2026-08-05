@@ -9,9 +9,13 @@ import { SectionHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { CopyButton } from '@/components/ui/copy-button'
-import { REFERRAL_STATS } from '@/lib/dashboard-data'
+import { useSession } from '@/providers/session-provider'
 
 export function ReferralWidget() {
+  const { session } = useSession()
+  const code = session?.user.id ? session.user.id.slice(0, 8).toUpperCase() : '—'
+  const link = session ? `${typeof window !== 'undefined' ? window.location.origin : ''}/register?ref=${code}` : ''
+
   return (
     <Card variant="accent" padded="md" className="h-full">
       <SectionHeader
@@ -27,15 +31,15 @@ export function ReferralWidget() {
 
       <div className="grid grid-cols-3 gap-2">
         <div className="rounded-xl border border-line bg-inset/40 px-3 py-3 text-center">
-          <p className="text-stat-md text-fg">{REFERRAL_STATS.invited}</p>
+          <p className="text-stat-md text-fg">0</p>
           <p className="text-caption text-fg-subtle">Invited</p>
         </div>
         <div className="rounded-xl border border-line bg-inset/40 px-3 py-3 text-center">
-          <p className="text-stat-md text-fg">{REFERRAL_STATS.funded}</p>
+          <p className="text-stat-md text-fg">0</p>
           <p className="text-caption text-fg-subtle">Funded</p>
         </div>
         <div className="rounded-xl border border-line bg-inset/40 px-3 py-3 text-center">
-          <Money value={REFERRAL_STATS.earnings} className="text-stat-md text-profit" />
+          <Money value="0.00" className="text-stat-md text-profit" />
           <p className="text-caption text-fg-subtle">Earned</p>
         </div>
       </div>
@@ -44,12 +48,12 @@ export function ReferralWidget() {
         <p className="text-caption text-fg-subtle">Your link</p>
         <div className="mt-1.5 flex items-center gap-2">
           <code className="min-w-0 flex-1 truncate font-mono text-caption text-fg">
-            {REFERRAL_STATS.link}
+            {link || 'Sign in to get your referral link'}
           </code>
-          <CopyButton value={REFERRAL_STATS.link} label="Referral link" />
+          <CopyButton value={link} label="Referral link" />
         </div>
         <p className="mt-2 text-caption text-fg-subtle">
-          Code <span className="font-mono text-fg">{REFERRAL_STATS.code}</span>
+          Code <span className="font-mono text-fg">{code}</span>
         </p>
       </div>
 

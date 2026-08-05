@@ -2,16 +2,16 @@
 
 import { useEffect } from 'react'
 
-import { useAdminOs } from '@/providers/admin-os-provider'
+import { useCmsBootstrap } from '@/features/cms/hooks'
 
 /** Applies site SEO settings (title, description, favicon, analytics IDs) client-side. */
 export function CmsSeoEffects() {
-  const { ready, state } = useAdminOs()
-  const seo = state.siteSeo
+  const { data: boot, isSuccess } = useCmsBootstrap()
+  const seo = (boot?.siteSeo ?? {}) as Record<string, string | boolean | undefined>
 
   useEffect(() => {
-    if (!ready) return
-    if (seo.metaTitle) document.title = seo.metaTitle
+    if (!isSuccess) return
+    if (typeof seo.metaTitle === 'string' && seo.metaTitle) document.title = seo.metaTitle
 
     const ensureMeta = (name: string, content: string) => {
       if (!content) return
@@ -23,9 +23,9 @@ export function CmsSeoEffects() {
       }
       el.setAttribute('content', content)
     }
-    ensureMeta('description', seo.metaDescription)
+    if (typeof seo.metaDescription === 'string') ensureMeta('description', seo.metaDescription)
 
-    if (seo.faviconUrl) {
+    if (typeof seo.faviconUrl === 'string' && seo.faviconUrl) {
       let link = document.querySelector("link[rel='icon']") as HTMLLinkElement | null
       if (!link) {
         link = document.createElement('link')
@@ -35,7 +35,7 @@ export function CmsSeoEffects() {
       link.href = seo.faviconUrl
     }
 
-    if (seo.googleAnalyticsId && !document.getElementById('growzy-ga')) {
+    if (typeof seo.googleAnalyticsId === 'string' && seo.googleAnalyticsId && !document.getElementById('growzy-ga')) {
       const s = document.createElement('script')
       s.id = 'growzy-ga'
       s.async = true
@@ -47,13 +47,13 @@ export function CmsSeoEffects() {
       document.head.appendChild(inline)
     }
 
-    if (seo.facebookPixelId && !document.getElementById('growzy-pixel')) {
+    if (typeof seo.facebookPixelId === 'string' && seo.facebookPixelId && !document.getElementById('growzy-pixel')) {
       const inline = document.createElement('script')
       inline.id = 'growzy-pixel'
       inline.text = `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${seo.facebookPixelId}');fbq('track','PageView');`
       document.head.appendChild(inline)
     }
-  }, [ready, seo])
+  }, [isSuccess, seo])
 
   return null
 }

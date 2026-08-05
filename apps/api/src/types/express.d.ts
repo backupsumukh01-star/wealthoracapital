@@ -6,6 +6,7 @@ export interface AuthUser {
   role: Role
   staffRole: StaffRole | null
   sessionId: string
+  permissions: string[]
 }
 
 declare global {

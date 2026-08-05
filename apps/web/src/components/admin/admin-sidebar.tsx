@@ -4,17 +4,28 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ROUTES } from '@meridian/shared'
 import { ArrowLeft } from 'lucide-react'
+import { useMemo } from 'react'
 
 import { LogoMark } from '@/components/common/logo'
-import { ADMIN_NAV, isRouteActive, type NavItem } from '@/lib/navigation'
+import { ADMIN_NAV, isRouteActive, type NavItem, type NavSection } from '@/lib/navigation'
 import { cn } from '@/lib/cn'
+import { useSession } from '@/providers/session-provider'
+
+function useVisibleAdminNav(): NavSection[] {
+  const { can, canAny } = useSession()
+  return useMemo(() => {
+    return ADMIN_NAV.map((section) => ({
+      ...section,
+      items: section.items.filter((item) => {
+        if (!item.permission) return true
+        return Array.isArray(item.permission) ? canAny(item.permission) : can(item.permission)
+      }),
+    })).filter((section) => section.items.length > 0)
+  }, [can, canAny])
+}
 
 /**
- * The operator sidebar.
- *
- * It is visually distinct from the investor sidebar — a warmer border and an explicit console
- * label — so an operator with both open never mistakes one window for the other. Acting on the
- * wrong side of that line moves someone else's money.
+ * The operator sidebar — menus are filtered by the session permission set from `/auth/me`.
  */
 export function AdminSidebar({ className }: { className?: string }) {
   return (
@@ -48,10 +59,12 @@ export function AdminSidebar({ className }: { className?: string }) {
 }
 
 export function AdminNav({ className }: { className?: string }) {
+  const sections = useVisibleAdminNav()
+
   return (
     <nav className={className} aria-label="Operator console">
       <div className="space-y-6">
-        {ADMIN_NAV.map((section) => (
+        {sections.map((section) => (
           <div key={section.label}>
             <h2 className="text-overline px-3 pb-2 text-fg-subtle">{section.label}</h2>
             <ul className="space-y-0.5">
@@ -70,7 +83,6 @@ export function AdminNav({ className }: { className?: string }) {
 
 function AdminLink({ item }: { item: NavItem }) {
   const pathname = usePathname()
-  // The overview lives at `/admin`, which prefixes every other admin route, so it matches exactly.
   const active =
     item.href === ROUTES.admin.root ? pathname === item.href : isRouteActive(pathname, item)
   const Icon = item.icon

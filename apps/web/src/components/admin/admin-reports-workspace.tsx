@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/cn'
+import { reportService } from '@/services/report.service'
 
 const REPORT_TYPES = [
   { id: 'users', label: 'Users', description: 'Registrations, status, KYC, balances' },
@@ -34,12 +35,37 @@ export function AdminReportsWorkspace() {
   const [user, setUser] = useState('')
   const [country, setCountry] = useState('')
   const [status, setStatus] = useState('')
+  const [exporting, setExporting] = useState(false)
 
-  function download(format: 'CSV' | 'Excel' | 'PDF') {
+  async function download(format: 'CSV' | 'Excel' | 'PDF') {
     const report = REPORT_TYPES.find((r) => r.id === selected)!
-    toast.success(`${format} export ready (demo)`, {
-      description: `${report.label} · ${from} → ${to}${user ? ` · ${user}` : ''}${country ? ` · ${country}` : ''}${status ? ` · ${status}` : ''}`,
-    })
+    const apiFormat = format === 'Excel' ? 'XLSX' : format
+    setExporting(true)
+    try {
+      const result = await reportService.export({
+        type: report.id,
+        from,
+        to,
+        format: apiFormat,
+        filters: {
+          ...(user ? { user } : {}),
+          ...(country ? { country } : {}),
+          ...(status ? { status } : {}),
+        },
+      })
+      if (result.downloadUrl) {
+        window.open(result.downloadUrl, '_blank')
+        toast.success(`${format} export ready`, { description: report.label })
+      } else {
+        toast.success('Export queued', {
+          description: `${report.label} · we'll notify you when it's ready.`,
+        })
+      }
+    } catch {
+      toast.error('Could not start export. Please try again.')
+    } finally {
+      setExporting(false)
+    }
   }
 
   return (

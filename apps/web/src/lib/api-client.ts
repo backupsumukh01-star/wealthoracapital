@@ -5,11 +5,11 @@ import { env } from './env'
 
 /**
  * The single fetch wrapper. Components never call `fetch` directly — they go through a feature
- * hook, which goes through a feature api module, which goes through here (docs/02 §4).
+ * hook, which goes through a feature api module (or a `@/services/*` domain service), which
+ * goes through here (docs/02 §4).
  *
- * Scaffold status: the transport, the error type and the single-flight refresh guard are wired
- * up, because they shape every call site. No endpoint is implemented yet — feature api modules
- * are stubs until the API exists.
+ * Wired against the live API: cookie-based auth, the response envelope, and the single-flight
+ * silent-refresh guard on `401 TOKEN_EXPIRED` all match docs/05 and docs/08.
  */
 
 export class ApiError extends Error {

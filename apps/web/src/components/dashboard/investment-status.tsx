@@ -1,37 +1,31 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { BadgeCheck, Clock3, Sparkles } from 'lucide-react'
 import { motion } from 'framer-motion'
 
-import { Progress } from '@/components/ui/progress'
-import { DEMO_PROFILE, getNextSettlementAt } from '@/lib/dashboard-data'
+import { useWalletSummary } from '@/features/wallet/hooks'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
-
-function formatCountdown(ms: number) {
-  if (ms <= 0) return '00:00:00'
-  const total = Math.floor(ms / 1000)
-  const h = Math.floor(total / 3600)
-  const m = Math.floor((total % 3600) / 60)
-  const s = total % 60
-  return [h, m, s].map((n) => String(n).padStart(2, '0')).join(':')
-}
+import { useSession } from '@/providers/session-provider'
 
 export function InvestmentStatus() {
+  const { session } = useSession()
   const prefersReducedMotion = usePrefersReducedMotion()
-  const [left, setLeft] = useState(() =>
-    Math.max(0, getNextSettlementAt().getTime() - Date.now()),
-  )
+  const { data: summary } = useWalletSummary({ enabled: Boolean(session) })
 
-  useEffect(() => {
-    const tick = () => setLeft(Math.max(0, getNextSettlementAt().getTime() - Date.now()))
-    tick()
-    const id = window.setInterval(tick, 1000)
-    return () => window.clearInterval(id)
-  }, [])
-
-  const dayMs = 24 * 60 * 60 * 1000
-  const progress = Math.min(100, Math.round(((dayMs - left) / dayMs) * 100))
+  const kycLabel =
+    session?.user.kycStatus === 'APPROVED'
+      ? 'Verified'
+      : session?.user.kycStatus
+        ? session.user.kycStatus.replaceAll('_', ' ')
+        : 'Pending'
+  const invested = Number(session?.wallet?.investedAmount ?? summary?.wallet.investedAmount ?? 0) > 0
+  const todayStatus = summary?.today.status
+  const settlementCopy =
+    todayStatus === 'DISTRIBUTED'
+      ? 'Today’s return has been credited.'
+      : todayStatus === 'PENDING'
+        ? 'Today’s return is pending desk settlement.'
+        : 'Daily returns settle after the trading day closes.'
 
   return (
     <div className="card-lift noise-overlay relative overflow-hidden rounded-3xl border border-accent-700/30 bg-gradient-to-br from-accent-500/15 via-raised/80 to-inset/90 p-5 shadow-e2">
@@ -57,29 +51,25 @@ export function InvestmentStatus() {
           <dt className="text-body-sm text-fg-muted">Account status</dt>
           <dd className="inline-flex items-center gap-1.5 text-body-sm font-medium text-profit">
             <BadgeCheck className="size-4" aria-hidden />
-            {DEMO_PROFILE.verificationStatus}
+            {kycLabel}
           </dd>
         </div>
         <div className="flex items-center justify-between gap-3">
           <dt className="text-body-sm text-fg-muted">Investment status</dt>
-          <dd className="text-body-sm font-medium text-accent-200">Active · {DEMO_PROFILE.plan}</dd>
+          <dd className="text-body-sm font-medium text-accent-200">
+            {invested ? 'Active' : 'Awaiting funds'}
+          </dd>
         </div>
       </dl>
 
       <div className="relative mt-5 rounded-2xl border border-line/80 bg-inset/50 p-4">
-        <div className="flex items-center justify-between gap-2">
-          <p className="inline-flex items-center gap-1.5 text-caption text-fg-subtle">
-            <Clock3 className="size-3.5" aria-hidden />
-            Next Daily Settlement
-          </p>
-          <p
-            className="font-mono text-body-sm tabular-nums text-fg tracking-wide"
-            aria-live="polite"
-          >
-            {formatCountdown(left)}
-          </p>
+        <div className="flex items-start gap-2">
+          <Clock3 className="mt-0.5 size-3.5 shrink-0 text-fg-subtle" aria-hidden />
+          <div>
+            <p className="text-caption text-fg-subtle">Daily settlement</p>
+            <p className="mt-1 text-body-sm text-fg">{settlementCopy}</p>
+          </div>
         </div>
-        <Progress value={progress} className="mt-3 h-1.5" tone="profit" />
       </div>
     </div>
   )

@@ -20,7 +20,7 @@ export const SelectTrigger = forwardRef<
       aria-invalid={invalid || undefined}
       className={cn(
         'flex h-12 w-full items-center justify-between gap-2 rounded-xl border bg-inset/80 px-3.5',
-        'text-sm text-fg shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]',
+        'text-base text-fg shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]',
         'transition-[border-color,box-shadow,background-color] duration-[180ms] ease-out-soft',
         'border-line-default hover:border-line-strong hover:bg-inset',
         'focus:border-accent focus:bg-inset focus:outline-none',
@@ -50,8 +50,10 @@ export const SelectContent = forwardRef<
         ref={ref}
         position={position}
         sideOffset={6}
+        collisionPadding={8}
         className={cn(
-          'relative z-50 max-h-80 min-w-[8rem] overflow-hidden rounded-lg',
+          // Above fixed topbar (z-100) and dialog overlays — match dropdown menus.
+          'relative z-[300] max-h-80 min-w-[8rem] overflow-hidden rounded-lg',
           'glass-strong glass-edge shadow-e3',
           'data-[state=open]:animate-slide-down',
           position === 'popper' && 'w-[var(--radix-select-trigger-width)]',

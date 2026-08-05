@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { KycStatus, User, UserStatus } from '@meridian/shared'
 import {
   BadgeCheck,
@@ -25,7 +25,7 @@ import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/toast'
 import { useChangePassword } from '@/features/auth/hooks'
-import { SAVED_CRYPTO_WALLETS, SAVED_INR_ACCOUNTS } from '@/lib/investor-demo-data'
+import { usePayoutMethods } from '@/features/withdrawals/hooks'
 import {
   displayUsername,
   type KycLifecycleStatus,
@@ -35,6 +35,10 @@ import { ApiError } from '@/lib/api-client'
 import { formatDateTime } from '@/lib/format'
 import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
+
+function isCryptoType(type: string) {
+  return ['CRYPTO', 'USDT_TRC20', 'USDT_BEP20', 'BTC', 'ETH'].includes(type)
+}
 
 const TABS = [
   { id: 'personal', label: 'Personal', icon: UserRound },
@@ -74,8 +78,18 @@ function mapLifecycleStatus(user: User): LifecycleStatus {
 export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }) {
   const { session } = useSession()
   const changePassword = useChangePassword()
+  const { data: payoutMethods = [] } = usePayoutMethods({ enabled: Boolean(session) })
   const [twoFa, setTwoFa] = useState(false)
   const [passwordBusy, setPasswordBusy] = useState(false)
+
+  const bankAccounts = useMemo(
+    () => payoutMethods.filter((m) => !isCryptoType(m.type)),
+    [payoutMethods],
+  )
+  const cryptoWallets = useMemo(
+    () => payoutMethods.filter((m) => isCryptoType(m.type)),
+    [payoutMethods],
+  )
 
   const apiUser = session?.user
   const user = apiUser
@@ -216,7 +230,7 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
             description="Saved INR payout accounts."
             icon={Landmark}
           >
-            {SAVED_INR_ACCOUNTS.length === 0 ? (
+            {bankAccounts.length === 0 ? (
               <PremiumEmptyState
                 variant="wallet"
                 title="No bank accounts"
@@ -230,28 +244,26 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
             ) : (
               <>
                 <ul className="space-y-2.5">
-                  {SAVED_INR_ACCOUNTS.map((b) => (
+                  {bankAccounts.map((b) => (
                     <li
                       key={b.id}
                       className={cn(
                         'rounded-xl border px-3.5 py-3',
-                        b.primary
+                        b.isDefault
                           ? 'border-accent-700/40 bg-accent-500/8'
                           : 'border-line/80 bg-inset/30',
                       )}
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="text-body-sm font-medium text-fg">
-                          {b.bankName}
-                          {b.primary ? (
+                          {b.label}
+                          {b.isDefault ? (
                             <span className="ml-2 text-caption text-accent-300">Primary</span>
                           ) : null}
                         </p>
-                        <StatusPill status="APPROVED" />
+                        <StatusPill status={b.isVerified ? 'APPROVED' : 'PENDING'} />
                       </div>
-                      <p className="mt-1 text-caption text-fg-muted">
-                        {b.accountName} · {b.accountNumberMasked} · {b.ifsc}
-                      </p>
+                      <p className="mt-1 text-caption text-fg-muted">{b.maskedDetails}</p>
                     </li>
                   ))}
                 </ul>
@@ -273,7 +285,7 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
             description="Saved withdrawal addresses."
             icon={Wallet}
           >
-            {SAVED_CRYPTO_WALLETS.length === 0 ? (
+            {cryptoWallets.length === 0 ? (
               <PremiumEmptyState
                 variant="wallet"
                 title="No wallets yet"
@@ -282,7 +294,7 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
             ) : (
               <>
                 <ul className="space-y-2.5">
-                  {SAVED_CRYPTO_WALLETS.map((w) => (
+                  {cryptoWallets.map((w) => (
                     <li
                       key={w.id}
                       className="rounded-xl border border-line/80 bg-inset/30 px-3.5 py-3"
@@ -290,19 +302,19 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="text-body-sm font-medium text-fg">
                           {w.label}
-                          {w.primary ? (
+                          {w.isDefault ? (
                             <span className="ml-2 text-caption text-accent-300">Primary</span>
                           ) : null}
                         </p>
                         <span className="text-caption text-fg-subtle">
-                          {w.coin} · {w.network}
+                          {w.type.replaceAll('_', ' ')}
                         </span>
                       </div>
                       <div className="mt-2 flex items-start gap-2">
                         <p className="min-w-0 flex-1 break-all font-mono text-caption text-fg-muted">
-                          {w.address}
+                          {w.maskedDetails}
                         </p>
-                        <CopyButton value={w.address} label="Wallet address" />
+                        <CopyButton value={w.maskedDetails} label="Wallet address" />
                       </div>
                     </li>
                   ))}

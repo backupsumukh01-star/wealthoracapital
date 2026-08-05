@@ -3,22 +3,26 @@
 import type { ReactNode } from 'react'
 
 import { ProtectedRoute } from '@/components/auth/protected-route'
-import { DemoSession } from '@/components/dashboard/demo-session'
 import { MobileBottomNav } from '@/components/dashboard/mobile-nav'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { Topbar } from '@/components/dashboard/topbar'
 import { PageTransition } from '@/components/motion/page-transition'
+import { InvestorPermissionRouteGuard } from '@/features/auth/guards'
 import { cn } from '@/lib/cn'
 
 /**
  * Investor shell — single document scroll.
- * Sticky header + fixed-height sidebar column; no nested page scrollports.
+ *
+ * The topbar is `position: fixed` (not sticky). Sticky headers share a stacking /
+ * hit-testing context with transformed Framer Motion cards that scroll underneath;
+ * those layers steal clicks until you scroll back to the top. Fixed chrome + a
+ * flow spacer permanently keeps avatar / bell / deposit controls clickable.
  */
 export function DashboardShell({ children }: { children: ReactNode }) {
   return (
     <ProtectedRoute>
-      <DemoSession>
-        <div className="relative flex min-h-full max-w-[100vw] overflow-x-clip bg-base">
+      <InvestorPermissionRouteGuard>
+        <div className="relative flex min-h-full max-w-[100vw] bg-base">
           <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
             <div className="absolute inset-0 bg-grid opacity-[0.12]" />
             <div
@@ -32,18 +36,26 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             <div className="absolute -right-32 top-64 h-[24rem] w-[24rem] rounded-full bg-hl-cyan/10 blur-3xl" />
           </div>
 
-          {/* Desktop sidebar column — own height, does not overlay main */}
-          <div className="sticky top-0 z-20 hidden h-svh shrink-0 self-start p-3 lg:block">
+          <div className="sticky top-0 z-40 hidden h-svh shrink-0 self-start p-3 lg:block">
             <Sidebar className="flex h-full rounded-3xl border border-glass-line" />
           </div>
 
-          <div className="relative z-0 flex min-w-0 flex-1 flex-col">
+          <div className="relative flex min-w-0 flex-1 flex-col">
+            {/* Reserves vertical space for the fixed topbar (height + safe area). */}
+            <div
+              aria-hidden
+              className="shrink-0"
+              style={{
+                height: 'calc(var(--topbar-height) + env(safe-area-inset-top, 0px))',
+              }}
+            />
+
             <Topbar />
 
             <main
               id="main"
               className={cn(
-                'relative z-0 flex-1 py-5 lg:py-7',
+                'relative z-0 min-w-0 flex-1 overflow-x-clip py-5 lg:py-7',
                 'px-4 lg:px-8',
                 'pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]',
                 'lg:pl-8 lg:pr-8',
@@ -58,7 +70,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
           <MobileBottomNav />
         </div>
-      </DemoSession>
+      </InvestorPermissionRouteGuard>
     </ProtectedRoute>
   )
 }

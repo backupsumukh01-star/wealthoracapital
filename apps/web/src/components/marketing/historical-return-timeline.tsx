@@ -4,36 +4,17 @@ import { memo, useId, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
-import { MONTHLY_RETURNS, YEARLY_RETURNS } from '@/lib/landing-data'
+import { usePerformanceMonthly } from '@/features/performance/hooks'
 import { cn } from '@/lib/cn'
-import { useAdminOs } from '@/providers/admin-os-provider'
 
-type Range = 'monthly' | 'quarterly' | 'yearly'
+type Range = 'monthly' | 'quarterly'
 
 type BarPoint = {
   id: string
   label: string
   fullLabel: string
   returnPct: number
-  trades: number
-  winRate: number
-  maxDrawdown: number
 }
-
-const MONTH_META: Omit<BarPoint, 'id' | 'label' | 'fullLabel' | 'returnPct'>[] = [
-  { trades: 128, winRate: 79.2, maxDrawdown: -0.4 },
-  { trades: 136, winRate: 81.0, maxDrawdown: -0.5 },
-  { trades: 142, winRate: 76.0, maxDrawdown: -0.8 },
-  { trades: 151, winRate: 82.4, maxDrawdown: -0.3 },
-  { trades: 134, winRate: 78.5, maxDrawdown: -0.6 },
-  { trades: 159, winRate: 84.1, maxDrawdown: -0.4 },
-  { trades: 147, winRate: 80.3, maxDrawdown: -0.5 },
-  { trades: 168, winRate: 85.6, maxDrawdown: -0.3 },
-  { trades: 140, winRate: 77.8, maxDrawdown: -0.7 },
-  { trades: 155, winRate: 83.2, maxDrawdown: -0.4 },
-  { trades: 172, winRate: 86.4, maxDrawdown: -0.2 },
-  { trades: 163, winRate: 84.8, maxDrawdown: -0.3 },
-]
 
 const FULL_MONTHS = [
   'January',
@@ -54,55 +35,34 @@ function compound(returns: number[]) {
   return (returns.reduce((acc, r) => acc * (1 + r / 100), 1) - 1) * 100
 }
 
-function buildMonthly(
-  source: Array<{ month: string; returnPct: number }>,
-): BarPoint[] {
+function buildMonthly(source: Array<{ month: string; returnPct: number }>): BarPoint[] {
   return source.map((m, i) => ({
     id: `m-${m.month}`,
     label: m.month,
     fullLabel: FULL_MONTHS[i] ?? m.month,
     returnPct: m.returnPct,
-    ...(MONTH_META[i] ?? { trades: 120, winRate: 80, maxDrawdown: -0.5 }),
   }))
 }
 
 function buildQuarterly(monthly: BarPoint[]): BarPoint[] {
-  return [0, 1, 2, 3].map((q) => {
+  const quarters: BarPoint[] = []
+  for (let q = 0; q * 3 < monthly.length; q += 1) {
     const slice = monthly.slice(q * 3, q * 3 + 3)
+    if (slice.length === 0) continue
     const returnPct = Number(compound(slice.map((s) => s.returnPct)).toFixed(1))
-    const trades = slice.reduce((n, s) => n + s.trades, 0)
-    const winRate = Number(
-      (slice.reduce((n, s) => n + s.winRate, 0) / Math.max(slice.length, 1)).toFixed(1),
-    )
-    const maxDrawdown = Number(Math.min(...slice.map((s) => s.maxDrawdown)).toFixed(1))
-    return {
+    quarters.push({
       id: `q-${q + 1}`,
       label: `Q${q + 1}`,
       fullLabel: `Quarter ${q + 1}`,
       returnPct,
-      trades,
-      winRate,
-      maxDrawdown,
-    }
-  })
-}
-
-function buildYearly(source: Array<{ year: string; returnPct: number }>): BarPoint[] {
-  return source.map((y, i) => ({
-    id: `y-${y.year}`,
-    label: y.year.replace(' YTD', ''),
-    fullLabel: y.year,
-    returnPct: y.returnPct,
-    trades: 1480 + i * 220,
-    winRate: Number((76.5 + i * 1.2).toFixed(1)),
-    maxDrawdown: Number((-3.8 + i * 0.3).toFixed(1)),
-  }))
+    })
+  }
+  return quarters
 }
 
 const RANGES: { id: Range; label: string }[] = [
   { id: 'monthly', label: 'Monthly' },
   { id: 'quarterly', label: 'Quarterly' },
-  { id: 'yearly', label: 'Yearly' },
 ]
 
 function formatPct(n: number) {
@@ -110,38 +70,40 @@ function formatPct(n: number) {
   return `${sign}${n.toFixed(1)}%`
 }
 
-/** Interactive SVG historical return bars — CMS performance when available. */
+/**
+ * Interactive SVG historical return bars — published monthly performance only.
+ * Renders nothing without a published series.
+ */
 export const HistoricalReturnTimeline = memo(function HistoricalReturnTimeline() {
   const prefersReducedMotion = usePrefersReducedMotion()
-  const { ready, state } = useAdminOs()
+  const { data: monthlyData = [] } = usePerformanceMonthly()
   const gid = useId()
-  const monthly = useMemo(() => {
-    const source =
-      ready && state.performance.monthly.length > 0
-        ? state.performance.monthly
-        : MONTHLY_RETURNS.map((m) => ({ month: m.month, returnPct: m.returnPct }))
-    return buildMonthly(source)
-  }, [ready, state.performance.monthly])
+  const monthly = useMemo(
+    () =>
+      buildMonthly(
+        monthlyData.map((m) => ({
+          month: m.month,
+          returnPct: Number.parseFloat(String(m.returnPct)) || 0,
+        })),
+      ),
+    [monthlyData],
+  )
   const quarterly = useMemo(() => buildQuarterly(monthly), [monthly])
-  const yearly = useMemo(() => {
-    const source =
-      ready && state.performance.yearly.length > 0
-        ? state.performance.yearly
-        : YEARLY_RETURNS.map((y) => ({ year: y.year, returnPct: y.returnPct }))
-    return buildYearly(source)
-  }, [ready, state.performance.yearly])
 
   const [range, setRange] = useState<Range>('monthly')
   const [selected, setSelected] = useState(0)
   const [hovered, setHovered] = useState<number | null>(null)
 
-  const series = range === 'monthly' ? monthly : range === 'quarterly' ? quarterly : yearly
+  const series = range === 'monthly' ? monthly : quarterly
+
+  if (series.length === 0) return null
+
   const activeIndex = Math.min(selected, series.length - 1)
   const active = series[activeIndex]!
   const focus = hovered ?? activeIndex
 
   const W = 720
-  const H = 280
+  const H = 220
   const pad = { t: 28, r: 16, b: 36, l: 44 }
   const innerW = W - pad.l - pad.r
   const innerH = H - pad.t - pad.b
@@ -161,7 +123,7 @@ export const HistoricalReturnTimeline = memo(function HistoricalReturnTimeline()
 
   const tip = bars[focus]!
   const tipX = Math.min(Math.max(tip.cx - 72, 8), W - 160)
-  const tipY = Math.max(tip.up ? tip.y - 88 : tip.y + tip.h + 8, 8)
+  const tipY = Math.max(tip.up ? tip.y - 56 : tip.y + tip.h + 8, 8)
 
   function selectRange(next: Range) {
     setRange(next)
@@ -181,7 +143,7 @@ export const HistoricalReturnTimeline = memo(function HistoricalReturnTimeline()
       <div className="flex flex-col gap-3 border-b border-white/[0.06] px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-6">
         <div className="min-w-0">
           <p className="text-overline text-accent-300">Historical return timeline</p>
-          <p className="mt-1 text-heading-sm text-fg">Programme archive · illustrative</p>
+          <p className="mt-1 text-heading-sm text-fg">Published programme archive</p>
         </div>
 
         <div
@@ -213,42 +175,30 @@ export const HistoricalReturnTimeline = memo(function HistoricalReturnTimeline()
         </div>
       </div>
 
-      {/* Stats for selected period — fixed layout, no CLS */}
-      <div className="grid grid-cols-2 gap-2 border-b border-white/[0.06] px-4 py-3 sm:grid-cols-4 sm:gap-3 sm:px-6">
-        {[
-          {
-            label: 'Return',
-            value: formatPct(active.returnPct),
-            tone: active.returnPct >= 0 ? 'text-profit' : 'text-loss',
-          },
-          { label: 'Win rate', value: `${active.winRate.toFixed(1)}%`, tone: 'text-fg' },
-          { label: 'Trades', value: String(active.trades), tone: 'text-fg' },
-          {
-            label: 'Max drawdown',
-            value: `${active.maxDrawdown.toFixed(1)}%`,
-            tone: 'text-loss',
-          },
-        ].map((stat) => (
-          <div key={stat.label} className="min-w-0 rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2.5">
-            <p className="text-[11px] text-fg-subtle">{stat.label}</p>
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.p
-                key={`${range}-${active.id}-${stat.label}`}
-                className={cn('mt-0.5 text-[15px] font-semibold tabular-nums sm:text-heading-sm', stat.tone)}
-                initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={prefersReducedMotion ? undefined : { opacity: 0, y: -4 }}
-                transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-              >
-                {stat.value}
-              </motion.p>
-            </AnimatePresence>
-          </div>
-        ))}
+      {/* Stat for selected period — fixed layout, no CLS */}
+      <div className="border-b border-white/[0.06] px-4 py-3 sm:px-6">
+        <div className="min-w-0 max-w-[10rem] rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2.5">
+          <p className="text-[11px] text-fg-subtle">Return</p>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.p
+              key={`${range}-${active.id}`}
+              className={cn(
+                'mt-0.5 text-[15px] font-semibold tabular-nums sm:text-heading-sm',
+                active.returnPct >= 0 ? 'text-profit' : 'text-loss',
+              )}
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? undefined : { opacity: 0, y: -4 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {formatPct(active.returnPct)}
+            </motion.p>
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Chart — fixed height viewport */}
-      <div className="relative h-[240px] w-full min-w-0 overflow-x-auto overflow-y-hidden sm:h-[280px] [scrollbar-width:thin]">
+      <div className="relative h-[200px] w-full min-w-0 overflow-x-auto overflow-y-hidden sm:h-[240px] [scrollbar-width:thin]">
         <svg
           viewBox={`0 0 ${W} ${H}`}
           className="h-full w-full min-w-0 touch-pan-x"
@@ -397,7 +347,7 @@ export const HistoricalReturnTimeline = memo(function HistoricalReturnTimeline()
                 x={tipX}
                 y={tipY}
                 width="152"
-                height="96"
+                height="48"
                 initial={prefersReducedMotion ? false : { opacity: 0, y: tipY + 8 }}
                 animate={{ opacity: 1, y: tipY }}
                 exit={{ opacity: 0 }}
@@ -408,11 +358,6 @@ export const HistoricalReturnTimeline = memo(function HistoricalReturnTimeline()
                   <p className="font-semibold text-fg">{tip.fullLabel}</p>
                   <p className={cn('mt-1 tabular-nums', tip.up ? 'text-profit' : 'text-loss')}>
                     Return: {formatPct(tip.returnPct)}
-                  </p>
-                  <p className="mt-0.5 tabular-nums text-fg-muted">Trades: {tip.trades}</p>
-                  <p className="tabular-nums text-fg-muted">Win Rate: {tip.winRate.toFixed(0)}%</p>
-                  <p className="tabular-nums text-fg-muted">
-                    Max Drawdown: {tip.maxDrawdown.toFixed(1)}%
                   </p>
                 </div>
               </motion.foreignObject>
@@ -451,7 +396,7 @@ export const HistoricalReturnTimeline = memo(function HistoricalReturnTimeline()
       </div>
 
       <p className="border-t border-white/[0.06] px-4 py-3 text-center text-[11px] leading-relaxed text-fg-subtle sm:px-6">
-        Illustrative historical performance. Past performance does not guarantee future results.
+        Published historical performance. Past performance does not guarantee future results.
       </p>
     </div>
   )

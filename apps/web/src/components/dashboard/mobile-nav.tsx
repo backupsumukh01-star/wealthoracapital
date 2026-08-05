@@ -10,31 +10,68 @@ import {
   Wallet,
   History,
 } from 'lucide-react'
+import { useMemo } from 'react'
 
 import { cn } from '@/lib/cn'
 import { isRouteActive, type NavItem } from '@/lib/navigation'
+import { useSession } from '@/providers/session-provider'
 
 const MOBILE_NAV: NavItem[] = [
-  { label: 'Home', href: ROUTES.dashboard.root, icon: LayoutDashboard },
-  { label: 'Wallet', href: ROUTES.dashboard.wallet, icon: Wallet },
-  { label: 'Returns', href: ROUTES.dashboard.performance, icon: ChartNoAxesCombined },
-  { label: 'History', href: ROUTES.dashboard.transactions, icon: History },
-  { label: 'Profile', href: ROUTES.dashboard.settings.profile, icon: UserRound },
+  {
+    label: 'Home',
+    href: ROUTES.dashboard.root,
+    icon: LayoutDashboard,
+    permission: 'performance.view',
+  },
+  { label: 'Wallet', href: ROUTES.dashboard.wallet, icon: Wallet, permission: 'wallet.view' },
+  {
+    label: 'Returns',
+    href: ROUTES.dashboard.performance,
+    icon: ChartNoAxesCombined,
+    permission: 'performance.view',
+  },
+  {
+    label: 'History',
+    href: ROUTES.dashboard.transactions,
+    icon: History,
+    permission: ['deposits.view', 'withdrawals.view'],
+  },
+  {
+    label: 'Profile',
+    href: ROUTES.dashboard.settings.profile,
+    icon: UserRound,
+    permission: 'profile.view',
+  },
 ]
 
 /**
- * App-like bottom navigation for small screens.
+ * App-like bottom navigation for small screens — unauthorized items are hidden.
  */
 export function MobileBottomNav() {
   const pathname = usePathname()
+  const { can, canAny } = useSession()
+
+  const items = useMemo(
+    () =>
+      MOBILE_NAV.filter((item) => {
+        if (!item.permission) return true
+        return Array.isArray(item.permission) ? canAny(item.permission) : can(item.permission)
+      }),
+    [can, canAny],
+  )
+
+  if (items.length === 0) return null
 
   return (
     <nav
       aria-label="Primary"
-      className="glass-strong fixed inset-x-0 bottom-0 z-30 border-t border-glass-line pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="glass-strong fixed inset-x-0 bottom-0 z-40 border-t border-glass-line pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
-      <ul className="grid h-16 grid-cols-5 px-1">
-        {MOBILE_NAV.map((item) => {
+      <ul
+        className="grid h-16 px-1"
+        style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+      >
+        {items.map((item) => {
           const active =
             item.href === ROUTES.dashboard.settings.profile
               ? pathname.startsWith('/settings')

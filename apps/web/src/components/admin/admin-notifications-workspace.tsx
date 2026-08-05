@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Eye, Send } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -11,15 +12,41 @@ import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { useAdminOs } from '@/providers/admin-os-provider'
 import { formatDateTime } from '@/lib/format'
 import { cn } from '@/lib/cn'
+import { broadcastService, type Broadcast } from '@/services/broadcast.service'
 
 const CHANNELS = ['BANNER', 'POPUP', 'DASHBOARD', 'PUSH', 'EMAIL', 'ANNOUNCEMENT'] as const
 const AUDIENCES = ['ALL', 'SELECTED', 'SINGLE', 'COUNTRY', 'VIP'] as const
 
+function toApiChannels(channels: string[]): Broadcast['channels'] {
+  const out: Broadcast['channels'] = []
+  for (const c of channels) {
+    if (c === 'EMAIL') out.push('EMAIL')
+    else if (c === 'BANNER') out.push('BANNER')
+    else if (c === 'POPUP') out.push('POPUP')
+    else if (c === 'ANNOUNCEMENT') out.push('ANNOUNCEMENT')
+    else if (c === 'DASHBOARD' || c === 'PUSH') out.push('IN_APP')
+  }
+  return out.length ? Array.from(new Set(out)) : ['IN_APP']
+}
+
+function toApiAudience(audience: (typeof AUDIENCES)[number]): Broadcast['audience'] {
+  if (audience === 'ALL') return 'ALL'
+  if (audience === 'VIP') return 'VIP'
+  if (audience === 'COUNTRY') return 'COUNTRY'
+  if (audience === 'SINGLE') return 'SINGLE'
+  return 'SELECTED'
+}
+
 export function AdminNotificationsWorkspace() {
-  const { state, sendCampaign } = useAdminOs()
+  const qc = useQueryClient()
+  const { data } = useQuery({
+    queryKey: ['admin', 'broadcasts', 'notifications'],
+    queryFn: () => broadcastService.list(),
+  })
+  const sent = data?.items ?? []
+
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [audience, setAudience] = useState<(typeof AUDIENCES)[number]>('ALL')
@@ -30,7 +57,26 @@ export function AdminNotificationsWorkspace() {
   const selectClass =
     'h-10 w-full rounded-lg border border-white/10 bg-inset/60 px-3 text-body-sm text-fg'
 
-  const sent = state.campaigns
+  const sendMutation = useMutation({
+    mutationFn: async () => {
+      const created = await broadcastService.create({
+        title: title.trim(),
+        body: body.trim(),
+        channels: toApiChannels(channels),
+        audience: toApiAudience(audience),
+        audienceFilter: audience === 'ALL' ? undefined : { detail: audienceDetail },
+      })
+      return broadcastService.send(created.id)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'broadcasts'] })
+      toast.success('Notification sent')
+      setTitle('')
+      setBody('')
+      setPreview(false)
+    },
+    onError: (err: Error) => toast.error(err.message || 'Send failed'),
+  })
 
   function toggleChannel(c: string) {
     setChannels((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))
@@ -45,17 +91,7 @@ export function AdminNotificationsWorkspace() {
       toast.error('Select at least one channel')
       return
     }
-    sendCampaign({
-      title,
-      body,
-      audience,
-      audienceDetail,
-      channels: channels as Array<(typeof CHANNELS)[number]>,
-    })
-    toast.success('Notification sent')
-    setTitle('')
-    setBody('')
-    setPreview(false)
+    sendMutation.mutate()
   }
 
   const stats = useMemo(
@@ -144,7 +180,7 @@ export function AdminNotificationsWorkspace() {
               <Eye aria-hidden />
               Preview
             </Button>
-            <Button type="button" onClick={handleSend}>
+            <Button type="button" onClick={handleSend} disabled={sendMutation.isPending}>
               <Send aria-hidden />
               Send
             </Button>
@@ -182,7 +218,7 @@ export function AdminNotificationsWorkspace() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="font-medium text-fg">{c.title}</p>
                   <span className="text-caption text-fg-subtle">
-                    {c.sentAt ? formatDateTime(c.sentAt) : '—'}
+                    {c.sentAt ? formatDateTime(c.sentAt) : c.status}
                   </span>
                 </div>
                 <p className="mt-1 text-caption text-fg-muted">

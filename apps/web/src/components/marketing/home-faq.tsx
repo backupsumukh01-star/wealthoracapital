@@ -7,21 +7,18 @@ import { ArrowRight } from 'lucide-react'
 import { Section } from '@/components/common/section'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { Button } from '@/components/ui/button'
-import { HOME_FAQS } from '@/lib/landing-data'
-import { useAdminOs } from '@/providers/admin-os-provider'
+import { usePublishedFaqs } from '@/features/cms/site'
 
 import { FaqAccordion } from './faq-accordion'
 
-/** Homepage FAQ — CMS faqs when available, else static seed. */
+/** Homepage FAQ — CMS faqs when available. */
 export function HomeFaq() {
-  const { ready, state } = useAdminOs()
-  const items =
-    ready && state.faqs.length > 0
-      ? [...state.faqs]
-          .sort((a, b) => a.order - b.order)
-          .slice(0, 5)
-          .map((f) => ({ question: f.question, answer: f.answer }))
-      : [...HOME_FAQS]
+  const { faqs, isSuccess } = usePublishedFaqs()
+  const items = isSuccess
+    ? faqs.slice(0, 5).map((f) => ({ question: f.question, answer: f.answer }))
+    : []
+
+  if (!items.length) return null
 
   return (
     <Section

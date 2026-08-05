@@ -41,6 +41,10 @@ export interface User {
   timezone: string
   avatarUrl: string | null
   role: Role
+  /** Operator specialty — null for pure investors. */
+  staffRole: import('./enums').StaffRole | null
+  /** Resolved permission keys for the current role/staffRole. */
+  permissions: string[]
   status: UserStatus
   kycStatus: KycStatus
   emailVerified: boolean

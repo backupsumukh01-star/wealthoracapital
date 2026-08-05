@@ -37,6 +37,10 @@ export function forbidden(message = 'You do not have permission to perform this 
   return new AppError(403, ERROR_CODES.FORBIDDEN, message)
 }
 
+export function serviceUnavailable(message = 'Service temporarily unavailable.'): AppError {
+  return new AppError(503, ERROR_CODES.INTERNAL_ERROR, message)
+}
+
 export function notFound(message = 'Resource not found.'): AppError {
   return new AppError(404, ERROR_CODES.NOT_FOUND, message)
 }

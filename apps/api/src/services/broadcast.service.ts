@@ -3,6 +3,7 @@ import type { Broadcast, BroadcastAudience, BroadcastChannel, BroadcastStatus } 
 
 import { prisma } from '../database/prisma.js'
 import { notFound, badRequest } from '../utils/errors.js'
+import { transactionalMailer } from '../emails/transactional.js'
 import { activityService } from './activity.service.js'
 import { cmsService } from './cms/cms.service.js'
 import { notificationService } from './notification.service.js'
@@ -158,9 +159,10 @@ export const broadcastService = {
     }
 
     if (channels.includes('IN_APP') || channels.includes('EMAIL')) {
-      const users = channels.includes('EMAIL')
-        ? await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, email: true } })
-        : userIds.map((id) => ({ id, email: null as string | null }))
+      const users = await prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, email: true, firstName: true },
+      })
 
       for (const user of users) {
         await notificationService.notify({
@@ -171,10 +173,16 @@ export const broadcastService = {
           type: 'BROADCAST',
           channels: [
             ...(channels.includes('IN_APP') ? (['DATABASE'] as const) : []),
-            ...(channels.includes('EMAIL') && user.email ? (['EMAIL'] as const) : []),
+            ...(channels.includes('EMAIL') ? ([] as const) : []),
           ],
-          ...(channels.includes('EMAIL') && user.email ? { email: { to: user.email, subject: existing.title } } : {}),
         })
+        if (channels.includes('EMAIL') && user.email) {
+          await transactionalMailer.broadcast(user.email, {
+            firstName: user.firstName,
+            title: existing.title,
+            body: existing.body,
+          })
+        }
       }
     }
 

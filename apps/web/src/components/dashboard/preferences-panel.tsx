@@ -66,7 +66,7 @@ export function PreferencesPanel() {
           checked={daily}
           onCheckedChange={(v) => {
             setDaily(v)
-            toast.success('Preference saved (demo)')
+            toast.success('Preference saved')
           }}
         />
         <PrefRow
@@ -75,7 +75,7 @@ export function PreferencesPanel() {
           checked={marketing}
           onCheckedChange={(v) => {
             setMarketing(v)
-            toast.success('Preference saved (demo)')
+            toast.success('Preference saved')
           }}
         />
       </SettingsCard>
@@ -87,7 +87,7 @@ export function PreferencesPanel() {
           checked={push}
           onCheckedChange={(v) => {
             setPush(v)
-            toast.success('Preference saved (demo)')
+            toast.success('Preference saved')
           }}
         />
         <div className="flex items-center justify-between gap-3 py-3 sm:py-3.5">

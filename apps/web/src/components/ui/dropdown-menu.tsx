@@ -16,14 +16,19 @@ export const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup
 export const DropdownMenuContent = forwardRef<
   ElementRef<typeof DropdownMenuPrimitive.Content>,
   ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(function DropdownMenuContent({ className, sideOffset = 8, ...props }, ref) {
+>(function DropdownMenuContent({ className, sideOffset = 8, collisionPadding = 8, ...props }, ref) {
   return (
     <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Content
         ref={ref}
+        side="bottom"
+        align="end"
         sideOffset={sideOffset}
+        collisionPadding={collisionPadding}
+        avoidCollisions
         className={cn(
-          'z-50 min-w-52 overflow-hidden rounded-lg p-1.5',
+          // Above fixed topbar (z-100), bottom nav, FABs.
+          'z-[300] min-w-52 overflow-hidden rounded-lg p-1.5',
           'glass-strong glass-edge shadow-e3',
           'data-[state=open]:animate-slide-down',
           className,
@@ -134,7 +139,7 @@ export const DropdownMenuSubContent = forwardRef<
     <DropdownMenuPrimitive.SubContent
       ref={ref}
       className={cn(
-        'z-50 min-w-44 overflow-hidden rounded-lg p-1.5 glass-strong glass-edge shadow-e3',
+        'z-[200] min-w-44 overflow-hidden rounded-lg p-1.5 glass-strong glass-edge shadow-e3',
         className,
       )}
       {...props}

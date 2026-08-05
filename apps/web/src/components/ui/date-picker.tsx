@@ -33,7 +33,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(function
         onChange={(event) => onChange?.(event.target.value)}
         aria-invalid={invalid || undefined}
         className={cn(
-          'h-11 w-full rounded-md border bg-inset px-3.5 pr-10 text-sm text-fg',
+          'h-12 w-full rounded-md border bg-inset px-3.5 pr-10 text-base text-fg',
           'transition-[border-color,box-shadow] duration-[160ms] ease-out-soft',
           'border-line-default hover:border-line-strong',
           'focus:border-accent focus:outline-none focus:ring-2 focus:ring-ring/40',

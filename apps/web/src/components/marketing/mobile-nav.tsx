@@ -27,8 +27,8 @@ import {
 import { Logo } from '@/components/common/logo'
 import { Button } from '@/components/ui/button'
 import { MARKETING_NAV, MARKETING_SECONDARY_NAV } from '@/lib/navigation'
-import { hasDemoSession } from '@/lib/demo-auth'
 import { useAuthModal } from '@/providers/auth-modal-provider'
+import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
 
 const ICONS: Record<string, LucideIcon> = {
@@ -50,6 +50,7 @@ const ICONS: Record<string, LucideIcon> = {
 export function MobileNav() {
   const pathname = usePathname()
   const { openAuth } = useAuthModal()
+  const { isAuthenticated } = useSession()
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -70,7 +71,7 @@ export function MobileNav() {
     }
   }, [open])
 
-  const dashboardHref = mounted && hasDemoSession() ? ROUTES.dashboard.root : ROUTES.auth.login
+  const dashboardHref = isAuthenticated ? ROUTES.dashboard.root : ROUTES.auth.login
 
   const drawer =
     mounted &&
@@ -94,7 +95,7 @@ export function MobileNav() {
               onClick={() => setOpen(false)}
             />
             <motion.aside
-              className="absolute inset-y-0 right-0 flex w-[min(100%,22rem)] flex-col border-l border-glass-line bg-base shadow-e4"
+              className="absolute inset-y-0 right-0 flex w-[min(100%,22rem)] flex-col border-l border-glass-line bg-base pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-e4"
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
@@ -105,6 +106,7 @@ export function MobileNav() {
                 <Button
                   variant="ghost"
                   size="icon"
+                  className="size-10"
                   aria-label="Close menu"
                   onClick={() => setOpen(false)}
                 >

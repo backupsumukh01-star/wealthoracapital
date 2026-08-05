@@ -1,7 +1,6 @@
 export { ActiveInvestmentCard } from './active-investment-card'
 export { ActivityTimeline } from './activity-timeline'
 export { DashboardShell } from './dashboard-shell'
-export { DemoSession } from './demo-session'
 export { DepositWorkspace } from './deposit-workspace'
 export { GlowPanel } from './glow-panel'
 export { GrowthChart } from './growth-chart'

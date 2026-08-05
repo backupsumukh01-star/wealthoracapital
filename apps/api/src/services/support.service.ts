@@ -4,6 +4,7 @@ import type { Prisma, SupportCategory, SupportTicketStatus, PriorityLevel } from
 
 import { prisma } from '../database/prisma.js'
 import { notFound, badRequest } from '../utils/errors.js'
+import { transactionalMailer } from '../emails/transactional.js'
 import { activityService } from './activity.service.js'
 import { auditService } from './audit.service.js'
 import { notificationService } from './notification.service.js'
@@ -150,6 +151,11 @@ export const supportService = {
         body: `Support replied to "${existing.subject}"`,
         type: 'SUPPORT_TICKET_REPLIED',
         actionUrl: `/support`,
+      })
+      await transactionalMailer.supportReply(existing.userId, {
+        reference: existing.reference,
+        subject: existing.subject,
+        message: body.message,
       })
     }
     return mapTicket(updated)

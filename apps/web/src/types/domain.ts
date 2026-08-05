@@ -111,6 +111,22 @@ export type CmsPublicBootstrap = {
   featureFlags: Record<string, boolean>
 }
 
+/** `GET /performance/public` — summary + desk analytics for marketing surfaces. */
+export type PublicPerformancePayload = {
+  summary: import('@meridian/shared').PerformanceSummary
+  analytics: {
+    winRate: string
+    lossRate: string
+    averageTrade: string
+    bestTrade: { pair?: string; returnPct?: string | null } | null
+    worstTrade: { pair?: string; returnPct?: string | null } | null
+    totalPnl: string
+    roi: string
+    openTrades: number
+    closedTrades: number
+  }
+}
+
 export type PublicSettings = {
   companyName: string
   supportEmail: string
@@ -143,14 +159,50 @@ export type SearchHit = {
 export type AdminHealthSnapshot = {
   refreshedAt: string
   version: string
-  environment: 'demo' | 'staging' | 'production'
+  environment: 'staging' | 'production' | 'development' | 'test'
+  uptimeSeconds?: number
   metrics: Array<{
     id: string
     label: string
     value: string
     detail: string
     tone: 'healthy' | 'warning' | 'critical'
+    group?: string
   }>
+  widgets?: {
+    api: { status: string; uptimeSeconds: number; node: string }
+    database: { status: string; latencyMs: number | null }
+    redis: { status: string; latencyMs: number | null }
+    queue: {
+      driver: string
+      waiting: number
+      active: number
+      failed: number
+      byGroup: Record<string, { waiting: number; active: number; failed: number }>
+    }
+    storage: { status: string; driver: string; detail: string }
+    emailQueue: { queued: number; sending: number; failed: number; sentToday: number }
+    failedJobs: { count: number; detail: string }
+    cpu: { load1: number; load5: number; cores: number; processUserMs: number }
+    memory: {
+      processRssMb: number
+      processHeapUsedMb: number
+      systemUsedPct: number
+      systemFreeMb: number
+      systemTotalMb: number
+    }
+    visitors: { last24h: number; today: number }
+    activeUsers: { sessions: number; users: number }
+    depositsToday: { count: number; amount: string }
+    withdrawalsToday: { count: number; amount: string }
+    kycPending: { count: number }
+    failedPayments: { depositsRejected: number; withdrawalsRejected: number; total: number }
+  }
+  logs?: {
+    system: Array<{ id: string; at: string; level: string; message: string }>
+    audit: Array<{ id: string; at: string; action: string; module: string; actorId: string | null }>
+    errors: Array<{ id: string; at: string; level: string; message: string }>
+  }
 }
 
 /** UI / async view-model states (not business data). */

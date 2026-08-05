@@ -104,6 +104,11 @@ async function createPasswordResetToken(userId: string): Promise<string> {
 }
 
 export const authService = {
+  /** Issue access + refresh cookies/session for an already-authenticated user (password or OAuth). */
+  async issueTokensForUser(user: User, context: SessionContext) {
+    return issueAuthTokens(user, context)
+  },
+
   async register(input: RegisterInput): Promise<{ userId: string }> {
     const existing = await userRepository.findByEmail(input.email)
     if (existing) {

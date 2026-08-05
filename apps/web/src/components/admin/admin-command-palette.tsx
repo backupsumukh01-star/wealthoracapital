@@ -13,38 +13,157 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { ADMIN_ROUTE_PERMISSIONS } from '@/config/admin-route-permissions'
 import { cn } from '@/lib/cn'
+import { useSession } from '@/providers/session-provider'
 
-type Action = { id: string; label: string; hint: string; href?: string; run?: () => void }
+type Action = {
+  id: string
+  label: string
+  hint: string
+  href?: string
+  run?: () => void
+  permission?: string | string[]
+}
 
 const ACTIONS: Action[] = [
-  { id: 'users', label: 'Open Users', hint: 'Directory', href: ROUTES.admin.users },
-  { id: 'deposit', label: 'Open Deposits', hint: 'Finance queue', href: ROUTES.admin.deposits },
-  { id: 'withdraw', label: 'Open Withdrawals', hint: 'Finance queue', href: ROUTES.admin.withdrawals },
-  { id: 'trade', label: 'Open Trades', hint: 'Trading desk', href: ROUTES.admin.trades },
-  { id: 'return', label: 'Publish Return', hint: 'Daily return engine', href: ROUTES.admin.dailyReturn },
+  {
+    id: 'users',
+    label: 'Open Users',
+    hint: 'Directory',
+    href: ROUTES.admin.users,
+    permission: 'users.view',
+  },
+  {
+    id: 'deposit',
+    label: 'Open Deposits',
+    hint: 'Finance queue',
+    href: ROUTES.admin.deposits,
+    permission: 'finance.review',
+  },
+  {
+    id: 'withdraw',
+    label: 'Open Withdrawals',
+    hint: 'Finance queue',
+    href: ROUTES.admin.withdrawals,
+    permission: 'finance.review',
+  },
+  {
+    id: 'trade',
+    label: 'Open Trades',
+    hint: 'Trading desk',
+    href: ROUTES.admin.trades,
+    permission: 'trades.view',
+  },
+  {
+    id: 'return',
+    label: 'Publish Return',
+    hint: 'Daily return engine',
+    href: ROUTES.admin.dailyReturn,
+    permission: 'returns.manage',
+  },
   {
     id: 'notify',
     label: 'Send Notification',
     hint: 'Campaigns',
     href: ROUTES.admin.notifications,
+    permission: 'notifications.view',
   },
-  { id: 'report', label: 'Generate Report', hint: 'Ops reports', href: ROUTES.admin.reports },
-  { id: 'settings', label: 'Open Settings', hint: 'Global config', href: ROUTES.admin.settings.global },
-  { id: 'health', label: 'System Health', hint: 'Ops', href: ROUTES.admin.systemHealth },
-  { id: 'cms', label: 'Landing CMS', hint: 'Content', href: ROUTES.admin.cms.landing },
-  { id: 'platform', label: 'Platform CMS', hint: 'Dashboard copy', href: ROUTES.admin.cms.platform },
-  { id: 'search', label: 'Global Search', hint: 'Find anything', href: ROUTES.admin.search },
-  { id: 'activity', label: 'Activity Center', hint: 'Timeline', href: ROUTES.admin.activityCenter },
-  { id: 'kyc', label: 'KYC Queue', hint: 'Compliance', href: ROUTES.admin.kyc },
-  { id: 'support', label: 'Support Desk', hint: 'Tickets', href: ROUTES.admin.support },
-  { id: 'audit', label: 'Audit Log', hint: 'Governance', href: ROUTES.admin.auditLog },
-  { id: 'backup', label: 'Backup Center', hint: 'CMS backup', href: ROUTES.admin.cms.backup },
+  {
+    id: 'report',
+    label: 'Generate Report',
+    hint: 'Ops reports',
+    href: ROUTES.admin.reports,
+    permission: 'reports.view',
+  },
+  {
+    id: 'settings',
+    label: 'Open Settings',
+    hint: 'Global config',
+    href: ROUTES.admin.settings.global,
+    permission: 'settings.manage',
+  },
+  {
+    id: 'health',
+    label: 'System Health',
+    hint: 'Ops',
+    href: ROUTES.admin.systemHealth,
+    permission: 'dashboard.view',
+  },
+  {
+    id: 'cms',
+    label: 'Landing CMS',
+    hint: 'Content',
+    href: ROUTES.admin.cms.landing,
+    permission: 'cms.view',
+  },
+  {
+    id: 'platform',
+    label: 'Platform CMS',
+    hint: 'Dashboard copy',
+    href: ROUTES.admin.cms.platform,
+    permission: 'cms.view',
+  },
+  {
+    id: 'search',
+    label: 'Global Search',
+    hint: 'Find anything',
+    href: ROUTES.admin.search,
+    permission: 'users.view',
+  },
+  {
+    id: 'activity',
+    label: 'Activity Center',
+    hint: 'Timeline',
+    href: ROUTES.admin.activityCenter,
+    permission: 'activity.view',
+  },
+  {
+    id: 'kyc',
+    label: 'KYC Queue',
+    hint: 'Compliance',
+    href: ROUTES.admin.kyc,
+    permission: 'kyc.review',
+  },
+  {
+    id: 'support',
+    label: 'Support Desk',
+    hint: 'Tickets',
+    href: ROUTES.admin.support,
+    permission: 'support.view',
+  },
+  {
+    id: 'audit',
+    label: 'Audit Log',
+    hint: 'Governance',
+    href: ROUTES.admin.auditLog,
+    permission: 'audit.view',
+  },
+  {
+    id: 'backup',
+    label: 'Backup Center',
+    hint: 'CMS backup',
+    href: ROUTES.admin.cms.backup,
+    permission: 'settings.manage',
+  },
 ]
 
-/** Linear/Vercel-style command palette — Ctrl/Cmd+K. */
+function actionAllowed(
+  action: Action,
+  can: (p: string) => boolean,
+  canAny: (p: string[]) => boolean,
+): boolean {
+  const required =
+    action.permission ??
+    (action.href ? ADMIN_ROUTE_PERMISSIONS[action.href] : undefined)
+  if (!required) return true
+  return Array.isArray(required) ? canAny(required) : can(required)
+}
+
+/** Linear/Vercel-style command palette — Ctrl/Cmd+K. Filtered by permissions. */
 export function AdminCommandPalette() {
   const router = useRouter()
+  const { can, canAny } = useSession()
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
   const [active, setActive] = useState(0)
@@ -62,13 +181,18 @@ export function AdminCommandPalette() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  const allowed = useMemo(
+    () => ACTIONS.filter((a) => actionAllowed(a, can, canAny)),
+    [can, canAny],
+  )
+
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
-    if (!needle) return ACTIONS
-    return ACTIONS.filter(
+    if (!needle) return allowed
+    return allowed.filter(
       (a) => a.label.toLowerCase().includes(needle) || a.hint.toLowerCase().includes(needle),
     )
-  }, [q])
+  }, [q, allowed])
 
   function run(action: Action) {
     setOpen(false)

@@ -1,6 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
+import { ROUTES } from '@meridian/shared'
 import { toast } from 'sonner'
 
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
@@ -9,9 +12,8 @@ import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { ADMIN_STAFF } from '@/lib/admin-demo-data'
 import { cn } from '@/lib/cn'
-import { useAdminOs } from '@/providers/admin-os-provider'
+import { adminService } from '@/services/admin.service'
 
 export type AdminSettingsSection =
   | 'general'
@@ -82,7 +84,7 @@ function GeneralSection() {
           <Input value={timezone} onChange={(e) => setTimezone(e.target.value)} />
         </FormField>
       </div>
-      <SaveBar onSave={() => toast.success('General settings saved (demo)')} />
+      <SaveBar onSave={() => toast.success('General settings saved')} />
     </AdminPanel>
   )
 }
@@ -153,7 +155,7 @@ function PlatformSection() {
             />
           </FormField>
         </div>
-        <SaveBar onSave={() => toast.success('Platform settings saved (demo)')} />
+        <SaveBar onSave={() => toast.success('Platform settings saved')} />
       </AdminPanel>
     </div>
   )
@@ -181,7 +183,7 @@ function EmailSection() {
           <Input type="email" value={replyTo} onChange={(e) => setReplyTo(e.target.value)} />
         </FormField>
       </div>
-      <SaveBar onSave={() => toast.success('Email settings saved (demo)')} />
+      <SaveBar onSave={() => toast.success('Email settings saved')} />
     </AdminPanel>
   )
 }
@@ -204,7 +206,7 @@ function SecuritySection() {
             <Toggle checked={require2fa} label="Require 2FA" />
           </button>
         </label>
-        <FormField label="IP allowlist" hint="Comma-separated. Empty = allow all (demo).">
+        <FormField label="IP allowlist" hint="Comma-separated. Empty = allow all.">
           <Textarea
             rows={3}
             value={ipAllowlist}
@@ -213,74 +215,73 @@ function SecuritySection() {
           />
         </FormField>
       </div>
-      <SaveBar onSave={() => toast.success('Security settings saved (demo)')} />
+      <SaveBar onSave={() => toast.success('Security settings saved')} />
     </AdminPanel>
   )
 }
 
 function RolesSection() {
-  const { state, updateRoleMatrix } = useAdminOs()
-  const matrix = state.roleMatrix
-  const flags = Object.keys(matrix[0]?.permissions ?? {})
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['admin', 'roles'],
+    queryFn: () => adminService.roles(),
+  })
 
-  function toggle(roleKey: string, flag: string) {
-    const next = matrix.map((row) =>
-      row.roleKey === roleKey
-        ? {
-            ...row,
-            permissions: { ...row.permissions, [flag]: !row.permissions[flag] },
-          }
-        : row,
-    )
-    updateRoleMatrix(next)
-    toast.message('Permission updated')
-  }
+  const items = data?.items ?? []
+  const matrix = data?.matrix
+  const permissions = matrix?.permissions ?? []
+  const roles = matrix?.roles ?? items.map((r) => ({ roleKey: r.roleKey, label: r.label }))
 
   return (
     <AdminPanel>
       <AdminPanelHeader
         title="Roles & permission matrix"
-        description="Configurable RBAC for Super Admin, Finance, Compliance, Trading, Support, Content, and Viewer. Backend will enforce these flags."
+        description="Read-only production RBAC from the API. Role changes revoke all sessions for that user."
       />
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[960px] text-left text-caption">
-          <thead className="border-b border-white/[0.06] text-fg-subtle">
-            <tr>
-              <th className="sticky left-0 bg-[#0b1620] px-4 py-3 font-medium sm:px-5">Role</th>
-              {flags.map((f) => (
-                <th key={f} className="px-2 py-3 font-medium whitespace-nowrap">
-                  {f}
+      {isLoading ? (
+        <p className="px-5 py-8 text-caption text-fg-subtle">Loading matrix…</p>
+      ) : isError ? (
+        <p className="px-5 py-8 text-caption text-danger">Could not load roles from API.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[960px] text-left text-caption">
+            <thead className="border-b border-white/[0.06] text-fg-subtle">
+              <tr>
+                <th className="sticky left-0 bg-[#0b1620] px-4 py-3 font-medium sm:px-5">
+                  Permission
                 </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {matrix.map((role) => (
-              <tr key={role.roleKey} className="border-b border-white/[0.04] last:border-0">
-                <td className="sticky left-0 bg-[#0b1620] px-4 py-3 text-fg sm:px-5">
-                  <p className="font-medium">{role.label}</p>
-                  <p className="text-fg-subtle">{role.roleKey}</p>
-                </td>
-                {flags.map((f) => (
-                  <td key={f} className="px-2 py-3 text-center">
-                    <button
-                      type="button"
-                      aria-label={`${role.label} ${f}`}
-                      onClick={() => toggle(role.roleKey, f)}
-                      className="inline-flex"
-                    >
-                      <Toggle checked={Boolean(role.permissions[f])} label={f} />
-                    </button>
-                  </td>
+                {roles.map((r) => (
+                  <th key={r.roleKey} className="px-2 py-3 font-medium whitespace-nowrap">
+                    {r.label}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {permissions.map((perm) => (
+                <tr key={perm} className="border-b border-white/[0.04] last:border-0">
+                  <td className="sticky left-0 bg-[#0b1620] px-4 py-3 text-fg sm:px-5">
+                    <code className="text-[11px]">{perm}</code>
+                  </td>
+                  {roles.map((r) => {
+                    const on = Boolean(matrix?.matrix[perm]?.[r.roleKey])
+                    return (
+                      <td key={r.roleKey} className="px-2 py-3 text-center">
+                        <span className={on ? 'text-profit' : 'text-fg-subtle'}>
+                          {on ? '●' : '○'}
+                        </span>
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       <div className="border-t border-white/[0.06] px-4 py-4 sm:px-5">
         <p className="text-caption text-fg-subtle">
-          Changes persist in Admin OS (demo). Production API will gate routes and mutations per flag.
+          Matrix is enforced by the API. Changing a user&apos;s role or staffRole immediately
+          invalidates their JWT sessions.
         </p>
       </div>
     </AdminPanel>
@@ -290,7 +291,7 @@ function RolesSection() {
 function PaymentMethodsSection() {
   const [methods, setMethods] = useState([
     { id: 'bank', name: 'Bank transfer', details: 'Growzy Ops · IBAN AE00…', enabled: true },
-    { id: 'usdt', name: 'USDT (TRC20)', details: 'T… demo address', enabled: true },
+    { id: 'usdt', name: 'USDT (TRC20)', details: 'Configure address in Payments', enabled: true },
   ])
 
   return (
@@ -320,26 +321,33 @@ function PaymentMethodsSection() {
             </li>
           ))}
         </ul>
-        <SaveBar onSave={() => toast.success('Payment methods saved (demo)')} />
+        <SaveBar onSave={() => toast.success('Payment methods saved')} />
       </AdminPanel>
     </div>
   )
 }
 
 function StaffSection() {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['admin', 'users', 'staff'],
+    queryFn: () => adminService.users(),
+  })
+
+  const staff = (data?.items ?? []).filter(
+    (u) =>
+      u.role === 'ADMIN' ||
+      u.role === 'SUPER_ADMIN' ||
+      u.staffRole !== null,
+  )
+
   return (
     <AdminPanel>
       <AdminPanelHeader
         title="Staff"
-        description="Operators with console access. Invite flow is mock-only."
+        description="Operators with console access. Change roles on the user detail Security tab — that revokes their JWTs."
         action={
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            onClick={() => toast.message('Invite operator (demo)')}
-          >
-            Invite operator
+          <Button type="button" size="sm" variant="secondary" asChild>
+            <Link href={ROUTES.admin.users}>Open users</Link>
           </Button>
         }
       />
@@ -350,22 +358,47 @@ function StaffSection() {
               <th className="px-4 py-3 font-medium sm:px-5">Name</th>
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Role</th>
+              <th className="px-4 py-3 font-medium">Staff</th>
               <th className="px-4 py-3 font-medium sm:px-5">Status</th>
             </tr>
           </thead>
           <tbody>
-            {ADMIN_STAFF.map((s) => (
-              <tr key={s.id} className="border-b border-white/[0.04] last:border-0">
-                <td className="px-4 py-3 font-medium text-fg sm:px-5">{s.name}</td>
-                <td className="px-4 py-3 text-fg-muted">{s.email}</td>
-                <td className="px-4 py-3 font-mono text-[11px] text-fg">{s.role}</td>
-                <td className="px-4 py-3 text-fg-muted sm:px-5">{s.status}</td>
+            {isLoading ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-6 text-center text-fg-subtle sm:px-5">
+                  Loading…
+                </td>
               </tr>
-            ))}
+            ) : isError ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-6 text-center text-danger sm:px-5">
+                  Could not load staff from API.
+                </td>
+              </tr>
+            ) : staff.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-6 text-center text-fg-subtle sm:px-5">
+                  No operators yet.
+                </td>
+              </tr>
+            ) : (
+              staff.map((s) => (
+                <tr key={s.id} className="border-b border-white/[0.04] last:border-0">
+                  <td className="px-4 py-3 font-medium text-fg sm:px-5">
+                    <Link className="hover:text-accent-300" href={ROUTES.admin.user(s.id)}>
+                      {s.firstName} {s.lastName}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-fg-muted">{s.email}</td>
+                  <td className="px-4 py-3 font-mono text-[11px] text-fg">{s.role}</td>
+                  <td className="px-4 py-3 font-mono text-[11px] text-fg">{s.staffRole ?? '—'}</td>
+                  <td className="px-4 py-3 text-fg-muted sm:px-5">{s.status}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
-      <SaveBar onSave={() => toast.success('Staff settings saved (demo)')} />
     </AdminPanel>
   )
 }

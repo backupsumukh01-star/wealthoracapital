@@ -2,13 +2,25 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useMemo } from 'react'
 
 import { DASHBOARD_SETTINGS_NAV } from '@/lib/navigation'
 import { cn } from '@/lib/cn'
+import { useSession } from '@/providers/session-provider'
 
 /** Horizontal scroll on mobile, vertical from `lg` — never overflows the page. */
 export function SettingsNav() {
   const pathname = usePathname()
+  const { can, canAny } = useSession()
+
+  const items = useMemo(
+    () =>
+      DASHBOARD_SETTINGS_NAV.filter((item) => {
+        if (!item.permission) return true
+        return Array.isArray(item.permission) ? canAny(item.permission) : can(item.permission)
+      }),
+    [can, canAny],
+  )
 
   return (
     <nav
@@ -20,7 +32,7 @@ export function SettingsNav() {
         className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-base to-transparent lg:hidden"
       />
       <ul className="no-scrollbar -mx-1 flex gap-1 overflow-x-auto overscroll-x-contain px-1 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0">
-        {DASHBOARD_SETTINGS_NAV.map((item) => {
+        {items.map((item) => {
           const active = pathname === item.href
           const Icon = item.icon
 

@@ -164,13 +164,20 @@ export const adminUsersService = {
       ...(patch.staffRole !== undefined ? { staffRole: patch.staffRole } : {}),
     })
 
+    // Role / staffRole changes invalidate every JWT session so the next request
+    // cannot keep stale privileges from an access-token cookie.
+    let revokedSessions = 0
+    if (elevatingRole || elevatingStaff) {
+      revokedSessions = await sessionRepository.revokeAllForUser(id)
+    }
+
     await auditService.record({
       actorId,
       targetUserId: id,
       action: 'user.update',
       module: 'users',
       oldValue: snapshotUser(existing),
-      newValue: snapshotUser(updated),
+      newValue: { ...snapshotUser(updated), revokedSessions },
       ip: context.ip,
       userAgent: context.userAgent,
     })
@@ -178,7 +185,10 @@ export const adminUsersService = {
       userId: id,
       actorId,
       kind: 'ADMIN_ACTION',
-      title: 'Profile updated by admin',
+      title:
+        elevatingRole || elevatingStaff
+          ? 'Role updated — all sessions terminated'
+          : 'Profile updated by admin',
       ip: context.ip,
       userAgent: context.userAgent,
     })
@@ -349,6 +359,19 @@ export const adminUsersService = {
     if (!existing) {
       throw notFound('User not found.')
     }
+    if (existing.id === actorId) {
+      throw badRequest('Use normal logout for your own session.')
+    }
+
+    const actor = await userRepository.findById(actorId)
+    if (!actor) {
+      throw forbidden('Actor not found.')
+    }
+    assertCanManageTarget(
+      { role: actor.role, staffRole: actor.staffRole },
+      { role: existing.role, staffRole: existing.staffRole },
+    )
+
     const count = await sessionRepository.revokeAllForUser(id)
     await auditService.record({
       actorId,

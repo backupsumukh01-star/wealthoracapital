@@ -1,8 +1,8 @@
 /**
- * Central demo / fixture barrel.
- * Production code should call `@/services` instead of reading these directly.
+ * Central fixture barrel — empty production stubs only.
+ * Prefer feature hooks and domain services for live data.
  */
-export * from './landing'
 export * from './dashboard'
 export * from './admin'
 export * from './investor'
+export * from './landing'

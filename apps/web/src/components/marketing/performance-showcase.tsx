@@ -8,8 +8,8 @@ import { Section } from '@/components/common/section'
 import { CountUp } from '@/components/motion/count-up'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { Button } from '@/components/ui/button'
-import { YEARLY_RETURNS } from '@/lib/landing-data'
-import { useAdminOs } from '@/providers/admin-os-provider'
+import { usePublishedLanding } from '@/features/cms/site'
+import { usePerformanceMonthly, usePublicPerformance } from '@/features/performance/hooks'
 
 import {
   MonthlyPerformanceChart,
@@ -21,14 +21,15 @@ export function PerformanceShowcase({
 }: {
   showPageLinks?: boolean
 }) {
-  const { ready, state, publishedLanding } = useAdminOs()
-  const yearly =
-    ready && state.performance.yearly.length > 0 ? state.performance.yearly : YEARLY_RETURNS
-  const winRate = publishedLanding.winRate || state.performance.winningPct || '81.2'
+  const { landing } = usePublishedLanding()
+  const { data: pub } = usePublicPerformance()
+  const { data: monthly = [] } = usePerformanceMonthly()
+  const yearly: Array<{ year: string; returnPct: number; profitLabel: string }> = []
+  const winRate = landing.winRate || pub?.analytics.winRate || ''
   const bestMonth =
-    state.performance.monthly.length > 0
-      ? Math.max(...state.performance.monthly.map((m) => m.returnPct)).toFixed(1)
-      : '8.2'
+    monthly.length > 0
+      ? Math.max(...monthly.map((m) => Number.parseFloat(String(m.returnPct)) || 0)).toFixed(1)
+      : ''
 
   return (
     <Section

@@ -2,25 +2,31 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useMemo } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { ADMIN_SETTINGS_NAV } from '@/lib/navigation'
 import { cn } from '@/lib/cn'
+import { useSession } from '@/providers/session-provider'
 
-/**
- * Items marked `super-admin` are shown to every operator but gated server-side.
- *
- * Showing a control the operator cannot use is better than hiding it: it makes the permission
- * boundary visible instead of leaving someone to wonder whether the page is broken. The
- * authorisation itself is the API's, never this component's.
- */
+/** Settings sub-nav — unauthorized items are hidden. */
 export function AdminSettingsNav() {
   const pathname = usePathname()
+  const { can, canAny } = useSession()
+
+  const items = useMemo(
+    () =>
+      ADMIN_SETTINGS_NAV.filter((item) => {
+        if (!item.permission) return true
+        return Array.isArray(item.permission) ? canAny(item.permission) : can(item.permission)
+      }),
+    [can, canAny],
+  )
 
   return (
     <nav aria-label="Platform settings" className="lg:sticky lg:top-24 lg:self-start">
       <ul className="no-scrollbar flex gap-1 overflow-x-auto lg:flex-col">
-        {ADMIN_SETTINGS_NAV.map((item) => {
+        {items.map((item) => {
           const active = pathname === item.href
           const Icon = item.icon
 

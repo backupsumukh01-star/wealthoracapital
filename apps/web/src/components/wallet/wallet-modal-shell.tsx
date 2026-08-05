@@ -39,7 +39,7 @@ export function WalletModalShell({
       <DialogContent
         className={cn(
           'flex max-h-[min(92dvh,880px)] flex-col overflow-hidden p-0 sm:max-w-xl',
-          'pt-0 pb-0',
+          'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]',
           wide && 'sm:max-w-2xl',
           className,
         )}

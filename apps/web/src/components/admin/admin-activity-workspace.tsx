@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Sparkles, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
@@ -15,7 +15,7 @@ import { type Announcement } from '@/lib/admin-os-store'
 import { useAdminOs } from '@/providers/admin-os-provider'
 
 export function AdminActivityWorkspace() {
-  const { state, updateActivity, generateActivityDemo } = useAdminOs()
+  const { state, updateActivity } = useAdminOs()
   const a = state.activity
 
   return (
@@ -23,19 +23,6 @@ export function AdminActivityWorkspace() {
       <PageHeader
         title="Live Activity Manager"
         description="Control deposit, withdrawal, investment, and profit social-proof chips. Landing updates automatically."
-        actions={
-          <Button
-            type="button"
-            variant="glass"
-            onClick={() => {
-              generateActivityDemo()
-              toast.success('Demo activity generated')
-            }}
-          >
-            <Sparkles aria-hidden />
-            Generate demo activity
-          </Button>
-        }
       />
 
       <AdminPanel>
@@ -321,7 +308,7 @@ export function AdminAnnouncementsWorkspace() {
                 const scheduledAt = new Date(Date.now() + 3600_000).toISOString()
                 upsertAnnouncement(buildAnnouncement('SCHEDULED', scheduledAt))
                 resetForm()
-                toast.success('Scheduled for +1 hour (demo)')
+                toast.success('Scheduled for +1 hour')
               }}
             >
               Schedule publish

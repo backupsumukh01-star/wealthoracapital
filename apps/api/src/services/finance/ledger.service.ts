@@ -420,12 +420,100 @@ export const ledgerService = {
 
     if (!created) return posted
 
+    const investedAfter = d(wallet.investedAmount).minus(params.amount)
     await tx.wallet.update({
       where: { id: wallet.id },
       data: {
         balance: moneyString(after),
         lockedBalance: moneyString(lockedAfter),
         totalWithdrawn: moneyString(d(wallet.totalWithdrawn).plus(params.amount)),
+        // C3: investment capital leaves the book when a withdrawal is paid.
+        investedAmount: moneyString(investedAfter.gt(0) ? investedAfter : d(0)),
+        version: { increment: 1 },
+      },
+    })
+
+    return posted
+  },
+
+  /**
+   * Reverse a previously approved deposit (FORCE_CANCEL after APPROVE).
+   * Debits available, reduces invested + totalDeposited. Idempotent.
+   */
+  async reverseDepositCredit(
+    tx: TxClient,
+    params: {
+      userId: string
+      walletId: string
+      amount: Decimal
+      description: string
+      referenceType: string
+      referenceId: string
+      createdById?: string | null
+      idempotencyKey: string
+    },
+  ) {
+    assertPositive(params.amount)
+    const wallet = await lockWallet(tx, params.walletId)
+    if (wallet.userId !== params.userId) throw badRequest('Wallet ownership mismatch.')
+    if (d(wallet.availableBalance).lt(params.amount)) {
+      throw conflict(
+        'Cannot reverse deposit: available balance is lower than the credited amount. Manual ledger repair required.',
+      )
+    }
+
+    const accounts = await ensureUserAccounts(tx, wallet)
+    const clearing = await getSystemAccount(tx, SYSTEM_CODES.CLEARING)
+    const before = d(wallet.balance)
+    const after = before.minus(params.amount)
+    const availableAfter = d(wallet.availableBalance).minus(params.amount)
+    const investedAfter = d(wallet.investedAmount).minus(params.amount)
+    const depositedAfter = d(wallet.totalDeposited).minus(params.amount)
+
+    const { transaction: posted, created } = await postBalanced(tx, {
+      userId: params.userId,
+      type: 'REFUND',
+      amount: params.amount,
+      description: params.description,
+      createdById: params.createdById,
+      idempotencyKey: params.idempotencyKey,
+      auditRef: `${params.referenceType}:${params.referenceId}`,
+      lines: [
+        {
+          accountId: accounts.available.id,
+          walletId: wallet.id,
+          direction: 'DEBIT',
+          amount: params.amount,
+          signedAmount: params.amount.neg(),
+          entryType: 'REVERSAL',
+          balanceBefore: before,
+          balanceAfter: after,
+          referenceType: params.referenceType,
+          referenceId: params.referenceId,
+          idempotencyKey: `${params.idempotencyKey}:available`,
+        },
+        {
+          accountId: clearing.id,
+          direction: 'CREDIT',
+          amount: params.amount,
+          signedAmount: params.amount,
+          entryType: 'REVERSAL',
+          referenceType: params.referenceType,
+          referenceId: params.referenceId,
+          idempotencyKey: `${params.idempotencyKey}:clearing`,
+        },
+      ],
+    })
+
+    if (!created) return posted
+
+    await tx.wallet.update({
+      where: { id: wallet.id },
+      data: {
+        balance: moneyString(after),
+        availableBalance: moneyString(availableAfter),
+        investedAmount: moneyString(investedAfter.gt(0) ? investedAfter : d(0)),
+        totalDeposited: moneyString(depositedAfter.gt(0) ? depositedAfter : d(0)),
         version: { increment: 1 },
       },
     })

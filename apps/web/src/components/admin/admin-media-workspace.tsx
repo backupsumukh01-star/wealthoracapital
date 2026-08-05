@@ -87,7 +87,7 @@ export function AdminMediaWorkspace() {
       reader.onerror = () => reject(reader.error)
       if (file.type.startsWith('image/') || file.type === 'image/svg+xml') reader.readAsDataURL(file)
       else {
-        // Non-image: store object URL placeholder metadata (demo)
+        // Non-image: store object URL placeholder metadata
         resolve(`blob:${file.name}`)
       }
     })

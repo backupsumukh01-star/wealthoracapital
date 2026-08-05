@@ -1,12 +1,12 @@
 'use client'
 
-import { useAdminOs } from '@/providers/admin-os-provider'
+import { usePublicCmsPage } from '@/features/cms/site'
 
 /** Injects CMS page body under static legal/about content when published. */
 export function CmsPageBody({ slug }: { slug: 'faq' | 'about' | 'terms' | 'privacy' | 'contact' | 'footer' }) {
-  const { ready, state } = useAdminOs()
-  const page = state.pages.find((p) => p.slug === slug)
-  if (!ready || !page?.body?.trim() || page.status === 'DRAFT') return null
+  const { data: page, isSuccess } = usePublicCmsPage(slug)
+
+  if (!isSuccess || !page?.body?.trim() || page.status === 'DRAFT') return null
 
   return (
     <div className="prose-measure mx-auto mt-8 max-w-3xl rounded-2xl border border-white/10 bg-raised/40 p-5 sm:p-6">

@@ -33,8 +33,12 @@ export function AdminWalletManagerWorkspace() {
   })
 
   const adjust = useMutation({
-    mutationFn: (body: { amount: string; direction: 'CREDIT' | 'DEBIT'; reason: string }) =>
-      adminService.adjustWallet(selectedUserId, body),
+    mutationFn: (body: {
+      amount: string
+      direction: 'CREDIT' | 'DEBIT'
+      reason: string
+      idempotencyKey: string
+    }) => adminService.adjustWallet(selectedUserId, body),
     onSuccess: () => {
       toast.success('Wallet adjustment applied')
       setNote('')
@@ -133,10 +137,13 @@ export function AdminWalletManagerWorkspace() {
               }
               const direction: 'CREDIT' | 'DEBIT' =
                 action === 'BONUS' || numeric > 0 ? 'CREDIT' : 'DEBIT'
+              const resolvedDirection =
+                action === 'ADJUST' && numeric < 0 ? 'DEBIT' : direction
               adjust.mutate({
                 amount: Math.abs(numeric).toFixed(2),
-                direction: action === 'ADJUST' && numeric < 0 ? 'DEBIT' : direction,
+                direction: resolvedDirection,
                 reason: `${note.trim()} (${userLabel})`,
+                idempotencyKey: crypto.randomUUID(),
               })
             }}
           >

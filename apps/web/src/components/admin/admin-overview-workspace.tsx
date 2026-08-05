@@ -35,13 +35,14 @@ import { PageHeader } from '@/components/common/page-header'
 import { PremiumEmptyState } from '@/components/dashboard/premium-empty-state'
 import { Button } from '@/components/ui/button'
 import {
+  useAdminActivity,
   useAdminDeposits,
+  useAdminHealth,
   useAdminReturns,
   useAdminUsers,
   useAdminWithdrawals,
 } from '@/features/admin/hooks'
 import { formatDateTime } from '@/lib/format'
-import { useAdminOs } from '@/providers/admin-os-provider'
 import { kycService } from '@/services/kyc.service'
 import { useQuery } from '@tanstack/react-query'
 
@@ -92,12 +93,20 @@ function ChartTip({
   )
 }
 
+function metricNumber(health: ReturnType<typeof useAdminHealth>['data'], id: string) {
+  const m = health?.metrics?.find((x) => x.id === id || x.label.toLowerCase().includes(id))
+  if (!m) return 0
+  const n = Number.parseFloat(String(m.value).replace(/[^0-9.-]/g, ''))
+  return Number.isFinite(n) ? n : 0
+}
+
 export function AdminOverviewWorkspace() {
-  const { state: os } = useAdminOs()
   const { data: usersData } = useAdminUsers()
   const { data: depositsData } = useAdminDeposits()
   const { data: withdrawalsData } = useAdminWithdrawals()
   const { data: returnsData } = useAdminReturns()
+  const { data: health } = useAdminHealth()
+  const { data: activity } = useAdminActivity()
   const { data: kycQueue } = useQuery({
     queryKey: ['admin', 'kyc', 'queue', 'overview'],
     queryFn: () => kycService.adminList({ status: 'UNDER_REVIEW' }),
@@ -108,8 +117,8 @@ export function AdminOverviewWorkspace() {
   const withdrawals = (withdrawalsData?.items ?? []) as AdminWithdrawalRow[]
   const returns = returnsData?.items ?? []
   const pendingKycCount = kycQueue?.items?.length ?? 0
+  const activityCount = activity?.items?.length ?? 0
 
-  const analytics = os.analytics
   const pendingDeps = deposits.filter(
     (d) => d.status === 'PENDING' || d.status === 'UNDER_REVIEW',
   )
@@ -121,6 +130,7 @@ export function AdminOverviewWorkspace() {
     .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
     .slice(0, 5)
 
+  const activeUsers = accounts.filter((u) => u.status === 'ACTIVE').length
   const aum = 0
   const latestReturn = [...returns].sort(
     (a, b) => +new Date(b.date) - +new Date(a.date),
@@ -133,6 +143,20 @@ export function AdminOverviewWorkspace() {
     .sort((a, b) => +new Date(a.date) - +new Date(b.date))
     .slice(-7)
     .map((r) => ({ day: r.date.slice(5), pct: Number(r.returnPct) }))
+
+  const today = new Date().toISOString().slice(0, 10)
+  const dailyDeposits = deposits
+    .filter((d) => d.createdAt?.startsWith(today) && d.status === 'APPROVED')
+    .reduce((sum, d) => sum + Number(d.amount || 0), 0)
+  const dailyWithdrawals = withdrawals
+    .filter((w) => w.createdAt?.startsWith(today) && (w.status === 'PAID' || w.status === 'COMPLETED'))
+    .reduce((sum, w) => sum + Number(w.amount || 0), 0)
+
+  const registrations = accounts.length
+  const visitors = metricNumber(health, 'visitor') || activityCount
+  const conversionRate =
+    visitors > 0 ? Math.round((registrations / visitors) * 10000) / 100 : 0
+  const countries = new Set(accounts.map((u) => u.country).filter(Boolean)).size
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -152,26 +176,26 @@ export function AdminOverviewWorkspace() {
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Kpi label="Visitors (7d)" icon={Users} hint="Marketing traffic">
-          <AnimatedCounter value={analytics.visitors} />
+        <Kpi label="Activity events" icon={Users} hint="Recent platform activity">
+          <AnimatedCounter value={activityCount} />
         </Kpi>
         <Kpi label="Registrations" icon={Users}>
-          <AnimatedCounter value={analytics.registrations} />
+          <AnimatedCounter value={registrations} />
         </Kpi>
         <Kpi label="Conversion rate" icon={TrendingUp}>
-          <AnimatedCounter value={analytics.conversionRate} decimals={2} suffix="%" />
+          <AnimatedCounter value={conversionRate} decimals={2} suffix="%" />
         </Kpi>
         <Kpi label="Countries" icon={BadgeCheck}>
-          <AnimatedCounter value={analytics.countries} />
+          <AnimatedCounter value={countries} />
         </Kpi>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi label="Active users" icon={Users}>
-          <AnimatedCounter value={analytics.activeUsers} />
+          <AnimatedCounter value={activeUsers} />
         </Kpi>
-        <Kpi label="Online now" icon={Users}>
-          <AnimatedCounter value={analytics.onlineUsers} />
+        <Kpi label="Health signals" icon={Users} hint={health?.environment ?? '—'}>
+          <AnimatedCounter value={health?.metrics?.length ?? 0} />
         </Kpi>
         <Kpi label="Pending KYC" icon={FileCheck2}>
           <AnimatedCounter value={pendingKycCount} />
@@ -183,10 +207,10 @@ export function AdminOverviewWorkspace() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi label="Daily deposits" icon={ArrowDownToLine}>
-          <Money value={analytics.dailyDeposits as MoneyString} size="md" />
+          <Money value={dailyDeposits.toFixed(2) as MoneyString} size="md" />
         </Kpi>
         <Kpi label="Daily withdrawals" icon={ArrowUpFromLine}>
-          <Money value={analytics.dailyWithdrawals as MoneyString} size="md" />
+          <Money value={dailyWithdrawals.toFixed(2) as MoneyString} size="md" />
         </Kpi>
         <Kpi label="Pending deposits" icon={ArrowDownToLine}>
           <AnimatedCounter value={pendingDeps.length} />

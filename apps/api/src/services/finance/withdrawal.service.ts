@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { Prisma, WithdrawalStatus } from '@prisma/client'
 
 import { prisma } from '../../database/prisma.js'
+import { transactionalMailer } from '../../emails/transactional.js'
 import { activityService } from '../activity.service.js'
 import { auditService } from '../audit.service.js'
 import { notificationService } from '../notification.service.js'
@@ -131,79 +132,114 @@ export const withdrawalService = {
     })
     if (!payout) throw badRequest('Payout method not found.')
 
-    const limits = await this.limits(userId)
-    if (amount.gt(d(limits.dailyRemaining))) {
-      throw badRequest('Daily withdrawal limit exceeded.')
-    }
-    if (amount.gt(d(limits.max))) {
-      throw badRequest('Amount exceeds available balance or limits.')
-    }
-
     const fee = amount.mul(DEFAULT_FEE_PCT).div(100)
     const net = amount.minus(fee)
-    const wallet = await ledgerService.getInvestmentWallet(userId)
 
-    const withdrawal = await prisma.$transaction(async (tx) => {
-      const created = await tx.withdrawal.create({
-        data: {
-          reference: withdrawalRef(),
+    let withdrawal
+    try {
+      withdrawal = await prisma.$transaction(async (tx) => {
+        // Serialize withdraw creates per user so daily limit cannot be bypassed concurrently.
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`withdraw:${userId}`}))`
+
+        const wallet = await ledgerService.getInvestmentWallet(userId, tx)
+        await tx.$executeRaw`SELECT 1 FROM wallets WHERE id = ${wallet.id}::uuid FOR UPDATE`
+
+        const start = new Date()
+        start.setUTCHours(0, 0, 0, 0)
+        const withdrawnToday = await tx.withdrawal.aggregate({
+          where: {
+            userId,
+            createdAt: { gte: start },
+            status: { notIn: ['CANCELLED', 'REJECTED'] },
+          },
+          _sum: { amount: true },
+        })
+        const used = d(withdrawnToday._sum.amount ?? 0)
+        const remaining = DecimalMax(DAILY_LIMIT.minus(used), d(0))
+        if (amount.gt(remaining)) {
+          throw badRequest('Daily withdrawal limit exceeded.')
+        }
+
+        const freshWallet = await tx.wallet.findUniqueOrThrow({ where: { id: wallet.id } })
+        if (amount.gt(d(freshWallet.availableBalance))) {
+          throw badRequest('Amount exceeds available balance or limits.')
+        }
+
+        const created = await tx.withdrawal.create({
+          data: {
+            reference: withdrawalRef(),
+            userId,
+            walletId: wallet.id,
+            payoutMethodId: payout.id,
+            amount: moneyString(amount),
+            fee: moneyString(fee),
+            netAmount: moneyString(net),
+            status: 'PENDING',
+            destinationLabel: payout.label,
+            destinationSnapshot: {
+              label: payout.label,
+              type: payout.type,
+              details: payout.details,
+              maskedDetails: payout.maskedDetails,
+            },
+            idempotencyKey: body.idempotencyKey,
+          },
+        })
+
+        const txn = await ledgerService.lockFunds(tx, {
           userId,
           walletId: wallet.id,
-          payoutMethodId: payout.id,
-          amount: moneyString(amount),
-          fee: moneyString(fee),
-          netAmount: moneyString(net),
-          status: 'PENDING',
-          destinationLabel: payout.label,
-          destinationSnapshot: {
-            label: payout.label,
-            type: payout.type,
-            details: payout.details,
-            maskedDetails: payout.maskedDetails,
+          amount,
+          description: `Withdrawal ${created.reference} locked`,
+          referenceType: 'WITHDRAWAL',
+          referenceId: created.id,
+          createdById: userId,
+          idempotencyKey: `withdrawal:${created.id}:lock`,
+        })
+
+        await tx.withdrawal.update({
+          where: { id: created.id },
+          data: { transactionId: txn.id, status: 'UNDER_REVIEW' },
+        })
+
+        await tx.approvalQueue.create({
+          data: {
+            entityType: 'WITHDRAWAL',
+            entityId: created.id,
+            withdrawalId: created.id,
+            status: 'PENDING',
+            requiredRole: 'FINANCE',
           },
-          idempotencyKey: body.idempotencyKey,
-        },
-      })
+        })
+        await tx.transactionHistory.create({
+          data: {
+            transactionId: txn.id,
+            userId,
+            event: 'WITHDRAWAL_SUBMITTED',
+            status: 'UNDER_REVIEW',
+            amount: moneyString(amount),
+            currency: 'USD',
+            message: `Withdrawal ${created.reference} submitted`,
+          },
+        })
 
-      const txn = await ledgerService.lockFunds(tx, {
-        userId,
-        walletId: wallet.id,
-        amount,
-        description: `Withdrawal ${created.reference} locked`,
-        referenceType: 'WITHDRAWAL',
-        referenceId: created.id,
-        createdById: userId,
-        idempotencyKey: `withdrawal:${created.id}:lock`,
+        return tx.withdrawal.findUniqueOrThrow({ where: { id: created.id } })
       })
-
-      await tx.withdrawal.update({
-        where: { id: created.id },
-        data: { transactionId: txn.id, status: 'UNDER_REVIEW' },
-      })
-
-      await tx.approvalQueue.create({
-        data: {
-          entityType: 'WITHDRAWAL',
-          entityId: created.id,
-          withdrawalId: created.id,
-          status: 'PENDING',
-          requiredRole: 'FINANCE',
-        },
-      })
-      await tx.transactionHistory.create({
-        data: {
-          transactionId: txn.id,
-          userId,
-          event: 'WITHDRAWAL_SUBMITTED',
-          status: 'UNDER_REVIEW',
-          amount: moneyString(amount),
-          currency: 'USD',
-          message: `Withdrawal ${created.reference} submitted`,
-        },
-      })
-
-      return tx.withdrawal.findUniqueOrThrow({ where: { id: created.id } })
-    })
+    } catch (err) {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'code' in err &&
+        (err as { code?: string }).code === 'P2002'
+      ) {
+        const again = await prisma.withdrawal.findUnique({
+          where: { idempotencyKey: body.idempotencyKey },
+        })
+        if (again && again.userId === userId) return mapWithdrawal(again)
+        throw conflict('Idempotency key conflict.')
+      }
+      throw err
+    }
 
     await activityService.record({
       userId,
@@ -230,6 +266,10 @@ export const withdrawalService = {
       body: `Your withdrawal ${withdrawal.reference} is under review.`,
       metadata: { type: 'WITHDRAWAL_SUBMITTED', withdrawalId: withdrawal.id },
     })
+    await transactionalMailer.withdrawalSubmitted(userId, {
+      reference: withdrawal.reference,
+      amount: moneyDisplay(amount),
+    })
 
     return mapWithdrawal(withdrawal)
   },
@@ -242,6 +282,14 @@ export const withdrawalService = {
     }
 
     const updated = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT 1 FROM withdrawals WHERE id = ${row.id}::uuid FOR UPDATE`
+      const claimed = await tx.withdrawal.updateMany({
+        where: { id: row.id, status: { in: ['PENDING', 'UNDER_REVIEW'] } },
+        data: { status: 'CANCELLED' },
+      })
+      if (claimed.count !== 1) {
+        throw conflict('Withdrawal status changed concurrently; cancel aborted.')
+      }
       await ledgerService.unlockFunds(tx, {
         userId,
         walletId: row.walletId,
@@ -250,17 +298,13 @@ export const withdrawalService = {
         referenceType: 'WITHDRAWAL',
         referenceId: row.id,
         createdById: userId,
-        idempotencyKey: `withdrawal:${row.id}:cancel`,
-      })
-      const next = await tx.withdrawal.update({
-        where: { id: row.id },
-        data: { status: 'CANCELLED' },
+        idempotencyKey: `withdrawal:${row.id}:unlock`,
       })
       await tx.approvalQueue.updateMany({
         where: { withdrawalId: row.id, status: { in: ['PENDING', 'IN_PROGRESS'] } },
         data: { status: 'CANCELLED', resolvedAt: new Date() },
       })
-      return next
+      return tx.withdrawal.findUniqueOrThrow({ where: { id: row.id } })
     })
 
     await activityService.record({
@@ -395,22 +439,28 @@ export const withdrawalService = {
     if (!row) throw notFound('Withdrawal not found.')
 
     if (body.decision === 'APPROVE') {
-      if (!['PENDING', 'UNDER_REVIEW'].includes(row.status)) {
-        throw badRequest('Withdrawal cannot be approved from the current status.')
-      }
       const updated = await prisma.$transaction(async (tx) => {
-        const next = await tx.withdrawal.update({
-          where: { id: row.id },
+        await tx.$executeRaw`SELECT 1 FROM withdrawals WHERE id = ${row.id}::uuid FOR UPDATE`
+        const current = await tx.withdrawal.findUniqueOrThrow({ where: { id: row.id } })
+        if (current.status === 'APPROVED') return current
+        if (!['PENDING', 'UNDER_REVIEW'].includes(current.status)) {
+          throw badRequest('Withdrawal cannot be approved from the current status.')
+        }
+        const claimed = await tx.withdrawal.updateMany({
+          where: { id: current.id, status: { in: ['PENDING', 'UNDER_REVIEW'] } },
           data: {
             status: 'APPROVED',
             reviewedById: actorId,
             reviewedAt: new Date(),
-            internalNotes: body.internalNotes ?? row.internalNotes,
+            internalNotes: body.internalNotes ?? current.internalNotes,
           },
         })
+        if (claimed.count !== 1) {
+          throw conflict('Withdrawal status changed concurrently; approve aborted.')
+        }
         await tx.financeReview.create({
           data: {
-            withdrawalId: row.id,
+            withdrawalId: current.id,
             reviewerId: actorId,
             decision: 'APPROVE',
             reason: body.reason ?? null,
@@ -418,10 +468,10 @@ export const withdrawalService = {
           },
         })
         await tx.approvalQueue.updateMany({
-          where: { withdrawalId: row.id },
+          where: { withdrawalId: current.id },
           data: { status: 'IN_PROGRESS', assigneeId: actorId },
         })
-        return next
+        return tx.withdrawal.findUniqueOrThrow({ where: { id: current.id } })
       })
 
       await activityService.record({
@@ -450,44 +500,61 @@ export const withdrawalService = {
         body: `Withdrawal ${row.reference} was approved and will be processed.`,
         metadata: { type: 'WITHDRAWAL_APPROVED', withdrawalId: row.id },
       })
+      await transactionalMailer.withdrawalApproved(row.userId, {
+        reference: row.reference,
+        amount: moneyDisplay(row.amount),
+      })
       return mapWithdrawal(updated)
     }
 
     if (body.decision === 'PAID' || body.decision === 'FORCE_COMPLETE') {
-      if (!['APPROVED', 'PROCESSING', 'UNDER_REVIEW', 'PENDING'].includes(row.status)) {
-        throw badRequest('Withdrawal cannot be completed from the current status.')
-      }
       const updated = await prisma.$transaction(async (tx) => {
-        // If still locked only (not completed), complete ledger debit once.
-        const already = await tx.ledgerEntry.findFirst({
-          where: { idempotencyKey: `withdrawal:${row.id}:complete:locked` },
-        })
-        if (!already) {
-          await ledgerService.completeWithdrawal(tx, {
-            userId: row.userId,
-            walletId: row.walletId,
-            amount: d(row.amount),
-            description: `Withdrawal ${row.reference} paid`,
-            referenceType: 'WITHDRAWAL',
-            referenceId: row.id,
-            createdById: actorId,
-            idempotencyKey: `withdrawal:${row.id}:complete`,
-          })
+        await tx.$executeRaw`SELECT 1 FROM withdrawals WHERE id = ${row.id}::uuid FOR UPDATE`
+        const current = await tx.withdrawal.findUniqueOrThrow({ where: { id: row.id } })
+
+        if (current.status === 'PAID' || current.status === 'COMPLETED') {
+          return current
         }
-        const next = await tx.withdrawal.update({
-          where: { id: row.id },
+        if (!['APPROVED', 'PROCESSING', 'UNDER_REVIEW', 'PENDING'].includes(current.status)) {
+          throw badRequest('Withdrawal cannot be completed from the current status.')
+        }
+
+        const claimed = await tx.withdrawal.updateMany({
+          where: {
+            id: current.id,
+            status: { in: ['APPROVED', 'PROCESSING', 'UNDER_REVIEW', 'PENDING'] },
+          },
           data: {
             status: 'PAID',
             paidAt: new Date(),
             reviewedById: actorId,
-            reviewedAt: row.reviewedAt ?? new Date(),
-            transactionRef: body.transactionRef ?? row.transactionRef,
-            internalNotes: body.internalNotes ?? row.internalNotes,
+            reviewedAt: current.reviewedAt ?? new Date(),
+            transactionRef: body.transactionRef ?? current.transactionRef,
+            internalNotes: body.internalNotes ?? current.internalNotes,
           },
         })
+        if (claimed.count !== 1) {
+          throw conflict('Withdrawal status changed concurrently; complete aborted.')
+        }
+
+        const already = await tx.ledgerEntry.findFirst({
+          where: { idempotencyKey: `withdrawal:${current.id}:complete:locked` },
+        })
+        if (!already) {
+          await ledgerService.completeWithdrawal(tx, {
+            userId: current.userId,
+            walletId: current.walletId,
+            amount: d(current.amount),
+            description: `Withdrawal ${current.reference} paid`,
+            referenceType: 'WITHDRAWAL',
+            referenceId: current.id,
+            createdById: actorId,
+            idempotencyKey: `withdrawal:${current.id}:complete`,
+          })
+        }
         await tx.financeReview.create({
           data: {
-            withdrawalId: row.id,
+            withdrawalId: current.id,
             reviewerId: actorId,
             decision: body.decision === 'FORCE_COMPLETE' ? 'FORCE_COMPLETE' : 'PAID',
             reason: body.reason ?? null,
@@ -495,10 +562,10 @@ export const withdrawalService = {
           },
         })
         await tx.approvalQueue.updateMany({
-          where: { withdrawalId: row.id },
+          where: { withdrawalId: current.id },
           data: { status: 'APPROVED', resolvedAt: new Date(), assigneeId: actorId },
         })
-        return next
+        return tx.withdrawal.findUniqueOrThrow({ where: { id: current.id } })
       })
 
       await activityService.record({
@@ -536,36 +603,55 @@ export const withdrawalService = {
       }
       const nextStatus = body.decision === 'FORCE_CANCEL' ? 'CANCELLED' : 'REJECTED'
       const updated = await prisma.$transaction(async (tx) => {
-        if (['PENDING', 'UNDER_REVIEW', 'APPROVED', 'PROCESSING'].includes(row.status)) {
-          const completed = await tx.ledgerEntry.findFirst({
-            where: { idempotencyKey: `withdrawal:${row.id}:complete:locked` },
-          })
-          if (!completed) {
-            await ledgerService.unlockFunds(tx, {
-              userId: row.userId,
-              walletId: row.walletId,
-              amount: d(row.amount),
-              description: `Withdrawal ${row.reference} ${nextStatus.toLowerCase()}`,
-              referenceType: 'WITHDRAWAL',
-              referenceId: row.id,
-              createdById: actorId,
-              idempotencyKey: `withdrawal:${row.id}:${nextStatus.toLowerCase()}`,
-            })
-          }
+        await tx.$executeRaw`SELECT 1 FROM withdrawals WHERE id = ${row.id}::uuid FOR UPDATE`
+        const current = await tx.withdrawal.findUniqueOrThrow({ where: { id: row.id } })
+
+        if (current.status === nextStatus) {
+          return current
         }
-        const next = await tx.withdrawal.update({
-          where: { id: row.id },
+        if (current.status === 'PAID' || current.status === 'COMPLETED') {
+          throw badRequest('Paid withdrawals cannot be cancelled; ledger already settled.')
+        }
+        if (!['PENDING', 'UNDER_REVIEW', 'APPROVED', 'PROCESSING'].includes(current.status)) {
+          throw badRequest('Withdrawal cannot be rejected from the current status.')
+        }
+
+        const claimed = await tx.withdrawal.updateMany({
+          where: {
+            id: current.id,
+            status: { in: ['PENDING', 'UNDER_REVIEW', 'APPROVED', 'PROCESSING'] },
+          },
           data: {
             status: nextStatus,
             rejectionReason: body.reason ?? null,
             reviewedById: actorId,
             reviewedAt: new Date(),
-            internalNotes: body.internalNotes ?? row.internalNotes,
+            internalNotes: body.internalNotes ?? current.internalNotes,
           },
         })
+        if (claimed.count !== 1) {
+          throw conflict('Withdrawal status changed concurrently; reject aborted.')
+        }
+
+        const completed = await tx.ledgerEntry.findFirst({
+          where: { idempotencyKey: `withdrawal:${current.id}:complete:locked` },
+        })
+        if (!completed) {
+          await ledgerService.unlockFunds(tx, {
+            userId: current.userId,
+            walletId: current.walletId,
+            amount: d(current.amount),
+            description: `Withdrawal ${current.reference} ${nextStatus.toLowerCase()}`,
+            referenceType: 'WITHDRAWAL',
+            referenceId: current.id,
+            createdById: actorId,
+            // Stable key so cancel vs reject cannot double-unlock with different keys.
+            idempotencyKey: `withdrawal:${current.id}:unlock`,
+          })
+        }
         await tx.financeReview.create({
           data: {
-            withdrawalId: row.id,
+            withdrawalId: current.id,
             reviewerId: actorId,
             decision: body.decision === 'FORCE_CANCEL' ? 'FORCE_CANCEL' : 'REJECT',
             reason: body.reason ?? null,
@@ -573,14 +659,14 @@ export const withdrawalService = {
           },
         })
         await tx.approvalQueue.updateMany({
-          where: { withdrawalId: row.id },
+          where: { withdrawalId: current.id },
           data: {
             status: body.decision === 'FORCE_CANCEL' ? 'CANCELLED' : 'REJECTED',
             resolvedAt: new Date(),
             assigneeId: actorId,
           },
         })
-        return next
+        return tx.withdrawal.findUniqueOrThrow({ where: { id: current.id } })
       })
 
       await activityService.record({
@@ -609,6 +695,13 @@ export const withdrawalService = {
         body: body.reason ?? `Withdrawal ${row.reference} was ${nextStatus.toLowerCase()}.`,
         metadata: { type: 'WITHDRAWAL_REJECTED', withdrawalId: row.id },
       })
+      if (nextStatus === 'REJECTED') {
+        await transactionalMailer.withdrawalRejected(row.userId, {
+          reference: row.reference,
+          amount: moneyDisplay(row.amount),
+          reason: body.reason ?? 'Withdrawal rejected',
+        })
+      }
       return mapWithdrawal(updated)
     }
 
@@ -641,6 +734,201 @@ export const withdrawalService = {
     }
 
     throw badRequest('Unsupported decision.')
+  },
+
+  /**
+   * Provider payout confirmation. Completes ledger (locked → paid) when admin already
+   * approved, or when status is still PENDING/PROCESSING (ops may auto-payout).
+   */
+  async confirmPaidFromProvider(
+    withdrawalId: string,
+    input: {
+      eventId: string
+      transactionRef?: string
+      context: Ctx
+    },
+  ) {
+    const row = await prisma.withdrawal.findUnique({ where: { id: withdrawalId } })
+    if (!row) throw notFound('Withdrawal not found.')
+
+    if (row.status === 'PAID' || row.status === 'COMPLETED') {
+      return mapWithdrawal(row)
+    }
+
+    // Require admin approval before provider can settle (production control).
+    if (!['APPROVED', 'PROCESSING'].includes(row.status)) {
+      throw badRequest(
+        'Withdrawal must be APPROVED by an admin before provider paid confirmation.',
+      )
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT 1 FROM withdrawals WHERE id = ${row.id}::uuid FOR UPDATE`
+      const current = await tx.withdrawal.findUniqueOrThrow({ where: { id: row.id } })
+      if (current.status === 'PAID' || current.status === 'COMPLETED') {
+        return current
+      }
+      if (!['APPROVED', 'PROCESSING'].includes(current.status)) {
+        throw badRequest('Withdrawal cannot be marked paid from the current status.')
+      }
+
+      const claimed = await tx.withdrawal.updateMany({
+        where: { id: current.id, status: { in: ['APPROVED', 'PROCESSING'] } },
+        data: {
+          status: 'PAID',
+          paidAt: new Date(),
+          transactionRef: input.transactionRef?.slice(0, 120) ?? current.transactionRef,
+          internalNotes: `Provider paid ${input.eventId}`,
+        },
+      })
+      if (claimed.count !== 1) {
+        throw conflict('Withdrawal status changed concurrently; provider paid aborted.')
+      }
+
+      const already = await tx.ledgerEntry.findFirst({
+        where: { idempotencyKey: `withdrawal:${current.id}:complete:locked` },
+      })
+      if (!already) {
+        await ledgerService.completeWithdrawal(tx, {
+          userId: current.userId,
+          walletId: current.walletId,
+          amount: d(current.amount),
+          description: `Withdrawal ${current.reference} paid by provider`,
+          referenceType: 'WITHDRAWAL',
+          referenceId: current.id,
+          createdById: null,
+          idempotencyKey: `withdrawal:${current.id}:complete`,
+        })
+      }
+      await tx.financeReview.create({
+        data: {
+          withdrawalId: current.id,
+          decision: 'PROVIDER_CONFIRM',
+          reason: `Webhook ${input.eventId}`,
+          metadata: { eventId: input.eventId, transactionRef: input.transactionRef ?? null },
+        },
+      })
+      await tx.approvalQueue.updateMany({
+        where: { withdrawalId: current.id },
+        data: { status: 'APPROVED', resolvedAt: new Date() },
+      })
+      return tx.withdrawal.findUniqueOrThrow({ where: { id: current.id } })
+    })
+
+    await activityService.record({
+      userId: row.userId,
+      kind: 'WITHDRAWAL_PAID',
+      title: 'Withdrawal paid by provider',
+      ip: input.context.ip,
+      userAgent: input.context.userAgent,
+    })
+    await auditService.record({
+      actorId: null,
+      targetUserId: row.userId,
+      action: 'withdrawal.provider_paid',
+      module: 'finance',
+      oldValue: { status: row.status },
+      newValue: { status: 'PAID', eventId: input.eventId },
+      ip: input.context.ip,
+      userAgent: input.context.userAgent,
+    })
+    await notificationService.notify({
+      userId: row.userId,
+      kind: 'FINANCE',
+      title: 'Withdrawal paid',
+      body: `Withdrawal ${row.reference} has been paid.`,
+      metadata: { type: 'WITHDRAWAL_PAID', withdrawalId: row.id },
+    })
+    return mapWithdrawal(updated)
+  },
+
+  async markFailedFromProvider(
+    withdrawalId: string,
+    input: { eventId: string; reason?: string; context: Ctx },
+  ) {
+    const row = await prisma.withdrawal.findUnique({ where: { id: withdrawalId } })
+    if (!row) throw notFound('Withdrawal not found.')
+    if (row.status === 'REJECTED' || row.status === 'CANCELLED') {
+      return mapWithdrawal(row)
+    }
+    if (row.status === 'PAID' || row.status === 'COMPLETED') {
+      throw badRequest('Paid withdrawals cannot be marked failed by provider.')
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT 1 FROM withdrawals WHERE id = ${row.id}::uuid FOR UPDATE`
+      const current = await tx.withdrawal.findUniqueOrThrow({ where: { id: row.id } })
+      if (['REJECTED', 'CANCELLED', 'PAID', 'COMPLETED'].includes(current.status)) {
+        return current
+      }
+      if (!['PENDING', 'UNDER_REVIEW', 'APPROVED', 'PROCESSING'].includes(current.status)) {
+        throw badRequest('Withdrawal cannot be marked failed from the current status.')
+      }
+
+      await tx.withdrawal.update({
+        where: { id: current.id },
+        data: {
+          status: 'REJECTED',
+          rejectionReason: input.reason ?? 'Provider reported payout failed',
+          reviewedAt: new Date(),
+          internalNotes: `webhook:${input.eventId}`,
+        },
+      })
+
+      const completed = await tx.ledgerEntry.findFirst({
+        where: { idempotencyKey: `withdrawal:${current.id}:complete:locked` },
+      })
+      if (!completed) {
+        await ledgerService.unlockFunds(tx, {
+          userId: current.userId,
+          walletId: current.walletId,
+          amount: d(current.amount),
+          description: `Withdrawal ${current.reference} provider failed`,
+          referenceType: 'WITHDRAWAL',
+          referenceId: current.id,
+          createdById: null,
+          idempotencyKey: `withdrawal:${current.id}:unlock`,
+        })
+      }
+      await tx.financeReview.create({
+        data: {
+          withdrawalId: current.id,
+          decision: 'REJECT',
+          reason: input.reason ?? 'Provider reported payout failed',
+          metadata: { eventId: input.eventId, source: 'webhook' },
+        },
+      })
+      await tx.approvalQueue.updateMany({
+        where: { withdrawalId: current.id },
+        data: { status: 'REJECTED', resolvedAt: new Date() },
+      })
+      return tx.withdrawal.findUniqueOrThrow({ where: { id: current.id } })
+    })
+
+    await activityService.record({
+      userId: row.userId,
+      kind: 'WITHDRAWAL_REJECTED',
+      title: 'Withdrawal failed at provider',
+      ip: input.context.ip,
+      userAgent: input.context.userAgent,
+    })
+    await auditService.record({
+      actorId: null,
+      targetUserId: row.userId,
+      action: 'withdrawal.provider_failed',
+      module: 'finance',
+      reason: input.reason,
+      ip: input.context.ip,
+      userAgent: input.context.userAgent,
+    })
+    await notificationService.notify({
+      userId: row.userId,
+      kind: 'FINANCE',
+      title: 'Withdrawal failed',
+      body: input.reason ?? `Withdrawal ${row.reference} failed at the payment provider.`,
+      metadata: { type: 'WITHDRAWAL_REJECTED', withdrawalId: row.id },
+    })
+    return mapWithdrawal(updated)
   },
 }
 

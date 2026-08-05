@@ -10,20 +10,23 @@ import { ThemeToggle } from '@/components/common/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { clearAdminSession, hasAdminSession } from '@/lib/demo-admin-auth'
+import { useLogout } from '@/features/auth/hooks'
+import { useSession } from '@/providers/session-provider'
 
 import { AdminNav } from './admin-sidebar'
 
 export function AdminTopbar() {
   const pathname = usePathname()
   const router = useRouter()
+  const { session } = useSession()
+  const logout = useLogout()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
 
   useEffect(() => setOpen(false), [pathname])
 
-  function signOut() {
-    clearAdminSession()
+  async function signOut() {
+    await logout.mutateAsync().catch(() => undefined)
     toast.message('Signed out of operator console')
     router.push(ROUTES.admin.login)
     router.refresh()
@@ -40,7 +43,7 @@ export function AdminTopbar() {
   }
 
   return (
-    <header className="glass sticky top-0 z-40 flex h-topbar items-center gap-3 border-b border-glass-line px-4 lg:px-8">
+    <header className="pointer-events-auto glass fixed top-0 right-0 z-[100] flex h-[calc(var(--topbar-height)+env(safe-area-inset-top,0px))] items-center gap-3 border-b border-glass-line px-4 pt-[env(safe-area-inset-top,0px)] left-0 lg:left-[var(--sidebar-width)] lg:px-8">
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon-sm" className="lg:hidden" aria-label="Open navigation">
@@ -71,9 +74,9 @@ export function AdminTopbar() {
         <ThemeToggle />
         <div className="hidden items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-caption text-fg-muted sm:flex">
           <span className="size-1.5 rounded-full bg-profit" aria-hidden />
-          admin@growzy.com
+          {session?.user.email ?? 'admin'}
         </div>
-        <Button variant="ghost" size="sm" onClick={signOut} aria-label="Sign out">
+        <Button variant="ghost" size="sm" onClick={() => void signOut()} aria-label="Sign out">
           <LogOut className="size-4" aria-hidden />
           <span className="hidden sm:inline">Sign out</span>
         </Button>
@@ -82,20 +85,19 @@ export function AdminTopbar() {
   )
 }
 
-/** Soft gate — UI only. API will enforce roles later. */
+/** Soft gate — UI only. The API enforces roles on every request. */
 export function AdminSessionGate({ children }: { children: ReactNode }) {
   const router = useRouter()
-  const [ready, setReady] = useState(false)
+  const { isAuthenticated, isStaff, isLoading } = useSession()
 
   useEffect(() => {
-    if (!hasAdminSession()) {
+    if (isLoading) return
+    if (!isAuthenticated || !isStaff) {
       router.replace(ROUTES.admin.login)
-      return
     }
-    setReady(true)
-  }, [router])
+  }, [isLoading, isAuthenticated, isStaff, router])
 
-  if (!ready) {
+  if (isLoading || !isAuthenticated || !isStaff) {
     return (
       <div className="grid min-h-dvh place-items-center bg-base text-caption text-fg-muted">
         Checking operator session…

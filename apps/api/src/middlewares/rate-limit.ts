@@ -6,21 +6,26 @@ import { getRedis } from '../services/redis/client.js'
 import { createMeta } from '../utils/response.js'
 import { createRedisRateLimitStore } from './redis-rate-limit-store.js'
 
-function optionalRedisStore() {
+function optionalRedisStore(prefix?: string) {
   if (env.RATE_LIMIT_STORE !== 'redis') return undefined
   const redis = getRedis()
   if (!redis) return undefined
-  return createRedisRateLimitStore(redis)
+  return createRedisRateLimitStore(redis, prefix)
 }
 
-const store = optionalRedisStore()
+/**
+ * express-rate-limit v7 warns when `trust proxy` is true.
+ * We intentionally trust the Render/proxy hop and key by X-Forwarded-For via Express.
+ */
+const validate = { trustProxy: false as const }
 
 export const globalRateLimiter = rateLimit({
   windowMs: env.RATE_LIMIT_WINDOW_MS,
   max: env.RATE_LIMIT_MAX,
   standardHeaders: true,
   legacyHeaders: false,
-  ...(store ? { store } : {}),
+  validate,
+  ...(optionalRedisStore() ? { store: optionalRedisStore() } : {}),
   handler: (req, res) => {
     res.status(429).json({
       success: false,
@@ -38,15 +43,34 @@ export const authRateLimiter = rateLimit({
   max: env.AUTH_RATE_LIMIT_MAX,
   standardHeaders: true,
   legacyHeaders: false,
-  ...(store && getRedis()
-    ? { store: createRedisRateLimitStore(getRedis()!, 'rl:auth:') }
-    : {}),
+  validate,
+  ...(optionalRedisStore('rl:auth:') ? { store: optionalRedisStore('rl:auth:') } : {}),
   handler: (req, res) => {
     res.status(429).json({
       success: false,
       error: {
         code: ERROR_CODES.RATE_LIMITED,
         message: 'Too many authentication attempts. Please try again later.',
+      },
+      meta: createMeta(req.requestId),
+    })
+  },
+})
+
+/** Stricter limiter for payment provider webhooks (unauthenticated surface). */
+export const webhookRateLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate,
+  ...(optionalRedisStore('rl:webhook:') ? { store: optionalRedisStore('rl:webhook:') } : {}),
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: {
+        code: ERROR_CODES.RATE_LIMITED,
+        message: 'Webhook rate limit exceeded.',
       },
       meta: createMeta(req.requestId),
     })

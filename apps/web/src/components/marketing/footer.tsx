@@ -8,23 +8,24 @@ import { Logo } from '@/components/common/logo'
 import { RiskDisclosure } from '@/components/common/risk-disclosure'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { usePublishedLanding } from '@/features/cms/site'
+import { useCmsBootstrap } from '@/features/cms/hooks'
 import { SITE } from '@/lib/constants'
 import { FOOTER_NAV } from '@/lib/navigation'
-import { useAdminOs } from '@/providers/admin-os-provider'
 
 export function Footer() {
   const year = new Date().getFullYear()
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<'idle' | 'ok'>('idle')
-  const { ready, publishedLanding, state } = useAdminOs()
-  const landing = ready ? publishedLanding : null
-  const seo = ready ? state.siteSeo : null
+  const { landing } = usePublishedLanding()
+  const { data: boot } = useCmsBootstrap()
+  const seo = (boot?.siteSeo ?? {}) as Record<string, string | boolean | undefined>
 
   const social = [
-    { label: 'X / Twitter', href: landing?.social.twitter || 'https://x.com', handle: 'X' },
-    { label: 'LinkedIn', href: landing?.social.linkedin || 'https://linkedin.com', handle: 'in' },
-    { label: 'Telegram', href: landing?.telegram || 'https://t.me', handle: 'Tg' },
-    { label: 'Instagram', href: landing?.social.instagram || 'https://instagram.com', handle: 'Ig' },
+    { label: 'X / Twitter', href: landing.social.twitter || 'https://x.com', handle: 'X' },
+    { label: 'LinkedIn', href: landing.social.linkedin || 'https://linkedin.com', handle: 'in' },
+    { label: 'Telegram', href: landing.telegram || 'https://t.me', handle: 'Tg' },
+    { label: 'Instagram', href: landing.social.instagram || 'https://instagram.com', handle: 'Ig' },
   ]
 
   function onNewsletter(e: FormEvent) {
@@ -52,10 +53,10 @@ export function Footer() {
           <div className="space-y-6">
             <Logo />
             <p className="text-caption text-fg-subtle">
-              {landing?.companyName || seo?.websiteName || SITE.name}
+              {landing.companyName || String(seo.websiteName || '') || SITE.name}
             </p>
             <p className="prose-measure text-body-sm text-fg-muted">
-              {landing?.footerTagline || SITE.description}
+              {landing.footerTagline || SITE.description}
             </p>
 
             <div className="gradient-border-soft p-4 sm:p-5">
@@ -104,9 +105,9 @@ export function Footer() {
                 ))}
               </ul>
               <p className="mt-3 text-caption text-fg-subtle">
-                {landing?.supportEmail || seo?.supportEmail || 'support@growzy.com'}
-                {seo?.supportPhone ? ` · ${seo.supportPhone}` : ''}
-                {seo?.supportHours ? ` · ${seo.supportHours}` : ''}
+                {landing.supportEmail || String(seo.supportEmail || '') || 'support@growzy.com'}
+                {seo.supportPhone ? ` · ${String(seo.supportPhone)}` : ''}
+                {seo.supportHours ? ` · ${String(seo.supportHours)}` : ''}
               </p>
             </div>
           </div>
@@ -141,7 +142,7 @@ export function Footer() {
             <RiskDisclosure className="text-caption text-fg-subtle" />
           )}
           <p className="text-caption text-fg-subtle">
-            © {year} {landing?.companyName || 'Growzy Capital'}. All rights reserved.
+            © {year} {landing.companyName || 'Growzy Capital'}. All rights reserved.
           </p>
         </div>
       </div>

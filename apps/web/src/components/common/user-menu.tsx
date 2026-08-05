@@ -14,33 +14,32 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { clearDemoSession } from '@/lib/demo-auth'
+import { useLogout } from '@/features/auth/hooks'
 import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
 
-/**
- * The account menu in the dashboard and admin top bars.
- * Demo sign-out clears the local session cookie; production will call the API (docs/08 §5).
- */
+/** The account menu in the dashboard and admin top bars. Sign-out calls the API. */
 export function UserMenu({ className }: { className?: string }) {
   const router = useRouter()
   const { session, isAdmin } = useSession()
+  const logout = useLogout()
 
   const firstName = session?.user.firstName ?? 'Guest'
   const lastName = session?.user.lastName ?? ''
   const email = session?.user.email ?? 'not signed in'
 
-  function signOut() {
-    clearDemoSession()
+  async function signOut() {
+    await logout.mutateAsync().catch(() => undefined)
     router.push(ROUTES.auth.login)
     router.refresh()
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal>
       <DropdownMenuTrigger
+        type="button"
         className={cn(
-          'flex items-center gap-2 rounded-full p-0.5 transition-colors hover:bg-hover',
+          'relative z-[1] flex min-h-10 min-w-10 items-center justify-center gap-2 rounded-full p-0.5 transition-colors hover:bg-hover',
           className,
         )}
         aria-label="Account menu"

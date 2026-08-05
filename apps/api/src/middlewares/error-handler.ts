@@ -2,6 +2,7 @@ import { ERROR_CODES } from '@meridian/shared'
 import type { NextFunction, Request, Response } from 'express'
 import { ZodError } from 'zod'
 
+import { recordSystemLog } from '../observability/log-buffer.js'
 import { AppError } from '../utils/errors.js'
 import { logger } from '../utils/logger.js'
 import { sendFailure } from '../utils/response.js'
@@ -26,6 +27,12 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   if (err instanceof AppError) {
     if (!err.isOperational || err.statusCode >= 500) {
       logger.error({ err, requestId: req.requestId }, err.message)
+      recordSystemLog({
+        level: 'error',
+        message: err.message,
+        requestId: req.requestId,
+        meta: { code: err.code, statusCode: err.statusCode },
+      })
     } else {
       logger.warn({ err, requestId: req.requestId, code: err.code }, err.message)
     }
@@ -51,6 +58,11 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   }
 
   logger.error({ err, requestId: req.requestId }, 'Unhandled error')
+  recordSystemLog({
+    level: 'error',
+    message: err instanceof Error ? err.message : 'Unhandled error',
+    requestId: req.requestId,
+  })
   sendFailure(
     res,
     500,

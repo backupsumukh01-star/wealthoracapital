@@ -4,11 +4,10 @@ import { useCallback, useId, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
-import { MONTHLY_RETURNS } from '@/lib/landing-data'
+import { usePerformanceMonthly } from '@/features/performance/hooks'
 import { cn } from '@/lib/cn'
-import { useAdminOs } from '@/providers/admin-os-provider'
 
-type Point = { month: string; value: number; winRate: number; trades: number }
+type Point = { month: string; value: number }
 
 /** Cumulative growth path from monthly returns starting at 100. */
 function buildGrowth(points: Point[]) {
@@ -19,25 +18,26 @@ function buildGrowth(points: Point[]) {
   })
 }
 
+function useMonthlySeries(): Point[] {
+  const { data: monthly = [] } = usePerformanceMonthly()
+  return useMemo(
+    () =>
+      monthly.map((m) => ({
+        month: m.month,
+        value: Number.parseFloat(String(m.returnPct)) || 0,
+      })),
+    [monthly],
+  )
+}
+
 /**
- * Custom SVG monthly performance chart — CMS performance.monthly when published.
+ * Custom SVG monthly performance chart — published performance API only.
+ * Renders nothing when there is no published monthly series.
  */
 export function MonthlyPerformanceChart() {
   const prefersReducedMotion = usePrefersReducedMotion()
-  const { ready, state } = useAdminOs()
   const gid = useId()
-  const series = useMemo(() => {
-    const source =
-      ready && state.performance.monthly.length > 0
-        ? state.performance.monthly
-        : MONTHLY_RETURNS.map((m) => ({ month: m.month, returnPct: m.returnPct }))
-    return source.map((m, i) => ({
-      month: m.month,
-      value: m.returnPct,
-      winRate: Number((72 + (i % 5) * 1.4 + (m.returnPct > 6 ? 2 : 0)).toFixed(1)),
-      trades: 38 + i * 3 + (m.returnPct > 6 ? 8 : 0),
-    }))
-  }, [ready, state.performance.monthly])
+  const series = useMonthlySeries()
   const data = useMemo(() => buildGrowth(series), [series])
   const [active, setActive] = useState<number | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
@@ -48,17 +48,14 @@ export function MonthlyPerformanceChart() {
   const innerW = W - pad.l - pad.r
   const innerH = H - pad.t - pad.b
 
-  const min = Math.min(...data.map((d) => d.balance)) * 0.96
-  const max = Math.max(...data.map((d) => d.balance)) * 1.02
+  const min = data.length ? Math.min(...data.map((d) => d.balance)) * 0.96 : 0
+  const max = data.length ? Math.max(...data.map((d) => d.balance)) * 1.02 : 1
 
   const coords = data.map((d, i) => {
     const x = pad.l + (i / Math.max(data.length - 1, 1)) * innerW
     const y = pad.t + (1 - (d.balance - min) / (max - min || 1)) * innerH
     return { x, y, ...d }
   })
-
-  const line = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`).join(' ')
-  const area = `${line} L ${coords.at(-1)!.x} ${pad.t + innerH} L ${coords[0]!.x} ${pad.t + innerH} Z`
 
   const pickFromEvent = useCallback(
     (clientX: number) => {
@@ -80,6 +77,10 @@ export function MonthlyPerformanceChart() {
     [coords],
   )
 
+  if (data.length === 0) return null
+
+  const line = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`).join(' ')
+  const area = `${line} L ${coords.at(-1)!.x} ${pad.t + innerH} L ${coords[0]!.x} ${pad.t + innerH} Z`
   const tip = active !== null ? coords[active] : null
 
   return (
@@ -94,7 +95,7 @@ export function MonthlyPerformanceChart() {
             </span>
           </p>
         </div>
-        <p className="text-caption text-fg-subtle">Jan – Dec performance</p>
+        <p className="text-caption text-fg-subtle">Published monthly performance</p>
       </div>
 
       <div className="h-[220px] w-full min-w-0 overflow-hidden sm:h-[280px] lg:h-[360px]">
@@ -208,17 +209,15 @@ export function MonthlyPerformanceChart() {
               />
               <foreignObject
                 x={Math.min(Math.max(tip.x - 70, 4), W - 144)}
-                y={Math.max(tip.y - 72, 4)}
+                y={Math.max(tip.y - 56, 4)}
                 width="140"
-                height="64"
+                height="48"
               >
                 <div className="rounded-xl border border-glass-line bg-overlay/95 px-2.5 py-2 text-[11px] shadow-e3 backdrop-blur-md">
                   <p className="font-medium text-fg">
                     {tip.month} · ${tip.balance.toFixed(0)}
                   </p>
-                  <p className="tabular-nums text-profit">
-                    +{tip.value}% · {tip.winRate}% win · {tip.trades} trades
-                  </p>
+                  <p className="tabular-nums text-profit">+{tip.value}%</p>
                 </div>
               </foreignObject>
             </g>
@@ -232,22 +231,12 @@ export function MonthlyPerformanceChart() {
   )
 }
 
-/** Expandable monthly performance timeline. */
+/** Expandable monthly performance timeline. Renders nothing without published data. */
 export function MonthlyPerformanceTimeline() {
-  const { ready, state } = useAdminOs()
   const [open, setOpen] = useState<string | null>(null)
-  const series = useMemo(() => {
-    const source =
-      ready && state.performance.monthly.length > 0
-        ? state.performance.monthly
-        : MONTHLY_RETURNS.map((m) => ({ month: m.month, returnPct: m.returnPct }))
-    return source.map((m, i) => ({
-      month: m.month,
-      value: m.returnPct,
-      winRate: Number((72 + (i % 5) * 1.4 + (m.returnPct > 6 ? 2 : 0)).toFixed(1)),
-      trades: 38 + i * 3 + (m.returnPct > 6 ? 8 : 0),
-    }))
-  }, [ready, state.performance.monthly])
+  const series = useMonthlySeries()
+
+  if (series.length === 0) return null
 
   return (
     <div className="min-w-0 rounded-2xl border border-white/[0.07] bg-raised/50 p-3 sm:p-5">
@@ -281,19 +270,11 @@ export function MonthlyPerformanceTimeline() {
                   {up ? '+' : ''}
                   {m.value}%
                 </span>
-                <span className="hidden text-caption tabular-nums text-fg-subtle sm:inline">
-                  {m.winRate}% win
-                </span>
-                <span className="text-caption tabular-nums text-fg-subtle">{m.trades} trades</span>
               </button>
               {isOpen ? (
                 <div className="mt-1.5 rounded-xl border border-line bg-raised/60 px-3 py-3 text-caption text-fg-muted">
                   <p>
                     Return <span className="tabular-nums text-fg">{up ? '+' : ''}{m.value}%</span>
-                    {' · '}
-                    Win rate <span className="tabular-nums text-fg">{m.winRate}%</span>
-                    {' · '}
-                    Trades <span className="tabular-nums text-fg">{m.trades}</span>
                   </p>
                   <p className="mt-1 text-fg-subtle">
                     Published programme result for {m.month}. Past performance does not guarantee

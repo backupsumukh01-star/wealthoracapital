@@ -82,11 +82,11 @@ export const distributionService = {
     if (!daily) throw notFound('Daily return day not found.')
 
     // Block a second key for the same date+basis when a run already completed or is open.
+    // Soft check first; DB unique(date, returnBasis) is the hard gate (C2).
     const priorBlocking = await prisma.dailyReturnRun.findFirst({
       where: {
         date,
         returnBasis: basis,
-        status: { in: ['COMPLETED', 'PROCESSING', 'FAILED'] },
         NOT: existing ? { id: existing.id } : undefined,
       },
     })
@@ -96,9 +96,11 @@ export const distributionService = {
           'A completed distribution already exists for this date. Profit reversal is not available; contact operations for manual ledger repair.',
         )
       }
-      throw conflict(
-        'A distribution run for this date is already in progress or failed. Resume with the original idempotency key.',
-      )
+      if (priorBlocking.idempotencyKey !== body.idempotencyKey) {
+        throw conflict(
+          'A distribution run for this date is already in progress or failed. Resume with the original idempotency key.',
+        )
+      }
     }
 
     const wallets = await prisma.wallet.findMany({
@@ -148,33 +150,47 @@ export const distributionService = {
     // Negative return: still record distributions as negative amounts without ledger debit for now
     // (capital protection — losses tracked in performance, not forced wallet debit in v1)
     let run: DailyReturnRun
-    if (existing && (existing.status === 'FAILED' || existing.status === 'PROCESSING')) {
-      run = await prisma.dailyReturnRun.update({
-        where: { id: existing.id },
-        data: {
-          status: 'PROCESSING',
-          completedAt: null,
-          startedAt: existing.startedAt ?? new Date(),
-        },
-      })
-    } else {
-      run = await prisma.dailyReturnRun.create({
-        data: {
-          dailyReturnId: daily.id,
-          date,
-          returnPct: returnPct.toFixed(6),
-          returnBasis: basis,
-          status: 'PROCESSING',
-          eligibleWallets: lines.length,
-          processedWallets: 0,
-          totalBaseAmount: moneyString(totalBase),
-          totalDistributed: moneyString(0),
-          roundingDelta: moneyString(roundingDelta),
-          idempotencyKey: body.idempotencyKey,
-          createdById: actorId,
-          startedAt: new Date(),
-        },
-      })
+    try {
+      if (existing && (existing.status === 'FAILED' || existing.status === 'PROCESSING')) {
+        run = await prisma.dailyReturnRun.update({
+          where: { id: existing.id },
+          data: {
+            status: 'PROCESSING',
+            completedAt: null,
+            startedAt: existing.startedAt ?? new Date(),
+          },
+        })
+      } else {
+        run = await prisma.dailyReturnRun.create({
+          data: {
+            dailyReturnId: daily.id,
+            date,
+            returnPct: returnPct.toFixed(6),
+            returnBasis: basis,
+            status: 'PROCESSING',
+            eligibleWallets: lines.length,
+            processedWallets: 0,
+            totalBaseAmount: moneyString(totalBase),
+            totalDistributed: moneyString(0),
+            roundingDelta: moneyString(roundingDelta),
+            idempotencyKey: body.idempotencyKey,
+            createdById: actorId,
+            startedAt: new Date(),
+          },
+        })
+      }
+    } catch (err) {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'code' in err &&
+        (err as { code?: string }).code === 'P2002'
+      ) {
+        throw conflict(
+          'A distribution run for this date and return basis already exists. Resume with the original idempotency key.',
+        )
+      }
+      throw err
     }
 
     const alreadyPaid = await prisma.profitDistribution.findMany({

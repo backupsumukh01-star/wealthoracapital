@@ -1,49 +1,18 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 
 import { Marquee } from '@/components/motion/marquee'
-import { FOREX_TICKER } from '@/lib/landing-data'
-import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { cn } from '@/lib/cn'
 import { useAdminOs } from '@/providers/admin-os-provider'
 
-type Tick = {
-  pair: string
-  price: string
-  change: string
-  featured?: boolean
-  tone?: 'auto' | 'up' | 'down'
-}
-
-function formatPrice(pair: string, value: number) {
-  if (pair.startsWith('BTC') || pair.startsWith('ETH') || Number(value) >= 1000) {
-    return value.toLocaleString('en-US', { maximumFractionDigits: 1 })
-  }
-  if (Number(value) >= 100) return value.toFixed(2)
-  return value.toFixed(4)
-}
-
-function drift(ticks: Tick[]): Tick[] {
-  return ticks.map((t) => {
-    const price = Number(t.price.replace(/,/g, ''))
-    const magnitude = price >= 1000 ? price * 0.0015 : price >= 100 ? 0.28 : 0.0016
-    const delta = (Math.random() - 0.5) * magnitude
-    const next = Math.max(0.0001, price + delta)
-    const change = ((delta / price) * 100).toFixed(2)
-    return { ...t, price: formatPrice(t.pair, next), change }
-  })
-}
-
-/** Live market tape — CMS-driven pairs, speed, colours, direction, refresh. */
+/** Live market tape — CMS-published ticker only. Renders nothing when unpublished or empty. */
 export function ForexTicker() {
-  const prefersReducedMotion = usePrefersReducedMotion()
   const { ready, state } = useAdminOs()
   const display = state.tickerDisplay
 
-  const source = useMemo(() => {
-    if (!ready) return FOREX_TICKER.map((t) => ({ ...t, tone: 'auto' as const }))
-    if (!display.enabled) return []
+  const ticks = useMemo(() => {
+    if (!ready || !display.enabled) return []
     return [...state.ticker]
       .filter((t) => t.enabled)
       .sort((a, b) => a.order - b.order)
@@ -56,22 +25,7 @@ export function ForexTicker() {
       }))
   }, [ready, state.ticker, display.enabled])
 
-  const [ticks, setTicks] = useState<Tick[]>(() => [...FOREX_TICKER])
-
-  useEffect(() => {
-    setTicks(source)
-  }, [source])
-
-  useEffect(() => {
-    if (prefersReducedMotion || !display.enabled) return
-    const id = window.setInterval(
-      () => setTicks((prev) => drift(prev)),
-      Math.max(800, display.refreshMs || 2800),
-    )
-    return () => window.clearInterval(id)
-  }, [prefersReducedMotion, display.enabled, display.refreshMs])
-
-  if (!display.enabled || source.length === 0) return null
+  if (!ready || !display.enabled || ticks.length === 0) return null
 
   return (
     <div className="w-full min-w-0 overflow-hidden border-b border-white/[0.06] bg-[#07131C]/90 backdrop-blur-xl">

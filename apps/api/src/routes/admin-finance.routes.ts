@@ -2,6 +2,7 @@ import { Router } from 'express'
 
 import { PERMISSIONS } from '../config/permissions.js'
 import { financeController } from '../controllers/finance.controller.js'
+import { reconciliationController } from '../controllers/payment-integration.controller.js'
 import { requirePermission } from '../middlewares/require-permission.js'
 import { validate } from '../middlewares/validate.js'
 import {
@@ -183,4 +184,26 @@ adminFinanceRouter.get(
   requirePermission(PERMISSIONS['finance.view']),
   validate(adminFinanceListQuerySchema, 'query'),
   financeController.adminLedger,
+)
+
+adminFinanceRouter.get(
+  '/finance/reconciliation',
+  requirePermission(PERMISSIONS['finance.view']),
+  reconciliationController.latest,
+)
+adminFinanceRouter.post(
+  '/finance/reconciliation/run',
+  requirePermission(PERMISSIONS['finance.manage']),
+  reconciliationController.run,
+)
+adminFinanceRouter.post(
+  '/wallets/:id/sync-ledger',
+  requirePermission(PERMISSIONS['finance.adjust']),
+  validate(idParamSchema, 'params'),
+  reconciliationController.syncWallet,
+)
+adminFinanceRouter.get(
+  '/finance/webhooks',
+  requirePermission(PERMISSIONS['finance.view']),
+  reconciliationController.listWebhooks,
 )

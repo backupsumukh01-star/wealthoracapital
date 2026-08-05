@@ -16,7 +16,15 @@ import type {
   AdminDepositStatus,
   AdminKycStatus,
   AdminWithdrawalStatus,
-} from '@/lib/admin-demo-data'
+} from '@/components/admin/admin-ui-types'
+
+export type {
+  AdminAccountStatus,
+  AdminDepositStatus,
+  AdminKycStatus,
+  AdminTradeDirection,
+  AdminWithdrawalStatus,
+} from '@/components/admin/admin-ui-types'
 
 export type AdminUserRef = {
   id: string

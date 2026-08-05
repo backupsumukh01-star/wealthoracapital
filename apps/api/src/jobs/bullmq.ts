@@ -158,6 +158,13 @@ export function createWorker(
 
   worker.on('failed', (job, error) => {
     logger.error({ jobId: job?.id, name: job?.name, group, error }, 'BullMQ job failed')
+    void import('../observability/log-buffer.js').then(({ recordSystemLog }) => {
+      recordSystemLog({
+        level: 'error',
+        message: `Job failed: ${job?.name ?? 'unknown'} (${group})`,
+        meta: { jobId: job?.id, err: error instanceof Error ? error.message : String(error) },
+      })
+    })
   })
   worker.on('completed', (job) => {
     logger.debug({ jobId: job.id, name: job.name, group }, 'BullMQ job completed')

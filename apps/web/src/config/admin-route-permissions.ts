@@ -1,0 +1,47 @@
+import type { Permission } from '@/config/permissions.config'
+import { ROUTES } from '@meridian/shared'
+
+/**
+ * Longest-prefix match: admin pathname → required permission(s).
+ * `anyOf` is represented as a string array.
+ */
+export const ADMIN_ROUTE_PERMISSIONS: Record<string, Permission | Permission[]> = {
+  [ROUTES.admin.root]: 'dashboard.view',
+  [ROUTES.admin.systemHealth]: 'dashboard.view',
+  [ROUTES.admin.activityCenter]: 'activity.view',
+  [ROUTES.admin.search]: 'users.view',
+  [ROUTES.admin.deposits]: 'finance.review',
+  [ROUTES.admin.withdrawals]: 'finance.review',
+  [ROUTES.admin.users]: 'users.view',
+  [ROUTES.admin.kyc]: 'kyc.review',
+  [ROUTES.admin.wallets]: 'finance.adjust',
+  [ROUTES.admin.support]: 'support.view',
+  [ROUTES.admin.trades]: 'trades.view',
+  [ROUTES.admin.dailyReturn]: 'returns.manage',
+  [ROUTES.admin.performance]: 'performance.view',
+  [ROUTES.admin.ticker]: 'cms.manage',
+  [ROUTES.admin.reports]: 'reports.view',
+  [ROUTES.admin.reportLibrary]: 'reports.view',
+  [ROUTES.admin.cms.landing]: 'cms.view',
+  [ROUTES.admin.cms.platform]: 'cms.view',
+  [ROUTES.admin.cms.content]: 'cms.view',
+  [ROUTES.admin.cms.media]: 'media.manage',
+  [ROUTES.admin.cms.site]: 'cms.manage',
+  [ROUTES.admin.cms.backup]: 'settings.manage',
+  [ROUTES.admin.activity]: 'cms.manage',
+  [ROUTES.admin.announcements]: 'cms.manage',
+  [ROUTES.admin.notifications]: 'notifications.view',
+  [ROUTES.admin.broadcast]: 'broadcasts.manage',
+  [ROUTES.admin.emails]: 'emails.manage',
+  [ROUTES.admin.emailTemplates]: 'emails.manage',
+  [ROUTES.admin.featureToggles]: 'settings.manage',
+  [ROUTES.admin.auditLog]: 'audit.view',
+  [ROUTES.admin.settings.global]: 'settings.manage',
+  [ROUTES.admin.settings.general]: 'settings.manage',
+  [ROUTES.admin.settings.platform]: 'settings.manage',
+  [ROUTES.admin.settings.emailTemplates]: 'emails.manage',
+  [ROUTES.admin.settings.security]: 'settings.manage',
+  [ROUTES.admin.settings.roles]: 'roles.view',
+  [ROUTES.admin.settings.paymentMethods]: 'finance.manage',
+  [ROUTES.admin.settings.staff]: 'users.edit',
+}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
@@ -17,26 +18,72 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { ADMIN_NOTIFICATIONS, ADMIN_STATS } from '@/lib/admin-demo-data'
 import { formatDateTime } from '@/lib/format'
+import { broadcastService, type Broadcast } from '@/services/broadcast.service'
+import { useAdminUsers } from '@/features/admin/hooks'
 
 type Segment = 'ALL' | 'VERIFIED' | 'PENDING_KYC'
 type Channel = 'IN_APP' | 'EMAIL' | 'BOTH'
 
-const SEGMENT_COUNTS: Record<Segment, number> = {
-  ALL: ADMIN_STATS.totalInvestors,
-  VERIFIED: ADMIN_STATS.verifiedUsers,
-  PENDING_KYC: ADMIN_STATS.pendingKyc,
+function mapChannels(channel: Channel): Broadcast['channels'] {
+  if (channel === 'BOTH') return ['EMAIL', 'IN_APP']
+  if (channel === 'EMAIL') return ['EMAIL']
+  return ['IN_APP']
+}
+
+function audienceForSegment(segment: Segment): Broadcast['audience'] {
+  return segment === 'ALL' ? 'ALL' : 'SEGMENT'
 }
 
 export function AdminBroadcastWorkspace() {
+  const qc = useQueryClient()
+  const { data: usersData } = useAdminUsers()
+  const { data: listData } = useQuery({
+    queryKey: ['admin', 'broadcasts'],
+    queryFn: () => broadcastService.list(),
+  })
+
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
   const [segment, setSegment] = useState<Segment>('ALL')
   const [channel, setChannel] = useState<Channel>('BOTH')
 
-  const recipients = SEGMENT_COUNTS[segment]
-  const history = ADMIN_NOTIFICATIONS.filter((n) => n.target === 'ALL' || n.target === 'SELECTED')
+  const users = usersData?.items ?? []
+  const recipients =
+    segment === 'ALL'
+      ? users.length
+      : segment === 'VERIFIED'
+        ? users.filter((u) => u.kycStatus === 'APPROVED').length
+        : users.filter((u) => u.kycStatus !== 'APPROVED').length
+
+  const history = (listData?.items ?? []).filter(
+    (n) => n.status === 'SENT' || n.audience === 'ALL' || n.audience === 'SEGMENT',
+  )
+
+  const sendMutation = useMutation({
+    mutationFn: async () => {
+      const created = await broadcastService.create({
+        title: subject.trim(),
+        body: body.trim(),
+        channels: mapChannels(channel),
+        audience: audienceForSegment(segment),
+        audienceFilter:
+          segment === 'ALL'
+            ? undefined
+            : { kyc: segment === 'VERIFIED' ? 'APPROVED' : 'PENDING' },
+      })
+      return broadcastService.send(created.id)
+    },
+    onSuccess: (sent) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'broadcasts'] })
+      toast.success('Broadcast sent', {
+        description: `${sent.stats?.recipientCount ?? recipients} recipients · ${channel}`,
+      })
+      setSubject('')
+      setBody('')
+    },
+    onError: (err: Error) => toast.error(err.message || 'Broadcast failed'),
+  })
 
   function handleSend(e: React.FormEvent) {
     e.preventDefault()
@@ -44,11 +91,7 @@ export function AdminBroadcastWorkspace() {
       toast.error('Subject and body are required')
       return
     }
-    toast.success('Broadcast sent (demo)', {
-      description: `${recipients.toLocaleString()} recipients · ${channel}`,
-    })
-    setSubject('')
-    setBody('')
+    sendMutation.mutate()
   }
 
   return (
@@ -59,8 +102,7 @@ export function AdminBroadcastWorkspace() {
       />
 
       <Alert tone="warning" title="A broadcast cannot be recalled">
-        Preview the rendered message and confirm the recipient count before sending. Demo mode
-        only shows a toast.
+        Preview the rendered message and confirm the recipient count before sending.
       </Alert>
 
       <div className="grid gap-5 lg:grid-cols-[1.3fr_1fr]">
@@ -97,7 +139,9 @@ export function AdminBroadcastWorkspace() {
                 </SelectContent>
               </Select>
             </FormField>
-            <Button type="submit">Send broadcast</Button>
+            <Button type="submit" disabled={sendMutation.isPending}>
+              Send broadcast
+            </Button>
           </form>
         </AdminPanel>
 
@@ -149,14 +193,24 @@ export function AdminBroadcastWorkspace() {
               </tr>
             </thead>
             <tbody>
-              {history.map((n) => (
-                <tr key={n.id} className="border-b border-white/[0.04] last:border-0">
-                  <td className="px-4 py-3 font-medium text-fg sm:px-5">{n.title}</td>
-                  <td className="px-4 py-3 text-fg-muted">{n.audienceLabel}</td>
-                  <td className="px-4 py-3 text-fg-muted">{n.channel}</td>
-                  <td className="px-4 py-3 text-fg-muted sm:px-5">{formatDateTime(n.createdAt)}</td>
+              {history.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-fg-subtle sm:px-5">
+                    No broadcasts yet.
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                history.map((n) => (
+                  <tr key={n.id} className="border-b border-white/[0.04] last:border-0">
+                    <td className="px-4 py-3 font-medium text-fg sm:px-5">{n.title}</td>
+                    <td className="px-4 py-3 text-fg-muted">{n.audience}</td>
+                    <td className="px-4 py-3 text-fg-muted">{n.channels.join(', ')}</td>
+                    <td className="px-4 py-3 text-fg-muted sm:px-5">
+                      {n.sentAt ? formatDateTime(n.sentAt) : n.status}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

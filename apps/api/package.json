@@ -29,9 +29,9 @@
     "render:build": "prisma generate --schema=./prisma/schema.prisma && tsup"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.758.0",
     "@meridian/shared": "workspace:*",
     "@prisma/client": "^6.5.0",
-    "@aws-sdk/client-s3": "^3.758.0",
     "bcrypt": "^6.0.0",
     "bullmq": "^6.0.8",
     "cookie-parser": "^1.4.7",
@@ -65,6 +65,7 @@
     "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^9.18.0",
     "pino-pretty": "^13.0.0",
+    "playwright": "1.49.1",
     "rimraf": "^6.0.1",
     "supertest": "^7.2.2",
     "tsx": "^4.19.2",

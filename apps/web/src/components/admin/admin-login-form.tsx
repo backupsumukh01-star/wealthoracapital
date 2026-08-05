@@ -1,80 +1,81 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ROUTES } from '@meridian/shared'
-import { Shield } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { LogoMark } from '@/components/common/logo'
-import { OtpInput } from '@/components/auth/otp-input'
 import { PasswordField } from '@/components/auth/password-field'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
-import { ADMIN_DEMO } from '@/lib/admin-demo-data'
-import { setAdminSession } from '@/lib/demo-admin-auth'
+import { useForgotPassword, useLogin, useLogout } from '@/features/auth/hooks'
+import { ApiError } from '@/lib/api-client'
+import { useSession } from '@/providers/session-provider'
 
-type Step = 'credentials' | 'otp' | 'forgot'
+type Step = 'credentials' | 'forgot'
 
 /**
- * Separate operator login — email, password, 2FA, forgot password (UI demo).
+ * Operator login — same `/auth/login` endpoint as investors. Access to the console is
+ * granted when the session is staff (`ADMIN`/`SUPER_ADMIN` role or any `staffRole`).
  */
 export function AdminLoginForm() {
   const router = useRouter()
+  const { isAuthenticated, isStaff, isLoading } = useSession()
+  const login = useLogin()
+  const logout = useLogout()
+  const forgotPassword = useForgotPassword()
   const [step, setStep] = useState<Step>('credentials')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [otp, setOtp] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
   const [forgotEmail, setForgotEmail] = useState('')
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && isStaff) {
+      router.replace(ROUTES.admin.root)
+    }
+  }, [isLoading, isAuthenticated, isStaff, router])
 
   async function submitCredentials(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    setBusy(true)
-    await new Promise((r) => setTimeout(r, 500))
-    setBusy(false)
-    if (
-      email.trim().toLowerCase() !== ADMIN_DEMO.email ||
-      password !== ADMIN_DEMO.password
-    ) {
-      setError('Incorrect admin email or password.')
-      return
+    try {
+      const session = await login.mutateAsync({ identifier: email, password })
+      const staff =
+        session.user.role === 'ADMIN' ||
+        session.user.role === 'SUPER_ADMIN' ||
+        Boolean(session.user.staffRole)
+      if (!staff) {
+        await logout.mutateAsync().catch(() => undefined)
+        setError('This account does not have operator access.')
+        return
+      }
+      toast.success('Welcome to Growzy Ops')
+      router.push(ROUTES.admin.root)
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Incorrect admin email or password.')
     }
-    setStep('otp')
-    toast.message('Authenticator required', { description: `Demo OTP: ${ADMIN_DEMO.otp}` })
-  }
-
-  async function submitOtp(e: React.FormEvent) {
-    e.preventDefault()
-    setError(null)
-    if (otp !== ADMIN_DEMO.otp) {
-      setError(`Invalid authenticator code. Demo: ${ADMIN_DEMO.otp}`)
-      return
-    }
-    setBusy(true)
-    await new Promise((r) => setTimeout(r, 400))
-    setAdminSession()
-    setBusy(false)
-    toast.success('Welcome to Growzy Ops')
-    router.push(ROUTES.admin.root)
-    router.refresh()
   }
 
   async function submitForgot(e: React.FormEvent) {
     e.preventDefault()
-    setBusy(true)
-    await new Promise((r) => setTimeout(r, 600))
-    setBusy(false)
-    toast.success('Reset link sent (demo)', {
+    try {
+      await forgotPassword.mutateAsync({ email: forgotEmail.trim().toLowerCase() })
+    } catch {
+      // Enumeration-safe: show the same success state regardless of outcome.
+    }
+    toast.success('Reset link sent', {
       description: forgotEmail || 'Check your inbox',
     })
     setStep('credentials')
   }
+
+  const busy = login.isPending || logout.isPending || forgotPassword.isPending
 
   return (
     <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-base px-4 py-10">
@@ -94,7 +95,7 @@ export function AdminLoginForm() {
             <p className="text-overline text-warning">Operator console</p>
             <h1 className="mt-1 text-heading-xl text-fg">Admin sign-in</h1>
             <p className="mt-1 text-body-sm text-fg-muted">
-              Separate from investor login. 2FA required.
+              Separate login surface from investors. Operator role required.
             </p>
           </div>
         </div>
@@ -138,29 +139,6 @@ export function AdminLoginForm() {
             <Button type="submit" fullWidth size="lg" loading={busy}>
               Continue
             </Button>
-            <p className="text-center text-[11px] text-fg-subtle">
-              Demo: {ADMIN_DEMO.email} · {ADMIN_DEMO.password}
-            </p>
-          </form>
-        ) : null}
-
-        {step === 'otp' ? (
-          <form className="space-y-4" onSubmit={(e) => void submitOtp(e)}>
-            <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-caption text-fg-muted">
-              <Shield className="size-4 text-accent-300" aria-hidden />
-              Enter the 6-digit authenticator code
-            </div>
-            <OtpInput value={otp} onChange={setOtp} autoFocus />
-            <Button type="submit" fullWidth size="lg" loading={busy} disabled={otp.length !== 6}>
-              Verify & enter console
-            </Button>
-            <button
-              type="button"
-              className="w-full text-center text-caption text-fg-muted hover:text-fg"
-              onClick={() => setStep('credentials')}
-            >
-              Back
-            </button>
           </form>
         ) : null}
 

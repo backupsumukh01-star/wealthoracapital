@@ -1,0 +1,4 @@
+{
+  "subject": "[Alert] Deposit submitted",
+  "text": "Deposit submitted\n\ninvestor@example.com submitted deposit DEP-TEST123 for 500.00 USD.\n\nRef: DEP-TEST123"
+}

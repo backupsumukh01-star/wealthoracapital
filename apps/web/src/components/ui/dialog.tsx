@@ -60,7 +60,7 @@ export const DialogContent = forwardRef<
         {hideClose ? null : (
           <DialogPrimitive.Close
             className={cn(
-              'absolute right-4 top-4 grid size-8 place-items-center rounded-md text-fg-subtle',
+              'absolute right-4 top-[max(1rem,env(safe-area-inset-top))] grid size-10 place-items-center rounded-md text-fg-subtle',
               'transition-colors hover:bg-hover hover:text-fg',
               'focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
             )}

@@ -4,14 +4,15 @@ import { ROUTES } from '@meridian/shared'
 /**
  * Edge routing guard — cookie presence only (not JWT verification).
  *
- * Investor: `mfx_at`
- * Admin: `growzy_admin_at` for `/admin/*` (except login)
+ * The API issues a single httpOnly `mfx_at` session cookie for every role. Investor and
+ * admin areas both gate on its presence; the API itself re-verifies the role server-side
+ * on every request.
  *
  * Disable with `NEXT_PUBLIC_ENABLE_ROUTE_GUARDS=false`.
  */
 
 const INVESTOR_COOKIE = 'mfx_at'
-const ADMIN_COOKIE = 'growzy_admin_at'
+const ADMIN_COOKIE = 'mfx_at'
 
 const INVESTOR_PROTECTED = [
   ROUTES.dashboard.root,
@@ -62,12 +63,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (isAdminLogin && hasAdmin) {
-    const url = request.nextUrl.clone()
-    url.pathname = ROUTES.admin.root
-    url.search = ''
-    return NextResponse.redirect(url)
-  }
+  // No redirect-away-from-login-when-authenticated rule here: `mfx_at` is shared by every
+  // role, so its presence alone cannot prove ADMIN/SUPER_ADMIN and bouncing a signed-in
+  // investor away from `/admin/login` would loop against `AdminSessionGate`'s real role
+  // check. `AdminLoginForm` redirects an already-admin session client-side instead.
 
   if (startsWithAny(pathname, INVESTOR_PROTECTED) && !hasInvestor) {
     const url = request.nextUrl.clone()

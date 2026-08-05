@@ -17,7 +17,7 @@ import { WHY_US } from '@/lib/landing-data'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { cn } from '@/lib/cn'
 
-const ICONS: Record<(typeof WHY_US)[number]['icon'], LucideIcon> = {
+const ICONS: Record<string, LucideIcon> = {
   cpu: Cpu,
   'badge-check': BadgeCheck,
   candlestick: CandlestickChart,
@@ -41,7 +41,7 @@ export function AdvantagesGrid() {
     >
       <StaggerGroup className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-5">
         {WHY_US.map((item, index) => {
-          const Icon = ICONS[item.icon]
+          const Icon = ICONS[item.icon] ?? Shield
           return (
             <StaggerItem key={item.title}>
               <article className="card-fill group flex h-full flex-col p-5 transition-transform duration-[160ms] hover:-translate-y-1 sm:p-7">

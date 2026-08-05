@@ -3,6 +3,7 @@ import { profileRepository } from '../repositories/profile.repository.js'
 import { sessionRepository } from '../repositories/session.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
 import { badRequest, notFound, unauthorized } from '../utils/errors.js'
+import { assertUploadMagicBytes } from '../utils/upload-magic.js'
 import { parseUserAgent } from '../utils/user-agent.js'
 import { activityService } from './activity.service.js'
 import { storage } from './storage/index.js'
@@ -100,6 +101,7 @@ export const profileService = {
     if (file.size > 2 * 1024 * 1024) {
       throw badRequest('Avatar must be 2MB or smaller.')
     }
+    assertUploadMagicBytes(file.buffer, file.mimetype)
 
     const user = await userRepository.findById(userId)
     if (!user) {

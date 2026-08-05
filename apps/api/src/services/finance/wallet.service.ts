@@ -169,14 +169,27 @@ export const walletService = {
   async adminAdjust(
     actorId: string,
     userId: string,
-    input: { amount: string; direction: 'CREDIT' | 'DEBIT'; reason: string },
+    input: {
+      amount: string
+      direction: 'CREDIT' | 'DEBIT'
+      reason: string
+      idempotencyKey: string
+    },
   ) {
     const amount = d(input.amount)
     if (!amount.isFinite() || amount.lte(0)) throw badRequest('Amount must be positive.')
     if (!input.reason?.trim()) throw badRequest('A reason is required for adjustments.')
+    if (!input.idempotencyKey?.trim()) {
+      throw badRequest('idempotencyKey is required for wallet adjustments.')
+    }
 
     return prisma.$transaction(async (tx) => {
       const wallet = await ledgerService.getInvestmentWallet(userId, tx)
+      const key =
+        input.direction === 'CREDIT'
+          ? `adj:${userId}:credit:${input.idempotencyKey}`
+          : `adj:${userId}:debit:${input.idempotencyKey}`
+
       if (input.direction === 'CREDIT') {
         await ledgerService.creditAvailable(tx, {
           userId,
@@ -188,7 +201,7 @@ export const walletService = {
           referenceType: 'ADMIN_ADJUSTMENT',
           referenceId: actorId,
           createdById: actorId,
-          idempotencyKey: `adj:${userId}:${Date.now()}:${amount.toString()}`,
+          idempotencyKey: key,
         })
       } else {
         await ledgerService.debitAvailable(tx, {
@@ -199,7 +212,7 @@ export const walletService = {
           referenceType: 'ADMIN_ADJUSTMENT',
           referenceId: actorId,
           createdById: actorId,
-          idempotencyKey: `adj-debit:${userId}:${Date.now()}:${amount.toString()}`,
+          idempotencyKey: key,
         })
       }
       const wallets = await ledgerService.ensureWalletsForUser(userId, tx)

@@ -4,6 +4,7 @@ import type { MediaKind, Prisma } from '@prisma/client'
 
 import { prisma } from '../database/prisma.js'
 import { notFound, badRequest } from '../utils/errors.js'
+import { assertUploadMagicBytes } from '../utils/upload-magic.js'
 import { storage } from './storage/index.js'
 import { activityService } from './activity.service.js'
 
@@ -64,7 +65,7 @@ function assertAllowedMime(mimetype: string) {
     'image/png',
     'image/webp',
     'image/gif',
-    'image/svg+xml',
+    // SVG intentionally excluded — stored SVG can execute script in browsers (stored XSS).
     'application/pdf',
     'video/mp4',
     'video/webm',
@@ -82,6 +83,7 @@ export const mediaService = {
     context: Ctx,
   ) {
     assertAllowedMime(file.mimetype)
+    assertUploadMagicBytes(file.buffer, file.mimetype)
     const stored = await storage.put({
       category: 'media',
       filename: file.originalname,

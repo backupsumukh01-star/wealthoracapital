@@ -133,7 +133,7 @@ export type HealthMetric = {
 export type SystemHealthState = {
   refreshedAt: string
   version: string
-  environment: 'demo' | 'staging' | 'production'
+  environment: 'staging' | 'production'
   metrics: HealthMetric[]
 }
 
@@ -194,51 +194,13 @@ export const PERMISSION_FLAGS: PermissionFlag[] = [
   'audit.view',
 ]
 
-function metric(
-  id: string,
-  label: string,
-  value: string,
-  detail: string,
-  tone: HealthTone,
-  group: HealthMetric['group'],
-): HealthMetric {
-  return { id, label, value, detail, tone, group }
-}
-
 export function createDefaultSystemHealth(): SystemHealthState {
   const now = new Date().toISOString()
   return {
     refreshedAt: now,
-    version: 'Growzy Web 0.1.0-demo',
-    environment: 'demo',
-    metrics: [
-      metric('db', 'Database Status', 'Connected', 'Postgres · demo localStorage ledger', 'healthy', 'infra'),
-      metric('api', 'API Status', 'Scaffold', 'apps/api awaiting Phase 2', 'warning', 'services'),
-      metric('email', 'Email Service', 'Preview', 'Mailhog / demo outbox', 'warning', 'services'),
-      metric('storage', 'Storage Status', 'Local', 'Object storage not wired', 'warning', 'services'),
-      metric('jobs', 'Background Jobs', 'Idle', 'No worker process in demo', 'warning', 'services'),
-      metric('queue', 'Queue Status', '0 pending', 'Outbox empty (demo)', 'healthy', 'services'),
-      metric('disk', 'Disk Usage', '42%', 'Demo host snapshot', 'healthy', 'infra'),
-      metric('cpu', 'CPU Usage', '18%', '1-min average (demo)', 'healthy', 'infra'),
-      metric('mem', 'Memory Usage', '61%', 'Node process (demo)', 'warning', 'infra'),
-      metric('uptime', 'Server Uptime', '14d 6h', 'Since last demo restart', 'healthy', 'infra'),
-      metric('ssl', 'SSL Certificate', '89 days', 'Expires 2026-10-31 (demo)', 'healthy', 'security'),
-      metric('backup_last', 'Last Backup', '2h ago', 'CMS JSON export snapshot', 'healthy', 'ops'),
-      metric('backup_next', 'Next Backup', '22h', 'Nightly 02:00 GST (planned)', 'healthy', 'ops'),
-      metric('cron', 'Cron Job Status', 'Scheduled', 'Returns · backups · reconcile', 'healthy', 'ops'),
-      metric('latency', 'API Response Time', '42 ms', 'p50 health probe (demo)', 'healthy', 'services'),
-      metric('failed_login', 'Failed Login Attempts', '3', 'Last 24h · admin realm', 'healthy', 'security'),
-      metric('online', 'Online Users', '12', 'Active sessions (demo)', 'healthy', 'ops'),
-      metric('active', "Today's Active Users", '86', 'Unique investors today', 'healthy', 'ops'),
-      metric('pend_email', 'Pending Emails', '0', 'Outbox queue', 'healthy', 'ops'),
-      metric('pend_notify', 'Pending Notifications', '2', 'Campaign drafts', 'warning', 'ops'),
-      metric('pend_queue', 'Pending Queue Jobs', '0', 'Worker backlog', 'healthy', 'ops'),
-      metric('pend_kyc', 'Pending KYC Reviews', '4', 'Compliance queue', 'warning', 'ops'),
-      metric('pend_dep', 'Pending Deposits', '7', 'Finance queue', 'warning', 'ops'),
-      metric('pend_wd', 'Pending Withdrawals', '3', 'Finance queue', 'warning', 'ops'),
-      metric('errors', 'Recent Errors', '1', 'Last: upload MIME warn', 'warning', 'security'),
-      metric('audit', 'Audit Events', '128', 'Last 24h mutations', 'healthy', 'security'),
-    ],
+    version: 'Growzy Web 0.1.0',
+    environment: 'production',
+    metrics: [],
   }
 }
 

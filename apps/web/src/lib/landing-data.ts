@@ -1,2 +1,2 @@
-/** @deprecated Import from `@/mocks/landing` — shim for existing call sites. */
+/** @deprecated Prefer feature hooks / CMS API. */
 export * from '@/mocks/landing'

@@ -54,6 +54,7 @@ export const tokenService = {
     }
 
     return jwt.sign(payload, env.JWT_ACCESS_SECRET, {
+      algorithm: 'HS256',
       expiresIn: env.JWT_ACCESS_EXPIRES_IN as jwt.SignOptions['expiresIn'],
     })
   },
@@ -61,6 +62,7 @@ export const tokenService = {
   verifyAccessToken(token: string): AccessTokenPayload {
     try {
       const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET, {
+        algorithms: ['HS256'],
         issuer: env.JWT_ISSUER,
         audience: env.JWT_AUDIENCE,
       })

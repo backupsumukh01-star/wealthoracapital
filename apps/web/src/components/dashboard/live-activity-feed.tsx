@@ -1,92 +1,45 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowDownLeft, ArrowUpRight, TrendingUp } from 'lucide-react'
+import { Bell } from 'lucide-react'
 
+import { useNotifications } from '@/features/notifications/hooks'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
+import { formatRelative } from '@/lib/format'
 import { cn } from '@/lib/cn'
+import { useSession } from '@/providers/session-provider'
 
 type LiveToast = {
   id: string
   title: string
-  amount: string
+  body: string
   time: string
-  flag: string
-  avatar: string
-  kind: 'deposit' | 'withdraw' | 'return'
 }
-
-const DEMO: LiveToast[] = [
-  {
-    id: 'd1',
-    title: 'Deposit Approved',
-    amount: '+$520',
-    time: '2 sec ago',
-    flag: '🇺🇸',
-    avatar: 'AK',
-    kind: 'deposit',
-  },
-  {
-    id: 'd2',
-    title: 'Withdrawal Processed',
-    amount: '₹18,500',
-    time: 'Just now',
-    flag: '🇮🇳',
-    avatar: 'RS',
-    kind: 'withdraw',
-  },
-  {
-    id: 'd3',
-    title: 'Daily Return Published',
-    amount: '+0.62%',
-    time: 'Today',
-    flag: '🇬🇧',
-    avatar: 'GZ',
-    kind: 'return',
-  },
-  {
-    id: 'd4',
-    title: 'Deposit Approved',
-    amount: '+$1,200',
-    time: 'Just now',
-    flag: '🇦🇪',
-    avatar: 'MK',
-    kind: 'deposit',
-  },
-  {
-    id: 'd5',
-    title: 'Withdrawal Processed',
-    amount: '$850',
-    time: '1 min ago',
-    flag: '🇸🇬',
-    avatar: 'LW',
-    kind: 'withdraw',
-  },
-]
-
-const KIND_ICON = {
-  deposit: ArrowDownLeft,
-  withdraw: ArrowUpRight,
-  return: TrendingUp,
-} as const
-
-const KIND_ICON_TONE = {
-  deposit: 'bg-profit/20 text-profit',
-  withdraw: 'bg-info/20 text-info',
-  return: 'bg-accent-500/20 text-accent-200',
-} as const
 
 function randomDelayMs() {
   return 20_000 + Math.floor(Math.random() * 40_000)
 }
 
 /**
- * Compact Revolut / Apple Pay–style live toast.
- * Fixed overlay only — opacity + transform animations, no layout impact.
+ * Compact live toast for recent investor notifications.
+ * Renders nothing when the notifications API has no items.
  */
 export function LiveActivityFeed() {
   const prefersReducedMotion = usePrefersReducedMotion()
+  const { session } = useSession()
+  const { data } = useNotifications(undefined, { enabled: Boolean(session) })
+  const items = useMemo<LiveToast[]>(
+    () =>
+      (data?.items ?? []).map((n) => ({
+        id: n.id,
+        title: n.title,
+        body: n.body,
+        time: formatRelative(n.createdAt),
+      })),
+    [data?.items],
+  )
+
   const [toast, setToast] = useState<LiveToast | null>(null)
   const [showKey, setShowKey] = useState(0)
   const indexRef = useRef(0)
@@ -103,9 +56,10 @@ export function LiveActivityFeed() {
   }, [])
 
   const scheduleNext = useCallback(() => {
+    if (!items.length) return
     const wait = prefersReducedMotion ? 45_000 : randomDelayMs()
     const showId = window.setTimeout(() => {
-      const next = DEMO[indexRef.current % DEMO.length]!
+      const next = items[indexRef.current % items.length]!
       indexRef.current += 1
       present(next)
 
@@ -116,12 +70,16 @@ export function LiveActivityFeed() {
       timersRef.current.push(hideId)
     }, wait)
     timersRef.current.push(showId)
-  }, [prefersReducedMotion, present])
+  }, [items, prefersReducedMotion, present])
 
   useEffect(() => {
+    clearTimers()
+    setToast(null)
+    if (!items.length) return
+
     const first = window.setTimeout(() => {
       indexRef.current = 1
-      present(DEMO[0]!)
+      present(items[0]!)
       const hideId = window.setTimeout(() => {
         setToast(null)
         scheduleNext()
@@ -131,9 +89,9 @@ export function LiveActivityFeed() {
     timersRef.current.push(first)
 
     return clearTimers
-  }, [clearTimers, prefersReducedMotion, present, scheduleNext])
+  }, [clearTimers, items, prefersReducedMotion, present, scheduleNext])
 
-  const Icon = toast ? KIND_ICON[toast.kind] : null
+  if (!items.length) return null
 
   return (
     <div
@@ -149,7 +107,7 @@ export function LiveActivityFeed() {
       aria-atomic="true"
     >
       <AnimatePresence mode="wait">
-        {toast && Icon ? (
+        {toast ? (
           <motion.div
             key={showKey}
             initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 18 }}
@@ -167,48 +125,19 @@ export function LiveActivityFeed() {
               'will-change-transform',
             )}
           >
-            {/* Flag + avatar cluster */}
-            <div className="relative size-8 shrink-0">
-              <span
-                className={cn(
-                  'grid size-8 place-items-center rounded-full text-[9px] font-semibold tracking-wide text-accent-foreground',
-                  'bg-gradient-to-br from-accent-400 to-hl-cyan',
-                )}
-                aria-hidden
-              >
-                {toast.avatar}
-              </span>
-              <span
-                className="absolute -bottom-0.5 -right-0.5 text-[10px] leading-none drop-shadow"
-                aria-hidden
-              >
-                {toast.flag}
-              </span>
-            </div>
-
             <span
-              className={cn(
-                'grid size-6 shrink-0 place-items-center rounded-lg',
-                KIND_ICON_TONE[toast.kind],
-              )}
+              className="grid size-8 shrink-0 place-items-center rounded-full bg-accent-500/20 text-accent-200"
               aria-hidden
             >
-              <Icon className="size-3.5" strokeWidth={2.25} />
+              <Bell className="size-3.5" strokeWidth={2.25} />
             </span>
 
             <div className="min-w-0 flex-1">
               <p className="truncate text-[11px] font-medium leading-tight text-fg">{toast.title}</p>
-              <p className="mt-0.5 truncate text-[10px] leading-tight text-fg-subtle">{toast.time}</p>
+              <p className="mt-0.5 truncate text-[10px] leading-tight text-fg-subtle">
+                {toast.body || toast.time}
+              </p>
             </div>
-
-            <p
-              className={cn(
-                'shrink-0 text-[12px] font-semibold tabular-nums leading-none',
-                toast.kind === 'withdraw' ? 'text-fg' : 'text-profit',
-              )}
-            >
-              {toast.amount}
-            </p>
           </motion.div>
         ) : null}
       </AnimatePresence>

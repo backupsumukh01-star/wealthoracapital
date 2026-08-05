@@ -135,6 +135,7 @@ export const API_ROUTES = {
     resetPassword: '/auth/reset-password',
     changePassword: '/auth/change-password',
     google: '/auth/google',
+    googleCallback: '/auth/google/callback',
     sessions: '/auth/sessions',
   },
   wallet: {
@@ -202,6 +203,9 @@ export const API_ROUTES = {
     messages: (id: string) => `/support/tickets/${id}/messages`,
   },
   reports: { root: '/reports', export: '/reports/export' },
+  webhooks: {
+    payments: '/webhooks/payments',
+  },
   cms: {
     public: '/cms/public',
     landing: '/cms/landing',
@@ -223,6 +227,8 @@ export const API_ROUTES = {
     walletAddresses: '/admin/wallet-addresses',
     ledger: '/admin/ledger',
     financeMetrics: '/admin/finance/metrics',
+    financeReconciliation: '/admin/finance/reconciliation',
+    financeWebhooks: '/admin/finance/webhooks',
     trades: '/admin/trades',
     tradeAllocate: '/admin/trades/allocate',
     tradePublish: '/admin/trades/publish',

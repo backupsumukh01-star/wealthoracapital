@@ -8,14 +8,24 @@ import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import { Money } from '@/components/common/money'
 import { PageHeader } from '@/components/common/page-header'
 import { StatCard } from '@/components/common/stat-card'
+import { PremiumEmptyState } from '@/components/dashboard/premium-empty-state'
 import { Button } from '@/components/ui/button'
-import { ADMIN_INVESTORS, ADMIN_RETURN_HISTORY } from '@/lib/admin-demo-data'
+import { useAdminReturns } from '@/features/admin/hooks'
 import { formatDateTime } from '@/lib/format'
 
 export function AdminReturnRunDetail() {
   const params = useParams<{ runId: string }>()
   const runId = decodeURIComponent(params.runId)
-  const run = ADMIN_RETURN_HISTORY.find((r) => r.id === runId)
+  const { data, isLoading } = useAdminReturns()
+  const run = (data?.items ?? []).find((r) => r.id === runId)
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Settlement" description="Loading…" />
+      </div>
+    )
+  }
 
   if (!run) {
     return (
@@ -27,9 +37,6 @@ export function AdminReturnRunDetail() {
       </div>
     )
   }
-
-  const sample = ADMIN_INVESTORS.filter((i) => i.accountStatus === 'VERIFIED').slice(0, 6)
-  const pct = Number.parseFloat(run.returnPct)
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -46,72 +53,49 @@ export function AdminReturnRunDetail() {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Return figure" value={`+${run.returnPct}%`} />
         <StatCard label="Balances affected" value={String(run.eligibleWallets)} />
-        <StatCard label="Total distributed" value={<Money value={run.distributed} size="sm" />} />
+        <StatCard label="Total distributed" value={<Money value={run.totalDistributed} size="sm" />} />
         <StatCard label="Outcome" value={run.status} />
       </div>
 
       <AdminPanel>
-        <AdminPanelHeader title="Run summary" description={`Trading day ${run.tradingDay}`} />
+        <AdminPanelHeader title="Run summary" description={`Trading day ${run.date}`} />
         <dl className="grid gap-4 p-4 text-body-sm sm:grid-cols-2 sm:p-5">
           <div>
-            <dt className="text-caption text-fg-subtle">Published by</dt>
-            <dd className="mt-0.5 text-fg">{run.publishedBy ?? '—'}</dd>
+            <dt className="text-caption text-fg-subtle">Processed wallets</dt>
+            <dd className="mt-0.5 text-fg">{run.processedWallets}</dd>
           </div>
           <div>
-            <dt className="text-caption text-fg-subtle">Published at</dt>
+            <dt className="text-caption text-fg-subtle">Completed at</dt>
             <dd className="mt-0.5 text-fg">
-              {run.publishedAt ? formatDateTime(run.publishedAt) : '—'}
+              {run.completedAt ? formatDateTime(run.completedAt) : '—'}
             </dd>
           </div>
-          <div className="sm:col-span-2">
-            <dt className="text-caption text-fg-subtle">Notes</dt>
-            <dd className="mt-0.5 text-fg-muted">{run.notes || '—'}</dd>
+          <div>
+            <dt className="text-caption text-fg-subtle">Base amount</dt>
+            <dd className="mt-0.5 text-fg">
+              <Money value={run.totalBaseAmount} size="sm" />
+            </dd>
+          </div>
+          <div>
+            <dt className="text-caption text-fg-subtle">Rounding delta</dt>
+            <dd className="mt-0.5 text-fg">
+              <Money value={run.roundingDelta} size="sm" />
+            </dd>
           </div>
         </dl>
       </AdminPanel>
 
       <AdminPanel>
         <AdminPanelHeader
-          title="Per-investor effect (sample)"
-          description="Demo slice of verified wallets — full ledger not loaded in mock mode."
+          title="Per-investor effect"
+          description="Ledger line items are not included on this run payload."
         />
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] text-left text-caption">
-            <thead className="border-b border-white/[0.06] text-fg-subtle">
-              <tr>
-                <th className="px-4 py-3 font-medium sm:px-5">Investor</th>
-                <th className="px-4 py-3 font-medium">Balance before</th>
-                <th className="px-4 py-3 font-medium">Credit</th>
-                <th className="px-4 py-3 font-medium sm:px-5">Balance after</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sample.map((inv) => {
-                const before = Number.parseFloat(inv.walletBalance)
-                const credit = (before * pct) / 100
-                const after = before + credit
-                return (
-                  <tr key={inv.userId} className="border-b border-white/[0.04] last:border-0">
-                    <td className="px-4 py-3 sm:px-5">
-                      <p className="font-medium text-fg">
-                        {inv.firstName} {inv.lastName}
-                      </p>
-                      <p className="font-mono text-[11px] text-fg-muted">{inv.userId}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Money value={inv.walletBalance} size="sm" />
-                    </td>
-                    <td className="px-4 py-3 text-profit">
-                      <Money value={credit.toFixed(2)} size="sm" signed />
-                    </td>
-                    <td className="px-4 py-3 sm:px-5">
-                      <Money value={after.toFixed(2)} size="sm" />
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+        <div className="p-4 sm:p-5">
+          <PremiumEmptyState
+            title="Investor credits not loaded"
+            description="This view shows the run totals only. Open the ledger or wallet tools for per-investor lines."
+            variant="activity"
+          />
         </div>
       </AdminPanel>
     </div>

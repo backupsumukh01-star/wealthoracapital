@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import { ROUTES, type MoneyString, type UserStatus } from '@meridian/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ban, CheckCircle2, FileImage } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -40,7 +40,9 @@ import {
   useAdminUser,
   useAdminWithdrawals,
 } from '@/features/admin/hooks'
+import { PermissionGate } from '@/features/auth/guards'
 import { formatDateTime } from '@/lib/format'
+import { useSession } from '@/providers/session-provider'
 import { adminService } from '@/services/admin.service'
 import { kycService } from '@/services/kyc.service'
 
@@ -63,6 +65,7 @@ export function AdminUserDetailWorkspace() {
   const params = useParams<{ userId: string }>()
   const userId = decodeURIComponent(params.userId)
   const queryClient = useQueryClient()
+  const { refresh, session } = useSession()
   const { data: user, isLoading, isError } = useAdminUser(userId)
   const { data: depositsData } = useAdminDeposits()
   const { data: withdrawalsData } = useAdminWithdrawals()
@@ -70,6 +73,14 @@ export function AdminUserDetailWorkspace() {
   const { data: tradesData } = useAdminTrades()
   const { data: activityData } = useAdminActivity()
   const [noteDraft, setNoteDraft] = useState('')
+  const [roleDraft, setRoleDraft] = useState<'USER' | 'ADMIN' | 'SUPER_ADMIN'>('USER')
+  const [staffRoleDraft, setStaffRoleDraft] = useState<string>('')
+
+  useEffect(() => {
+    if (!user) return
+    setRoleDraft(user.role)
+    setStaffRoleDraft(user.staffRole ?? '')
+  }, [user])
 
   const { data: walletRow } = useQuery({
     queryKey: [...adminQueryKeys.all, 'wallets', userId],
@@ -94,9 +105,33 @@ export function AdminUserDetailWorkspace() {
     mutationFn: () => adminService.suspendUser(userId, 'Suspended by operator'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.user(userId) })
-      toast.message('Account suspended')
+      toast.message('Account suspended — sessions revoked')
     },
     onError: (err: Error) => toast.error(err.message || 'Suspend failed'),
+  })
+
+  const updateRoles = useMutation({
+    mutationFn: () =>
+      adminService.updateUser(userId, {
+        role: roleDraft,
+        staffRole: staffRoleDraft === '' ? null : (staffRoleDraft as NonNullable<typeof user>['staffRole']),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.user(userId) })
+      toast.success('Roles updated — all sessions for this user were revoked')
+      if (session?.user.id === userId) {
+        refresh()
+      }
+    },
+    onError: (err: Error) => toast.error(err.message || 'Role update failed'),
+  })
+
+  const forceLogout = useMutation({
+    mutationFn: () => adminService.forceLogoutUser(userId),
+    onSuccess: (res) => {
+      toast.success(`Force logout complete — ${res.revokedSessions} session(s) revoked`)
+    },
+    onError: (err: Error) => toast.error(err.message || 'Force logout failed'),
   })
 
   const enable = useMutation({
@@ -282,6 +317,7 @@ export function AdminUserDetailWorkspace() {
                 ['Country', user.country ?? '—'],
                 ['Timezone', user.timezone],
                 ['Role', user.role],
+                ['Staff role', user.staffRole ?? '—'],
                 ['Registered', formatDateTime(user.createdAt)],
               ].map(([k, v]) => (
                 <div key={k}>
@@ -539,9 +575,12 @@ export function AdminUserDetailWorkspace() {
           </AdminPanel>
         </TabsContent>
 
-        <TabsContent value="security">
+        <TabsContent value="security" className="space-y-5">
           <AdminPanel>
-            <AdminPanelHeader title="Security" description="Account verification state from API." />
+            <AdminPanelHeader
+              title="Security"
+              description="Verification state, RBAC, and session controls. Role changes revoke all JWTs."
+            />
             <dl className="grid gap-3 px-4 py-4 text-caption sm:grid-cols-2 sm:px-5">
               <div>
                 <dt className="text-fg-subtle">Email verified</dt>
@@ -551,8 +590,84 @@ export function AdminUserDetailWorkspace() {
                 <dt className="text-fg-subtle">Status</dt>
                 <dd className="mt-0.5 text-fg">{user.status}</dd>
               </div>
+              <div>
+                <dt className="text-fg-subtle">Account role</dt>
+                <dd className="mt-0.5 text-fg">{user.role}</dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">Staff role</dt>
+                <dd className="mt-0.5 text-fg">{user.staffRole ?? '—'}</dd>
+              </div>
             </dl>
           </AdminPanel>
+
+          <PermissionGate permission="users.edit">
+            <AdminPanel>
+              <AdminPanelHeader
+                title="Change roles"
+                description="Super Admin only for role elevation. Changing role or staffRole invalidates every session for this user."
+              />
+              <div className="grid gap-4 px-4 py-4 sm:grid-cols-2 sm:px-5">
+                <FormField label="Account role">
+                  <select
+                    className="w-full rounded-md border border-white/10 bg-base px-3 py-2 text-body-sm text-fg"
+                    value={roleDraft}
+                    onChange={(e) => setRoleDraft(e.target.value as typeof roleDraft)}
+                  >
+                    <option value="USER">USER (Investor)</option>
+                    <option value="ADMIN">ADMIN</option>
+                    <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                  </select>
+                </FormField>
+                <FormField label="Staff specialty">
+                  <select
+                    className="w-full rounded-md border border-white/10 bg-base px-3 py-2 text-body-sm text-fg"
+                    value={staffRoleDraft}
+                    onChange={(e) => setStaffRoleDraft(e.target.value)}
+                  >
+                    <option value="">None</option>
+                    <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                    <option value="ADMIN">ADMIN</option>
+                    <option value="FINANCE">FINANCE</option>
+                    <option value="SUPPORT">SUPPORT</option>
+                    <option value="KYC">KYC</option>
+                    <option value="CONTENT">CONTENT</option>
+                    <option value="VIEWER">VIEWER</option>
+                  </select>
+                </FormField>
+              </div>
+              <div className="border-t border-white/[0.06] px-4 py-4 sm:px-5">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={updateRoles.isPending}
+                  onClick={() => updateRoles.mutate()}
+                >
+                  Save roles & revoke sessions
+                </Button>
+              </div>
+            </AdminPanel>
+          </PermissionGate>
+
+          <PermissionGate permission="users.suspend">
+            <AdminPanel>
+              <AdminPanelHeader
+                title="Force logout"
+                description="Revokes all refresh sessions. Hierarchy enforced: you cannot force-logout equal or higher privilege accounts."
+              />
+              <div className="px-4 py-4 sm:px-5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="danger"
+                  disabled={forceLogout.isPending}
+                  onClick={() => forceLogout.mutate()}
+                >
+                  Force logout all sessions
+                </Button>
+              </div>
+            </AdminPanel>
+          </PermissionGate>
         </TabsContent>
 
         <TabsContent value="timeline" className="space-y-4">

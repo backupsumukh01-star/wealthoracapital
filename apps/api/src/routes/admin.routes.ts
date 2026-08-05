@@ -1,6 +1,7 @@
 import { Router } from 'express'
 
 import { adminDashboardController } from '../controllers/admin-dashboard.controller.js'
+import { adminHealthController } from '../controllers/admin-health.controller.js'
 import { adminOpsMetricsController } from '../controllers/admin-ops-metrics.controller.js'
 import { adminUsersController } from '../controllers/admin-users.controller.js'
 import { authenticate } from '../middlewares/authenticate.js'
@@ -34,6 +35,12 @@ adminRouter.get(
   '/dashboard',
   requirePermission(PERMISSIONS['dashboard.view']),
   adminDashboardController.summary,
+)
+
+adminRouter.get(
+  '/health',
+  requirePermission(PERMISSIONS['dashboard.view']),
+  adminHealthController.snapshot,
 )
 
 adminRouter.get(

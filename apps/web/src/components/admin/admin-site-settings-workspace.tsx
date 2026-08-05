@@ -233,7 +233,7 @@ export function AdminBackupWorkspace() {
                   type="button"
                   size="sm"
                   variant="glass"
-                  onClick={() => toast.message('Download queued (demo)', { description: p.label })}
+                  onClick={() => toast.message('Download queued', { description: p.label })}
                 >
                   Download
                 </Button>

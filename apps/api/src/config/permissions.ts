@@ -190,9 +190,33 @@ export function listRoleCatalog() {
     { roleKey: 'ADMIN', label: 'Admin', permissions: STAFF_PERMISSION_MAP.ADMIN },
     { roleKey: 'FINANCE', label: 'Finance', permissions: STAFF_PERMISSION_MAP.FINANCE },
     { roleKey: 'SUPPORT', label: 'Support', permissions: STAFF_PERMISSION_MAP.SUPPORT },
-    { roleKey: 'KYC', label: 'KYC', permissions: STAFF_PERMISSION_MAP.KYC },
+    { roleKey: 'KYC', label: 'KYC / Compliance', permissions: STAFF_PERMISSION_MAP.KYC },
     { roleKey: 'CONTENT', label: 'Content', permissions: STAFF_PERMISSION_MAP.CONTENT },
     { roleKey: 'VIEWER', label: 'Viewer', permissions: STAFF_PERMISSION_MAP.VIEWER },
     { roleKey: 'INVESTOR', label: 'Investor', permissions: INVESTOR_PERMISSIONS },
   ]
 }
+
+/** Flat matrix for docs / admin UI: permission → roleKey → boolean */
+export function buildPermissionMatrix(): {
+  permissions: Permission[]
+  roles: Array<{ roleKey: string; label: string }>
+  matrix: Record<string, Record<string, boolean>>
+} {
+  const catalog = listRoleCatalog()
+  const permissions = [...ALL_PERMISSIONS]
+  const matrix: Record<string, Record<string, boolean>> = {}
+  for (const perm of permissions) {
+    matrix[perm] = {}
+    for (const role of catalog) {
+      matrix[perm]![role.roleKey] = role.permissions.includes(perm)
+    }
+  }
+  return {
+    permissions,
+    roles: catalog.map((r) => ({ roleKey: r.roleKey, label: r.label })),
+    matrix,
+  }
+}
+
+export { STAFF_PERMISSION_MAP, INVESTOR_PERMISSIONS, ALL_PERMISSIONS }

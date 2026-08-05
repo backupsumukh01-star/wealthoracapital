@@ -20,7 +20,7 @@ export const PopoverContent = forwardRef<
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          'z-50 w-72 rounded-lg p-4 glass-strong glass-edge shadow-e3',
+          'z-[200] w-72 rounded-lg p-4 glass-strong glass-edge shadow-e3',
           'data-[state=open]:animate-slide-down',
           className,
         )}

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { ArrowLeft, Bitcoin, Building2, Landmark, Smartphone } from 'lucide-react'
+import type { PaymentMethod } from '@meridian/shared'
 
 import { BankCard } from '@/components/wallet/bank-card'
 import { ProofUpload } from '@/components/wallet/proof-upload'
@@ -20,18 +21,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from '@/components/ui/toast'
-import {
-  CRYPTO_DEPOSIT_OPTIONS,
-  INR_BANK_DETAILS,
-} from '@/lib/investor-demo-data'
-import { WALLET_DEPOSIT_TIMELINE } from '@/mocks/investor'
 import { ApiError } from '@/lib/api-client'
 import {
   useCreateDeposit,
   useDepositMethods,
   useUploadDepositProof,
 } from '@/features/deposits/hooks'
-import type { PaymentMethod } from '@meridian/shared'
 
 type Rail = 'INR' | 'CRYPTO' | null
 type InrChannel = 'UPI' | 'IMPS' | 'NEFT' | 'RTGS' | null
@@ -44,6 +39,12 @@ type Step =
   | 'imps'
   | 'crypto'
   | 'done'
+
+const WALLET_DEPOSIT_TIMELINE = [
+  { id: 'submit', label: 'Submitted', done: false, current: true },
+  { id: 'review', label: 'Under review', done: false },
+  { id: 'credit', label: 'Credited', done: false },
+]
 
 function pickMethod(
   methods: PaymentMethod[] | undefined,
@@ -70,6 +71,43 @@ function pickMethod(
   )
 }
 
+function detail(method: PaymentMethod | undefined, ...keys: string[]) {
+  if (!method) return ''
+  for (const key of keys) {
+    const value = method.accountDetails?.[key]
+    if (value?.trim()) return value
+  }
+  return ''
+}
+
+function cryptoOptionsFromMethods(methods: PaymentMethod[] | undefined) {
+  const cryptoMethods = (methods ?? []).filter((m) =>
+    ['CRYPTO', 'USDT_TRC20', 'USDT_BEP20', 'BTC', 'ETH'].includes(m.type) ||
+    /usdt|crypto|btc|eth/i.test(m.name),
+  )
+  const coins = new Map<string, { id: string; label: string; networks: string[] }>()
+  const addresses: Record<string, string> = {}
+
+  for (const m of cryptoMethods) {
+    const coin =
+      detail(m, 'coin', 'asset', 'symbol') ||
+      (m.type.includes('USDT') ? 'USDT' : m.type === 'BTC' ? 'BTC' : m.type === 'ETH' ? 'ETH' : m.name)
+    const network =
+      detail(m, 'network', 'chain') ||
+      (m.type.includes('TRC20') ? 'TRC20' : m.type.includes('BEP20') ? 'BEP20' : 'ERC20')
+    const address = detail(m, 'address', 'walletAddress', 'depositAddress')
+    const existing = coins.get(coin) ?? { id: coin, label: coin, networks: [] }
+    if (!existing.networks.includes(network)) existing.networks.push(network)
+    coins.set(coin, existing)
+    if (address) addresses[`${coin}-${network}`] = address
+  }
+
+  return {
+    coins: Array.from(coins.values()),
+    addresses,
+  }
+}
+
 export function DepositModal({
   open,
   onOpenChange,
@@ -93,12 +131,30 @@ export function DepositModal({
   const [reference, setReference] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const coinMeta = CRYPTO_DEPOSIT_OPTIONS.coins.find((c) => c.id === coin)
+  const bankMethod = pickMethod(methods, 'bank')
+  const mobileMethod = pickMethod(methods, 'mobile') ?? bankMethod
+  const cryptoMethod = pickMethod(methods, 'crypto')
+  const cryptoOptions = useMemo(() => cryptoOptionsFromMethods(methods), [methods])
+  const coinMeta = cryptoOptions.coins.find((c) => c.id === coin)
   const addressKey = `${coin}-${network}`
   const address =
-    CRYPTO_DEPOSIT_OPTIONS.addresses[addressKey] ??
-    Object.values(CRYPTO_DEPOSIT_OPTIONS.addresses)[0] ??
-    ''
+    cryptoOptions.addresses[addressKey] ??
+    Object.values(cryptoOptions.addresses)[0] ??
+    detail(cryptoMethod, 'address', 'walletAddress', 'depositAddress')
+
+  const bankDetails = {
+    accountName: detail(bankMethod, 'accountName', 'accountHolder', 'beneficiary'),
+    bankName: detail(bankMethod, 'bankName', 'bank'),
+    accountNumber: detail(bankMethod, 'accountNumber', 'account'),
+    ifsc: detail(bankMethod, 'ifsc', 'routingNumber'),
+    branch: detail(bankMethod, 'branch'),
+    upiId: detail(mobileMethod ?? bankMethod, 'upiId', 'upi', 'vpa'),
+    note: bankMethod?.instructions || mobileMethod?.instructions || '',
+  }
+  const hasBankDetails = Boolean(
+    bankDetails.accountName || bankDetails.accountNumber || bankDetails.upiId,
+  )
+  const hasCryptoAddress = Boolean(address)
 
   const meta = useMemo(() => {
     switch (step) {
@@ -146,8 +202,8 @@ export function DepositModal({
     setAmount('500')
     setUtr('')
     setProof(null)
-    setCoin('USDT')
-    setNetwork('TRC20')
+    setCoin(cryptoOptions.coins[0]?.id ?? 'USDT')
+    setNetwork(cryptoOptions.coins[0]?.networks[0] ?? 'TRC20')
     setTxHash('')
   }
 
@@ -202,6 +258,7 @@ export function DepositModal({
   }
 
   const showBack = step !== 'rail'
+  const noMethods = open && methods !== undefined && methods.length === 0
 
   return (
     <>
@@ -224,7 +281,11 @@ export function DepositModal({
           </button>
         ) : null}
 
-        {step === 'rail' ? (
+        {noMethods ? (
+          <p className="text-body-sm text-fg-muted">No payment methods configured</p>
+        ) : null}
+
+        {!noMethods && step === 'rail' ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <MethodTile
               title="INR"
@@ -312,11 +373,15 @@ export function DepositModal({
 
         {step === 'upi-pay' ? (
           <div className="space-y-5">
-            <p className="text-body-sm text-fg-muted">
-              Paying <span className="font-medium tabular-nums text-fg">${amount}</span> via UPI ·{' '}
-              <span className="font-mono text-fg">{INR_BANK_DETAILS.upiId}</span>
-            </p>
-            <UpiAppCards amount={amount} onOpened={() => toast.info('Opened UPI app (demo link)')} />
+            {bankDetails.upiId ? (
+              <p className="text-body-sm text-fg-muted">
+                Paying <span className="font-medium tabular-nums text-fg">${amount}</span> via UPI ·{' '}
+                <span className="font-mono text-fg">{bankDetails.upiId}</span>
+              </p>
+            ) : (
+              <p className="text-body-sm text-fg-muted">No payment methods configured</p>
+            )}
+            <UpiAppCards amount={amount} onOpened={() => toast.info('Opened UPI app')} />
             <Button className="w-full" onClick={() => setStep('upi-proof')}>
               I’ve paid — upload proof
             </Button>
@@ -352,13 +417,17 @@ export function DepositModal({
             <p className="text-body-sm text-fg-muted">
               Paying via <span className="font-medium text-fg">{channel ?? 'IMPS'}</span>
             </p>
-            <BankCard
-              accountName={INR_BANK_DETAILS.accountName}
-              bankName={INR_BANK_DETAILS.bankName}
-              accountNumber={INR_BANK_DETAILS.accountNumber}
-              ifsc={INR_BANK_DETAILS.ifsc}
-              branch={INR_BANK_DETAILS.branch}
-            />
+            {hasBankDetails ? (
+              <BankCard
+                accountName={bankDetails.accountName}
+                bankName={bankDetails.bankName}
+                accountNumber={bankDetails.accountNumber}
+                ifsc={bankDetails.ifsc}
+                branch={bankDetails.branch}
+              />
+            ) : (
+              <p className="text-body-sm text-fg-muted">No payment methods configured</p>
+            )}
             <FormField label="Amount (USD equivalent)" required>
               <Input
                 numeric
@@ -378,10 +447,12 @@ export function DepositModal({
                 placeholder="12-digit UTR"
               />
             </FormField>
-            <p className="text-caption text-fg-subtle">{INR_BANK_DETAILS.note}</p>
+            {bankDetails.note ? (
+              <p className="text-caption text-fg-subtle">{bankDetails.note}</p>
+            ) : null}
             <Button
               className="w-full"
-              disabled={!proof || !utr.trim() || !amount || Number(amount) <= 0}
+              disabled={!proof || !utr.trim() || !amount || Number(amount) <= 0 || !hasBankDetails}
               onClick={() => void submitRequest()}
               loading={submitting}
               loadingText="Submitting…"
@@ -393,67 +464,80 @@ export function DepositModal({
 
         {step === 'crypto' ? (
           <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField label="Coin" required>
-                <Select
-                  value={coin}
-                  onValueChange={(v) => {
-                    setCoin(v)
-                    const next = CRYPTO_DEPOSIT_OPTIONS.coins.find((c) => c.id === v)
-                    setNetwork(next?.networks[0] ?? 'TRC20')
-                  }}
+            {!hasCryptoAddress && !cryptoOptions.coins.length ? (
+              <p className="text-body-sm text-fg-muted">No payment methods configured</p>
+            ) : (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField label="Coin" required>
+                    <Select
+                      value={coin}
+                      onValueChange={(v) => {
+                        setCoin(v)
+                        const next = cryptoOptions.coins.find((c) => c.id === v)
+                        setNetwork(next?.networks[0] ?? 'TRC20')
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(cryptoOptions.coins.length
+                          ? cryptoOptions.coins
+                          : [{ id: coin, label: coin, networks: [network] }]
+                        ).map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+                  <FormField label="Network" required>
+                    <Select value={network} onValueChange={setNetwork}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(coinMeta?.networks?.length ? coinMeta.networks : [network]).map((n) => (
+                          <SelectItem key={n} value={n}>
+                            {n}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+                </div>
+
+                {hasCryptoAddress ? (
+                  <QrCard address={address} label={`${coin} · ${network}`} />
+                ) : (
+                  <p className="text-body-sm text-fg-muted">No payment methods configured</p>
+                )}
+
+                <FormField label="Transaction hash" hint="Optional — helps ops match your transfer.">
+                  <Input
+                    value={txHash}
+                    onChange={(e) => setTxHash(e.target.value)}
+                    placeholder="0x… or txid"
+                    className="font-mono text-sm"
+                  />
+                </FormField>
+
+                <Button
+                  className="w-full"
+                  disabled={!hasCryptoAddress}
+                  onClick={() => void submitRequest()}
+                  loading={submitting}
+                  loadingText="Submitting…"
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CRYPTO_DEPOSIT_OPTIONS.coins.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormField>
-              <FormField label="Network" required>
-                <Select value={network} onValueChange={setNetwork}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(coinMeta?.networks ?? []).map((n) => (
-                      <SelectItem key={n} value={n}>
-                        {n}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormField>
-            </div>
-
-            <QrCard address={address} label={`${coin} · ${network}`} />
-
-            <FormField label="Transaction hash" hint="Optional — helps ops match your transfer.">
-              <Input
-                value={txHash}
-                onChange={(e) => setTxHash(e.target.value)}
-                placeholder="0x… or txid"
-                className="font-mono text-sm"
-              />
-            </FormField>
-
-            <Button
-              className="w-full"
-              onClick={() => void submitRequest()}
-              loading={submitting}
-              loadingText="Submitting…"
-            >
-              Submit deposit request
-            </Button>
+                  Submit deposit request
+                </Button>
+              </>
+            )}
           </div>
         ) : null}
 
-        {/* silence unused rail in UI tree */}
         <span className="sr-only">{rail}{channel}</span>
       </WalletModalShell>
 
