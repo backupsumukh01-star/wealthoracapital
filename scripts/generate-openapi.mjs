@@ -3036,8 +3036,9 @@ const doc = {
     license: { name: 'Proprietary' },
   },
   servers: [
+    { url: 'https://growzycapital.com', description: 'Production' },
+    { url: '/', description: 'Current host (relative)' },
     { url: 'http://localhost:4000', description: 'Local development' },
-    { url: '/', description: 'Relative to deployment host' },
   ],
   tags,
   paths,
