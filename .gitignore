@@ -44,3 +44,12 @@ Thumbs.db
 
 # local temp extracts
 _tmp_premium_extract/
+
+# QA / test artifacts
+coverage/
+**/coverage/
+playwright-report/
+test-results/
+apps/api/coverage/
+packages/shared/coverage/
+

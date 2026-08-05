@@ -16,6 +16,8 @@
     "lint:fix": "turbo run lint -- --fix",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:coverage": "pnpm --filter @meridian/api test:coverage && pnpm --filter @meridian/shared test:coverage",
+    "qa:report": "node scripts/generate-qa-report.mjs",
     "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,css,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,css,md}\"",
     "clean": "turbo run clean && rimraf node_modules"

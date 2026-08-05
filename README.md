@@ -70,6 +70,14 @@ Complete Swagger/OpenAPI **3.1** for every backend endpoint:
 - Guide: [`docs/openapi/README.md`](./docs/openapi/README.md)
 - Regenerate: `node scripts/generate-openapi.mjs`
 
+## QA
+
+- Report: [`QA_COMPLETION_REPORT.md`](./QA_COMPLETION_REPORT.md) · [`docs/qa/`](./docs/qa/)
+- API tests: `pnpm --filter @meridian/api test` · coverage: `pnpm --filter @meridian/api test:coverage`
+- E2E: `pnpm --filter @meridian/web test:e2e`
+- Load: `k6 run tests/load/k6-smoke.js`
+- Aggregate reports: `pnpm qa:report`
+
 ## Design system
 
 Tokens: `apps/web/src/styles/tokens.css`  

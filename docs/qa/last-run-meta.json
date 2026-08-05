@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-08-05T10:39:33.841Z",
+  "apiCoverage": {
+    "lines": 28.85,
+    "statements": 27.62,
+    "functions": 18.01,
+    "branches": 11.02
+  },
+  "sharedCoverage": {
+    "lines": 46.51,
+    "statements": 41.17,
+    "functions": 50,
+    "branches": 52.3
+  },
+  "suiteResults": {
+    "note": "Populate by CI or local runner; see QA_COMPLETION_REPORT.md"
+  }
+}
