@@ -1,17 +1,12 @@
 /**
- * Growzy Admin Operating System — shared mock CMS + ops state.
- * Persisted in localStorage. Swap load/save for API later; keep shapes stable.
+ * Growzy Admin Operating System — CMS + ops draft state.
+ * Defaults are empty; live content should come from CMS / admin APIs.
+ * Persisted in localStorage for offline draft editing until publish.
  */
 
 import {
-  FOREX_TICKER,
   HOME_FAQS,
   LANDING_FAQS,
-  LIVE_ACTIVITY,
-  MONTHLY_RETURNS,
-  SAMPLE_TRADES,
-  TESTIMONIALS,
-  YEARLY_RETURNS,
 } from '@/lib/landing-data'
 import { buildPremiumEmailTemplateSeed } from '@/lib/premium-email-templates'
 import {
@@ -25,7 +20,7 @@ import {
   type TickerDisplaySettings,
 } from '@/lib/admin-cms-extras'
 
-export const ADMIN_OS_KEY = 'growzy_admin_os_v4'
+export const ADMIN_OS_KEY = 'growzy_admin_os_v5'
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -378,12 +373,12 @@ function seedLanding(): LandingCms {
     heroPrimaryCta: 'Start Investing',
     heroSecondaryCta: 'View Historical Performance',
     heroBannerUrl: '',
-    avgMonthlyReturn: '6.8',
-    winRate: '68',
-    aum: '18.4',
-    bestDay: '2.4',
-    investorCount: '4820',
-    countries: '42',
+    avgMonthlyReturn: '0',
+    winRate: '0',
+    aum: '0',
+    bestDay: '0',
+    investorCount: '0',
+    countries: '0',
     riskDisclosure:
       'Forex trading involves substantial risk of loss. Past performance does not guarantee future results. Only invest capital you can afford to lose.',
     footerTagline: 'Transparent forex investing with every trade on record.',
@@ -415,22 +410,7 @@ function seedLanding(): LandingCms {
 }
 
 function seedTrades(): CmsTrade[] {
-  return SAMPLE_TRADES.map((t, i) => ({
-    id: `TRD_${1000 + i}`,
-    pair: t.pair,
-    entry: t.entry,
-    exit: t.exit,
-    direction: t.direction,
-    profitPct: t.returnPct,
-    risk: '0.5%',
-    notes: 'Desk-verified session trade',
-    imageUrl: '',
-    status: 'PUBLISHED' as const,
-    scheduledAt: null,
-    tradingDay: t.date,
-    createdAt: `${t.date}T12:00:00.000Z`,
-    publishedAt: `${t.date}T18:00:00.000Z`,
-  }))
+  return []
 }
 
 export function createDefaultAdminOs(): AdminOsState {
@@ -440,117 +420,22 @@ export function createDefaultAdminOs(): AdminOsState {
     ...extras,
     landing: { ...landing, heroMotion: extras.heroMotion },
     landingDraft: { ...landing, heroMotion: extras.heroMotion, status: 'DRAFT' },
-    ticker: FOREX_TICKER.map((t, i) => ({
-      id: `TK_${i + 1}`,
-      pair: t.pair,
-      price: t.price,
-      change: t.change,
-      enabled: true,
-      featured: i < 3,
-      order: i,
-      tone: 'auto' as const,
-    })),
+    ticker: [],
     performance: {
-      dailyReturn: '0.72',
-      weeklyReturn: '3.4',
-      monthlyReturn: '6.8',
-      yearlyReturn: '54.8',
-      bestDay: '2.40',
-      worstDay: '-1.20',
-      winningPct: '68',
-      monthly: MONTHLY_RETURNS.map((m) => ({ month: m.month, returnPct: m.returnPct })),
-      yearly: YEARLY_RETURNS.map((y) => ({
-        year: y.year,
-        returnPct: y.returnPct,
-        profitLabel: y.profitLabel,
-      })),
-      publishedAt: '2026-08-02T18:00:00.000Z',
+      dailyReturn: '0',
+      weeklyReturn: '0',
+      monthlyReturn: '0',
+      yearlyReturn: '0',
+      bestDay: '0',
+      worstDay: '0',
+      winningPct: '0',
+      monthly: [],
+      yearly: [],
+      publishedAt: null,
     },
     trades: seedTrades(),
-    inrMethods: [
-      {
-        id: 'INR_UPI',
-        type: 'UPI',
-        label: 'UPI',
-        upiId: 'growzy@oksbi',
-        qrCodeUrl: '',
-        instructions: 'Pay via any UPI app and upload the screenshot.',
-        enabled: true,
-        minDeposit: '50',
-        minWithdrawal: '50',
-      },
-      {
-        id: 'INR_GPAY',
-        type: 'GOOGLE_PAY',
-        label: 'Google Pay',
-        upiId: 'growzy@okaxis',
-        qrCodeUrl: '',
-        instructions: 'Send to the GPay UPI ID shown and upload proof.',
-        enabled: true,
-        minDeposit: '50',
-        minWithdrawal: '50',
-      },
-      {
-        id: 'INR_PHONEPE',
-        type: 'PHONEPE',
-        label: 'PhonePe',
-        upiId: 'growzy@ybl',
-        qrCodeUrl: '',
-        instructions: 'Complete payment in PhonePe and attach receipt.',
-        enabled: true,
-        minDeposit: '50',
-        minWithdrawal: '50',
-      },
-      {
-        id: 'INR_PAYTM',
-        type: 'PAYTM',
-        label: 'Paytm',
-        upiId: 'growzy@paytm',
-        qrCodeUrl: '',
-        instructions: 'Pay via Paytm UPI and upload confirmation.',
-        enabled: false,
-        minDeposit: '50',
-        minWithdrawal: '50',
-      },
-      {
-        id: 'INR_BANK',
-        type: 'BANK',
-        label: 'Bank transfer',
-        bankName: 'HDFC Bank',
-        accountHolder: 'Growzy Capital FZE',
-        accountNumber: '50200012345678',
-        ifsc: 'HDFC0001234',
-        qrCodeUrl: '',
-        instructions: 'NEFT/IMPS only. Use your User ID as payment reference.',
-        enabled: true,
-        minDeposit: '100',
-        minWithdrawal: '100',
-      },
-    ],
-    cryptoWallets: [
-      {
-        id: 'CRYPTO_USDT_TRC20',
-        coin: 'USDT',
-        network: 'TRC20',
-        address: 'TXyzGrowzyDemoWalletAddress123456',
-        qrCodeUrl: '',
-        instructions: 'Send only USDT on TRC20. Wrong network may cause loss.',
-        enabled: true,
-        minDeposit: '50',
-        minWithdrawal: '50',
-      },
-      {
-        id: 'CRYPTO_USDT_ERC20',
-        coin: 'USDT',
-        network: 'ERC20',
-        address: '0xGrowzyDemoEthWalletAddressabcdef',
-        qrCodeUrl: '',
-        instructions: 'Send only USDT on Ethereum. Include gas for ERC20.',
-        enabled: true,
-        minDeposit: '100',
-        minWithdrawal: '100',
-      },
-    ],
+    inrMethods: [],
+    cryptoWallets: [],
     emailTemplates: buildPremiumEmailTemplateSeed(),
     global: {
       companyName: 'Growzy',
@@ -595,35 +480,18 @@ export function createDefaultAdminOs(): AdminOsState {
       email: true,
     },
     activity: {
-      enabled: true,
-      names: ['Ravi K.', 'Elena V.', 'James R.', 'Farah A.', 'Noah K.', 'Priya S.', 'Omar H.', 'Sofia R.'],
-      countries: ['IN', 'ES', 'GB', 'PK', 'SG', 'AE'],
-      depositMin: 500,
-      depositMax: 10000,
-      withdrawalMin: 200,
-      withdrawalMax: 5000,
+      enabled: false,
+      names: [],
+      countries: [],
+      depositMin: 0,
+      depositMax: 0,
+      withdrawalMin: 0,
+      withdrawalMax: 0,
       delayMs: 9000,
       animationSpeed: 1,
-      seedItems: LIVE_ACTIVITY.map((a) => ({ ...a })),
+      seedItems: [],
     },
-    announcements: [
-      {
-        id: 'ANN_1',
-        type: 'NEWS',
-        title: 'August performance update',
-        body: 'Monthly programme return tracking ahead of plan. Full chart on Performance.',
-        status: 'PUBLISHED',
-        scheduledAt: null,
-        createdAt: '2026-08-01T10:00:00.000Z',
-        publishedAt: '2026-08-01T10:05:00.000Z',
-        color: '#12D6A0',
-        priority: 'NORMAL',
-        expiresAt: null,
-        displayPage: 'HOME',
-        sticky: true,
-        popup: false,
-      },
-    ],
+    announcements: [],
     pages: [
       {
         id: 'PG_about',
@@ -653,7 +521,7 @@ export function createDefaultAdminOs(): AdminOsState {
         id: 'PG_contact',
         slug: 'contact',
         title: 'Contact',
-        body: 'Email support@growzy.com or open a ticket from your dashboard.',
+        body: 'Email support@growzycapital.com or open a ticket from your dashboard.',
         status: 'PUBLISHED',
         updatedAt: now(),
       },
@@ -680,61 +548,8 @@ export function createDefaultAdminOs(): AdminOsState {
       answer: f.answer,
       order: i,
     })),
-    testimonials: TESTIMONIALS.map((t, i) => ({
-      id: `TST_${i + 1}`,
-      name: t.name,
-      country: t.country,
-      quote: t.quote,
-      rating: t.rating,
-      platform: t.platform,
-      enabled: true,
-      photoUrl: '',
-      publishedAt: '2026-08-01T12:00:00.000Z',
-    })),
-    tickets: [
-      {
-        id: 'TKT_1001',
-        userId: 'USR_1001',
-        userLabel: 'Ayesha Khan',
-        subject: 'Withdrawal timing question',
-        priority: 'MEDIUM',
-        status: 'OPEN',
-        assignee: null,
-        createdAt: '2026-08-02T11:20:00.000Z',
-        messages: [
-          {
-            id: 'm1',
-            from: 'user',
-            body: 'How long after approval until funds hit my bank?',
-            at: '2026-08-02T11:20:00.000Z',
-          },
-        ],
-      },
-      {
-        id: 'TKT_1002',
-        userId: 'USR_1002',
-        userLabel: 'Marcus Ellison',
-        subject: 'KYC document resubmit',
-        priority: 'HIGH',
-        status: 'ASSIGNED',
-        assignee: 'support@growzy.com',
-        createdAt: '2026-08-01T16:40:00.000Z',
-        messages: [
-          {
-            id: 'm1',
-            from: 'user',
-            body: 'Passport upload failed — can you reopen my KYC?',
-            at: '2026-08-01T16:40:00.000Z',
-          },
-          {
-            id: 'm2',
-            from: 'internal',
-            body: 'Escalated to KYC officer.',
-            at: '2026-08-01T16:55:00.000Z',
-          },
-        ],
-      },
-    ],
+    testimonials: [],
+    tickets: [],
     roles: [
       {
         key: 'SUPER_ADMIN',
@@ -773,111 +588,23 @@ export function createDefaultAdminOs(): AdminOsState {
       },
     ],
     walletLedger: [],
-    userTimelines: [
-      {
-        id: 'UT_1',
-        userId: 'USR_1001',
-        at: '2026-06-12T09:00:00.000Z',
-        type: 'ACCOUNT_CREATED',
-        label: 'Account created',
-        detail: 'Registered via email',
-      },
-      {
-        id: 'UT_2',
-        userId: 'USR_1001',
-        at: '2026-06-12T09:05:00.000Z',
-        type: 'EMAIL_VERIFIED',
-        label: 'Email verified',
-        detail: 'OTP confirmed',
-      },
-      {
-        id: 'UT_3',
-        userId: 'USR_1001',
-        at: '2026-06-12T10:20:00.000Z',
-        type: 'KYC_SUBMITTED',
-        label: 'KYC submitted',
-        detail: 'Passport + selfie',
-      },
-      {
-        id: 'UT_4',
-        userId: 'USR_1001',
-        at: '2026-06-13T08:00:00.000Z',
-        type: 'KYC_APPROVED',
-        label: 'KYC approved',
-        detail: 'Verified by ops',
-      },
-      {
-        id: 'UT_5',
-        userId: 'USR_1001',
-        at: '2026-06-14T14:00:00.000Z',
-        type: 'DEPOSIT_APPROVED',
-        label: 'Deposit approved',
-        detail: '$5,000.00',
-      },
-      {
-        id: 'UT_6',
-        userId: 'USR_1001',
-        at: '2026-08-02T18:10:00.000Z',
-        type: 'DAILY_RETURN',
-        label: 'Daily return',
-        detail: '+0.72%',
-      },
-    ],
-    audit: [
-      {
-        id: 'AUD_1',
-        at: '2026-08-02T18:05:00.000Z',
-        admin: 'admin@growzy.com',
-        ip: '203.0.113.10',
-        browser: 'Chrome 127 · Windows',
-        action: 'PUBLISH_DAILY_RETURN',
-        user: 'system',
-        oldValue: '—',
-        newValue: '0.72%',
-      },
-      {
-        id: 'AUD_2',
-        at: '2026-08-02T15:12:00.000Z',
-        admin: 'admin@growzy.com',
-        ip: '203.0.113.10',
-        browser: 'Chrome 127 · Windows',
-        action: 'APPROVE_DEPOSIT',
-        user: 'USR_1001',
-        oldValue: 'UNDER_REVIEW',
-        newValue: 'APPROVED',
-      },
-    ],
+    userTimelines: [],
+    audit: [],
     campaigns: [],
     analytics: {
-      visitors: 18420,
-      registrations: 312,
-      conversionRate: 1.69,
-      countries: 42,
-      dailyDeposits: '128400.00',
-      dailyWithdrawals: '64200.00',
-      activeUsers: 2140,
-      onlineUsers: 186,
-      pendingKyc: 7,
-      pendingDeposits: 4,
-      pendingWithdrawals: 2,
-      chartVisitors: [
-        { day: 'Mon', value: 2100 },
-        { day: 'Tue', value: 2450 },
-        { day: 'Wed', value: 2680 },
-        { day: 'Thu', value: 2510 },
-        { day: 'Fri', value: 3120 },
-        { day: 'Sat', value: 1890 },
-        { day: 'Sun', value: 1670 },
-      ],
-      chartDeposits: [
-        { day: 'Mon', value: 42000 },
-        { day: 'Tue', value: 51000 },
-        { day: 'Wed', value: 38000 },
-        { day: 'Thu', value: 62000 },
-        { day: 'Fri', value: 71000 },
-        { day: 'Sat', value: 28000 },
-        { day: 'Sun', value: 22000 },
-      ],
+      visitors: 0,
+      registrations: 0,
+      conversionRate: 0,
+      countries: 0,
+      dailyDeposits: '0.00',
+      dailyWithdrawals: '0.00',
+      activeUsers: 0,
+      onlineUsers: 0,
+      pendingKyc: 0,
+      pendingDeposits: 0,
+      pendingWithdrawals: 0,
+      chartVisitors: [],
+      chartDeposits: [],
     },
   }
 }
@@ -885,79 +612,22 @@ export function createDefaultAdminOs(): AdminOsState {
 export function loadAdminOs(): AdminOsState {
   if (typeof window === 'undefined') return createDefaultAdminOs()
   try {
-    const raw = window.localStorage.getItem(ADMIN_OS_KEY)
-    if (!raw) {
-      const fresh = createDefaultAdminOs()
-      window.localStorage.setItem(ADMIN_OS_KEY, JSON.stringify(fresh))
-      return fresh
-    }
-    const parsed = JSON.parse(raw) as Partial<AdminOsState>
-    const defaults = createDefaultAdminOs()
-    return {
-      ...defaults,
-      ...parsed,
-      landing: { ...defaults.landing, ...parsed.landing, heroMotion: { ...defaults.landing.heroMotion, ...parsed.landing?.heroMotion } },
-      landingDraft: {
-        ...defaults.landingDraft,
-        ...parsed.landingDraft,
-        heroMotion: {
-          ...defaults.landingDraft.heroMotion,
-          ...parsed.landingDraft?.heroMotion,
-        },
-      },
-      tickerDisplay: { ...defaults.tickerDisplay, ...parsed.tickerDisplay },
-      heroMotion: { ...defaults.heroMotion, ...parsed.heroMotion },
-      siteSeo: { ...defaults.siteSeo, ...parsed.siteSeo },
-      media: (parsed.media?.length ? parsed.media : defaults.media).map((m, i) => {
-        const base = defaults.media[i]
-        const raw = m as Partial<typeof m> & { folder?: string; usedBy?: string }
-        return {
-          ...base,
-          ...m,
-          folder: (raw.folder as import('@/lib/admin-cms-extras').MediaFolder) ?? base?.folder ?? 'Images',
-          usedBy: raw.usedBy ?? base?.usedBy ?? '—',
-        }
-      }),
-      reportDocs: parsed.reportDocs?.length ? parsed.reportDocs : defaults.reportDocs,
-      revisions: (parsed.revisions ?? defaults.revisions).map((r) => ({
-        ...r,
-        publishDate: r.publishDate ?? null,
-      })),
-      platformCms: { ...defaults.platformCms, ...parsed.platformCms },
-      platformCmsDraft: { ...defaults.platformCmsDraft, ...parsed.platformCmsDraft },
-      systemHealth: parsed.systemHealth ?? defaults.systemHealth,
-      backupCenter: { ...defaults.backupCenter, ...parsed.backupCenter },
-      roleMatrix: parsed.roleMatrix?.length ? parsed.roleMatrix : defaults.roleMatrix,
-      toggles: { ...defaults.toggles, ...parsed.toggles },
-      ticker: (parsed.ticker ?? defaults.ticker).map((t, i) => ({
-        ...defaults.ticker[i],
-        ...t,
-        tone: t.tone ?? 'auto',
-      })),
-      testimonials: (parsed.testimonials ?? defaults.testimonials).map((t, i) => ({
-        ...defaults.testimonials[i],
-        ...t,
-        photoUrl: t.photoUrl ?? '',
-        publishedAt: t.publishedAt ?? defaults.testimonials[i]?.publishedAt ?? now(),
-      })),
-      announcements: (parsed.announcements ?? defaults.announcements).map((a) => ({
-        ...a,
-        color: a.color ?? '#12D6A0',
-        priority: a.priority ?? 'NORMAL',
-        expiresAt: a.expiresAt ?? null,
-        displayPage: a.displayPage ?? 'ALL',
-        sticky: a.sticky ?? false,
-        popup: a.popup ?? false,
-      })),
-    }
+    // Purge legacy Admin OS blob — CMS/ops state must come from APIs, not the browser.
+    window.localStorage.removeItem(ADMIN_OS_KEY)
   } catch {
-    return createDefaultAdminOs()
+    /* ignore */
   }
+  return createDefaultAdminOs()
 }
 
-export function saveAdminOs(state: AdminOsState) {
+export function saveAdminOs(_state: AdminOsState) {
+  // Intentionally no-op: never write CMS/ops/mock money to localStorage.
   if (typeof window === 'undefined') return
-  window.localStorage.setItem(ADMIN_OS_KEY, JSON.stringify(state))
+  try {
+    window.localStorage.removeItem(ADMIN_OS_KEY)
+  } catch {
+    /* ignore */
+  }
 }
 
 export function pushAudit(

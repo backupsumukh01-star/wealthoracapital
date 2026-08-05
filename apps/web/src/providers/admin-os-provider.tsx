@@ -31,10 +31,12 @@ import {
   adminOsNow,
   loadAdminOs,
   pushAudit,
-  saveAdminOs,
   createDefaultAdminOs,
+  ADMIN_OS_KEY,
 } from '@/lib/admin-os-store'
 import { pushRevision } from '@/lib/admin-cms-extras'
+import { applyCmsBootstrap } from '@/lib/cms-bootstrap-map'
+import { cmsService } from '@/services/cms.service'
 
 type AdminOsContextValue = {
   ready: boolean
@@ -68,7 +70,6 @@ type AdminOsContextValue = {
   updateToggles: (patch: Partial<FeatureToggles>) => void
   /** Activity */
   updateActivity: (patch: Partial<LiveActivityConfig>) => void
-  generateActivityDemo: () => void
   /** Announcements */
   upsertAnnouncement: (a: Announcement) => void
   removeAnnouncement: (id: string) => void
@@ -117,16 +118,36 @@ export function AdminOsProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AdminOsState>(() => createDefaultAdminOs())
 
   useEffect(() => {
+    let cancelled = false
+    // Clear any legacy Admin OS blob immediately.
+    try {
+      window.localStorage.removeItem(ADMIN_OS_KEY)
+    } catch {
+      /* ignore */
+    }
+
     setState(loadAdminOs())
-    setReady(true)
+
+    ;(async () => {
+      try {
+        const boot = await cmsService.publicBootstrap()
+        if (cancelled) return
+        setState((prev) => applyCmsBootstrap(prev, boot))
+      } catch {
+        // Keep empty defaults when CMS is unreachable.
+      } finally {
+        if (!cancelled) setReady(true)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const commit = useCallback((updater: (prev: AdminOsState) => AdminOsState) => {
-    setState((prev) => {
-      const next = updater(prev)
-      saveAdminOs(next)
-      return next
-    })
+    // In-memory drafts only — never persist Admin OS to localStorage.
+    setState((prev) => updater(prev))
   }, [])
 
   const logAction = useCallback(
@@ -175,6 +196,9 @@ export function AdminOsProvider({ children }: { children: ReactNode }) {
             status: 'PUBLISHED' as const,
             updatedAt: adminOsNow(),
           }
+          void cmsService.publishLanding(published).catch(() => {
+            /* UI keeps draft; operator should retry */
+          })
           return pushAudit(
             {
               ...prev,
@@ -398,30 +422,6 @@ export function AdminOsProvider({ children }: { children: ReactNode }) {
 
       updateActivity: (patch) =>
         commit((prev) => ({ ...prev, activity: { ...prev.activity, ...patch } })),
-
-      generateActivityDemo: () =>
-        commit((prev) => {
-          const { names, countries, depositMin, depositMax, withdrawalMin, withdrawalMax } =
-            prev.activity
-          const kinds = ['deposit', 'withdrawal', 'investment', 'profit'] as const
-          const items = Array.from({ length: 8 }).map((_, i) => {
-            const type = kinds[i % kinds.length]!
-            const isOut = type === 'withdrawal'
-            const min = isOut ? withdrawalMin : depositMin
-            const max = isOut ? withdrawalMax : depositMax
-            const amount = (min + Math.random() * (max - min)).toFixed(2)
-            return {
-              type,
-              name: names[i % names.length]!,
-              region: countries[i % countries.length]!,
-              amount,
-            }
-          })
-          return {
-            ...prev,
-            activity: { ...prev.activity, seedItems: items },
-          }
-        }),
 
       upsertAnnouncement: (a) =>
         commit((prev) => {
@@ -840,6 +840,9 @@ export function AdminOsProvider({ children }: { children: ReactNode }) {
             updatedAt: adminOsNow(),
             publishedAt: adminOsNow(),
           }
+          void cmsService.publishPlatform(published).catch(() => {
+            /* retry from CMS workspace */
+          })
           return pushAudit(
             {
               ...prev,

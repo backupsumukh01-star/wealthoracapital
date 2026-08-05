@@ -5,10 +5,12 @@ import { toast } from 'sonner'
 
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import { PageHeader } from '@/components/common/page-header'
+import { PremiumEmptyState } from '@/components/dashboard/premium-empty-state'
 import { Button } from '@/components/ui/button'
 import type { HealthTone } from '@/lib/admin-cms-extras'
 import { cn } from '@/lib/cn'
-import { useAdminOs } from '@/providers/admin-os-provider'
+import { useAdminHealth } from '@/features/admin/hooks'
+import type { AdminHealthSnapshot } from '@/types/domain'
 
 const TONE: Record<HealthTone, string> = {
   healthy: 'border-profit/30 bg-profit/10 text-profit',
@@ -22,10 +24,16 @@ const DOT: Record<HealthTone, string> = {
   critical: 'bg-loss',
 }
 
-/** Demo System Health dashboard — wired for future backend probes. */
+const EMPTY_HEALTH: AdminHealthSnapshot = {
+  refreshedAt: new Date(0).toISOString(),
+  version: '—',
+  environment: 'production',
+  metrics: [],
+}
+
 export function AdminSystemHealthWorkspace() {
-  const { state, refreshSystemHealth } = useAdminOs()
-  const h = state.systemHealth
+  const { data, isFetching, refetch, isError } = useAdminHealth()
+  const h = data ?? EMPTY_HEALTH
 
   const groups = [
     { id: 'infra' as const, title: 'Infrastructure' },
@@ -38,15 +46,20 @@ export function AdminSystemHealthWorkspace() {
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="System Health"
-        description="Live operational signals for database, API, jobs, queues, and money queues. Demo metrics refresh locally until backend probes connect."
+        description="Live operational signals for database, API, jobs, queues, and money queues."
         actions={
           <Button
             type="button"
             variant="glass"
             size="sm"
-            onClick={() => {
-              refreshSystemHealth()
-              toast.success('Health metrics refreshed')
+            disabled={isFetching}
+            onClick={async () => {
+              const result = await refetch()
+              if (result.error) {
+                toast.error('Could not refresh health metrics')
+              } else {
+                toast.success('Health metrics refreshed')
+              }
             }}
           >
             <RefreshCw aria-hidden />
@@ -54,6 +67,17 @@ export function AdminSystemHealthWorkspace() {
           </Button>
         }
       />
+
+      {isError ? (
+        <AdminPanel>
+          <div className="p-4 sm:p-5">
+            <PremiumEmptyState
+              title="Health API unavailable"
+              description="Connect the admin health endpoint to see live probes."
+            />
+          </div>
+        </AdminPanel>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <AdminPanel>
@@ -78,7 +102,20 @@ export function AdminSystemHealthWorkspace() {
         </AdminPanel>
       </div>
 
-      {groups.map((g) => (
+      {h.metrics.length === 0 ? (
+        <AdminPanel>
+          <div className="p-4 sm:p-5">
+            <PremiumEmptyState
+              title="No health metrics yet"
+              description="Metrics will appear here once the backend probes are connected."
+            />
+          </div>
+        </AdminPanel>
+      ) : null}
+
+      {groups
+        .filter((g) => h.metrics.some((m) => m.group === g.id))
+        .map((g) => (
         <AdminPanel key={g.id}>
           <AdminPanelHeader title={g.title} />
           <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3 sm:p-5">

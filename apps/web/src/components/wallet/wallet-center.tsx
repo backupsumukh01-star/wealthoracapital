@@ -27,8 +27,8 @@ import { useWallet } from '@/features/wallet/hooks'
 import { useWithdrawals } from '@/features/withdrawals/hooks'
 import { accountAccessMessage, canTransact } from '@/lib/account-access'
 import { formatDateTime } from '@/lib/format'
+import { useCmsBootstrap } from '@/features/cms/hooks'
 import { useSession } from '@/providers/session-provider'
-import { useAdminOs } from '@/providers/admin-os-provider'
 
 export function WalletCenter() {
   const searchParams = useSearchParams()
@@ -41,8 +41,8 @@ export function WalletCenter() {
   const { data: withdrawalsData } = useWithdrawals(undefined, { enabled: Boolean(session) })
   const deposits = depositsData?.items ?? []
   const withdrawals = withdrawalsData?.items ?? []
-  const { state, ready } = useAdminOs()
-  const cms = ready ? state.platformCms.wallet : null
+  const { data: cmsBoot, isSuccess: cmsReady } = useCmsBootstrap()
+  const cms = cmsReady ? cmsBoot?.platform.wallet : null
   const [depositOpen, setDepositOpen] = useState(false)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
 

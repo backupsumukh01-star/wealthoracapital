@@ -24,8 +24,8 @@ import { DepositModal } from '@/components/wallet/deposit-modal'
 import { WithdrawModal } from '@/components/wallet/withdraw-modal'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { accountAccessMessage, canTransact } from '@/lib/account-access'
+import { useCmsBootstrap } from '@/features/cms/hooks'
 import { useSession } from '@/providers/session-provider'
-import { useAdminOs } from '@/providers/admin-os-provider'
 
 /** Premium investor home — wealth experience, not an admin grid. */
 export function WealthHome() {
@@ -34,7 +34,7 @@ export function WealthHome() {
   const { session } = useSession()
   const allowed = canTransact(session?.user.kycStatus)
   const access = accountAccessMessage(session?.user.kycStatus)
-  const { ready, state } = useAdminOs()
+  const { data: cmsBoot, isSuccess: cmsReady } = useCmsBootstrap()
   const [depositOpen, setDepositOpen] = useState(false)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
   const [booting, setBooting] = useState(!prefersReducedMotion)
@@ -77,9 +77,9 @@ export function WealthHome() {
 
         <AccountStatusBanner />
 
-        {ready && state.platformCms.riskDisclaimer ? (
+        {cmsReady && cmsBoot?.platform.riskDisclaimer ? (
           <p className="rounded-xl border border-white/[0.06] bg-inset/40 px-4 py-3 text-caption text-fg-subtle">
-            {state.platformCms.riskDisclaimer}
+            {cmsBoot.platform.riskDisclaimer}
           </p>
         ) : null}
 

@@ -16,10 +16,10 @@ import { Money } from '@/components/common/money'
 import { Percent } from '@/components/common/percent'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { Button } from '@/components/ui/button'
-import { LIVE_ACTIVITY, LIVE_TRADE_POOL, SAMPLE_TRADES } from '@/lib/landing-data'
+import { usePublicTrades, useTradeStats } from '@/features/trades/hooks'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { cn } from '@/lib/cn'
-import { useAdminOs } from '@/providers/admin-os-provider'
+import type { Trade } from '@meridian/shared'
 
 const FLAGS: Record<string, string> = {
   IN: '🇮🇳',
@@ -42,50 +42,21 @@ type FeedItem = {
   secondsAgo: number
 }
 
-function buildFeedFromCms(
-  trades: Array<{
-    pair: string
-    direction: string
-    profitPct: string
-    status: string
-  }>,
-  activity: Array<{ type: string; name: string; region: string; amount: string }>,
-): FeedItem[] {
-  const published = trades.filter((t) => t.status === 'PUBLISHED')
-  const base = published.length
-    ? published
-    : (SAMPLE_TRADES.length ? SAMPLE_TRADES : LIVE_TRADE_POOL).map((t) => ({
-        pair: t.pair,
-        direction: t.direction,
-        profitPct: t.returnPct,
-        status: 'PUBLISHED',
-      }))
-  const acts = activity.length ? activity : [...LIVE_ACTIVITY]
-  return Array.from({ length: Math.max(base.length * 2, 8) }, (_, i) => {
-    const t = base[i % base.length]!
-    const act = acts[i % acts.length]!
-    const positive = !String(t.profitPct).startsWith('-')
-    const dir = String(t.direction).toUpperCase().includes('SELL') ||
-      String(t.direction).toUpperCase().includes('SHORT')
-      ? 'SELL'
-      : 'BUY'
+function buildFeedFromTrades(trades: Trade[]): FeedItem[] {
+  if (!trades.length) return []
+  return trades.slice(0, 12).map((t, i) => {
+    const positive = !String(t.returnPct).startsWith('-')
+    const dir = t.direction === 'SELL' ? 'SELL' : 'BUY'
     return {
-      id: `preview-${i}`,
+      id: t.id,
       pair: t.pair,
       direction: dir as 'BUY' | 'SELL',
-      returnPct: String(t.profitPct).replace(/^\+/, ''),
-      amount: act.amount,
-      name: act.name,
-      region: act.region,
-      kind:
-        act.type === 'withdrawal'
-          ? 'withdrawal'
-          : act.type === 'deposit' && i % 5 === 0
-            ? 'deposit'
-            : positive
-              ? 'profit'
-              : 'loss',
-      secondsAgo: 5 + (i % 40),
+      returnPct: String(t.returnPct).replace(/^\+/, ''),
+      amount: '—',
+      name: 'Published trade',
+      region: '—',
+      kind: (positive ? 'profit' : 'loss') as FeedItem['kind'],
+      secondsAgo: (i + 1) * 40,
     }
   })
 }
@@ -162,19 +133,23 @@ const TradeRow = memo(function TradeRow({ trade }: { trade: FeedItem }) {
   )
 })
 
-/** Fixed-height live desk feed — published CMS trades preferred. */
+/** Fixed-height live desk feed — published trades from the public trade API. */
 export function LiveTradesPreview() {
   const prefersReducedMotion = usePrefersReducedMotion()
-  const { ready, state } = useAdminOs()
-  const feed = useMemo(
-    () =>
-      buildFeedFromCms(
-        ready ? state.trades : [],
-        ready ? state.activity.seedItems : [],
-      ),
-    [ready, state.trades, state.activity.seedItems],
-  )
-  const loop = useMemo(() => [...feed, ...feed], [feed])
+  const { data: trades = [], isSuccess } = usePublicTrades()
+  const { data: stats } = useTradeStats()
+  const feed = useMemo(() => buildFeedFromTrades(trades), [trades])
+  const loop = useMemo(() => (feed.length ? [...feed, ...feed] : []), [feed])
+
+  const statCards = [
+    { label: 'Win rate', value: stats?.winRatePct ? `${stats.winRatePct}%` : '—' },
+    { label: 'Trade count', value: stats ? String(stats.tradeCount) : '—' },
+    { label: 'Avg return', value: stats?.avgReturnPct ? `${stats.avgReturnPct}%` : '—' },
+    {
+      label: 'Published',
+      value: isSuccess ? String(trades.length) : '—',
+    },
+  ]
 
   return (
     <Section
@@ -214,7 +189,11 @@ export function LiveTradesPreview() {
                 'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)',
             }}
           >
-            {prefersReducedMotion ? (
+            {feed.length === 0 ? (
+              <p className="grid h-full place-items-center px-6 text-center text-body-sm text-fg-muted">
+                No published trades yet. Desk activity appears here from the live trade API.
+              </p>
+            ) : prefersReducedMotion ? (
               <ul className="absolute inset-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {feed.map((trade) => (
                   <TradeRow key={trade.id} trade={trade} />
@@ -241,12 +220,7 @@ export function LiveTradesPreview() {
       </RevealOnScroll>
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:grid-cols-4">
-        {[
-          { label: 'Win rate', value: '78.6%' },
-          { label: 'Best pair', value: 'EUR/USD' },
-          { label: 'Published today', value: '14' },
-          { label: 'Session', value: 'Closed' },
-        ].map((stat) => (
+        {statCards.map((stat) => (
           <div key={stat.label} className="card-fill p-3.5 text-center sm:p-4">
             <p className="text-[11px] text-fg-subtle">{stat.label}</p>
             <p className="mt-1 text-heading-sm tabular-nums text-fg">{stat.value}</p>

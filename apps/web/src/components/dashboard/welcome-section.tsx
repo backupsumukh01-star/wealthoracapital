@@ -5,8 +5,8 @@ import { BadgeCheck, Sparkles } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
+import { useCmsBootstrap } from '@/features/cms/hooks'
 import { useSession } from '@/providers/session-provider'
-import { useAdminOs } from '@/providers/admin-os-provider'
 import { cn } from '@/lib/cn'
 
 function greetingForHour(hour: number) {
@@ -17,17 +17,17 @@ function greetingForHour(hour: number) {
 
 /**
  * Soft welcome strip after login — sits above dashboard widgets.
- * Dismissible for the session (localStorage).
+ * Dismissible for the session (sessionStorage only — not money state).
  */
 export function WelcomeSection({ className }: { className?: string }) {
   const { session } = useSession()
-  const { state, ready } = useAdminOs()
+  const { data: cmsBoot, isSuccess } = useCmsBootstrap()
   const prefersReducedMotion = usePrefersReducedMotion()
   const [visible, setVisible] = useState(false)
   const name = session?.user.firstName ?? 'Investor'
   const verified = session?.user.kycStatus === 'APPROVED'
   const greeting = useMemo(() => greetingForHour(new Date().getHours()), [])
-  const cms = ready ? state.platformCms.dashboard : null
+  const cms = isSuccess ? cmsBoot?.platform.dashboard : null
 
   useEffect(() => {
     try {
