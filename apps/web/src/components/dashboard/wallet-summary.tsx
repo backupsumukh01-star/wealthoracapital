@@ -3,18 +3,21 @@
 import { SectionHeader } from '@/components/common/page-header'
 import { Money } from '@/components/common/money'
 import { Card } from '@/components/ui/card'
-import { DEMO_WALLET } from '@/lib/dashboard-data'
-
-const ROWS = [
-  { label: 'Available balance', value: DEMO_WALLET.availableBalance },
-  { label: 'Pending deposit', value: DEMO_WALLET.pendingDeposit },
-  { label: 'Pending withdrawal', value: DEMO_WALLET.pendingWithdrawal },
-  { label: 'Lifetime deposits', value: DEMO_WALLET.totalDeposited },
-  { label: 'Lifetime withdrawals', value: DEMO_WALLET.totalWithdrawn },
-  { label: 'Total profit', value: DEMO_WALLET.totalProfit, signed: true },
-] as const
+import { useWallet } from '@/features/wallet/hooks'
+import { useSession } from '@/providers/session-provider'
 
 export function WalletSummary() {
+  const { session } = useSession()
+  const { data: wallet } = useWallet({ enabled: Boolean(session) })
+  const rows = [
+    { label: 'Available balance', value: wallet?.availableBalance ?? '0.00' },
+    { label: 'Locked balance', value: wallet?.lockedBalance ?? '0.00' },
+    { label: 'Invested amount', value: wallet?.investedAmount ?? '0.00' },
+    { label: 'Lifetime deposits', value: wallet?.totalDeposited ?? '0.00' },
+    { label: 'Lifetime withdrawals', value: wallet?.totalWithdrawn ?? '0.00' },
+    { label: 'Total profit', value: wallet?.totalProfit ?? '0.00', signed: true },
+  ] as const
+
   return (
     <Card variant="glass" padded="md" className="h-full">
       <SectionHeader
@@ -24,7 +27,7 @@ export function WalletSummary() {
       />
 
       <ul className="space-y-3">
-        {ROWS.map((row) => (
+        {rows.map((row) => (
           <li
             key={row.label}
             className="flex items-center justify-between gap-3 rounded-xl border border-line bg-inset/35 px-3.5 py-3"

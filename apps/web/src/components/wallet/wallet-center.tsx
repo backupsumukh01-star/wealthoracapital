@@ -17,61 +17,67 @@ import { PageHeader, SectionHeader } from '@/components/common/page-header'
 import { StatCard } from '@/components/common/stat-card'
 import { PremiumEmptyState } from '@/components/dashboard/premium-empty-state'
 import { StatusPill } from '@/components/dashboard/status-pill'
-import { StatusTimeline } from '@/components/dashboard/status-timeline'
 import { DepositModal } from '@/components/wallet/deposit-modal'
 import { WithdrawModal } from '@/components/wallet/withdraw-modal'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Alert } from '@/components/ui/alert'
-import { DEMO_WALLET } from '@/lib/dashboard-data'
-import { WALLET_DEPOSIT_TIMELINE } from '@/lib/investor-demo-data'
+import { useDeposits } from '@/features/deposits/hooks'
+import { useWallet } from '@/features/wallet/hooks'
+import { useWithdrawals } from '@/features/withdrawals/hooks'
+import { accountAccessMessage, canTransact } from '@/lib/account-access'
 import { formatDateTime } from '@/lib/format'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+import { useSession } from '@/providers/session-provider'
 import { useAdminOs } from '@/providers/admin-os-provider'
 
 export function WalletCenter() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { canDeposit, session, sessionDeposits, sessionWithdrawals, accountStatus } =
-    useInvestorLifecycle()
+  const { session } = useSession()
+  const allowed = canTransact(session?.user.kycStatus)
+  const access = accountAccessMessage(session?.user.kycStatus)
+  const { data: wallet } = useWallet({ enabled: Boolean(session) })
+  const { data: depositsData } = useDeposits(undefined, { enabled: Boolean(session) })
+  const { data: withdrawalsData } = useWithdrawals(undefined, { enabled: Boolean(session) })
+  const deposits = depositsData?.items ?? []
+  const withdrawals = withdrawalsData?.items ?? []
   const { state, ready } = useAdminOs()
   const cms = ready ? state.platformCms.wallet : null
   const [depositOpen, setDepositOpen] = useState(false)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
 
   function tryDeposit() {
-    if (!canDeposit) return
+    if (!allowed) return
     setDepositOpen(true)
   }
 
   function tryWithdraw() {
-    if (!canDeposit) return
+    if (!allowed) return
     setWithdrawOpen(true)
   }
 
   useEffect(() => {
     const action = searchParams.get('action')
     if (action === 'deposit') {
-      if (canDeposit) setDepositOpen(true)
+      if (allowed) setDepositOpen(true)
       router.replace(ROUTES.dashboard.wallet, { scroll: false })
     } else if (action === 'withdraw') {
-      if (canDeposit) setWithdrawOpen(true)
+      if (allowed) setWithdrawOpen(true)
       router.replace(ROUTES.dashboard.wallet, { scroll: false })
     }
-  }, [searchParams, router, canDeposit])
+  }, [searchParams, router, allowed])
 
-  const wallet = session?.wallet
-  const pendingDeposit = sessionDeposits.find(
-    (d) => d.status === 'UNDER_REVIEW' || d.status === 'PENDING' || d.status === 'NEED_INFO',
+  const pendingDeposit = deposits.find(
+    (d) => d.status === 'UNDER_REVIEW' || d.status === 'PENDING',
   )
-  const pendingWithdraw = sessionWithdrawals.find(
-    (w) => w.status === 'PENDING' || w.status === 'APPROVED',
+  const pendingWithdraw = withdrawals.find(
+    (w) => w.status === 'PENDING' || w.status === 'APPROVED' || w.status === 'PROCESSING',
   )
-  const kycLocked = !canDeposit
-  const balance = wallet?.availableBalance ?? DEMO_WALLET.availableBalance
-  const invested = wallet?.investedAmount ?? DEMO_WALLET.investedAmount
-  const pendingDepAmt = wallet?.pendingDeposit ?? DEMO_WALLET.pendingDeposit
-  const pendingWdrAmt = wallet?.pendingWithdrawal ?? DEMO_WALLET.pendingWithdrawal
+  const kycLocked = !allowed
+  const balance = wallet?.availableBalance ?? '0.00'
+  const invested = wallet?.investedAmount ?? '0.00'
+  const pendingDepAmt = pendingDeposit?.amount ?? '0.00'
+  const pendingWdrAmt = wallet?.lockedBalance ?? '0.00'
 
   return (
     <div className="min-w-0 space-y-5 sm:space-y-6 lg:space-y-8">
@@ -106,10 +112,10 @@ export function WalletCenter() {
       />
 
       {kycLocked ? (
-        <Alert tone="warning" title={accountStatus.label}>
-          {accountStatus.description}{' '}
-          <Link href={accountStatus.nextActionHref} className="text-accent-300 underline-offset-4 hover:underline">
-            {accountStatus.nextActionLabel}
+        <Alert tone="warning" title={access.label}>
+          {access.description}{' '}
+          <Link href={access.nextActionHref} className="text-accent-300 underline-offset-4 hover:underline">
+            {access.nextActionLabel}
           </Link>
         </Alert>
       ) : null}
@@ -118,21 +124,21 @@ export function WalletCenter() {
         <StatCard
           label="Available balance"
           icon={Wallet}
-          value={<Money value={balance as typeof DEMO_WALLET.availableBalance} />}
+          value={<Money value={balance} />}
           hint="Spendable after pending locks."
         />
         <StatCard
           label="Invested"
           icon={Landmark}
-          value={<Money value={invested as typeof DEMO_WALLET.investedAmount} />}
+          value={<Money value={invested} />}
         />
         <StatCard
           label="Pending deposit"
-          value={<Money value={pendingDepAmt as typeof DEMO_WALLET.pendingDeposit} />}
+          value={<Money value={pendingDepAmt} />}
         />
         <StatCard
           label="Pending withdrawal"
-          value={<Money value={pendingWdrAmt as typeof DEMO_WALLET.pendingWithdrawal} />}
+          value={<Money value={pendingWdrAmt} />}
         />
       </div>
 
@@ -158,7 +164,7 @@ export function WalletCenter() {
                 <ArrowDownToLine className="size-5" aria-hidden />
               </span>
               <span className="text-body font-medium text-fg">
-                {kycLocked ? accountStatus.nextActionLabel : 'Deposit'}
+                {kycLocked ? access.nextActionLabel : 'Deposit'}
               </span>
               <span className="text-caption text-fg-muted">INR UPI / IMPS or crypto</span>
             </button>
@@ -187,36 +193,23 @@ export function WalletCenter() {
             {pendingDeposit ? (
               <div className="rounded-xl border border-info/30 bg-info/10 p-4">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-body-sm font-medium text-fg">{pendingDeposit.id}</p>
+                  <p className="text-body-sm font-medium text-fg">{pendingDeposit.reference}</p>
                   <StatusPill status={pendingDeposit.status} />
                 </div>
                 <p className="mt-1 text-caption text-fg-muted">
-                  <Money value={pendingDeposit.amount as typeof DEMO_WALLET.availableBalance} /> ·{' '}
-                  {pendingDeposit.method}
+                  <Money value={pendingDeposit.amount} /> ·{' '}
+                  {pendingDeposit.method?.name ?? 'Deposit'}
                 </p>
-                <div className="mt-4">
-                  <StatusTimeline
-                    steps={
-                      pendingDeposit.timeline?.length
-                        ? pendingDeposit.timeline.map((s) => ({ id: s.id, label: s.label }))
-                        : WALLET_DEPOSIT_TIMELINE
-                    }
-                    activeIndex={
-                      pendingDeposit.timeline?.findIndex((s) => s.current) ?? 3
-                    }
-                  />
-                </div>
               </div>
             ) : null}
             {pendingWithdraw ? (
               <div className="rounded-xl border border-warning/30 bg-warning/10 p-4">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-body-sm font-medium text-fg">{pendingWithdraw.id}</p>
+                  <p className="text-body-sm font-medium text-fg">{pendingWithdraw.reference}</p>
                   <StatusPill status={pendingWithdraw.status} />
                 </div>
                 <p className="mt-1 text-caption text-fg-muted">
-                  <Money value={pendingWithdraw.amount as typeof DEMO_WALLET.availableBalance} /> ·{' '}
-                  {pendingWithdraw.destination}
+                  <Money value={pendingWithdraw.amount} />
                 </p>
               </div>
             ) : null}
@@ -241,14 +234,14 @@ export function WalletCenter() {
               </Button>
             }
           />
-          {sessionDeposits.length === 0 ? (
+          {deposits.length === 0 ? (
             <PremiumEmptyState
               className="py-8"
               variant="wallet"
               title="No deposits yet"
               description="Fund your wallet to start earning daily returns."
               action={
-                canDeposit ? (
+                allowed ? (
                   <Button size="sm" onClick={tryDeposit}>
                     <ArrowDownToLine aria-hidden />
                     Deposit
@@ -258,14 +251,14 @@ export function WalletCenter() {
             />
           ) : (
             <ul className="mt-4 divide-y divide-line/70">
-              {sessionDeposits.slice(0, 4).map((row) => (
+              {deposits.slice(0, 4).map((row) => (
                 <li key={row.id} className="flex items-center justify-between gap-3 py-3">
                   <div className="min-w-0">
-                    <p className="truncate text-body-sm font-medium text-fg">{row.id}</p>
-                    <p className="text-caption text-fg-subtle">{formatDateTime(row.submittedAt)}</p>
+                    <p className="truncate text-body-sm font-medium text-fg">{row.reference}</p>
+                    <p className="text-caption text-fg-subtle">{formatDateTime(row.createdAt)}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Money value={row.amount as typeof DEMO_WALLET.availableBalance} className="text-body-sm" />
+                    <Money value={row.amount} className="text-body-sm" />
                     <StatusPill status={row.status} />
                   </div>
                 </li>
@@ -276,7 +269,7 @@ export function WalletCenter() {
 
         <Card variant="glass" className="p-5 sm:p-6">
           <SectionHeader title="Recent withdrawals" as="h3" />
-          {sessionWithdrawals.length === 0 ? (
+          {withdrawals.length === 0 ? (
             <PremiumEmptyState
               className="py-8"
               variant="wallet"
@@ -285,14 +278,14 @@ export function WalletCenter() {
             />
           ) : (
             <ul className="mt-4 divide-y divide-line/70">
-              {sessionWithdrawals.slice(0, 4).map((row) => (
+              {withdrawals.slice(0, 4).map((row) => (
                 <li key={row.id} className="flex items-center justify-between gap-3 py-3">
                   <div className="min-w-0">
-                    <p className="truncate text-body-sm font-medium text-fg">{row.id}</p>
-                    <p className="text-caption text-fg-subtle">{formatDateTime(row.requestedAt)}</p>
+                    <p className="truncate text-body-sm font-medium text-fg">{row.reference}</p>
+                    <p className="text-caption text-fg-subtle">{formatDateTime(row.createdAt)}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Money value={row.amount as typeof DEMO_WALLET.availableBalance} className="text-body-sm" />
+                    <Money value={row.amount} className="text-body-sm" />
                     <StatusPill status={row.status} />
                   </div>
                 </li>
