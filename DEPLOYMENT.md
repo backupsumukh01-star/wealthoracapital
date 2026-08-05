@@ -11,6 +11,29 @@ No VPS, PM2, or Nginx is required. Render terminates TLS and injects `PORT`.
 
 ---
 
+## Critical: Render dashboard settings (fix build failures)
+
+If logs show:
+
+```text
+Running build command 'pnpm install && pnpm prisma generate && pnpm build'
+devDependencies: skipped because NODE_ENV is set to production
+postinstall: sh: 1: prisma: not found
+```
+
+the service is **not** using the Blueprint commands from `render.yaml`. Fix in Render → **growzy-api** → Settings:
+
+| Setting | Required value |
+|---------|----------------|
+| **Root Directory** | leave **empty** (repo root `.`) — do **not** use `apps/api` |
+| **Build Command** | see table below |
+| **Pre-Deploy Command** | `pnpm --filter @meridian/api run db:migrate:deploy` |
+| **Start Command** | `pnpm --filter @meridian/api start` |
+
+`prisma` / `tsup` are now **production dependencies** of `@meridian/api`, so installs still work even when Render sets `NODE_ENV=production`. Prefer `--prod=false` so the full workspace tooling installs cleanly.
+
+---
+
 ## Architecture
 
 | Service | Type | Role |
@@ -63,13 +86,26 @@ Copy the **Internal Database URL** into `DATABASE_URL` on the API (Blueprint wir
 | Runtime | Node |
 | Region | Oregon (or nearest) |
 | Root directory | `.` (repo root) |
-| Build command | `corepack enable && corepack prepare pnpm@9.15.0 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @meridian/api... build` |
-| Pre-deploy command | `pnpm --filter @meridian/api exec prisma migrate deploy` |
+| Build command | `corepack enable && corepack prepare pnpm@9.15.0 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @meridian/api run db:generate && pnpm --filter @meridian/api... build` |
+| Pre-deploy command | `pnpm --filter @meridian/api run db:migrate:deploy` |
 | Start command | `pnpm --filter @meridian/api start` |
 | Health check path | `/api/health` |
 | Instance | Starter+ |
 
-> **Important:** Always pass `--prod=false` (or unset `NODE_ENV` during install). Render sets `NODE_ENV=production`, which would otherwise skip `devDependencies` (Prisma CLI, TypeScript, tsup) and can surface as install/build failures. `--frozen-lockfile` requires `pnpm-lock.yaml` to match every `package.json` exactly — regenerate with `pnpm install` after dependency changes and commit the lockfile.
+> **Important:** Always pass `--prod=false` (or unset `NODE_ENV` during install). Render sets `NODE_ENV=production`, which would otherwise skip workspace `devDependencies`. `--frozen-lockfile` requires `pnpm-lock.yaml` to match every `package.json` — regenerate with `pnpm install` after dependency changes and commit the lockfile.
+
+### If Root Directory is `apps/api` (not recommended)
+
+Use these instead:
+
+| Setting | Value |
+|---------|--------|
+| Root Directory | `apps/api` |
+| Build Command | `corepack enable && pnpm install --prod=false && pnpm run render:build` |
+| Start Command | `pnpm start` |
+| Pre-Deploy | `pnpm run db:migrate:deploy` |
+
+Prefer repo-root deploys so `@meridian/shared` and the web app stay consistent.
 
 Equivalent root scripts:
 
@@ -85,7 +121,7 @@ pnpm render:start:api    # node dist/server.js — listens on process.env.PORT
 | Setting | Value |
 |---------|--------|
 | Runtime | Node |
-| Root directory | `.` |
+| Root directory | `.` (empty) |
 | Build command | `corepack enable && corepack prepare pnpm@9.15.0 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @meridian/web... build` |
 | Start command | `pnpm --filter @meridian/web start` |
 | Health check path | `/` |

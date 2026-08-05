@@ -77,9 +77,18 @@ importers:
       pino-http:
         specifier: ^10.4.0
         version: 10.5.0
+      prisma:
+        specifier: ^6.5.0
+        version: 6.19.3(typescript@5.9.3)
       prom-client:
         specifier: ^15.1.3
         version: 15.1.3
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.25)(tsx@4.23.5)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -120,24 +129,15 @@ importers:
       pino-pretty:
         specifier: ^13.0.0
         version: 13.1.3
-      prisma:
-        specifier: ^6.5.0
-        version: 6.19.3(typescript@5.9.3)
       rimraf:
         specifier: ^6.0.1
         version: 6.1.3
       supertest:
         specifier: ^7.2.2
         version: 7.2.2
-      tsup:
-        specifier: ^8.3.5
-        version: 8.5.1(jiti@2.7.0)(postcss@8.5.25)(tsx@4.23.5)(typescript@5.9.3)
       tsx:
         specifier: ^4.19.2
         version: 4.23.5
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.3
       typescript-eslint:
         specifier: ^8.21.0
         version: 8.66.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
@@ -252,6 +252,9 @@ importers:
       tailwind-merge:
         specifier: ^2.6.0
         version: 2.6.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -295,9 +298,6 @@ importers:
       tailwindcss:
         specifier: ^4.0.0
         version: 4.3.3
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.3
 
   packages/config:
     devDependencies:
