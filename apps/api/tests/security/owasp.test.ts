@@ -106,4 +106,19 @@ describe('Security — authz & injection surface', () => {
       expect(loc.startsWith('https://evil.example')).toBe(false)
     }
   })
+
+  it('investor cannot request platform-wide KYC report export', async () => {
+    const { agent } = await createActiveInvestor()
+    const res = await agent.post('/api/v1/reports/export').send({
+      type: 'KYC',
+      format: 'JSON',
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it('blocks public access to private upload prefixes', async () => {
+    const res = await request(app).get('/uploads/deposits/fake-proof.pdf')
+    expect(res.status).toBe(403)
+    expect(res.body.error?.code).toBe('FORBIDDEN')
+  })
 })

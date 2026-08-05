@@ -97,6 +97,8 @@ export const reportService = {
         from: input.from,
         to: input.to,
         status: input.filters?.status,
+        // Investor-scoped exports must never pull platform-wide rows.
+        userId: input.scope === 'INVESTOR' ? requestedById : input.filters?.userId,
       })
 
       let buffer: Buffer

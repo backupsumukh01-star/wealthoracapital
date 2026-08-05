@@ -93,8 +93,9 @@ export const profileService = {
     file: { originalname: string; mimetype: string; buffer: Buffer; size: number },
     context: { ip?: string | null; userAgent?: string | null },
   ) {
-    if (!file.mimetype.startsWith('image/')) {
-      throw badRequest('Avatar must be an image file.')
+    const allowedAvatarTypes = new Set(['image/jpeg', 'image/png', 'image/webp'])
+    if (!allowedAvatarTypes.has(file.mimetype)) {
+      throw badRequest('Avatar must be a JPEG, PNG, or WebP image.')
     }
     if (file.size > 2 * 1024 * 1024) {
       throw badRequest('Avatar must be 2MB or smaller.')

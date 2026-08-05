@@ -120,11 +120,13 @@ export function createApp() {
   })
 
   app.use('/uploads', (req, res, next) => {
-    // KYC objects are private — only signed/authenticated download routes may serve them.
-    if (req.path.replace(/\\/g, '/').startsWith('/kyc')) {
+    // Private categories — only signed/authenticated download routes may serve these.
+    const normalized = req.path.replace(/\\/g, '/')
+    const privatePrefixes = ['/kyc', '/deposits', '/reports', '/avatars']
+    if (privatePrefixes.some((prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`))) {
       res.status(403).json({
         success: false,
-        error: { code: 'FORBIDDEN', message: 'Private KYC file storage.' },
+        error: { code: 'FORBIDDEN', message: 'Private file storage.' },
         meta: createMeta(req.requestId),
       })
       return

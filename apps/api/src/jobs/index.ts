@@ -28,10 +28,20 @@ export function getLocalHandlers() {
 
 export function registerDefaultJobs(): void {
   jobQueue.register('cleanup-expired-sessions', async () => {
-    logger.debug('cleanup-expired-sessions job executed')
+    const { prisma } = await import('../database/prisma.js')
+    const result = await prisma.session.deleteMany({
+      where: { expiresAt: { lt: new Date() } },
+    })
+    logger.info({ deleted: result.count }, 'cleanup-expired-sessions completed')
   })
   jobQueue.register('cleanup-expired-tokens', async () => {
-    logger.debug('cleanup-expired-tokens job executed')
+    const { prisma } = await import('../database/prisma.js')
+    const result = await prisma.verificationToken.deleteMany({
+      where: {
+        OR: [{ expiresAt: { lt: new Date() } }, { usedAt: { not: null } }],
+      },
+    })
+    logger.info({ deleted: result.count }, 'cleanup-expired-tokens completed')
   })
   jobQueue.register('send-email', async (payload) => {
     logger.debug({ payload }, 'send-email job executed')

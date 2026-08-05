@@ -92,6 +92,7 @@ const STAFF_PERMISSION_MAP: Record<StaffRole, Permission[]> = {
   KYC: [
     PERMISSIONS['dashboard.view'],
     PERMISSIONS['users.view'],
+    // Profile-field edits only; role/staffRole changes are Super-Admin gated in service.
     PERMISSIONS['users.edit'],
     PERMISSIONS['activity.view'],
     PERMISSIONS['profile.view'],

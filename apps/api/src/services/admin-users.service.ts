@@ -1,9 +1,9 @@
-import type { Role, User, UserStatus } from '@prisma/client'
+import type { Role, StaffRole, User, UserStatus } from '@prisma/client'
 
 import { toPublicUser } from '../models/user.mapper.js'
 import { sessionRepository } from '../repositories/session.repository.js'
 import { userRepository, type UserListFilters } from '../repositories/user.repository.js'
-import { badRequest, notFound } from '../utils/errors.js'
+import { badRequest, forbidden, notFound } from '../utils/errors.js'
 import { storage } from './storage/index.js'
 import { activityService } from './activity.service.js'
 import { auditService } from './audit.service.js'
@@ -24,6 +24,32 @@ function snapshotUser(user: User) {
     kycStatus: user.kycStatus,
     emailVerified: user.emailVerifiedAt !== null,
     deletedAt: user.deletedAt?.toISOString() ?? null,
+  }
+}
+
+/** Higher number = more privilege. Used to stop lateral/vertical escalation. */
+function privilegeRank(user: { role: Role; staffRole: StaffRole | null }): number {
+  if (user.role === 'SUPER_ADMIN' || user.staffRole === 'SUPER_ADMIN') return 100
+  if (user.role === 'ADMIN' || user.staffRole === 'ADMIN') return 80
+  if (user.staffRole === 'FINANCE') return 60
+  if (user.staffRole === 'SUPPORT' || user.staffRole === 'KYC' || user.staffRole === 'CONTENT') {
+    return 40
+  }
+  if (user.staffRole === 'VIEWER') return 20
+  return 0
+}
+
+function assertCanManageTarget(
+  actor: { role: Role; staffRole: StaffRole | null },
+  target: { role: Role; staffRole: StaffRole | null },
+): void {
+  const actorRank = privilegeRank(actor)
+  const targetRank = privilegeRank(target)
+  if (targetRank === 0) return
+  // Super Admins may manage other staff, including peer Super Admins (self blocked elsewhere).
+  if (actorRank === 100) return
+  if (actorRank <= targetRank) {
+    throw forbidden('You cannot manage an account with equal or higher privilege.')
   }
 }
 
@@ -105,6 +131,29 @@ export const adminUsersService = {
       throw notFound('User not found.')
     }
 
+    const actor = await userRepository.findById(actorId)
+    if (!actor) {
+      throw forbidden('Actor not found.')
+    }
+
+    assertCanManageTarget(
+      { role: actor.role, staffRole: actor.staffRole },
+      { role: existing.role, staffRole: existing.staffRole },
+    )
+
+    const elevatingRole = patch.role !== undefined && patch.role !== existing.role
+    const elevatingStaff = patch.staffRole !== undefined && patch.staffRole !== existing.staffRole
+    if (elevatingRole || elevatingStaff) {
+      const actorIsSuper =
+        actor.role === 'SUPER_ADMIN' || actor.staffRole === 'SUPER_ADMIN'
+      if (!actorIsSuper) {
+        throw forbidden('Only Super Admin can change role or staffRole.')
+      }
+      if (patch.role === 'SUPER_ADMIN' || patch.staffRole === 'SUPER_ADMIN') {
+        // Already gated to Super Admin above.
+      }
+    }
+
     const updated = await userRepository.update(id, {
       ...(patch.firstName !== undefined ? { firstName: patch.firstName } : {}),
       ...(patch.lastName !== undefined ? { lastName: patch.lastName } : {}),
@@ -152,6 +201,15 @@ export const adminUsersService = {
     if (existing.id === actorId && (status === 'SUSPENDED' || status === 'BLOCKED' || status === 'CLOSED')) {
       throw badRequest('You cannot change your own account to this status.')
     }
+
+    const actor = await userRepository.findById(actorId)
+    if (!actor) {
+      throw forbidden('Actor not found.')
+    }
+    assertCanManageTarget(
+      { role: actor.role, staffRole: actor.staffRole },
+      { role: existing.role, staffRole: existing.staffRole },
+    )
 
     const updated = await userRepository.update(id, { status })
     await auditService.record({
@@ -204,6 +262,15 @@ export const adminUsersService = {
     if (existing.id === actorId) {
       throw badRequest('You cannot delete your own account.')
     }
+
+    const actor = await userRepository.findById(actorId)
+    if (!actor) {
+      throw forbidden('Actor not found.')
+    }
+    assertCanManageTarget(
+      { role: actor.role, staffRole: actor.staffRole },
+      { role: existing.role, staffRole: existing.staffRole },
+    )
 
     const updated = await userRepository.update(id, {
       deletedAt: new Date(),

@@ -22,15 +22,18 @@ export const notificationRepository = {
   },
 
   markRead(id: string, userId: string): Promise<Notification> {
-    return prisma.notification.update({
-      where: { id },
-      data: { readAt: new Date() },
-    }).then(async (row) => {
-      if (row.userId !== userId) {
-        throw new Error('Notification ownership mismatch')
-      }
-      return row
-    })
+    return prisma.notification
+      .updateMany({
+        where: { id, userId },
+        data: { readAt: new Date() },
+      })
+      .then(async (result) => {
+        if (result.count === 0) {
+          throw new Error('Notification ownership mismatch')
+        }
+        const row = await prisma.notification.findUniqueOrThrow({ where: { id } })
+        return row
+      })
   },
 
   listPaged(userId: string, options: { cursor?: string; unreadOnly?: boolean; take?: number }): Promise<Notification[]> {

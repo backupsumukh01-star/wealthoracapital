@@ -20,12 +20,29 @@ export async function fetchReportRows(
   params: { from?: string; to?: string; userId?: string; status?: string },
 ): Promise<ReportDataResult> {
   const range = dateRange(params)
+  const scopedUserId = params.userId
 
   switch (type) {
     case 'DAILY':
     case 'WEEKLY':
     case 'MONTHLY':
     case 'YEARLY': {
+      if (scopedUserId) {
+        const distributions = await prisma.profitDistribution.findMany({
+          where: { userId: scopedUserId, date: range },
+          orderBy: { date: 'asc' },
+        })
+        return {
+          title: `${type} Return Report`,
+          rows: distributions.map((r) => ({
+            date: r.date.toISOString().slice(0, 10),
+            returnPct: r.returnPct.toString(),
+            amount: moneyDisplay(r.amount),
+            eligibleBalance: moneyDisplay(r.eligibleBalance),
+            balanceAfter: moneyDisplay(r.balanceAfter),
+          })),
+        }
+      }
       const runs = await prisma.dailyReturnRun.findMany({
         where: { date: range },
         orderBy: { date: 'asc' },
@@ -45,7 +62,11 @@ export async function fetchReportRows(
     }
     case 'INVESTOR': {
       const users = await prisma.user.findMany({
-        where: { role: 'USER', createdAt: range },
+        where: {
+          role: 'USER',
+          createdAt: range,
+          ...(scopedUserId ? { id: scopedUserId } : {}),
+        },
         select: {
           id: true,
           email: true,
@@ -71,6 +92,43 @@ export async function fetchReportRows(
     }
     case 'PORTFOLIO':
     case 'PERFORMANCE': {
+      if (scopedUserId) {
+        const allocations = await prisma.tradeAllocation.findMany({
+          where: { userId: scopedUserId, trade: { tradeDate: range } },
+          include: {
+            trade: {
+              select: {
+                reference: true,
+                pair: true,
+                direction: true,
+                status: true,
+                outcome: true,
+                tradeDate: true,
+                returnPct: true,
+                profitAmount: true,
+                lossAmount: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 2000,
+        })
+        return {
+          title: `${type === 'PORTFOLIO' ? 'Portfolio' : 'Performance'} Report`,
+          rows: allocations.map((a) => ({
+            reference: a.trade.reference,
+            pair: a.trade.pair,
+            direction: a.trade.direction,
+            status: a.trade.status,
+            outcome: a.trade.outcome,
+            tradeDate: a.trade.tradeDate.toISOString().slice(0, 10),
+            allocatedAmount: moneyDisplay(a.allocatedAmount),
+            returnPct: a.trade.returnPct?.toString() ?? '',
+            profit: a.trade.profitAmount ? moneyDisplay(a.trade.profitAmount) : '',
+            loss: a.trade.lossAmount ? moneyDisplay(a.trade.lossAmount) : '',
+          })),
+        }
+      }
       const trades = await prisma.trade.findMany({
         where: { tradeDate: range },
         orderBy: { tradeDate: 'desc' },
@@ -93,8 +151,16 @@ export async function fetchReportRows(
     }
     case 'FINANCE': {
       const [deposits, withdrawals] = await Promise.all([
-        prisma.deposit.findMany({ where: { createdAt: range }, orderBy: { createdAt: 'desc' }, take: 2000 }),
-        prisma.withdrawal.findMany({ where: { createdAt: range }, orderBy: { createdAt: 'desc' }, take: 2000 }),
+        prisma.deposit.findMany({
+          where: { createdAt: range, ...(scopedUserId ? { userId: scopedUserId } : {}) },
+          orderBy: { createdAt: 'desc' },
+          take: 2000,
+        }),
+        prisma.withdrawal.findMany({
+          where: { createdAt: range, ...(scopedUserId ? { userId: scopedUserId } : {}) },
+          orderBy: { createdAt: 'desc' },
+          take: 2000,
+        }),
       ])
       return {
         title: 'Finance Report',
@@ -122,7 +188,7 @@ export async function fetchReportRows(
     }
     case 'KYC': {
       const submissions = await prisma.kycSubmission.findMany({
-        where: { createdAt: range },
+        where: { createdAt: range, ...(scopedUserId ? { userId: scopedUserId } : {}) },
         include: { user: { select: { email: true, firstName: true, lastName: true } } },
         orderBy: { createdAt: 'desc' },
         take: 2000,
@@ -142,7 +208,12 @@ export async function fetchReportRows(
     }
     case 'AUDIT': {
       const logs = await prisma.auditLog.findMany({
-        where: { createdAt: range },
+        where: {
+          createdAt: range,
+          ...(scopedUserId
+            ? { OR: [{ actorId: scopedUserId }, { targetUserId: scopedUserId }] }
+            : {}),
+        },
         orderBy: { createdAt: 'desc' },
         take: 2000,
       })

@@ -145,6 +145,19 @@ See `docs/audit/TECHNICAL_DEBT_REPORT.md` and scorecards.
 
 ---
 
-## Safe fixes included in this commit
+## Safe remediations after follow-up (post-audit)
 
-Documented above. Dangerous items left as recommendations only.
+Applied after [Audit security & auth](409c889e-ab32-4e64-935e-251c4d5182b2) / architecture / FinTech findings:
+
+| Finding | Status |
+|---------|--------|
+| Investor platform-wide report export | **Fixed** — investor export types restricted; rows scoped to caller |
+| Role/staffRole privilege escalation | **Fixed** — Super Admin only; privilege rank guards on update/status/delete |
+| SUPPORT suspend of higher privilege | **Fixed** — privilege rank guard |
+| Public `/uploads` for deposits/reports/avatars | **Fixed** — private prefixes blocked |
+| Notification markRead IDOR | **Fixed** — `updateMany` with ownership |
+| Avatar SVG | **Fixed** — JPEG/PNG/WebP only |
+| Session/token cleanup no-ops | **Fixed** — deletes expired rows |
+| CSRF / metrics / docs / ledger idempotency | Fixed in prior audit commit |
+
+Still open (dangerous / redesign — recommendations only): TLS, object storage, distribution atomicity, reversals, AV, fail-closed BullMQ.
