@@ -16,7 +16,7 @@ export const appConfig = {
     apiUrl: env.NEXT_PUBLIC_API_URL,
     siteUrl: env.NEXT_PUBLIC_SITE_URL,
     isDemo: process.env.NODE_ENV !== 'production',
-    routeGuardsEnabled: process.env.NEXT_PUBLIC_ENABLE_ROUTE_GUARDS !== 'false',
+    routeGuardsEnabled: env.NEXT_PUBLIC_ENABLE_ROUTE_GUARDS,
   },
   brand: BRAND,
   routes: ROUTES,

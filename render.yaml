@@ -40,13 +40,13 @@ services:
           name: growzy-db
           property: connectionString
       - key: APP_URL
-        sync: false
+        value: https://growzycapital.com
       - key: API_URL
-        sync: false
+        value: https://api.growzycapital.com
       - key: CORS_ORIGIN
-        sync: false
+        value: https://growzycapital.com
       - key: COOKIE_DOMAIN
-        sync: false
+        value: .growzycapital.com
       - key: COOKIE_SECURE
         value: "true"
       - key: JWT_ACCESS_SECRET
@@ -97,6 +97,8 @@ services:
         value: local
 
   # ── Next.js frontend ───────────────────────────────────────────────────────
+  # Must be a Web Service (NOT Static Site): App Router + middleware + SSR.
+  # Root Directory = repository root (empty). Do not set to apps/web.
   - type: web
     name: growzy-web
     runtime: node
@@ -112,14 +114,15 @@ services:
         value: "22"
       - key: NODE_ENV
         value: production
+      # Build-time public env (inlined into the Next.js bundle)
       - key: NEXT_PUBLIC_API_URL
-        sync: false
+        value: https://api.growzycapital.com/api/v1
       - key: NEXT_PUBLIC_SITE_URL
-        sync: false
+        value: https://growzycapital.com
       - key: NEXT_PUBLIC_PLATFORM_NAME
         value: Growzy
       - key: NEXT_PUBLIC_SUPPORT_EMAIL
-        sync: false
+        value: support@growzycapital.com
       - key: NEXT_PUBLIC_ENABLE_REFERRALS
         value: "false"
       - key: NEXT_PUBLIC_ENABLE_ROUTE_GUARDS

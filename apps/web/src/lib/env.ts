@@ -27,10 +27,14 @@ const publicEnvSchema = z.object({
         })
     : z.string().url().default('http://localhost:3000'),
   NEXT_PUBLIC_PLATFORM_NAME: z.string().min(1).default('Growzy'),
-  NEXT_PUBLIC_SUPPORT_EMAIL: z.string().email().default('support@growzy.com'),
+  NEXT_PUBLIC_SUPPORT_EMAIL: z.string().email().default('support@growzycapital.com'),
   NEXT_PUBLIC_ENABLE_REFERRALS: z
     .enum(['true', 'false'])
     .default('false')
+    .transform((value) => value === 'true'),
+  NEXT_PUBLIC_ENABLE_ROUTE_GUARDS: z
+    .enum(['true', 'false'])
+    .default('true')
     .transform((value) => value === 'true'),
 })
 
@@ -40,6 +44,7 @@ const parsed = publicEnvSchema.safeParse({
   NEXT_PUBLIC_PLATFORM_NAME: process.env.NEXT_PUBLIC_PLATFORM_NAME,
   NEXT_PUBLIC_SUPPORT_EMAIL: process.env.NEXT_PUBLIC_SUPPORT_EMAIL,
   NEXT_PUBLIC_ENABLE_REFERRALS: process.env.NEXT_PUBLIC_ENABLE_REFERRALS,
+  NEXT_PUBLIC_ENABLE_ROUTE_GUARDS: process.env.NEXT_PUBLIC_ENABLE_ROUTE_GUARDS,
 })
 
 if (!parsed.success) {
