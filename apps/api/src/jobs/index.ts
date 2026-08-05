@@ -1,72 +1,30 @@
+import { env } from '../config/env.js'
 import { logger } from '../utils/logger.js'
+import { BullmqJobQueue } from './bullmq-queue.js'
+import { registerRepeatableJobs } from './bullmq.js'
+import { InMemoryJobQueue } from './memory-queue.js'
 import { scheduler } from './scheduler.js'
+import type { JobName, JobPayloadMap, JobQueueDriver } from './types.js'
 
-export type JobName =
-  | 'send-email'
-  | 'cleanup-expired-sessions'
-  | 'cleanup-expired-tokens'
-  | 'daily-return-prepare'
-  | 'portfolio-snapshots'
-  | 'performance-recalculate'
-  | 'email-outbox-process'
-  | 'cms-scheduled-publish'
-  | 'broadcast-scheduled-send'
+export type { JobName, JobPayloadMap, Job } from './types.js'
 
-export interface JobPayloadMap {
-  'send-email': { to: string; template: string }
-  'cleanup-expired-sessions': Record<string, never>
-  'cleanup-expired-tokens': Record<string, never>
-  'daily-return-prepare': Record<string, never>
-  'portfolio-snapshots': Record<string, never>
-  'performance-recalculate': Record<string, never>
-  'email-outbox-process': Record<string, never>
-  'cms-scheduled-publish': Record<string, never>
-  'broadcast-scheduled-send': Record<string, never>
-}
+const memoryQueue = new InMemoryJobQueue()
 
-export interface Job<T extends JobName = JobName> {
-  name: T
-  payload: JobPayloadMap[T]
-  enqueuedAt: string
-}
-
-type JobHandler<T extends JobName> = (payload: JobPayloadMap[T]) => Promise<void>
-
-/**
- * In-process job runner for Phase 1.
- * Swap the implementation for Redis/BullMQ later without changing call sites.
- */
-class InMemoryJobQueue {
-  private readonly handlers = new Map<JobName, JobHandler<JobName>>()
-
-  register<T extends JobName>(name: T, handler: JobHandler<T>): void {
-    this.handlers.set(name, handler as JobHandler<JobName>)
+function createJobQueue(): JobQueueDriver {
+  if (env.JOB_DRIVER === 'bullmq' && env.REDIS_URL) {
+    logger.info('Using BullMQ job driver')
+    return new BullmqJobQueue(memoryQueue)
   }
-
-  async enqueue<T extends JobName>(name: T, payload: JobPayloadMap[T]): Promise<void> {
-    const job: Job<T> = {
-      name,
-      payload,
-      enqueuedAt: new Date().toISOString(),
-    }
-
-    const handler = this.handlers.get(name)
-    if (!handler) {
-      logger.warn({ job }, 'No handler registered for job')
-      return
-    }
-
-    try {
-      await handler(payload)
-      logger.info({ jobName: name }, 'Job completed')
-    } catch (error) {
-      logger.error({ error, jobName: name }, 'Job failed')
-      throw error
-    }
-  }
+  logger.info('Using in-memory job driver')
+  return memoryQueue
 }
 
-export const jobQueue = new InMemoryJobQueue()
+export const jobQueue = createJobQueue()
+
+/** Expose memory handlers for dedicated worker processes. */
+export function getLocalHandlers() {
+  return memoryQueue
+}
 
 export function registerDefaultJobs(): void {
   jobQueue.register('cleanup-expired-sessions', async () => {
@@ -97,7 +55,6 @@ export function registerDefaultJobs(): void {
     await performanceService.recalculateGlobal()
     logger.info('performance-recalculate completed')
   })
-
   jobQueue.register('email-outbox-process', async () => {
     const { emailOutboxService } = await import('../services/email/email-outbox.service.js')
     const result = await emailOutboxService.processQueue()
@@ -113,28 +70,45 @@ export function registerDefaultJobs(): void {
     const count = await broadcastService.processScheduled()
     if (count > 0) logger.info({ count }, 'broadcast-scheduled-send completed')
   })
+  jobQueue.register('generate-report', async (payload) => {
+    logger.info({ payload }, 'generate-report job placeholder')
+  })
+  jobQueue.register('send-notification', async (payload) => {
+    const { notificationService } = await import('../services/notification.service.js')
+    await notificationService.notify({
+      userId: payload.userId,
+      title: payload.title,
+      body: payload.body,
+    })
+  })
 
-  // Scheduler abstraction (no BullMQ) — 24h cadence placeholders
+  if (env.JOB_DRIVER === 'bullmq' && env.REDIS_URL) {
+    void registerRepeatableJobs().catch((error) => {
+      logger.warn({ error }, 'Failed to register BullMQ repeatable jobs; using in-process scheduler')
+      registerInProcessScheduler()
+    })
+  } else {
+    registerInProcessScheduler()
+  }
+}
+
+function registerInProcessScheduler(): void {
   const dayMs = 24 * 60 * 60 * 1000
   const minuteMs = 60 * 1000
-  scheduler.register('daily-return-prepare', dayMs, async () => {
-    await jobQueue.enqueue('daily-return-prepare', {})
-  })
-  scheduler.register('portfolio-snapshots', dayMs, async () => {
-    await jobQueue.enqueue('portfolio-snapshots', {})
-  })
-  scheduler.register('performance-recalculate', dayMs, async () => {
-    await jobQueue.enqueue('performance-recalculate', {})
-  })
+  const hourMs = 60 * 60 * 1000
 
-  // Phase 6 — short-cadence pollers for outbox delivery + scheduled publishing.
-  scheduler.register('email-outbox-process', minuteMs, async () => {
-    await jobQueue.enqueue('email-outbox-process', {})
-  })
-  scheduler.register('cms-scheduled-publish', minuteMs, async () => {
-    await jobQueue.enqueue('cms-scheduled-publish', {})
-  })
-  scheduler.register('broadcast-scheduled-send', minuteMs, async () => {
-    await jobQueue.enqueue('broadcast-scheduled-send', {})
-  })
+  const schedule = (name: JobName, intervalMs: number) => {
+    scheduler.register(name, intervalMs, async () => {
+      await jobQueue.enqueue(name, {} as JobPayloadMap[typeof name])
+    })
+  }
+
+  schedule('daily-return-prepare', dayMs)
+  schedule('portfolio-snapshots', dayMs)
+  schedule('performance-recalculate', dayMs)
+  schedule('email-outbox-process', minuteMs)
+  schedule('cms-scheduled-publish', minuteMs)
+  schedule('broadcast-scheduled-send', minuteMs)
+  schedule('cleanup-expired-sessions', hourMs)
+  schedule('cleanup-expired-tokens', hourMs)
 }

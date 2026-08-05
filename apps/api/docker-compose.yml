@@ -1,21 +1,9 @@
+# Local API dependencies (legacy). Prefer root:
+#   docker compose up -d
+# for Postgres + Redis during development.
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: growzy-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: meridian
-      POSTGRES_PASSWORD: meridian
-      POSTGRES_DB: meridian
+  redis:
+    image: redis:7-alpine
     ports:
-      - "5432:5432"
-    volumes:
-      - growzy_pg_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U meridian -d meridian"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-volumes:
-  growzy_pg_data:
+      - '6379:6379'
+    command: ['redis-server', '--appendonly', 'yes']

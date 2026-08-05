@@ -1,0 +1,24 @@
+# Growzy monorepo Docker context
+node_modules
+**/node_modules
+.git
+.github
+.next
+**/dist
+**/coverage
+**/.turbo
+**/*.md
+!README.md
+.env
+.env.*
+!.env.example
+uploads
+backups
+logs
+playwright-report
+test-results
+_tmp_premium_extract
+apps/web/.next
+apps/api/coverage
+packages/shared/coverage
+*.log

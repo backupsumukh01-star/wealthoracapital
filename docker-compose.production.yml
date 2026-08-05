@@ -1,0 +1,94 @@
+# Production stack
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - prod_pg:/var/lib/postgresql/data
+      - ./backups/postgres:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes:
+      - prod_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    env_file: [.env.production]
+    environment:
+      NODE_ENV: production
+      APP_ENV: production
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      CACHE_DRIVER: redis
+      JOB_DRIVER: bullmq
+      RATE_LIMIT_STORE: redis
+      REDIS_REQUIRED: "true"
+      COOKIE_SECURE: "true"
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    expose:
+      - "4000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile.worker
+    restart: unless-stopped
+    env_file: [.env.production]
+    environment:
+      NODE_ENV: production
+      APP_ENV: production
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      JOB_DRIVER: bullmq
+      CACHE_DRIVER: redis
+      WORKER_GROUP: all
+      WORKER_CONCURRENCY: "4"
+    depends_on:
+      - redis
+      - postgres
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+    expose:
+      - "3000"
+    depends_on:
+      - api
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+      - web
+
+volumes:
+  prod_pg:
+  prod_redis:

@@ -3,10 +3,13 @@ import { env } from './config/env.js'
 import { connectDatabase, disconnectDatabase } from './database/prisma.js'
 import { DEFAULT_EMAIL_TEMPLATES } from './emails/default-templates.js'
 import { registerDefaultJobs } from './jobs/index.js'
+import { captureException, initSentry } from './observability/sentry.js'
 import { emailTemplateService } from './services/email/email-template.service.js'
+import { disconnectRedis } from './services/redis/client.js'
 import { logger } from './utils/logger.js'
 
 async function bootstrap(): Promise<void> {
+  await initSentry()
   registerDefaultJobs()
   await connectDatabase()
 
@@ -14,6 +17,7 @@ async function bootstrap(): Promise<void> {
     await emailTemplateService.ensureSeeded(DEFAULT_EMAIL_TEMPLATES)
   } catch (error) {
     logger.error({ error }, 'Failed to seed default email templates')
+    captureException(error)
   }
 
   const app = createApp()
@@ -23,6 +27,8 @@ async function bootstrap(): Promise<void> {
         port: env.PORT,
         env: env.NODE_ENV,
         apiUrl: env.API_URL,
+        jobDriver: env.JOB_DRIVER,
+        cacheDriver: env.CACHE_DRIVER,
       },
       'Growzy API listening',
     )
@@ -42,8 +48,9 @@ async function bootstrap(): Promise<void> {
       }
       try {
         await disconnectDatabase()
+        await disconnectRedis()
       } catch (disconnectError) {
-        logger.error({ error: disconnectError }, 'Error while disconnecting database')
+        logger.error({ error: disconnectError }, 'Error while disconnecting')
       }
       process.exit(error ? 1 : 0)
     })
@@ -62,9 +69,11 @@ async function bootstrap(): Promise<void> {
   })
   process.on('unhandledRejection', (reason) => {
     logger.error({ reason }, 'Unhandled promise rejection')
+    captureException(reason)
   })
   process.on('uncaughtException', (error) => {
     logger.fatal({ error }, 'Uncaught exception')
+    captureException(error)
     void shutdown('uncaughtException')
   })
 }

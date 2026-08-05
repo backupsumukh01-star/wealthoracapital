@@ -5,6 +5,7 @@ loadDotenv()
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  APP_ENV: z.enum(['development', 'staging', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
   APP_NAME: z.string().min(1).default('Growzy'),
   APP_URL: z.string().url().default('http://localhost:3000'),
@@ -55,7 +56,19 @@ const envSchema = z.object({
   UPLOAD_ROOT: z.string().min(1).default('./uploads'),
   STORAGE_DRIVER: z.enum(['local']).default('local'),
   REDIS_URL: z.string().optional().default(''),
+  REDIS_REQUIRED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
   CACHE_DRIVER: z.enum(['memory', 'redis']).default('memory'),
+  JOB_DRIVER: z.enum(['memory', 'bullmq']).default('memory'),
+  RATE_LIMIT_STORE: z.enum(['memory', 'redis']).default('memory'),
+  SENTRY_DSN: z.string().optional().default(''),
+  SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0),
+  METRICS_ENABLED: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
 })
 
 export type Env = z.infer<typeof envSchema>

@@ -6,7 +6,8 @@ export const logger = pino({
   level: env.LOG_LEVEL,
   base: {
     service: 'growzy-api',
-    env: env.NODE_ENV,
+    env: env.APP_ENV,
+    nodeEnv: env.NODE_ENV,
   },
   timestamp: pino.stdTimeFunctions.isoTime,
   ...(isDevelopment

@@ -5,9 +5,10 @@ import helmet from 'helmet'
 import path from 'node:path'
 import { pinoHttp } from 'pino-http'
 
-import { env, getCorsOrigins } from './config/env.js'
+import { env, getCorsOrigins, isProduction } from './config/env.js'
 import { errorHandler, notFoundHandler } from './middlewares/error-handler.js'
 import { globalRateLimiter } from './middlewares/rate-limit.js'
+import { metricsMiddleware } from './middlewares/metrics.js'
 import { requestIdMiddleware } from './middlewares/request-id.js'
 import { sanitizeRequest } from './middlewares/sanitize.js'
 import { createApiRouter } from './routes/index.js'
@@ -30,6 +31,9 @@ export function createApp() {
       autoLogging: {
         ignore: (req) =>
           req.url === '/api/health' ||
+          req.url === '/api/health/live' ||
+          req.url === '/api/health/ready' ||
+          req.url === '/api/metrics' ||
           Boolean(req.url?.startsWith('/api/docs')) ||
           req.url === '/api/redoc',
       },
@@ -62,8 +66,18 @@ export function createApp() {
           'connect-src': ["'self'"],
           'worker-src': ["'self'", 'blob:'],
           'frame-src': ["'self'"],
+          ...(isProduction
+            ? {
+                'upgrade-insecure-requests': [],
+              }
+            : {}),
         },
       },
+      hsts: isProduction
+        ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+        : false,
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      permittedCrossDomainPolicies: { permittedPolicies: 'none' },
     }),
   )
   app.use(
@@ -84,6 +98,7 @@ export function createApp() {
   app.use(express.urlencoded({ extended: false }))
   app.use(cookieParser())
   app.use(sanitizeRequest)
+  app.use(metricsMiddleware)
   app.use(globalRateLimiter)
 
   app.get('/', (req, res) => {

@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsup'
 
 export default defineConfig({
-  entry: ['src/server.ts'],
+  entry: ['src/server.ts', 'src/worker.ts'],
   format: ['esm'],
   target: 'node22',
   outDir: 'dist',
@@ -13,17 +13,21 @@ export default defineConfig({
   noExternal: ['@meridian/shared'],
   external: [
     '@prisma/client',
+    '@sentry/node',
     'bcrypt',
+    'bullmq',
     'cookie-parser',
     'cors',
     'dotenv',
     'express',
     'express-rate-limit',
     'helmet',
+    'ioredis',
     'jsonwebtoken',
     'pino',
     'pino-http',
     'pino-pretty',
+    'prom-client',
     'uuid',
     'zod',
   ],
