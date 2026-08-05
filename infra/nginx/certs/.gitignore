@@ -1,0 +1,4 @@
+# Keep real certificates out of git. See README.md for placement.
+*
+!.gitignore
+!README.md

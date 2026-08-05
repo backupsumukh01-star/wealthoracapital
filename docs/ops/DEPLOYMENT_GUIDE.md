@@ -6,8 +6,10 @@ Growzy production deployment uses Docker Compose with PostgreSQL, Redis, API, wo
 
 - Docker Engine 24+ and Compose v2
 - DNS pointing at the host
-- TLS certificates (terminate at Nginx or a load balancer)
+- TLS certificates under `infra/nginx/certs/` (`fullchain.pem`, `privkey.pem`) — see that folder’s README
 - Secrets prepared from `env.production.example`
+
+Nginx listens on **443 with TLS** and redirects HTTP→HTTPS. HSTS is enabled on the HTTPS server only.
 
 ## Environments
 
