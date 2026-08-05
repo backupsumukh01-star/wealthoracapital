@@ -4,13 +4,13 @@ Generated: 2026-08-05
 
 ## P0 — Address before scale / large AUM
 
-| Debt | Location | Risk | Suggested direction |
-|------|----------|------|---------------------|
-| Distribution not single-transaction / weak resume | `distribution.service.ts` | Double-pay / stuck FAILED | Redesign with saga + row locks + resume |
-| No profit reversal engine | schema flags only | Manual repair | Implement compensating ledger posts |
-| Local storage only | `STORAGE_DRIVER=local` | Data loss / no HA | S3/MinIO adapter |
-| TLS incomplete | `infra/nginx` | MITM / trust | Certs + HTTPS server block |
-| bcrypt→tar critical advisory | lockfile | Supply chain | Override / upgrade toolchain |
+| Debt | Location | Risk | Suggested direction | Status |
+|------|----------|------|---------------------|--------|
+| Distribution not single-transaction / weak resume | `distribution.service.ts` | Double-pay / stuck FAILED | Resume + date/basis guard + per-line txn | **Mitigated** |
+| No profit reversal engine | schema flags only | Manual repair | Compensating ledger posts (future) | Open (guarded) |
+| Local storage only | `STORAGE_DRIVER` | Data loss / no HA | S3/MinIO adapter | **S3 driver available** |
+| TLS incomplete | `infra/nginx` | MITM / trust | Certs + HTTPS server block | **Fixed** (compose) |
+| bcrypt→tar critical advisory | lockfile | Supply chain | Override / upgrade toolchain | **Fixed** |
 
 ## P1 — Next sprint
 

@@ -65,13 +65,13 @@ Assumptions: ~4 vCPU / 8 GB single host; Redis cache on; 1 API + 1 worker; ~70% 
 
 ## Critical issues (remaining / accepted risk)
 
-| ID | Issue | Area |
-|----|-------|------|
-| C1 | TLS incomplete — Nginx listens HTTP only; prod maps 443 without certs | Infra |
-| C2 | Local file storage — no shared/object store; multi-API scale unsafe | Infra |
-| C3 | Daily distribution not fully atomic / hard to resume on `FAILED` | FinTech |
-| C4 | Profit/trade reversal paths largely unimplemented | FinTech |
-| C5 | Transitive **critical** `tar` advisory via `bcrypt` → `node-pre-gyp` | Dependencies |
+| ID | Issue | Area | Status (2026-08-05 follow-up) |
+|----|-------|------|-------------------------------|
+| C1 | TLS incomplete — Nginx listens HTTP only; prod maps 443 without certs | Infra | **Fixed** — HTTPS server + cert mount; HTTP→HTTPS redirect; HSTS on TLS |
+| C2 | Local file storage — no shared/object store; multi-API scale unsafe | Infra | **Fixed** — `STORAGE_DRIVER=s3` (S3/MinIO/R2) + stream downloads; local remains default |
+| C3 | Daily distribution not fully atomic / hard to resume on `FAILED` | FinTech | **Fixed** — resume same idempotency key; block alternate keys; credit+row same txn |
+| C4 | Profit/trade reversal paths largely unimplemented | FinTech | **Mitigated** — no fake reverse API; conflict copy states reversal unavailable (manual ops) |
+| C5 | Transitive **critical** `tar` advisory via `bcrypt` → `node-pre-gyp` | Dependencies | **Fixed** — `bcrypt@6` + `pnpm.overrides` tar≥7.5.19; CI fails on critical audit |
 
 ## High issues
 
@@ -160,4 +160,4 @@ Applied after [Audit security & auth](409c889e-ab32-4e64-935e-251c4d5182b2) / ar
 | Session/token cleanup no-ops | **Fixed** — deletes expired rows |
 | CSRF / metrics / docs / ledger idempotency | Fixed in prior audit commit |
 
-Still open (dangerous / redesign — recommendations only): TLS, object storage, distribution atomicity, reversals, AV, fail-closed BullMQ.
+Still open (dangerous / redesign — recommendations only): AV scanning, fail-closed BullMQ, full profit reversal engine, offsite backups.
