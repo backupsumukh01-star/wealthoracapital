@@ -1,4 +1,10 @@
 import type { NextConfig } from 'next'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const appDir = path.dirname(fileURLToPath(import.meta.url))
+/** Monorepo root — required so standalone traces workspace packages correctly. */
+const tracingRoot = path.join(appDir, '../..')
 
 /**
  * Security headers for the Next.js app. In production these complement the
@@ -31,6 +37,8 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   output: 'standalone',
+  // Emit standalone under .next/standalone/apps/web for this monorepo layout.
+  outputFileTracingRoot: tracingRoot,
 
   productionBrowserSourceMaps: false,
 

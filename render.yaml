@@ -105,6 +105,8 @@ services:
     plan: starter
     region: oregon
     rootDir: .
+    # Build runs next build + prepare-standalone (copies static/public into .next/standalone).
+    # Start uses node …/server.js via apps/web scripts/start-production.mjs — not `next start`.
     buildCommand: corepack enable && corepack prepare pnpm@9.15.0 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @meridian/web... build
     startCommand: pnpm --filter @meridian/web start
     healthCheckPath: /

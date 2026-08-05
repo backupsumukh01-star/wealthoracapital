@@ -129,8 +129,11 @@ pnpm render:start:api    # node dist/server.js — listens on process.env.PORT
 ```bash
 pnpm install --frozen-lockfile --prod=false
 pnpm render:build:web
-pnpm render:start:web    # next start -H 0.0.0.0 -p $PORT
+pnpm render:start:web    # node .next/standalone/apps/web/server.js (HOSTNAME=0.0.0.0, PORT)
 ```
+
+`@meridian/web` uses Next.js `output: 'standalone'`. The build copies `.next/static` and `public` into the standalone tree; **do not** use `next start` (it warns and is unsupported with standalone).
+
 `NEXT_PUBLIC_*` variables are inlined at **build** time — set them before the first web build (or clear build cache after changing them).
 
 ---
