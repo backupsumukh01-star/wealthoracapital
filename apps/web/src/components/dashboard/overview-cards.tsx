@@ -15,10 +15,28 @@ import { Percent } from '@/components/common/percent'
 import { StatCard } from '@/components/common/stat-card'
 import { CountUp } from '@/components/motion/count-up'
 import { StaggerGroup, StaggerItem } from '@/components/motion/stagger-group'
-import { DEMO_WALLET } from '@/lib/dashboard-data'
+import { useWalletSummary } from '@/features/wallet/hooks'
+import { useSession } from '@/providers/session-provider'
 
-/** Portfolio KPIs for the investor home. */
+/** Portfolio KPIs for the investor home — live wallet summary. */
 export function OverviewCards() {
+  const { session } = useSession()
+  const { data: summary } = useWalletSummary({ enabled: Boolean(session) })
+  const wallet = summary?.wallet ?? session?.wallet
+  const investedAmount = wallet?.investedAmount ?? '0.00'
+  const balance = wallet?.availableBalance ?? '0.00'
+  const availableBalance = wallet?.availableBalance ?? '0.00'
+  const totalProfit = wallet?.totalProfit ?? '0.00'
+  const totalDeposited = wallet?.totalDeposited ?? '0.00'
+  const pendingDeposit = '0.00'
+  const totalWithdrawn = wallet?.totalWithdrawn ?? '0.00'
+  const todayProfit = summary?.today.profit ?? '0.00'
+  const todayReturnPct = summary?.today.returnPct ?? '0.00'
+  const totalRoiPct =
+    wallet && Number(wallet.totalDeposited) > 0
+      ? ((Number(wallet.totalProfit) / Number(wallet.totalDeposited)) * 100).toFixed(2)
+      : '0.00'
+
   return (
     <StaggerGroup className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       <StaggerItem>
@@ -28,7 +46,7 @@ export function OverviewCards() {
           hint="Invested capital currently participating in the programme."
           value={
             <CountUp
-              value={DEMO_WALLET.investedAmount}
+              value={investedAmount}
               prefix="$"
               decimals={2}
               className="text-stat-lg text-fg"
@@ -36,7 +54,7 @@ export function OverviewCards() {
           }
           delta={
             <span>
-              Wallet <Money value={DEMO_WALLET.balance} size="sm" />
+              Wallet <Money value={balance} size="sm" />
             </span>
           }
         />
@@ -49,7 +67,7 @@ export function OverviewCards() {
           hint="Spendable balance after pending withdrawal locks."
           value={
             <CountUp
-              value={DEMO_WALLET.availableBalance}
+              value={availableBalance}
               prefix="$"
               decimals={2}
               className="text-stat-lg text-fg"
@@ -57,7 +75,7 @@ export function OverviewCards() {
           }
           delta={
             <span>
-              Locked <Money value={DEMO_WALLET.lockedBalance} size="sm" />
+              Locked <Money value={wallet?.lockedBalance ?? '0.00'} size="sm" />
             </span>
           }
         />
@@ -68,8 +86,8 @@ export function OverviewCards() {
           label="Today’s return"
           icon={TrendingUp}
           hint="The daily return applied to your eligible balance."
-          value={<Money value={DEMO_WALLET.todayProfit} signed />}
-          delta={<Percent value={DEMO_WALLET.todayReturnPct} showArrow />}
+          value={<Money value={todayProfit} signed />}
+          delta={<Percent value={todayReturnPct} showArrow />}
         />
       </StaggerItem>
 
@@ -80,13 +98,13 @@ export function OverviewCards() {
           hint="Lifetime realised profit credited to your wallet."
           value={
             <CountUp
-              value={DEMO_WALLET.totalProfit}
+              value={totalProfit}
               prefix="$"
               decimals={2}
               className="text-stat-lg text-profit"
             />
           }
-          delta={<Percent value={DEMO_WALLET.totalRoiPct} showArrow />}
+          delta={<Percent value={totalRoiPct} showArrow />}
         />
       </StaggerItem>
 
@@ -95,10 +113,10 @@ export function OverviewCards() {
           label="Total deposits"
           icon={ArrowDownToLine}
           hint="Lifetime approved deposits."
-          value={<Money value={DEMO_WALLET.totalDeposited} />}
+          value={<Money value={totalDeposited} />}
           delta={
             <span>
-              Pending <Money value={DEMO_WALLET.pendingDeposit} size="sm" />
+              Pending <Money value={pendingDeposit} size="sm" />
             </span>
           }
         />
@@ -109,11 +127,11 @@ export function OverviewCards() {
           label="Total withdrawals"
           icon={ArrowUpFromLine}
           hint="Lifetime paid withdrawals."
-          value={<Money value={DEMO_WALLET.totalWithdrawn} />}
+          value={<Money value={totalWithdrawn} />}
           delta={
             <span className="inline-flex items-center gap-1 text-fg-muted">
               <ChartNoAxesCombined className="size-3.5" aria-hidden />
-              30d <Percent value={DEMO_WALLET.growthPct30d} />
+              Lifetime
             </span>
           }
         />

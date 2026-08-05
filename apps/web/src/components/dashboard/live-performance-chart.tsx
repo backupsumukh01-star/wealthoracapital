@@ -13,8 +13,9 @@ import {
 
 import { GlowPanel } from '@/components/dashboard/glow-panel'
 import { Money } from '@/components/common/money'
-import { Percent } from '@/components/common/percent'
-import { GROWTH_CHART, DEMO_WALLET, type ChartRange } from '@/lib/dashboard-data'
+import type { ChartRange } from '@/lib/dashboard-data'
+import { useWalletSummary } from '@/features/wallet/hooks'
+import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
 
 const RANGES: { id: ChartRange; label: string }[] = [
@@ -52,16 +53,32 @@ function ChartTooltip({
 
 /** TradingView-style live equity chart. */
 export function LivePerformanceChart() {
+  const { session } = useSession()
+  const { data: summary } = useWalletSummary({ enabled: Boolean(session) })
   const [range, setRange] = useState<ChartRange>('1M')
+  const wallet = summary?.wallet ?? session?.wallet
+  const chartPoints = summary?.chart?.points
 
-  const data = useMemo(
-    () =>
-      GROWTH_CHART[range].map((point) => ({
-        ...point,
-        balanceNum: Number(point.balance),
-      })),
-    [range],
-  )
+  const data = useMemo(() => {
+    if (chartPoints && chartPoints.length > 0) {
+      return chartPoints.map((p) => ({
+        date: p.date,
+        balance: p.balance,
+        balanceNum: Number(p.balance),
+        profit: p.profit,
+      }))
+    }
+    if (!wallet) return []
+    return [
+      { date: 'Start', balance: '0.00', balanceNum: 0, profit: '0.00' },
+      {
+        date: 'Now',
+        balance: wallet.availableBalance,
+        balanceNum: Number(wallet.availableBalance),
+        profit: summary?.today.profit ?? '0.00',
+      },
+    ]
+  }, [wallet, chartPoints, summary?.today.profit])
 
   return (
     <GlowPanel glow={false} className="h-full group/chart">
@@ -69,8 +86,7 @@ export function LivePerformanceChart() {
         <div>
           <p className="text-overline text-accent-300">Live performance</p>
           <div className="mt-2 flex flex-wrap items-baseline gap-3">
-            <Money value={DEMO_WALLET.balance} size="lg" />
-            <Percent value={DEMO_WALLET.growthPct30d} showArrow className="text-body-sm" />
+            <Money value={wallet?.availableBalance ?? '0.00'} size="lg" />
           </div>
         </div>
 
@@ -100,6 +116,11 @@ export function LivePerformanceChart() {
       </div>
 
       <div className="mt-5 h-[220px] w-full min-w-0 overflow-hidden transition-[filter] duration-500 group-hover/chart:drop-shadow-[0_0_28px_rgba(18,214,160,0.22)] sm:h-[280px]">
+        {data.length === 0 ? (
+          <div className="grid h-full place-items-center text-body-sm text-fg-subtle">
+            No performance data yet.
+          </div>
+        ) : (
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
             <defs>
@@ -143,6 +164,7 @@ export function LivePerformanceChart() {
             />
           </AreaChart>
         </ResponsiveContainer>
+        )}
       </div>
     </GlowPanel>
   )

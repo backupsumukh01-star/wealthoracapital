@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { BadgeCheck, Sparkles } from 'lucide-react'
 import { motion } from 'framer-motion'
 
-import { DEMO_PROFILE } from '@/lib/dashboard-data'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { useSession } from '@/providers/session-provider'
 import { useAdminOs } from '@/providers/admin-os-provider'
@@ -25,7 +24,8 @@ export function WelcomeSection({ className }: { className?: string }) {
   const { state, ready } = useAdminOs()
   const prefersReducedMotion = usePrefersReducedMotion()
   const [visible, setVisible] = useState(false)
-  const name = session?.user.firstName ?? DEMO_PROFILE.firstName
+  const name = session?.user.firstName ?? 'Investor'
+  const verified = session?.user.kycStatus === 'APPROVED'
   const greeting = useMemo(() => greetingForHour(new Date().getHours()), [])
   const cms = ready ? state.platformCms.dashboard : null
 
@@ -68,10 +68,12 @@ export function WelcomeSection({ className }: { className?: string }) {
             {cms?.welcomeSubtitle ??
               'Your Growzy Wealth desk is live. Capital is under active management — review returns, settle deposits, or message support anytime.'}
           </p>
-          <p className="mt-2.5 inline-flex items-center gap-1.5 text-caption text-profit">
-            <BadgeCheck className="size-3.5" aria-hidden />
-            Verified investor · {DEMO_PROFILE.plan} plan
-          </p>
+          {verified ? (
+            <p className="mt-2.5 inline-flex items-center gap-1.5 text-caption text-profit">
+              <BadgeCheck className="size-3.5" aria-hidden />
+              Verified investor
+            </p>
+          ) : null}
         </div>
         <button
           type="button"

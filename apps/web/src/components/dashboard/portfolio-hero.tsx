@@ -3,18 +3,17 @@
 import Link from 'next/link'
 import { ROUTES } from '@meridian/shared'
 import { ArrowDownToLine, ArrowUpFromLine } from 'lucide-react'
-import { motion, animate } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 
 import { GlowPanel } from '@/components/dashboard/glow-panel'
-import { LiveReturnBadge } from '@/components/dashboard/live-return-badge'
 import { Money } from '@/components/common/money'
+import { Percent } from '@/components/common/percent'
 import { AnimatedNumber } from '@/components/motion/animated-number'
 import { Button } from '@/components/ui/button'
-import { useLiveDrift } from '@/hooks/use-live-drift'
-import { DEMO_PROFILE, DEMO_WALLET, MONTHLY_PROFIT } from '@/lib/dashboard-data'
+import { useWalletSummary } from '@/features/wallet/hooks'
+import { accountAccessMessage, canTransact } from '@/lib/account-access'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
 
 function greetingForHour(hour: number) {
@@ -23,53 +22,7 @@ function greetingForHour(hour: number) {
   return 'Good Evening'
 }
 
-function LivePortfolioBalance({ base }: { base: string }) {
-  const prefersReducedMotion = usePrefersReducedMotion()
-  const target = Number(base)
-  const [seeded, setSeeded] = useState(prefersReducedMotion)
-  const [boot, setBoot] = useState(prefersReducedMotion ? target : 0)
-  const live = useLiveDrift(target, {
-    intervalMs: 3200,
-    maxDelta: 0.38,
-    decimals: 2,
-    startAfterMs: 200,
-    enabled: seeded && !prefersReducedMotion,
-  })
-
-  useEffect(() => {
-    if (prefersReducedMotion) {
-      setBoot(target)
-      setSeeded(true)
-      return
-    }
-    const controls = animate(0, target, {
-      duration: 1.15,
-      ease: [0.16, 1, 0.3, 1],
-      onUpdate: setBoot,
-      onComplete: () => setSeeded(true),
-    })
-    return () => controls.stop()
-  }, [prefersReducedMotion, target])
-
-  if (!seeded) {
-    const formatted = new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(boot)
-    return (
-      <span data-numeric className="tabular-nums text-inherit">
-        <span aria-hidden>${formatted}</span>
-        <span className="sr-only">${target.toFixed(2)}</span>
-      </span>
-    )
-  }
-
-  return (
-    <AnimatedNumber value={live} prefix="$" decimals={2} duration={0.75} className="text-inherit" />
-  )
-}
-
-/** Above-the-fold portfolio hero — the number is the product. */
+/** Above-the-fold portfolio hero — balances from GET /wallet/summary. */
 export function PortfolioHero({
   onDeposit,
   onWithdraw,
@@ -80,19 +33,21 @@ export function PortfolioHero({
   const prefersReducedMotion = usePrefersReducedMotion()
   const hour = new Date().getHours()
   const greeting = greetingForHour(hour)
+  const { session } = useSession()
+  const { data: summary } = useWalletSummary({ enabled: Boolean(session) })
 
-  const { session, canDeposit, accountStatus } = useInvestorLifecycle()
-  const wallet = session?.wallet
-  const balance = wallet?.availableBalance ?? DEMO_WALLET.balance
-  const todayProfit = wallet?.todayProfit ?? DEMO_WALLET.todayProfit
-  const totalProfit = wallet?.totalProfit ?? DEMO_WALLET.totalProfit
-  const invested = wallet?.investedAmount ?? DEMO_WALLET.investedAmount
-  const available = wallet?.availableBalance ?? DEMO_WALLET.availableBalance
-  const pendingDep = wallet?.pendingDeposit ?? DEMO_WALLET.pendingDeposit
-  const pendingWdr = wallet?.pendingWithdrawal ?? DEMO_WALLET.pendingWithdrawal
-  const name = session
-    ? `${session.firstName}`
-    : DEMO_PROFILE.firstName
+  const wallet = summary?.wallet ?? session?.wallet
+  const balance = wallet?.availableBalance ?? '0.00'
+  const todayProfit = summary?.today.profit ?? '0.00'
+  const totalProfit = wallet?.totalProfit ?? '0.00'
+  const invested = wallet?.investedAmount ?? '0.00'
+  const available = wallet?.availableBalance ?? '0.00'
+  const pendingDep = '0.00'
+  const pendingWdr = wallet?.lockedBalance ?? '0.00'
+  const todayReturnPct = summary?.today.returnPct ?? '0.00'
+  const name = session?.user.firstName ?? 'Investor'
+  const allowed = canTransact(session?.user.kycStatus)
+  const access = accountAccessMessage(session?.user.kycStatus)
 
   const depositBtn = onDeposit ? (
     <Button
@@ -100,13 +55,13 @@ export function PortfolioHero({
       className="w-full flex-1 shadow-glow sm:min-w-[160px]"
       onClick={onDeposit}
     >
-      {canDeposit ? (
+      {allowed ? (
         <>
           <ArrowDownToLine aria-hidden />
           Deposit
         </>
       ) : (
-        accountStatus.nextActionLabel
+        access.nextActionLabel
       )}
     </Button>
   ) : (
@@ -165,20 +120,24 @@ export function PortfolioHero({
         <div>
           <p className="text-overline text-accent-300">Total portfolio</p>
           <p className="mt-2 text-stat-xl tracking-tight text-fg sm:text-[3.25rem]">
-            <LivePortfolioBalance base={balance} />
+            <AnimatedNumber
+              value={Number(balance)}
+              prefix="$"
+              decimals={2}
+              duration={prefersReducedMotion ? 0 : 0.75}
+              className="text-inherit"
+            />
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <LiveReturnBadge basePct={DEMO_WALLET.todayReturnPct} />
-            <span className="text-caption text-fg-subtle">
-              Month <Money value={MONTHLY_PROFIT} signed size="sm" className="text-fg-muted" />
+            <span className="inline-flex items-center gap-1 rounded-full border border-profit/20 bg-profit/10 px-2.5 py-1 text-caption text-profit">
+              Today <Percent value={todayReturnPct} showArrow />
             </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {[
             { label: 'Today’s profit', value: todayProfit, tone: 'profit' as const },
-            { label: 'Monthly profit', value: MONTHLY_PROFIT, tone: 'profit' as const },
             { label: 'Total profit', value: totalProfit, tone: 'profit' as const },
             { label: 'Total investment', value: invested, tone: 'neutral' as const },
             { label: 'Available', value: available, tone: 'neutral' as const },
@@ -202,12 +161,10 @@ export function PortfolioHero({
 
         <div className="grid grid-cols-2 gap-2 text-caption text-fg-subtle sm:flex sm:gap-6">
           <p>
-            Pending deposit{' '}
-            <Money value={pendingDep as typeof DEMO_WALLET.pendingDeposit} size="sm" className="text-warning" />
+            Pending deposit <Money value={pendingDep} size="sm" className="text-warning" />
           </p>
           <p>
-            Pending withdrawal{' '}
-            <Money value={pendingWdr as typeof DEMO_WALLET.pendingWithdrawal} size="sm" className="text-warning" />
+            Pending withdrawal <Money value={pendingWdr} size="sm" className="text-warning" />
           </p>
         </div>
 

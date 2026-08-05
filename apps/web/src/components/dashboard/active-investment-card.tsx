@@ -9,12 +9,24 @@ import { Percent } from '@/components/common/percent'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { DEMO_WALLET } from '@/lib/dashboard-data'
+import { useWalletSummary } from '@/features/wallet/hooks'
+import { useSession } from '@/providers/session-provider'
 
 /** Highlights capital currently participating in the programme. */
 export function ActiveInvestmentCard() {
-  const invested = Number(DEMO_WALLET.investedAmount)
-  const profit = Number(DEMO_WALLET.totalProfit)
+  const { session } = useSession()
+  const { data: summary } = useWalletSummary({ enabled: Boolean(session) })
+  const wallet = summary?.wallet ?? session?.wallet
+  const investedAmount = wallet?.investedAmount ?? '0.00'
+  const totalProfit = wallet?.totalProfit ?? '0.00'
+  const availableBalance = wallet?.availableBalance ?? '0.00'
+  const todayReturnPct = summary?.today.returnPct ?? '0.00'
+  const totalRoiPct =
+    wallet && Number(wallet.totalDeposited) > 0
+      ? ((Number(wallet.totalProfit) / Number(wallet.totalDeposited)) * 100).toFixed(2)
+      : '0.00'
+  const invested = Number(investedAmount)
+  const profit = Number(totalProfit)
   const progress = Math.min(100, Math.round((profit / Math.max(invested, 1)) * 100 * 4))
 
   return (
@@ -30,10 +42,10 @@ export function ActiveInvestmentCard() {
             Active investment
           </p>
           <p className="mt-2 text-stat-lg tabular-nums text-fg">
-            <Money value={DEMO_WALLET.investedAmount} />
+            <Money value={investedAmount} />
           </p>
           <p className="mt-1 text-body-sm text-fg-muted">
-            Growth plan · Today <Percent value={DEMO_WALLET.todayReturnPct} className="text-profit" />
+            Today <Percent value={todayReturnPct} className="text-profit" />
           </p>
         </div>
         <Button asChild size="sm" variant="secondary">
@@ -47,12 +59,12 @@ export function ActiveInvestmentCard() {
       <div className="relative mt-5 space-y-2">
         <div className="flex justify-between text-caption text-fg-subtle">
           <span>Lifetime ROI</span>
-          <span className="tabular-nums text-accent-200">{DEMO_WALLET.totalRoiPct}%</span>
+          <span className="tabular-nums text-accent-200">{totalRoiPct}%</span>
         </div>
         <Progress value={progress} tone="profit" className="h-2" />
         <p className="text-caption text-fg-subtle">
-          Total profit <Money value={DEMO_WALLET.totalProfit} className="text-profit" /> · Available{' '}
-          <Money value={DEMO_WALLET.availableBalance} />
+          Total profit <Money value={totalProfit} className="text-profit" /> · Available{' '}
+          <Money value={availableBalance} />
         </p>
       </div>
     </Card>

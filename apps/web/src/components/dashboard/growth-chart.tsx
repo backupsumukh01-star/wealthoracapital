@@ -13,9 +13,10 @@ import {
 
 import { SectionHeader } from '@/components/common/page-header'
 import { Money } from '@/components/common/money'
-import { Percent } from '@/components/common/percent'
 import { Card } from '@/components/ui/card'
-import { GROWTH_CHART, DEMO_WALLET, type ChartRange } from '@/lib/dashboard-data'
+import type { ChartRange } from '@/lib/dashboard-data'
+import { useWalletSummary } from '@/features/wallet/hooks'
+import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
 
 const RANGES: { id: ChartRange; label: string }[] = [
@@ -29,16 +30,26 @@ const RANGES: { id: ChartRange; label: string }[] = [
 ]
 
 export function GrowthChart() {
+  const { session } = useSession()
+  const { data: summary } = useWalletSummary({ enabled: Boolean(session) })
   const [range, setRange] = useState<ChartRange>('1M')
+  const wallet = summary?.wallet ?? session?.wallet
+  const chartPoints = summary?.chart?.points
 
-  const data = useMemo(
-    () =>
-      GROWTH_CHART[range].map((point) => ({
-        ...point,
-        balanceNum: Number(point.balance),
-      })),
-    [range],
-  )
+  const data = useMemo(() => {
+    if (chartPoints && chartPoints.length > 0) {
+      return chartPoints.map((p) => ({
+        date: p.date,
+        balance: p.balance,
+        balanceNum: Number(p.balance),
+      }))
+    }
+    if (!wallet) return []
+    return [
+      { date: 'Start', balance: '0.00', balanceNum: 0 },
+      { date: 'Now', balance: wallet.availableBalance, balanceNum: Number(wallet.availableBalance) },
+    ]
+  }, [wallet, chartPoints])
 
   return (
     <Card variant="glass" padded="md" className="h-full">
@@ -50,8 +61,7 @@ export function GrowthChart() {
             className="pb-0"
           />
           <div className="mt-3 flex flex-wrap items-baseline gap-3">
-            <Money value={DEMO_WALLET.balance} size="lg" />
-            <Percent value={DEMO_WALLET.growthPct30d} showArrow className="text-body-sm" />
+            <Money value={wallet?.availableBalance ?? '0.00'} size="lg" />
           </div>
         </div>
 
@@ -84,6 +94,11 @@ export function GrowthChart() {
       </div>
 
       <div className="mt-6 h-72 w-full min-w-0 overflow-hidden sm:h-80 lg:h-[22rem]">
+        {data.length === 0 ? (
+          <div className="grid h-full place-items-center text-body-sm text-fg-subtle">
+            No performance data yet.
+          </div>
+        ) : (
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <defs>
@@ -135,6 +150,7 @@ export function GrowthChart() {
             />
           </AreaChart>
         </ResponsiveContainer>
+        )}
       </div>
     </Card>
   )

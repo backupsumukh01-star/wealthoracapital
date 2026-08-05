@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+import { accountAccessMessage, canTransact } from '@/lib/account-access'
+import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
 
 const toneClass = {
@@ -23,17 +24,36 @@ const badgeClass = {
   neutral: 'bg-hover text-fg-muted',
 } as const
 
-/** Status strip — badge, description, next action. Driven by shared lifecycle store. */
+function toneForStatus(kycStatus: string | undefined) {
+  switch (kycStatus) {
+    case 'APPROVED':
+      return 'profit' as const
+    case 'UNDER_REVIEW':
+    case 'SUBMITTED':
+    case 'NEED_MORE_INFO':
+      return 'warning' as const
+    case 'REJECTED':
+    case 'SUSPENDED':
+      return 'loss' as const
+    default:
+      return 'info' as const
+  }
+}
+
+/** Status strip — badge, description, next action. Driven by API session KYC. */
 export function AccountStatusBanner({ className }: { className?: string }) {
-  const { accountStatus, ready } = useInvestorLifecycle()
-  if (!ready) return null
-  if (accountStatus.id === 'ACTIVE') return null
+  const { session, isLoading } = useSession()
+  if (isLoading || !session) return null
+  if (canTransact(session.user.kycStatus)) return null
+
+  const access = accountAccessMessage(session.user.kycStatus)
+  const tone = toneForStatus(session.user.kycStatus)
 
   return (
     <div
       className={cn(
         'flex flex-col gap-3 rounded-2xl border px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5',
-        toneClass[accountStatus.tone],
+        toneClass[tone],
         className,
       )}
     >
@@ -41,16 +61,16 @@ export function AccountStatusBanner({ className }: { className?: string }) {
         <span
           className={cn(
             'inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium',
-            badgeClass[accountStatus.tone],
+            badgeClass[tone],
           )}
         >
-          {accountStatus.label}
+          {access.label}
         </span>
-        <p className="text-body-sm text-fg-muted">{accountStatus.description}</p>
+        <p className="text-body-sm text-fg-muted">{access.description}</p>
       </div>
       <Button asChild size="sm" className="shrink-0">
-        <Link href={accountStatus.nextActionHref}>
-          {accountStatus.nextActionLabel}
+        <Link href={access.nextActionHref}>
+          {access.nextActionLabel}
           <ArrowRight aria-hidden />
         </Link>
       </Button>

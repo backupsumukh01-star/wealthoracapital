@@ -1,6 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { ROUTES } from '@meridian/shared'
+import { toast } from 'sonner'
 
 import { AccountStatusBanner } from '@/components/dashboard/account-status-banner'
 import { ActivityTimeline } from '@/components/dashboard/activity-timeline'
@@ -20,17 +23,17 @@ import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { DepositModal } from '@/components/wallet/deposit-modal'
 import { WithdrawModal } from '@/components/wallet/withdraw-modal'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+import { accountAccessMessage, canTransact } from '@/lib/account-access'
+import { useSession } from '@/providers/session-provider'
 import { useAdminOs } from '@/providers/admin-os-provider'
-import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
-import { ROUTES } from '@meridian/shared'
 
 /** Premium investor home — wealth experience, not an admin grid. */
 export function WealthHome() {
   const prefersReducedMotion = usePrefersReducedMotion()
   const router = useRouter()
-  const { canDeposit, accountStatus } = useInvestorLifecycle()
+  const { session } = useSession()
+  const allowed = canTransact(session?.user.kycStatus)
+  const access = accountAccessMessage(session?.user.kycStatus)
   const { ready, state } = useAdminOs()
   const [depositOpen, setDepositOpen] = useState(false)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
@@ -46,18 +49,18 @@ export function WealthHome() {
   }, [prefersReducedMotion])
 
   function tryDeposit() {
-    if (!canDeposit) {
-      toast.message(accountStatus.label, { description: accountStatus.description })
-      router.push(accountStatus.nextActionHref || ROUTES.auth.onboarding)
+    if (!allowed) {
+      toast.message(access.label, { description: access.description })
+      router.push(access.nextActionHref || ROUTES.auth.onboarding)
       return
     }
     setDepositOpen(true)
   }
 
   function tryWithdraw() {
-    if (!canDeposit) {
-      toast.message(accountStatus.label, { description: accountStatus.description })
-      router.push(accountStatus.nextActionHref || ROUTES.auth.onboarding)
+    if (!allowed) {
+      toast.message(access.label, { description: access.description })
+      router.push(access.nextActionHref || ROUTES.auth.onboarding)
       return
     }
     setWithdrawOpen(true)
