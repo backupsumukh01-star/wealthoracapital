@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowLeft, Bitcoin, Building2, Plus } from 'lucide-react'
 
 import { BankCard } from '@/components/wallet/bank-card'
@@ -18,38 +18,48 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from '@/components/ui/toast'
-import { DEMO_WALLET } from '@/lib/dashboard-data'
-import {
-  CRYPTO_DEPOSIT_OPTIONS,
-  SAVED_CRYPTO_WALLETS,
-  SAVED_INR_ACCOUNTS,
-  WALLET_WITHDRAW_TIMELINE,
-} from '@/lib/investor-demo-data'
-import { useInvestorLifecycle } from '@/providers/investor-lifecycle-provider'
+import { CRYPTO_DEPOSIT_OPTIONS } from '@/lib/investor-demo-data'
+import { ApiError } from '@/lib/api-client'
+import { useWallet } from '@/features/wallet/hooks'
+import { useCreateWithdrawal, usePayoutMethods } from '@/features/withdrawals/hooks'
 
 type Rail = 'INR' | 'CRYPTO' | null
 type Step = 'rail' | 'inr' | 'crypto' | 'add-bank' | 'add-wallet'
 
-type BankAccount = (typeof SAVED_INR_ACCOUNTS)[number]
-type CryptoWallet = (typeof SAVED_CRYPTO_WALLETS)[number]
-
-function nextReference() {
-  return `WDR-2026-${String(Math.floor(Math.random() * 900000) + 100000)}`
+type BankAccount = {
+  id: string
+  label: string
+  bankName: string
+  accountName?: string
+  accountNumberMasked: string
+  ifsc: string
+  primary?: boolean
+}
+type CryptoWallet = {
+  id: string
+  label: string
+  network: string
+  address: string
+  addressMasked?: string
+  coin: string
+  primary?: boolean
 }
 
 export function WithdrawModal({
   open,
   onOpenChange,
-  /** Override for empty-state demos — defaults to mock saved destinations. */
-  initialBanks = SAVED_INR_ACCOUNTS,
-  initialWallets = SAVED_CRYPTO_WALLETS,
+  initialBanks = [],
+  initialWallets = [],
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialBanks?: BankAccount[]
   initialWallets?: CryptoWallet[]
 }) {
-  const { submitWithdrawal } = useInvestorLifecycle()
+  const createWithdrawal = useCreateWithdrawal()
+  const { data: payoutMethods } = usePayoutMethods({ enabled: open })
+  const { data: wallet } = useWallet({ enabled: open })
+  const availableBalance = wallet?.availableBalance ?? '0.00'
   const [step, setStep] = useState<Step>('rail')
   const [rail, setRail] = useState<Rail>(null)
   const [banks, setBanks] = useState<BankAccount[]>(initialBanks)
@@ -61,6 +71,8 @@ export function WithdrawModal({
   const [amount, setAmount] = useState('100')
   const [successOpen, setSuccessOpen] = useState(false)
   const [reference, setReference] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [payoutMethodId, setPayoutMethodId] = useState<string | undefined>()
 
   // Add bank form
   const [newBankName, setNewBankName] = useState('')
@@ -75,6 +87,14 @@ export function WithdrawModal({
   const [newAddress, setNewAddress] = useState('')
 
   const coinMeta = CRYPTO_DEPOSIT_OPTIONS.coins.find((c) => c.id === newCoin)
+
+  useEffect(() => {
+    if (!open || !payoutMethods?.length) return
+    setPayoutMethodId((current) => {
+      if (current && payoutMethods.some((m) => m.id === current)) return current
+      return (payoutMethods.find((m) => m.isDefault) ?? payoutMethods[0])?.id
+    })
+  }, [open, payoutMethods])
 
   function reset() {
     setStep('rail')
@@ -101,32 +121,45 @@ export function WithdrawModal({
     else if (step === 'inr' || step === 'crypto') setStep('rail')
   }
 
-  function submitWithdrawalRequest() {
-    const ref = nextReference()
-    setReference(ref)
-    const bank = banks.find((b) => b.id === bankId)
-    const wallet = wallets.find((w) => w.id === walletId)
-    const result = submitWithdrawal({
-      amount,
-      destination: step === 'crypto' || rail === 'CRYPTO' ? 'Crypto' : 'Bank',
-      destinationDetail:
-        step === 'crypto' || rail === 'CRYPTO'
-          ? `${wallet?.coin ?? 'USDT'} · ${wallet?.address?.slice(0, 8) ?? '…'}`
-          : `${bank?.bankName ?? 'Bank'} · ${bank?.accountNumberMasked ?? '****'}`,
-    })
-    if (!result.ok) {
-      toast.error(result.error ?? 'Could not submit withdrawal')
+  async function submitWithdrawalRequest() {
+    const methodId =
+      payoutMethodId ??
+      payoutMethods?.find((m) => m.isDefault)?.id ??
+      payoutMethods?.[0]?.id
+
+    if (!methodId) {
+      toast.error('Add a verified payout method before withdrawing.')
       return
     }
-    handleOpenChange(false)
-    setSuccessOpen(true)
-    toast.success('Withdrawal submitted', result.withdrawal?.id ?? ref)
+
+    setSubmitting(true)
+    try {
+      const withdrawal = await createWithdrawal.mutateAsync({
+        amount,
+        payoutMethodId: methodId,
+      })
+      setReference(withdrawal.reference || withdrawal.id)
+      handleOpenChange(false)
+      setSuccessOpen(true)
+      toast.success('Withdrawal submitted', withdrawal.reference)
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : 'Could not submit withdrawal',
+      )
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   function saveBank() {
     const id = `bank_${Date.now()}`
     const created: BankAccount = {
       id,
+      label: newBankName || 'Bank account',
       bankName: newBankName,
       accountName: newAccountName,
       accountNumberMasked: `•••• ${newAccountNumber.slice(-4)}`,
@@ -136,7 +169,7 @@ export function WithdrawModal({
     setBanks((prev) => [...prev, created])
     setBankId(id)
     setStep('inr')
-    toast.success('Bank account added (demo)')
+    toast.success('Bank account added')
   }
 
   function saveWallet() {
@@ -152,7 +185,7 @@ export function WithdrawModal({
     setWallets((prev) => [...prev, created])
     setWalletId(id)
     setStep('crypto')
-    toast.success('Wallet added (demo)')
+    toast.success('Wallet added')
   }
 
   const titles: Record<Step, { title: string; description: string; stepLabel?: string }> = {
@@ -163,12 +196,12 @@ export function WithdrawModal({
     },
     inr: {
       title: 'INR withdrawal',
-      description: `Available $${DEMO_WALLET.availableBalance}`,
+      description: `Available $${availableBalance}`,
       stepLabel: 'INR',
     },
     crypto: {
       title: 'Crypto withdrawal',
-      description: `Available $${DEMO_WALLET.availableBalance}`,
+      description: `Available $${availableBalance}`,
       stepLabel: 'Crypto',
     },
     'add-bank': {
@@ -241,7 +274,7 @@ export function WithdrawModal({
                   <BankCard
                     key={b.id}
                     masked
-                    accountName={b.accountName}
+                    accountName={b.accountName ?? b.label}
                     bankName={b.bankName}
                     accountNumber={b.accountNumberMasked}
                     ifsc={b.ifsc}
@@ -266,7 +299,9 @@ export function WithdrawModal({
             <Button
               className="w-full"
               disabled={!bankId || !amount || Number(amount) <= 0}
-              onClick={submitWithdrawalRequest}
+              onClick={() => void submitWithdrawalRequest()}
+              loading={submitting}
+              loadingText="Submitting…"
             >
               Submit withdrawal
             </Button>
@@ -344,7 +379,9 @@ export function WithdrawModal({
             <Button
               className="w-full"
               disabled={!walletId || !amount || Number(amount) <= 0}
-              onClick={submitWithdrawalRequest}
+              onClick={() => void submitWithdrawalRequest()}
+              loading={submitting}
+              loadingText="Submitting…"
             >
               Submit withdrawal
             </Button>
