@@ -59,6 +59,17 @@ Open [http://localhost:3000](http://localhost:3000). API: [http://localhost:4000
 - [Phase 6 — Business operations (CMS, media, reports, email, notifications, support, broadcasts, settings)](./PHASE6_BACKEND_COMPLETION_REPORT.md)
 - API: [`docs/API_PHASE6_CMS.md`](./docs/API_PHASE6_CMS.md) · [`docs/API_PHASE6_REPORTS.md`](./docs/API_PHASE6_REPORTS.md) · [`docs/API_PHASE6_EMAIL.md`](./docs/API_PHASE6_EMAIL.md) · [`docs/API_PHASE6_SUPPORT.md`](./docs/API_PHASE6_SUPPORT.md)
 
+## OpenAPI
+
+Complete Swagger/OpenAPI **3.1** for every backend endpoint:
+
+- Live: [Swagger UI](http://localhost:4000/api/docs) · [Redoc](http://localhost:4000/api/redoc)
+- Spec: [`docs/openapi/openapi.yaml`](./docs/openapi/openapi.yaml) · [`docs/openapi/openapi.json`](./docs/openapi/openapi.json)
+- Collections: Postman + Insomnia under [`docs/openapi/collections/`](./docs/openapi/collections/)
+- Changelog: [`docs/openapi/API_CHANGELOG.md`](./docs/openapi/API_CHANGELOG.md)
+- Guide: [`docs/openapi/README.md`](./docs/openapi/README.md)
+- Regenerate: `node scripts/generate-openapi.mjs`
+
 ## Design system
 
 Tokens: `apps/web/src/styles/tokens.css`  

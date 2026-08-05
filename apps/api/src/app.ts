@@ -28,13 +28,42 @@ export function createApp() {
         requestId: req.requestId,
       }),
       autoLogging: {
-        ignore: (req) => req.url === '/api/health',
+        ignore: (req) =>
+          req.url === '/api/health' ||
+          Boolean(req.url?.startsWith('/api/docs')) ||
+          req.url === '/api/redoc',
       },
     }),
   )
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
+      contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+          'default-src': ["'self'"],
+          'script-src': [
+            "'self'",
+            "'unsafe-inline'",
+            'https://unpkg.com',
+            'https://cdn.redoc.ly',
+            'https://cdn.jsdelivr.net',
+          ],
+          'style-src': [
+            "'self'",
+            "'unsafe-inline'",
+            'https://unpkg.com',
+            'https://cdn.redoc.ly',
+            'https://cdn.jsdelivr.net',
+            'https://fonts.googleapis.com',
+          ],
+          'img-src': ["'self'", 'data:', 'https:', 'blob:'],
+          'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
+          'connect-src': ["'self'"],
+          'worker-src': ["'self'", 'blob:'],
+          'frame-src': ["'self'"],
+        },
+      },
     }),
   )
   app.use(
@@ -60,7 +89,15 @@ export function createApp() {
   app.get('/', (req, res) => {
     res.status(200).json({
       success: true,
-      data: { service: 'growzy-api', health: '/api/health', version: '/api/version' },
+      data: {
+        service: 'growzy-api',
+        health: '/api/health',
+        version: '/api/version',
+        docs: '/api/docs',
+        docsJson: '/api/docs/json',
+        docsYaml: '/api/docs/yaml',
+        redoc: '/api/redoc',
+      },
       meta: createMeta(req.requestId),
     })
   })
