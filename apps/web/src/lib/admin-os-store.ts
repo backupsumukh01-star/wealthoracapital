@@ -444,11 +444,11 @@ export function createDefaultAdminOs(): AdminOsState {
       winningPct: '78.6',
       monthly: MONTHLY_RETURNS.map((m) => ({
         month: m.month,
-        returnPct: String(m.returnPct),
+        returnPct: m.returnPct,
       })),
       yearly: YEARLY_RETURNS.map((y) => ({
         year: y.year,
-        returnPct: String(y.returnPct),
+        returnPct: y.returnPct,
         profitLabel: y.profitLabel,
       })),
       publishedAt: now(),
