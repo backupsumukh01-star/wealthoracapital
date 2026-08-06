@@ -19,6 +19,7 @@ import {
   AdminKycPill,
   AdminWithdrawalPill,
 } from '@/components/admin/admin-status-pills'
+import { DualMoney } from '@/components/common/dual-money'
 import { Money } from '@/components/common/money'
 import { PageHeader, SectionHeader } from '@/components/common/page-header'
 import { Alert } from '@/components/ui/alert'
@@ -206,7 +207,16 @@ export function AdminWithdrawalDetailWorkspace() {
             <div>
               <dt className="text-fg-subtle">Amount</dt>
               <dd>
-                <Money value={withdrawal.amount as MoneyString} size="sm" />
+                <DualMoney
+                  usd={withdrawal.amount as MoneyString}
+                  inr={
+                    (withdrawal.amountInr ?? withdrawal.withdrawInr) as
+                      | MoneyString
+                      | null
+                      | undefined
+                  }
+                  size="sm"
+                />
               </dd>
             </div>
             <div>

@@ -136,6 +136,12 @@ export interface Deposit {
   id: string
   reference: string
   amount: MoneyString
+  /** USD ledger amount (alias of amount). */
+  amountUsd?: MoneyString
+  /** INR snapshot at submission (whole rupees). */
+  amountInr?: MoneyString | null
+  depositUsd?: MoneyString
+  depositInr?: MoneyString | null
   creditedAmount: MoneyString | null
   fee: MoneyString
   currency?: string
@@ -177,6 +183,12 @@ export interface Withdrawal {
   id: string
   reference: string
   amount: MoneyString
+  /** USD ledger amount (alias of amount). */
+  amountUsd?: MoneyString
+  /** INR snapshot at submission (whole rupees). */
+  amountInr?: MoneyString | null
+  withdrawUsd?: MoneyString
+  withdrawInr?: MoneyString | null
   fee: MoneyString
   netAmount: MoneyString
   currency?: string

@@ -17,7 +17,7 @@ import {
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import { AdminAccountPill, AdminDepositPill, AdminKycPill } from '@/components/admin/admin-status-pills'
 import { DepositProofViewer } from '@/components/common/deposit-proof-viewer'
-import { Money } from '@/components/common/money'
+import { DualMoney } from '@/components/common/dual-money'
 import { PageHeader, SectionHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
@@ -213,7 +213,13 @@ export function AdminDepositDetailWorkspace() {
               <div>
                 <dt className="text-fg-subtle">Amount</dt>
                 <dd>
-                  <Money value={deposit.amount as MoneyString} size="sm" />
+                  <DualMoney
+                    usd={deposit.amount as MoneyString}
+                    inr={
+                      (deposit.amountInr ?? deposit.depositInr) as MoneyString | null | undefined
+                    }
+                    size="sm"
+                  />
                 </dd>
               </div>
               <div>

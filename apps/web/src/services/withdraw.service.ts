@@ -10,6 +10,7 @@ import { apiClient } from './http'
 
 export type CreateWithdrawalBody = {
   amount: string
+  amountInr?: string
   payoutMethodId: string
   otp: string
   idempotencyKey: string

@@ -142,6 +142,7 @@ function PlatformSection() {
   const [maxDeposit, setMaxDeposit] = useState('')
   const [minWithdraw, setMinWithdraw] = useState('')
   const [maxWithdraw, setMaxWithdraw] = useState('')
+  const [usdInrRate, setUsdInrRate] = useState('')
   const [maintenance, setMaintenance] = useState(false)
   const [hydrated, setHydrated] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -152,6 +153,7 @@ function PlatformSection() {
     setMaxDeposit(data.limits.maxDeposit)
     setMinWithdraw(data.limits.minWithdrawal)
     setMaxWithdraw(data.limits.maxWithdrawal)
+    setUsdInrRate(data.usdInrRate ?? '93')
     setMaintenance(data.maintenanceMode)
     setHydrated(true)
   }, [data, hydrated])
@@ -164,6 +166,7 @@ function PlatformSection() {
         maxDeposit: maxDeposit.trim(),
         minWithdrawal: minWithdraw.trim(),
         maxWithdrawal: maxWithdraw.trim(),
+        usdInrRate: usdInrRate.trim(),
         maintenanceMode: maintenance,
       })
       toast.success('Platform settings saved')
@@ -177,8 +180,29 @@ function PlatformSection() {
   return (
     <div className="space-y-5">
       <Alert tone="info" title="Limits apply from the moment they are saved">
-        Changing a limit does not alter requests already submitted.
+        Changing a limit does not alter requests already submitted. Exchange-rate changes apply to
+        new deposits and withdrawals only — existing snapshots stay as recorded.
       </Alert>
+      <AdminPanel>
+        <AdminPanelHeader
+          title="USD ↔ INR desk rate"
+          description="Live conversion rate used on deposit/withdraw forms and INR equivalents."
+        />
+        <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
+          <FormField
+            label="1 USD = ? INR"
+            hint="Whole-rupee display on investor forms. Ledger remains USD."
+          >
+            <Input
+              inputMode="decimal"
+              value={usdInrRate}
+              disabled={isLoading || !hydrated}
+              onChange={(e) => setUsdInrRate(e.target.value.replace(/[^\d.]/g, ''))}
+              placeholder="93"
+            />
+          </FormField>
+        </div>
+      </AdminPanel>
       <AdminPanel>
         <AdminPanelHeader title="Deposit limits" />
         <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">

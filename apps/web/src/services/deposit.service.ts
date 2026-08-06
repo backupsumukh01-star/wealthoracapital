@@ -6,6 +6,7 @@ import { ensureCsrfToken } from '@/lib/csrf'
 
 export type CreateDepositBody = {
   amount: string
+  amountInr?: string
   methodId: string
   userReference?: string
   txHash?: string

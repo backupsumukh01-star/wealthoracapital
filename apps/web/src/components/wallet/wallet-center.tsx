@@ -12,6 +12,7 @@ import {
   Wallet,
 } from 'lucide-react'
 
+import { DualMoney } from '@/components/common/dual-money'
 import { Money } from '@/components/common/money'
 import { PageHeader, SectionHeader } from '@/components/common/page-header'
 import { StatCard } from '@/components/common/stat-card'
@@ -191,8 +192,11 @@ export function WalletCenter() {
                   <StatusPill status={pendingDeposit.status} />
                 </div>
                 <p className="mt-1 text-caption text-fg-muted">
-                  <Money value={pendingDeposit.amount} /> ·{' '}
-                  {pendingDeposit.method?.name ?? 'Deposit'}
+                  <DualMoney
+                    usd={pendingDeposit.amount}
+                    inr={pendingDeposit.amountInr ?? pendingDeposit.depositInr}
+                  />{' '}
+                  · {pendingDeposit.method?.name ?? 'Deposit'}
                 </p>
               </div>
             ) : null}
@@ -203,7 +207,10 @@ export function WalletCenter() {
                   <StatusPill status={pendingWithdraw.status} />
                 </div>
                 <p className="mt-1 text-caption text-fg-muted">
-                  <Money value={pendingWithdraw.amount} />
+                  <DualMoney
+                    usd={pendingWithdraw.amount}
+                    inr={pendingWithdraw.amountInr ?? pendingWithdraw.withdrawInr}
+                  />
                 </p>
               </div>
             ) : null}
@@ -252,7 +259,11 @@ export function WalletCenter() {
                     <p className="text-caption text-fg-subtle">{formatDateTime(row.createdAt)}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Money value={row.amount} className="text-body-sm" />
+                    <DualMoney
+                      usd={row.amount}
+                      inr={row.amountInr ?? row.depositInr}
+                      className="text-body-sm"
+                    />
                     <StatusPill status={row.status} />
                   </div>
                 </li>
@@ -279,7 +290,11 @@ export function WalletCenter() {
                     <p className="text-caption text-fg-subtle">{formatDateTime(row.createdAt)}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Money value={row.amount} className="text-body-sm" />
+                    <DualMoney
+                      usd={row.amount}
+                      inr={row.amountInr ?? row.withdrawInr}
+                      className="text-body-sm"
+                    />
                     <StatusPill status={row.status} />
                   </div>
                 </li>

@@ -867,6 +867,8 @@ model Deposit {
   transactionId   String?       @unique @map("transaction_id") @db.Uuid
   transaction     Transaction?  @relation(fields: [transactionId], references: [id], onDelete: SetNull)
   amount          Decimal       @db.Decimal(20, 8)
+  /** INR snapshot at submission using platform desk rate (whole rupees). */
+  amountInr       Decimal?      @map("amount_inr") @db.Decimal(20, 8)
   fee             Decimal       @default(0) @db.Decimal(20, 8)
   creditedAmount  Decimal?      @map("credited_amount") @db.Decimal(20, 8)
   currency        String        @default("USD") @db.Char(3)
@@ -911,6 +913,8 @@ model Withdrawal {
   transactionId       String?          @unique @map("transaction_id") @db.Uuid
   transaction         Transaction?     @relation(fields: [transactionId], references: [id], onDelete: SetNull)
   amount              Decimal          @db.Decimal(20, 8)
+  /** INR snapshot at submission using platform desk rate (whole rupees). */
+  amountInr           Decimal?         @map("amount_inr") @db.Decimal(20, 8)
   fee                 Decimal          @default(0) @db.Decimal(20, 8)
   netAmount           Decimal          @map("net_amount") @db.Decimal(20, 8)
   currency            String           @default("USD") @db.Char(3)
@@ -1702,6 +1706,8 @@ model PlatformSetting {
   maxDeposit      Decimal  @default(1000000) @map("max_deposit") @db.Decimal(20, 8)
   minWithdrawal   Decimal  @default(20) @map("min_withdrawal") @db.Decimal(20, 8)
   maxWithdrawal   Decimal  @default(1000000) @map("max_withdrawal") @db.Decimal(20, 8)
+  /** Live desk USD→INR rate (admin-editable). Ledger remains USD. */
+  usdInrRate      Decimal  @default(93) @map("usd_inr_rate") @db.Decimal(20, 8)
   updatedById     String?  @map("updated_by_id") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")

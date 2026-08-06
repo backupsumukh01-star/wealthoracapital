@@ -216,6 +216,8 @@ export type PublicSettings = {
   supportEmail: string
   defaultCurrency: string
   maintenanceMode: boolean
+  /** Live desk USD→INR rate (decimal string). */
+  usdInrRate: string
   featureFlags: Record<string, boolean>
   limits: {
     minDeposit: string
