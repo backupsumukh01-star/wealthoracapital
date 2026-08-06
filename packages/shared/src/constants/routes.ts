@@ -10,6 +10,8 @@ export const ROUTES = {
     howItWorks: '/how-it-works',
     ourTradingSystem: '/our-trading-system',
     performance: '/performance',
+    /** Synthetic 3-year demo/backtest explorer for marketing walkthroughs. */
+    historicalPerformance: '/historical-performance',
     transparency: '/transparency',
     security: '/security',
     technology: '/technology',

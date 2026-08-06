@@ -410,6 +410,54 @@ function buildDataset() {
 // Writers
 // ---------------------------------------------------------------------------
 
+function buildChartsPayload(data) {
+  return {
+    meta: {
+      startDate: data.meta.startDate,
+      endDate: data.meta.endDate,
+      startingEquity: data.meta.startingEquity,
+      endingEquity: data.meta.endingEquity,
+      totalReturnPct: data.meta.totalReturnPct,
+    },
+    equityCurve: data.equityCurve,
+    monthlyReturns: data.monthlyReturns.map((m) => ({
+      yearMonth: m.yearMonth,
+      label: m.label,
+      returnPct: m.returnPct,
+      tradingDays: m.tradingDays,
+      inPresentationBand: m.inPresentationBand,
+    })),
+    yearlyReturns: data.yearlyReturns,
+  }
+}
+
+function buildReportCatalog(data) {
+  return {
+    generatedAt: data.meta.generatedAt,
+    seed: data.meta.seed,
+    range: { startDate: data.meta.startDate, endDate: data.meta.endDate },
+    disclaimer: data.meta.disclaimer,
+    reports: [
+      {
+        id: 'backtest-summary-html',
+        title: '3-Year Backtest Summary',
+        description: 'HTML overview of monthly returns and headline stats.',
+        format: 'html',
+        href: '/demo/backtest/reports/backtest-summary.html',
+        fileName: 'backtest-summary.html',
+      },
+      {
+        id: 'backtest-summary-pdf',
+        title: '3-Year Backtest Summary (PDF)',
+        description: 'Single-page PDF snapshot of the synthetic track record.',
+        format: 'pdf',
+        href: '/demo/backtest/reports/backtest-summary.pdf',
+        fileName: 'backtest-summary.pdf',
+      },
+    ],
+  }
+}
+
 function writeJsonExports(data) {
   const dir = path.join(EXPORT_ROOT, 'json')
   writeJson(path.join(dir, 'meta.json'), data.meta)
@@ -417,8 +465,38 @@ function writeJsonExports(data) {
   writeJson(path.join(dir, 'monthly_returns.json'), data.monthlyReturns)
   writeJson(path.join(dir, 'yearly_returns.json'), data.yearlyReturns)
   writeJson(path.join(dir, 'trading_days.json'), data.tradingDays)
+  writeJson(path.join(dir, 'daily_returns.json'), data.tradingDays)
   writeJson(path.join(dir, 'trades.json'), data.trades)
   writeJson(path.join(dir, 'equity_curve.json'), data.equityCurve)
+  writeJson(path.join(dir, 'charts.json'), buildChartsPayload(data))
+  writeJson(path.join(dir, 'report_catalog.json'), buildReportCatalog(data))
+}
+
+/** Mirror the web-facing JSON (and report files) into Next.js public assets. */
+function syncPublicDemoBacktest(data) {
+  const repoRoot = path.resolve(ROOT, '../..')
+  const publicDir = path.join(repoRoot, 'apps/web/public/demo/backtest')
+  const reportsDir = path.join(publicDir, 'reports')
+
+  if (fs.existsSync(publicDir)) {
+    fs.rmSync(publicDir, { recursive: true, force: true })
+  }
+  ensureDir(publicDir)
+  ensureDir(reportsDir)
+
+  writeJson(path.join(publicDir, 'dashboard_stats.json'), data.dashboardStats)
+  writeJson(path.join(publicDir, 'charts.json'), buildChartsPayload(data))
+  writeJson(path.join(publicDir, 'daily_returns.json'), data.tradingDays)
+  writeJson(path.join(publicDir, 'monthly_returns.json'), data.monthlyReturns)
+  writeJson(path.join(publicDir, 'trades.json'), data.trades)
+  writeJson(path.join(publicDir, 'report_catalog.json'), buildReportCatalog(data))
+
+  const htmlSrc = path.join(EXPORT_ROOT, 'reports', 'html', 'backtest-summary.html')
+  const pdfSrc = path.join(EXPORT_ROOT, 'reports', 'pdf', 'backtest-summary.pdf')
+  if (fs.existsSync(htmlSrc)) fs.copyFileSync(htmlSrc, path.join(reportsDir, 'backtest-summary.html'))
+  if (fs.existsSync(pdfSrc)) fs.copyFileSync(pdfSrc, path.join(reportsDir, 'backtest-summary.pdf'))
+
+  console.log(`  Public sync:  ${publicDir}`)
 }
 
 function writeCsvExports(data) {
@@ -728,6 +806,7 @@ function main() {
   writePrismaExports(data)
   writeHtmlReport(data)
   writePdfReport(data)
+  syncPublicDemoBacktest(data)
 
   // Mirror disclaimer into export root for convenience
   const disclaimerSrc = path.join(ROOT, '..', 'DISCLAIMER.txt')

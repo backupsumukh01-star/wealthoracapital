@@ -2,7 +2,7 @@
   "dataset": "3-year-backtest",
   "version": 1,
   "seed": "growzy-3y-backtest-v1",
-  "generatedAt": "2026-08-06T22:42:31.103Z",
+  "generatedAt": "2026-08-06T22:58:00.863Z",
   "startDate": "2023-08-07",
   "endDate": "2026-08-05",
   "tradingDayCount": 783,
