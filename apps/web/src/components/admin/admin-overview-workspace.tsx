@@ -715,7 +715,12 @@ export function AdminOverviewWorkspace() {
                 </div>
               ))}
               <div className="col-span-2 rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2 sm:col-span-3">
-                <p className="text-[10px] text-fg-subtle">Profit · day / month / lifetime</p>
+                <p className="text-[10px] text-fg-subtle">
+                  Profit · day / month / lifetime
+                  {totals.profit.lifetimeCount != null
+                    ? ` · ${totals.profit.lifetimeCount.toLocaleString('en-US')} credits`
+                    : ''}
+                </p>
                 <p className="mt-1 text-body-sm font-semibold tabular-nums text-fg">
                   {formatMoney(totals.profit.daily)} · {formatMoney(totals.profit.monthly)} ·{' '}
                   {formatMoney(totals.profit.lifetime)}

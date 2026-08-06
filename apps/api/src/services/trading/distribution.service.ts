@@ -106,7 +106,8 @@ export const distributionService = {
    * Preview or apply a daily return distribution.
    * - Default basis: INVESTED (active investment × pct / 100)
    * - Per-user atomic credit; failures are logged and skipped (no full rollback)
-   * - One completed settlement per calendar day + basis
+   * - Unlimited completed settlements per calendar day + basis (each publish uses a new idempotency key)
+   * - Concurrent PROCESSING runs for the same date + basis are still blocked
    */
   async publishReturn(
     actorId: string,
@@ -153,23 +154,18 @@ export const distributionService = {
     const daily = await prisma.dailyReturn.findUnique({ where: { date } })
     if (!daily) throw notFound('Daily return day not found.')
 
-    const priorBlocking = await prisma.dailyReturnRun.findFirst({
+    const priorInFlight = await prisma.dailyReturnRun.findFirst({
       where: {
         date,
         returnBasis: basis,
+        status: 'PROCESSING',
         NOT: existing ? { id: existing.id } : undefined,
       },
     })
-    if (priorBlocking && !body.preview) {
-      if (priorBlocking.status === 'COMPLETED') {
-        throw conflict("Today's return has already been published.")
-      }
-      if (priorBlocking.status === 'PROCESSING') {
-        throw conflict(
-          'A distribution run for this date is already in progress. Resume with the original idempotency key.',
-        )
-      }
-      // FAILED prior runs: allow a new publish — already-paid wallets are skipped via idempotency keys.
+    if (priorInFlight && !body.preview) {
+      throw conflict(
+        'A distribution run for this date is already in progress. Resume with the original idempotency key.',
+      )
     }
 
     const wallets = await prisma.wallet.findMany({
@@ -296,7 +292,9 @@ export const distributionService = {
         'code' in err &&
         (err as { code?: string }).code === 'P2002'
       ) {
-        throw conflict("Today's return has already been published.")
+        throw conflict(
+          'A distribution run with this idempotency key already exists. Use a new key for another publish.',
+        )
       }
       throw err
     }

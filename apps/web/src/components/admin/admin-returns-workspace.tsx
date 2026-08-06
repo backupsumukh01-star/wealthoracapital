@@ -57,12 +57,17 @@ export function AdminReturnsWorkspace() {
 
   const returns = returnsData?.items ?? []
 
-  const todayPublished = useMemo(
-    () =>
-      returns.find(
-        (r) => r.date === tradingDay && (r.status === 'COMPLETED' || r.status === 'PROCESSING'),
-      ) ?? null,
+  const todayRuns = useMemo(
+    () => returns.filter((r) => r.date === tradingDay),
     [returns, tradingDay],
+  )
+  const todayInFlight = useMemo(
+    () => todayRuns.find((r) => r.status === 'PROCESSING') ?? null,
+    [todayRuns],
+  )
+  const todayCompletedCount = useMemo(
+    () => todayRuns.filter((r) => r.status === 'COMPLETED').length,
+    [todayRuns],
   )
 
   const history = useMemo(
@@ -92,8 +97,8 @@ export function AdminReturnsWorkspace() {
       toast.error('Enter a valid return %')
       return
     }
-    if (todayPublished?.status === 'COMPLETED') {
-      toast.error("Today's return has already been published.")
+    if (todayInFlight) {
+      toast.error('A distribution run is already in progress for today.')
       return
     }
     try {
@@ -118,8 +123,8 @@ export function AdminReturnsWorkspace() {
   }
 
   async function handlePublish() {
-    if (todayPublished?.status === 'COMPLETED') {
-      toast.error("Today's return has already been published.")
+    if (todayInFlight) {
+      toast.error('A distribution run is already in progress for today.')
       return
     }
     if (confirmText !== confirmPhrase) {
@@ -144,27 +149,24 @@ export function AdminReturnsWorkspace() {
     }
   }
 
-  const publishDisabled =
-    !previewed ||
-    publishReturn.isPending ||
-    todayPublished?.status === 'COMPLETED'
+  const publishDisabled = !previewed || publishReturn.isPending || Boolean(todayInFlight)
 
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="Daily return"
-        description="Set today's figure, preview the exact effect on every balance, then apply it once."
+        description="Set today's figure, preview the exact effect on every balance, then publish. Multiple publishes per day are allowed."
       />
 
-      {todayPublished?.status === 'COMPLETED' ? (
-        <Alert tone="warning" title="Today's return has already been published">
-          A completed settlement exists for {tradingDay}. Publish is disabled to prevent duplicate
-          credits. Open the run below for details.
+      {todayInFlight ? (
+        <Alert tone="warning" title="A settlement is in progress">
+          Wait for the current run to finish, or resume it with the original idempotency key.
         </Alert>
       ) : (
         <Alert tone="danger" title="This affects every investor balance">
           Preview before applying. Each wallet is credited in its own transaction — successes are
-          kept even if another wallet fails. A trading day can only be settled once.
+          kept even if another wallet fails. You can publish additional settlements for the same
+          day; each publish uses a fresh idempotency key and credits again.
         </Alert>
       )}
 
@@ -185,13 +187,15 @@ export function AdminReturnsWorkspace() {
           }
         />
         <StatCard
-          label="Run state"
+          label="Today's publishes"
           value={
-            todayPublished?.status === 'COMPLETED'
-              ? 'Published'
-              : previewed
-                ? 'Previewed'
-                : 'Draft'
+            todayInFlight
+              ? 'Processing'
+              : todayCompletedCount > 0
+                ? String(todayCompletedCount)
+                : previewed
+                  ? 'Previewed'
+                  : '0'
           }
         />
       </div>
@@ -213,7 +217,7 @@ export function AdminReturnsWorkspace() {
                   setPreviewSummary(null)
                 }}
                 placeholder="0.72"
-                disabled={todayPublished?.status === 'COMPLETED'}
+                disabled={Boolean(todayInFlight)}
               />
             </FormField>
             <FormField label="Notes" hint="Visible on the settlement run record.">
@@ -222,7 +226,7 @@ export function AdminReturnsWorkspace() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Session summary…"
-                disabled={todayPublished?.status === 'COMPLETED'}
+                disabled={Boolean(todayInFlight)}
               />
             </FormField>
             <div className="flex flex-wrap gap-2">
@@ -230,7 +234,7 @@ export function AdminReturnsWorkspace() {
                 type="button"
                 variant="secondary"
                 onClick={() => void handlePreview()}
-                disabled={todayPublished?.status === 'COMPLETED' || publishReturn.isPending}
+                disabled={Boolean(todayInFlight) || publishReturn.isPending}
               >
                 Preview
               </Button>

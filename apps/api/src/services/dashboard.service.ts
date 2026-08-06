@@ -660,6 +660,7 @@ export const dashboardService = {
         daily: profitToday.amount,
         monthly: profitMonth.amount,
         lifetime: profitAll.amount,
+        lifetimeCount: profitAll.count,
       },
       wallets: {
         available: moneyDisplay(aum._sum.availableBalance ?? 0),
