@@ -47,6 +47,21 @@ function OAuthCallbackInner() {
         } catch {
           // Access token may still be valid; continue.
         }
+        const next = searchParams.get('next')
+        const isStaff =
+          session.user.role === 'ADMIN' ||
+          session.user.role === 'SUPER_ADMIN' ||
+          Boolean(session.user.staffRole)
+
+        if (next === 'admin' || isStaff) {
+          if (!isStaff) {
+            router.replace(`${ROUTES.auth.login}?oauth=forbidden`)
+            return
+          }
+          router.replace(ROUTES.admin.root)
+          return
+        }
+
         router.replace(
           session.user.kycStatus === 'APPROVED' ? ROUTES.dashboard.root : ROUTES.auth.onboarding,
         )
@@ -55,7 +70,7 @@ function OAuthCallbackInner() {
         queryClient.setQueryData(authQueryKeys.session(), null)
         router.replace(`${ROUTES.auth.login}?oauth=oauth_failed`)
       })
-  }, [error, router, queryClient])
+  }, [error, router, queryClient, searchParams])
 
   return (
     <AuthCard

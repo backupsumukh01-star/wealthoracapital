@@ -76,6 +76,9 @@ services:
         sync: false
       - key: GOOGLE_CALLBACK_URL
         sync: false
+      # Comma-separated emails auto-promoted to SUPER_ADMIN on Google sign-in
+      - key: GOOGLE_ADMIN_EMAILS
+        sync: false
       - key: CACHE_DRIVER
         value: memory
       - key: JOB_DRIVER

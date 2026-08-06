@@ -3,17 +3,20 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ROUTES } from '@meridian/shared'
+import { API_ROUTES, ROUTES } from '@meridian/shared'
 import { toast } from 'sonner'
 
 import { LogoMark } from '@/components/common/logo'
+import { AuthDivider } from '@/components/auth/auth-divider'
 import { PasswordField } from '@/components/auth/password-field'
+import { SocialLoginButtons } from '@/components/auth/social-login-buttons'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
 import { useForgotPassword, useLogin, useLogout } from '@/features/auth/hooks'
 import { ApiError } from '@/lib/api-client'
+import { env } from '@/lib/env'
 import { useSession } from '@/providers/session-provider'
 
 type Step = 'credentials' | 'forgot'
@@ -107,39 +110,49 @@ export function AdminLoginForm() {
         ) : null}
 
         {step === 'credentials' ? (
-          <form className="space-y-4" onSubmit={(e) => void submitCredentials(e)}>
-            <FormField label="Admin email" required>
-              <Input
-                type="email"
-                autoComplete="username"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@growzy.com"
-              />
-            </FormField>
-            <FormField label="Password" required>
-              <PasswordField
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </FormField>
-            <div className="flex justify-end">
-              <button
-                type="button"
-                className="text-caption text-fg-muted underline-offset-4 hover:text-fg hover:underline"
-                onClick={() => {
-                  setError(null)
-                  setStep('forgot')
-                }}
-              >
-                Forgot password?
-              </button>
-            </div>
-            <Button type="submit" fullWidth size="lg" loading={busy}>
-              Continue
-            </Button>
-          </form>
+          <div className="space-y-4">
+            <SocialLoginButtons
+              googleLabel="Continue with Google"
+              onGoogle={() => {
+                const redirectTo = `${env.NEXT_PUBLIC_SITE_URL}${ROUTES.auth.oauthCallback}?next=admin`
+                window.location.href = `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.auth.google}?redirect=${encodeURIComponent(redirectTo)}`
+              }}
+            />
+            <AuthDivider label="or use email" />
+            <form className="space-y-4" onSubmit={(e) => void submitCredentials(e)}>
+              <FormField label="Admin email" required>
+                <Input
+                  type="email"
+                  autoComplete="username"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@growzy.com"
+                />
+              </FormField>
+              <FormField label="Password" required>
+                <PasswordField
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </FormField>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  className="text-caption text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+                  onClick={() => {
+                    setError(null)
+                    setStep('forgot')
+                  }}
+                >
+                  Forgot password?
+                </button>
+              </div>
+              <Button type="submit" fullWidth size="lg" loading={busy}>
+                Continue
+              </Button>
+            </form>
+          </div>
         ) : null}
 
         {step === 'forgot' ? (

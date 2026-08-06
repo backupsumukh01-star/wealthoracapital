@@ -96,11 +96,12 @@ NEXT_PUBLIC_SITE_URL=https://growzycapital.com
 
 1. Add **production** redirect URI in Google Cloud Console
 2. Set Render secrets: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`
-3. Confirm `COOKIE_DOMAIN`, `COOKIE_SECURE=true`, `CORS_ORIGIN`, `APP_URL`, `API_URL`
-4. Run migrate deploy on API
-5. Incognito: production `/login` → Google → session → logout
-6. Verify HTTPS-only Secure cookies
-7. Confirm OAuth-only users (no password) cannot password-login; linking works if they later register the same email then Google (or vice versa)
+3. Optional admin allowlist: `GOOGLE_ADMIN_EMAILS=you@company.com` — those Google emails become `SUPER_ADMIN` on sign-in and can use **Continue with Google** on `/admin/login`
+4. Confirm `COOKIE_DOMAIN`, `COOKIE_SECURE=true`, `CORS_ORIGIN`, `APP_URL`, `API_URL`
+5. Run migrate deploy on API
+6. Incognito: production `/login` or `/admin/login` → Google → session → logout
+7. Verify HTTPS-only Secure cookies
+8. Confirm OAuth-only users (no password) cannot password-login; linking works if they later register the same email then Google (or vice versa)
 
 ## Error codes (query `?error=` / `?oauth=`)
 

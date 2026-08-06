@@ -38,6 +38,31 @@ function oauthConfigured(): boolean {
   return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.GOOGLE_CALLBACK_URL)
 }
 
+function googleAdminEmails(): Set<string> {
+  return new Set(
+    env.GOOGLE_ADMIN_EMAILS.split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  )
+}
+
+function isGoogleAdminEmail(email: string): boolean {
+  return googleAdminEmails().has(email.trim().toLowerCase())
+}
+
+async function promoteGoogleAdminIfAllowlisted(user: User): Promise<User> {
+  if (!isGoogleAdminEmail(user.email)) return user
+  if (user.role === 'SUPER_ADMIN' && user.staffRole === 'SUPER_ADMIN' && user.status === 'ACTIVE') {
+    return user
+  }
+  return userRepository.update(user.id, {
+    role: 'SUPER_ADMIN',
+    staffRole: 'SUPER_ADMIN',
+    status: 'ACTIVE',
+    emailVerifiedAt: user.emailVerifiedAt ?? new Date(),
+  })
+}
+
 function assertOAuthConfigured(): void {
   if (!oauthConfigured()) {
     throw serviceUnavailable('Google sign-in is not configured.')
@@ -274,7 +299,8 @@ export const googleOAuthService = {
     profile: GoogleProfile,
     context: SessionContext,
   ): Promise<{ user: User; tokens: AuthTokens }> {
-    const user = await this.upsertUserFromGoogle(profile)
+    let user = await this.upsertUserFromGoogle(profile)
+    user = await promoteGoogleAdminIfAllowlisted(user)
     await userRepository.recordSuccessfulLogin(user.id, context.ip)
     const { tokens } = await authService.issueTokensForUser(user, context)
     await activityService.record({

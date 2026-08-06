@@ -58,6 +58,11 @@ const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().optional().default(''),
   // Absolute callback URL registered in Google Cloud Console
   GOOGLE_CALLBACK_URL: z.string().optional().default(''),
+  /**
+   * Comma-separated Google emails that become SUPER_ADMIN on OAuth sign-in.
+   * Example: you@company.com,ops@growzycapital.com
+   */
+  GOOGLE_ADMIN_EMAILS: z.string().optional().default(''),
 
   /**
    * Payment provider webhooks (HMAC-SHA256).
