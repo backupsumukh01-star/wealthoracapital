@@ -1,9 +1,9 @@
 'use client'
 
 import {
+  CalendarDays,
   ChartNoAxesCombined,
   Globe2,
-  PiggyBank,
   Target,
   TrendingUp,
   Users,
@@ -14,10 +14,10 @@ import { Section } from '@/components/common/section'
 import { CountUp } from '@/components/motion/count-up'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { StaggerGroup, StaggerItem } from '@/components/motion/stagger-group'
+import { useLandingLiveStats } from '@/features/landing'
 import { usePublishedFrontend } from '@/features/cms/frontend-hooks'
 import { cn } from '@/lib/cn'
 
-const ICONS: LucideIcon[] = [Users, Globe2, PiggyBank, ChartNoAxesCombined, TrendingUp, Target]
 const ACCENTS = [
   'text-hl-emerald bg-hl-emerald/10 border-hl-emerald/30',
   'text-hl-cyan bg-hl-cyan/10 border-hl-cyan/30',
@@ -27,77 +27,64 @@ const ACCENTS = [
   'text-accent-300 bg-accent-500/10 border-accent-700/40',
 ]
 
-const FALLBACK_STATS: {
-  label: string
-  value: string
-  prefix?: string
-  suffix?: string
-  decimals?: number
-  icon: LucideIcon
-  accent: string
-}[] = [
-  {
-    label: 'Active investors',
-    value: '4820',
-    suffix: '+',
-    icon: Users,
-    accent: ACCENTS[0]!,
-  },
-  {
-    label: 'Countries',
-    value: '42',
-    icon: Globe2,
-    accent: ACCENTS[1]!,
-  },
-  {
-    label: 'Daily withdrawals',
-    value: '146',
-    icon: PiggyBank,
-    accent: ACCENTS[2]!,
-  },
-  {
-    label: 'Assets under management',
-    value: '18.4',
-    prefix: '$',
-    suffix: 'M',
-    decimals: 1,
-    icon: ChartNoAxesCombined,
-    accent: ACCENTS[3]!,
-  },
-  {
-    label: "Today's published return",
-    value: '0.70',
-    suffix: '%',
-    decimals: 2,
-    icon: TrendingUp,
-    accent: ACCENTS[4]!,
-  },
-  {
-    label: 'Win rate',
-    value: '78.6',
-    suffix: '%',
-    decimals: 1,
-    icon: Target,
-    accent: ACCENTS[5]!,
-  },
-]
-
-/** Investor stats with viewport-triggered animated counters. */
+/** Investor stats with viewport-triggered animated counters — live API / demo dataset. */
 export function StatsBand() {
   const { getSection } = usePublishedFrontend()
   const section = getSection('statistics')
-  const stats =
-    section?.items && section.items.length > 0
-      ? section.items.map((item, i) => ({
-          label: String(item.label ?? item.title ?? 'Stat'),
-          value: String(item.value ?? '0'),
-          prefix: item.prefix ? String(item.prefix) : '',
-          suffix: item.suffix ? String(item.suffix) : '',
-          decimals: String(item.value ?? '').includes('.') ? 1 : 0,
-          icon: ICONS[i % ICONS.length]!,
-          accent: ACCENTS[i % ACCENTS.length]!,
-        }))
-      : FALLBACK_STATS
+  const { stats } = useLandingLiveStats()
+
+  const cards: {
+    label: string
+    value: string
+    prefix?: string
+    suffix?: string
+    decimals?: number
+    icon: LucideIcon
+    accent: string
+  }[] = [
+    {
+      label: 'Active investors',
+      value: stats.investors,
+      suffix: '+',
+      icon: Users,
+      accent: ACCENTS[0]!,
+    },
+    {
+      label: 'Countries',
+      value: stats.countries,
+      icon: Globe2,
+      accent: ACCENTS[1]!,
+    },
+    {
+      label: 'Trading days',
+      value: stats.tradingDays,
+      icon: CalendarDays,
+      accent: ACCENTS[2]!,
+    },
+    {
+      label: 'Assets under management',
+      value: stats.aumMillions,
+      prefix: '$',
+      suffix: 'M',
+      decimals: 2,
+      icon: ChartNoAxesCombined,
+      accent: ACCENTS[3]!,
+    },
+    {
+      label: 'Published trades',
+      value: stats.trades,
+      icon: TrendingUp,
+      accent: ACCENTS[4]!,
+    },
+    {
+      label: 'Win rate',
+      value: stats.winRate,
+      suffix: '%',
+      decimals: 1,
+      icon: Target,
+      accent: ACCENTS[5]!,
+    },
+  ]
 
   return (
     <Section id="stats" className="!pt-8 lg:!pt-12" backdrop="glow">
@@ -108,7 +95,7 @@ export function StatsBand() {
       </RevealOnScroll>
 
       <StaggerGroup className="mt-10 grid gap-3 sm:mt-12 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
-        {stats.map((stat) => {
+        {cards.map((stat) => {
           const Icon = stat.icon
           return (
             <StaggerItem key={stat.label}>

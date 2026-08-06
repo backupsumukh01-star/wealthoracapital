@@ -8,9 +8,11 @@ import { Section } from '@/components/common/section'
 import { CountUp } from '@/components/motion/count-up'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { Button } from '@/components/ui/button'
-import { usePublishedLanding } from '@/features/cms/site'
-import { usePublicPerformance, usePublicPerformanceMonthly } from '@/features/performance/hooks'
-import { MONTHLY_RETURNS, YEARLY_RETURNS } from '@/lib/landing-data'
+import {
+  useLandingLiveStats,
+  useLandingMonthlySeries,
+  useLandingYearlySeries,
+} from '@/features/landing'
 
 import {
   MonthlyPerformanceChart,
@@ -22,32 +24,12 @@ export function PerformanceShowcase({
 }: {
   showPageLinks?: boolean
 }) {
-  const { landing } = usePublishedLanding()
-  const { data: pub } = usePublicPerformance()
-  const { data: monthly = [] } = usePublicPerformanceMonthly()
-  const liveYearly = pub?.yearly ?? []
-  const liveYearlyUsable =
-    liveYearly.length > 0 &&
-    liveYearly.some((y) => (Number.parseFloat(String(y.returnPct)) || 0) !== 0)
-  const yearly: Array<{ year: string; returnPct: number; profitLabel: string }> = liveYearlyUsable
-    ? liveYearly.map((y) => ({
-        year: y.year,
-        returnPct: Number.parseFloat(String(y.returnPct)) || 0,
-        profitLabel: `$${Number(y.profit).toLocaleString('en-US', { maximumFractionDigits: 0 })} distributed`,
-      }))
-    : YEARLY_RETURNS.map((y) => ({
-        year: y.year,
-        returnPct: y.returnPct,
-        profitLabel: y.profitLabel,
-      }))
-  const winRate = landing.winRate || pub?.analytics.winRate || '78.6'
-  const liveMonthlyUsable =
-    monthly.length > 0 &&
-    monthly.some((m) => (Number.parseFloat(String(m.returnPct)) || 0) !== 0)
-  const demoMax = Math.max(...MONTHLY_RETURNS.map((m) => m.returnPct))
-  const bestMonth = liveMonthlyUsable
-    ? Math.max(...monthly.map((m) => Number.parseFloat(String(m.returnPct)) || 0)).toFixed(1)
-    : demoMax.toFixed(1)
+  const { stats } = useLandingLiveStats()
+  const { data: monthly = [] } = useLandingMonthlySeries()
+  const yearly = useLandingYearlySeries()
+  const liveBest = monthly.map((m) => m.returnPct).filter((v) => Math.abs(v) > 0.0001)
+  const bestMonth =
+    liveBest.length > 0 ? Math.max(...liveBest).toFixed(1) : stats.bestDay
 
   return (
     <Section
@@ -57,6 +39,23 @@ export function PerformanceShowcase({
       description="Published monthly and yearly results. Past performance does not guarantee future results."
       backdrop="glow"
     >
+      <RevealOnScroll>
+        <div className="mb-4 grid grid-cols-3 gap-3 sm:mb-5">
+          {[
+            { label: 'Years', value: stats.yearsOfPerformance, suffix: '' },
+            { label: 'Trading days', value: stats.tradingDays, suffix: '' },
+            { label: 'Trades', value: stats.trades, suffix: '' },
+          ].map((kpi) => (
+            <div key={kpi.label} className="card-fill p-3 text-center sm:p-4">
+              <p className="text-caption text-fg-subtle">{kpi.label}</p>
+              <p className="text-stat-md mt-1 tabular-nums text-fg sm:text-stat-lg">
+                <CountUp value={kpi.value} suffix={kpi.suffix} decimals={0} />
+              </p>
+            </div>
+          ))}
+        </div>
+      </RevealOnScroll>
+
       <div className="grid min-w-0 gap-4 lg:grid-cols-[1.45fr_1fr] lg:gap-5">
         <RevealOnScroll className="min-w-0">
           <div className="card-fill h-full min-w-0 overflow-hidden p-4 sm:p-6 lg:p-8">
@@ -68,7 +67,7 @@ export function PerformanceShowcase({
           <RevealOnScroll delay={0.06}>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: 'Win rate', value: winRate, suffix: '%', color: 'text-hl-emerald' },
+                { label: 'Win rate', value: stats.winRate, suffix: '%', color: 'text-hl-emerald' },
                 { label: 'Best month', value: bestMonth, suffix: '%', color: 'text-hl-cyan' },
               ].map((w) => (
                 <div key={w.label} className="card-fill p-4">
@@ -114,7 +113,7 @@ export function PerformanceShowcase({
       {showPageLinks ? (
         <RevealOnScroll className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:mt-8 sm:flex-row sm:items-center">
           <Button asChild size="md" className="w-full sm:w-auto">
-            <Link href={ROUTES.marketing.performance}>
+            <Link href={ROUTES.marketing.historicalPerformance}>
               View full performance
               <ArrowRight aria-hidden />
             </Link>
@@ -122,8 +121,8 @@ export function PerformanceShowcase({
           <Button asChild size="md" variant="secondary" className="w-full sm:w-auto">
             <Link href={ROUTES.marketing.transparency}>
               <Download aria-hidden />
-            View reports archive
-          </Link>
+              View reports archive
+            </Link>
           </Button>
         </RevealOnScroll>
       ) : null}

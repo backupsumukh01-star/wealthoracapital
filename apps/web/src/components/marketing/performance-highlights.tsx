@@ -14,17 +14,15 @@ import {
 import { Section } from '@/components/common/section'
 import { CountUp } from '@/components/motion/count-up'
 import { StaggerGroup, StaggerItem } from '@/components/motion/stagger-group'
-import { usePublishedLanding } from '@/features/cms/site'
-import { usePublicPerformance } from '@/features/performance/hooks'
+import { useLandingLiveStats } from '@/features/landing'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
-import { MONTHLY_RETURNS, YEARLY_RETURNS } from '@/lib/landing-data'
 import { cn } from '@/lib/cn'
 
 import { HistoricalNote } from './historical-note'
 import { MiniSparkline } from './mini-sparkline'
 
 const HIGHLIGHT_META: {
-  key: string
+  key: 'avg' | 'win' | 'best' | 'worst' | 'years' | 'days'
   label: string
   icon: LucideIcon
   spark: number[]
@@ -34,114 +32,92 @@ const HIGHLIGHT_META: {
   suffix?: string
   prefix?: string
 }[] = [
-    {
-      key: 'avg',
-      label: 'Average monthly return',
-      icon: TrendingUp,
-      spark: [32, 41, 20, 58, 29, 64, 48, 71, 36, 55, 82, 69],
-      positive: true,
-      accent: 'text-accent-300 bg-accent-500/10 border-accent-700/40',
-      decimals: 1,
-      suffix: '%',
-    },
-    {
-      key: 'win',
-      label: 'Win rate',
-      icon: Target,
-      spark: [50, 52, 51, 55, 54, 58, 57, 60, 59, 62, 61, 64],
-      positive: true,
-      accent: 'text-hl-amber bg-hl-amber/10 border-hl-amber/30',
-      decimals: 1,
-      suffix: '%',
-    },
-    {
-      key: 'best',
-      label: 'Best day',
-      icon: Trophy,
-      spark: [30, 32, 28, 40, 36, 48, 44, 58, 52, 70, 66, 82],
-      positive: true,
-      accent: 'text-hl-emerald bg-hl-emerald/10 border-hl-emerald/30',
-      decimals: 1,
-      suffix: '%',
-    },
-    {
-      key: 'worst',
-      label: 'Worst day',
-      icon: TrendingDown,
-      spark: [60, 55, 58, 50, 48, 52, 45, 42, 46, 40, 44, 42],
-      positive: false,
-      accent: 'text-hl-cyan bg-hl-cyan/10 border-hl-cyan/30',
-      decimals: 1,
-      suffix: '%',
-    },
-    {
-      key: 'yearly',
-      label: 'Annual performance',
-      icon: ChartNoAxesCombined,
-      spark: [25, 30, 28, 45, 40, 55, 50, 68, 60, 75, 70, 82],
-      positive: true,
-      accent: 'text-hl-violet bg-hl-violet/10 border-hl-violet/30',
-      decimals: 1,
-      suffix: '%',
-    },
-    {
-      key: 'investors',
-      label: 'Global investors',
-      icon: CalendarDays,
-      spark: [20, 28, 26, 34, 40, 38, 46, 52, 50, 58, 62, 60],
-      accent: 'text-hl-blue bg-hl-blue/10 border-hl-blue/30',
-    },
-  ]
+  {
+    key: 'avg',
+    label: 'Average monthly return',
+    icon: TrendingUp,
+    spark: [32, 41, 20, 58, 29, 64, 48, 71, 36, 55, 82, 69],
+    positive: true,
+    accent: 'text-accent-300 bg-accent-500/10 border-accent-700/40',
+    decimals: 1,
+    suffix: '%',
+  },
+  {
+    key: 'win',
+    label: 'Win rate',
+    icon: Target,
+    spark: [50, 52, 51, 55, 54, 58, 57, 60, 59, 62, 61, 64],
+    positive: true,
+    accent: 'text-hl-amber bg-hl-amber/10 border-hl-amber/30',
+    decimals: 1,
+    suffix: '%',
+  },
+  {
+    key: 'best',
+    label: 'Best day',
+    icon: Trophy,
+    spark: [30, 32, 28, 40, 36, 48, 44, 58, 52, 70, 66, 82],
+    positive: true,
+    accent: 'text-hl-emerald bg-hl-emerald/10 border-hl-emerald/30',
+    decimals: 1,
+    suffix: '%',
+  },
+  {
+    key: 'worst',
+    label: 'Worst day',
+    icon: TrendingDown,
+    spark: [60, 55, 58, 50, 48, 52, 45, 42, 46, 40, 44, 42],
+    positive: false,
+    accent: 'text-hl-cyan bg-hl-cyan/10 border-hl-cyan/30',
+    decimals: 1,
+    suffix: '%',
+  },
+  {
+    key: 'years',
+    label: 'Years of performance',
+    icon: ChartNoAxesCombined,
+    spark: [25, 30, 28, 45, 40, 55, 50, 68, 60, 75, 70, 82],
+    positive: true,
+    accent: 'text-hl-violet bg-hl-violet/10 border-hl-violet/30',
+    decimals: 0,
+  },
+  {
+    key: 'days',
+    label: 'Trading days',
+    icon: CalendarDays,
+    spark: [20, 28, 26, 34, 40, 38, 46, 52, 50, 58, 62, 60],
+    accent: 'text-hl-blue bg-hl-blue/10 border-hl-blue/30',
+  },
+]
 
-function numericOrDash(value: string | null | undefined) {
-  if (value == null || value === '' || value === '0' || value === '0.00') return null
-  return value
+function mapStats(stats: {
+  avgMonthlyReturn: string
+  winRate: string
+  bestDay: string
+  worstDayAbs: string
+  yearsOfPerformance: string
+  tradingDays: string
+}) {
+  return {
+    avg: stats.avgMonthlyReturn,
+    win: stats.winRate,
+    best: stats.bestDay,
+    worst: stats.worstDayAbs,
+    years: stats.yearsOfPerformance,
+    days: stats.tradingDays,
+  }
 }
 
-const DEMO_HIGHLIGHTS = {
-  avg: '6.8',
-  win: '78.6',
-  best: '2.4',
-  worst: '1.2',
-  yearly: '54.8',
-  investors: '4820',
-} as const
-
-/** Premium performance preview cards — live API when present, Demo Mode fixtures otherwise. */
+/** Premium performance preview cards — live API when present, demo/backtest otherwise. */
 export function PerformanceHighlights() {
   const prefersReducedMotion = usePrefersReducedMotion()
-  const { landing: cms } = usePublishedLanding()
-  const { data: pub } = usePublicPerformance()
+  const { stats } = useLandingLiveStats()
+  const values = mapStats(stats)
 
-  const highlights = HIGHLIGHT_META.map((meta) => {
-    let raw: string | null = null
-    if (meta.key === 'avg') raw = numericOrDash(cms.avgMonthlyReturn) ?? DEMO_HIGHLIGHTS.avg
-    else if (meta.key === 'win')
-      raw =
-        numericOrDash(cms.winRate) ??
-        numericOrDash(pub?.analytics.winRate) ??
-        DEMO_HIGHLIGHTS.win
-    else if (meta.key === 'best')
-      raw =
-        numericOrDash(cms.bestDay) ??
-        numericOrDash(pub?.analytics.bestTrade?.returnPct ?? undefined) ??
-        DEMO_HIGHLIGHTS.best
-    else if (meta.key === 'worst') {
-      const w = numericOrDash(pub?.analytics.worstTrade?.returnPct ?? undefined)
-      if (w) {
-        raw = String(w).replace('-', '')
-      } else {
-        const worstReturn = Math.min(...MONTHLY_RETURNS.map((m) => m.returnPct))
-        raw = Math.abs(worstReturn).toFixed(1)
-      }
-    } else if (meta.key === 'yearly')
-      raw =
-        numericOrDash(pub?.summary?.roiPct) ??
-        String(YEARLY_RETURNS[YEARLY_RETURNS.length - 2]?.returnPct.toFixed(1) ?? DEMO_HIGHLIGHTS.yearly)
-    else if (meta.key === 'investors')
-      raw = numericOrDash(cms.investorCount) ?? DEMO_HIGHLIGHTS.investors
-    return { ...meta, value: raw ?? '0' }
-  })
+  const highlights = HIGHLIGHT_META.map((meta) => ({
+    ...meta,
+    value: values[meta.key],
+  }))
 
   return (
     <Section

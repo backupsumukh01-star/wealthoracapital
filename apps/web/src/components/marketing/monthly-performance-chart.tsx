@@ -4,8 +4,7 @@ import { useCallback, useId, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
-import { usePublicPerformanceMonthly } from '@/features/performance/hooks'
-import { MONTHLY_RETURNS } from '@/lib/landing-data'
+import { useLandingMonthlySeries } from '@/features/landing'
 import { cn } from '@/lib/cn'
 
 type Point = { month: string; value: number }
@@ -46,16 +45,10 @@ function buildGrowth(points: Point[]) {
 }
 
 function useMonthlySeries(): Point[] {
-  const { data: monthly } = usePublicPerformanceMonthly()
+  const { data: monthly } = useLandingMonthlySeries()
   return useMemo(() => {
-    const live: Point[] =
-      monthly?.map((m) => ({
-        month: formatMonthLabel(m.month),
-        value: Number.parseFloat(String(m.returnPct)) || 0,
-      })) ?? []
-    const allZero = live.length > 0 && live.every((p) => p.value === 0)
-    if (live.length > 0 && !allZero) return live
-    return MONTHLY_RETURNS.map((m) => ({
+    if (!monthly.length) return []
+    return monthly.map((m) => ({
       month: formatMonthLabel(m.month),
       value: m.returnPct,
     }))

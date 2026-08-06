@@ -4,8 +4,7 @@ import { memo, useId, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
-import { usePublicPerformanceMonthly } from '@/features/performance/hooks'
-import { MONTHLY_RETURNS } from '@/lib/landing-data'
+import { useLandingMonthlySeries } from '@/features/landing'
 import { cn } from '@/lib/cn'
 
 type Range = 'monthly' | 'quarterly'
@@ -149,17 +148,13 @@ function formatPct(n: number) {
  */
 export const HistoricalReturnTimeline = memo(function HistoricalReturnTimeline() {
   const prefersReducedMotion = usePrefersReducedMotion()
-  const { data: monthlyData = [] } = usePublicPerformanceMonthly()
+  const { data: monthlyData = [] } = useLandingMonthlySeries()
   const gid = useId()
   const monthly = useMemo(() => {
-    const live = monthlyData.map((m) => ({
+    const source = monthlyData.map((m) => ({
       month: m.month,
-      returnPct: Number.parseFloat(String(m.returnPct)) || 0,
+      returnPct: m.returnPct,
     }))
-    const liveUsable = live.length > 0 && live.some((m) => m.returnPct !== 0)
-    const source = liveUsable
-      ? live
-      : MONTHLY_RETURNS.map((m) => ({ month: m.month, returnPct: m.returnPct }))
     return buildMonthly(source)
   }, [monthlyData])
   const quarterly = useMemo(() => buildQuarterly(monthly), [monthly])

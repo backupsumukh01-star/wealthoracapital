@@ -12,7 +12,8 @@ import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { StaggerGroup, StaggerItem } from '@/components/motion/stagger-group'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { RECENT_DISTRIBUTIONS, LANDING_STATS } from '@/lib/landing-data'
+import { RECENT_DISTRIBUTIONS } from '@/lib/landing-data'
+import { distributedMoneyParts, useLandingLiveStats } from '@/features/landing'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 
 import { InvestorMap } from './investor-map'
@@ -20,7 +21,8 @@ import { InvestorMap } from './investor-map'
 /** Recent payouts grid — mobile-first dense cards, no horizontal overflow. */
 export function DistributionsStrip() {
   const prefersReducedMotion = usePrefersReducedMotion()
-  const distributed = LANDING_STATS.find((s) => s.label === 'Profit distributed')
+  const { stats } = useLandingLiveStats()
+  const distributed = distributedMoneyParts(stats)
 
   return (
     <Section
@@ -29,16 +31,12 @@ export function DistributionsStrip() {
       title={
         <>
           <span className="text-stat-xl break-words text-fg sm:text-[4.5rem]">
-            {distributed ? (
-              <CountUp
-                value={distributed.value}
-                prefix="$"
-                suffix={distributed.suffix}
-                decimals={1}
-              />
-            ) : (
-              '$2.7M+'
-            )}
+            <CountUp
+              value={distributed.value}
+              prefix={distributed.prefix}
+              suffix={`${distributed.suffix}+`}
+              decimals={distributed.decimals}
+            />
           </span>
           <span className="mt-2 block text-heading-xl text-fg sm:mt-3 sm:text-display-md">
             verified profits paid to investors

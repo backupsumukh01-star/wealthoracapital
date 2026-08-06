@@ -12,6 +12,7 @@ import { Magnetic } from '@/components/motion/magnetic'
 import { Button } from '@/components/ui/button'
 import { SITE } from '@/lib/constants'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
+import { useLandingLiveStats } from '@/features/landing'
 import { usePublishedLanding } from '@/features/cms/site'
 
 import { HeroMarketCards } from './hero-market-cards'
@@ -31,16 +32,13 @@ const DEMO = {
     'AI-assisted strategies, human-verified results and transparent historical performance.',
   heroPrimaryCta: 'Start Investing',
   heroSecondaryCta: 'View Historical Performance',
-  avgMonthlyReturn: '6.8',
-  winRate: '78.6',
-  aum: '18.4',
-  investorCount: '4820',
 } as const
 
 /** Premium centered hero — Growzy brand, CTAs, trust, markets, equity visual. */
 export function Hero() {
   const prefersReducedMotion = usePrefersReducedMotion()
   const { landing: cms } = usePublishedLanding()
+  const { stats: live } = useLandingLiveStats()
 
   const companyName = cms.companyName?.trim() || DEMO.companyName
   const heroTitle = cms.heroTitle?.trim() || DEMO.heroTitle
@@ -62,26 +60,26 @@ export function Hero() {
   }[] = [
     {
       label: 'Investors',
-      value: cms.investorCount?.trim() || DEMO.investorCount,
+      value: live.investors,
       suffix: '+',
       decimals: 0,
     },
     {
       label: 'AUM',
-      value: cms.aum?.trim() || DEMO.aum,
+      value: live.aumMillions,
       prefix: '$',
       suffix: 'M',
-      decimals: 1,
+      decimals: 2,
     },
     {
       label: 'Avg monthly',
-      value: cms.avgMonthlyReturn?.trim() || DEMO.avgMonthlyReturn,
+      value: live.avgMonthlyReturn,
       suffix: '%',
       decimals: 1,
     },
     {
       label: 'Win rate',
-      value: cms.winRate?.trim() || DEMO.winRate,
+      value: live.winRate,
       suffix: '%',
       decimals: 1,
     },
