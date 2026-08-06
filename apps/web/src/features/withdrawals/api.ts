@@ -4,5 +4,6 @@ export type {
   CreatePayoutMethodBody,
   CreateWithdrawalBody,
   RequestWithdrawalOtpBody,
+  UpdatePayoutMethodBody,
   WithdrawalLimits,
 } from '@/services/withdraw.service'

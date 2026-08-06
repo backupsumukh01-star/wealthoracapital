@@ -50,6 +50,12 @@ export const createPayoutMethodSchema = z.object({
   isDefault: z.boolean().optional(),
 })
 
+export const updatePayoutMethodSchema = z.object({
+  label: z.string().trim().min(2).max(80).optional(),
+  details: z.record(z.string(), z.string().trim().max(240)).optional(),
+  isDefault: z.boolean().optional(),
+})
+
 export const idParamSchema = z.object({
   id: z.string().uuid(),
 })
@@ -186,3 +192,4 @@ export type CreateDepositInput = z.infer<typeof createDepositSchema>
 export type CreateWithdrawalInput = z.infer<typeof createWithdrawalSchema>
 export type RequestWithdrawalOtpInput = z.infer<typeof requestWithdrawalOtpSchema>
 export type CreatePayoutMethodInput = z.infer<typeof createPayoutMethodSchema>
+export type UpdatePayoutMethodInput = z.infer<typeof updatePayoutMethodSchema>

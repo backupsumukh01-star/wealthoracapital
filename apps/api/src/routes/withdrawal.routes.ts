@@ -10,6 +10,7 @@ import {
   createWithdrawalSchema,
   idParamSchema,
   requestWithdrawalOtpSchema,
+  updatePayoutMethodSchema,
 } from '../validators/finance.validators.js'
 
 export const withdrawalRouter = Router()
@@ -31,6 +32,25 @@ withdrawalRouter.post(
   requirePermission(PERMISSIONS['withdrawals.create']),
   validate(createPayoutMethodSchema),
   financeController.withdrawalMethodCreate,
+)
+withdrawalRouter.patch(
+  '/methods/:id',
+  requirePermission(PERMISSIONS['withdrawals.create']),
+  validate(idParamSchema, 'params'),
+  validate(updatePayoutMethodSchema),
+  financeController.withdrawalMethodUpdate,
+)
+withdrawalRouter.delete(
+  '/methods/:id',
+  requirePermission(PERMISSIONS['withdrawals.create']),
+  validate(idParamSchema, 'params'),
+  financeController.withdrawalMethodDelete,
+)
+withdrawalRouter.post(
+  '/methods/:id/default',
+  requirePermission(PERMISSIONS['withdrawals.create']),
+  validate(idParamSchema, 'params'),
+  financeController.withdrawalMethodSetDefault,
 )
 withdrawalRouter.get(
   '/',

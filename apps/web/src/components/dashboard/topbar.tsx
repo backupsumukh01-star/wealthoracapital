@@ -58,7 +58,15 @@ export function Topbar() {
               <Menu aria-hidden />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="safe-pt lg:hidden">
+          <SheetContent
+            side="left"
+            className={[
+              /* Sit below the fixed topbar so nav is not covered by z-[100] header. */
+              'top-[calc(var(--topbar-height)+env(safe-area-inset-top,0px))]',
+              'h-[calc(100dvh-var(--topbar-height)-env(safe-area-inset-top,0px))]',
+              'pt-0 lg:hidden',
+            ].join(' ')}
+          >
             <SheetTitle className="sr-only">Navigation</SheetTitle>
             <SidebarNav className="flex-1 overflow-y-auto px-3 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]" />
           </SheetContent>

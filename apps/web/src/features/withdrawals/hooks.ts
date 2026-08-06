@@ -16,6 +16,7 @@ import {
   type CreatePayoutMethodBody,
   type CreateWithdrawalBody,
   type RequestWithdrawalOtpBody,
+  type UpdatePayoutMethodBody,
   type WithdrawalLimits,
 } from './api'
 import { walletQueryKeys } from '@/features/wallet/hooks'
@@ -65,13 +66,50 @@ export function usePayoutMethods(options?: QueryHookOptions) {
   })
 }
 
+function invalidatePayoutMethods(queryClient: ReturnType<typeof useQueryClient>) {
+  return queryClient.invalidateQueries({ queryKey: withdrawalQueryKeys.payoutMethods() })
+}
+
 export function useCreatePayoutMethod() {
   const queryClient = useQueryClient()
 
   return useMutation<PayoutMethod, Error, CreatePayoutMethodBody>({
     mutationFn: (input) => withdrawalsApi.createPayoutMethod(input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: withdrawalQueryKeys.payoutMethods() })
+      void invalidatePayoutMethods(queryClient)
+    },
+  })
+}
+
+export function useUpdatePayoutMethod() {
+  const queryClient = useQueryClient()
+
+  return useMutation<PayoutMethod, Error, { id: string; body: UpdatePayoutMethodBody }>({
+    mutationFn: ({ id, body }) => withdrawalsApi.updatePayoutMethod(id, body),
+    onSuccess: () => {
+      void invalidatePayoutMethods(queryClient)
+    },
+  })
+}
+
+export function useDeletePayoutMethod() {
+  const queryClient = useQueryClient()
+
+  return useMutation<{ id: string }, Error, string>({
+    mutationFn: (id) => withdrawalsApi.deletePayoutMethod(id),
+    onSuccess: () => {
+      void invalidatePayoutMethods(queryClient)
+    },
+  })
+}
+
+export function useSetDefaultPayoutMethod() {
+  const queryClient = useQueryClient()
+
+  return useMutation<PayoutMethod, Error, string>({
+    mutationFn: (id) => withdrawalsApi.setDefaultPayoutMethod(id),
+    onSuccess: () => {
+      void invalidatePayoutMethods(queryClient)
     },
   })
 }

@@ -1,9 +1,7 @@
-import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
+import { ROUTES } from '@meridian/shared'
 
-import { EmailPreviewWorkspace } from '@/components/dashboard/email-preview-workspace'
-
-export const metadata: Metadata = { title: 'Email preview' }
-
-export default function EmailPreviewPage() {
-  return <EmailPreviewWorkspace />
+/** Email preview was removed from the investor dashboard; prefer Preferences. */
+export default function EmailPreviewRedirectPage() {
+  redirect(ROUTES.dashboard.settings.preferences)
 }

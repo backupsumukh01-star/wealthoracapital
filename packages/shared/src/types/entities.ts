@@ -175,6 +175,8 @@ export interface PayoutMethod {
   label: string
   type: PaymentMethodType
   maskedDetails: string
+  /** Owner-only detail fields used for edit forms (never shown masked). */
+  details?: Record<string, string>
   isDefault: boolean
   isVerified: boolean
 }

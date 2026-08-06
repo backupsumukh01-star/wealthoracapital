@@ -22,6 +22,7 @@ import type {
   paymentMethodCreateSchema,
   paymentMethodReorderSchema,
   paymentMethodUpdateSchema,
+  updatePayoutMethodSchema,
   walletAddressCreateSchema,
   walletAddressUpdateSchema,
 } from '../validators/finance.validators.js'
@@ -30,6 +31,7 @@ import type { z } from 'zod'
 type CreateDeposit = z.infer<typeof createDepositSchema>
 type CreateWithdrawal = z.infer<typeof createWithdrawalSchema>
 type CreatePayoutMethod = z.infer<typeof createPayoutMethodSchema>
+type UpdatePayoutMethod = z.infer<typeof updatePayoutMethodSchema>
 type AdminList = z.infer<typeof adminFinanceListQuerySchema>
 type DepositReview = z.infer<typeof adminDepositReviewSchema>
 type WithdrawalReview = z.infer<typeof adminWithdrawalReviewSchema>
@@ -182,6 +184,40 @@ export const financeController = {
       await withdrawalService.createPayoutMethod(
         req.user!.id,
         req.body as CreatePayoutMethod,
+        requestContext(req),
+      ),
+    )
+  }),
+
+  withdrawalMethodUpdate: asyncHandler(async (req, res) => {
+    sendSuccess(
+      res,
+      await withdrawalService.updatePayoutMethod(
+        req.user!.id,
+        req.params.id!,
+        req.body as UpdatePayoutMethod,
+        requestContext(req),
+      ),
+    )
+  }),
+
+  withdrawalMethodDelete: asyncHandler(async (req, res) => {
+    sendSuccess(
+      res,
+      await withdrawalService.deletePayoutMethod(
+        req.user!.id,
+        req.params.id!,
+        requestContext(req),
+      ),
+    )
+  }),
+
+  withdrawalMethodSetDefault: asyncHandler(async (req, res) => {
+    sendSuccess(
+      res,
+      await withdrawalService.setDefaultPayoutMethod(
+        req.user!.id,
+        req.params.id!,
         requestContext(req),
       ),
     )

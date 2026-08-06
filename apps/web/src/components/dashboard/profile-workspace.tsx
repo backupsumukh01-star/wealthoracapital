@@ -1,11 +1,12 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import type { KycStatus, User, UserStatus } from '@meridian/shared'
+import type { KycStatus, PayoutMethod, User, UserStatus } from '@meridian/shared'
 import {
   BadgeCheck,
   KeyRound,
   Landmark,
+  MoreHorizontal,
   ShieldCheck,
   Smartphone,
   UserRound,
@@ -13,19 +14,31 @@ import {
 } from 'lucide-react'
 
 import { PageHeader } from '@/components/common/page-header'
+import { AddBankAccountDialog } from '@/components/dashboard/add-bank-account-dialog'
+import { AddCryptoWalletDialog } from '@/components/dashboard/add-crypto-wallet-dialog'
 import { SettingsCard, SettingsRow } from '@/components/dashboard/settings-card'
 import { StatusPill } from '@/components/dashboard/status-pill'
 import { PremiumEmptyState } from '@/components/dashboard/premium-empty-state'
 import { LifecycleStatusBadge, KycStatusBadge } from '@/components/auth/lifecycle-status-badge'
 import { Button } from '@/components/ui/button'
 import { CopyButton } from '@/components/ui/copy-button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/toast'
 import { useChangePassword } from '@/features/auth/hooks'
-import { usePayoutMethods } from '@/features/withdrawals/hooks'
+import {
+  useDeletePayoutMethod,
+  usePayoutMethods,
+  useSetDefaultPayoutMethod,
+} from '@/features/withdrawals/hooks'
 import {
   displayUsername,
   type KycLifecycleStatus,
@@ -79,8 +92,14 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
   const { session } = useSession()
   const changePassword = useChangePassword()
   const { data: payoutMethods = [] } = usePayoutMethods({ enabled: Boolean(session) })
+  const deleteMethod = useDeletePayoutMethod()
+  const setDefault = useSetDefaultPayoutMethod()
   const [twoFa, setTwoFa] = useState(false)
   const [passwordBusy, setPasswordBusy] = useState(false)
+  const [bankOpen, setBankOpen] = useState(false)
+  const [walletOpen, setWalletOpen] = useState(false)
+  const [editingBank, setEditingBank] = useState<PayoutMethod | null>(null)
+  const [editingWallet, setEditingWallet] = useState<PayoutMethod | null>(null)
 
   const bankAccounts = useMemo(
     () => payoutMethods.filter((m) => !isCryptoType(m.type)),
@@ -90,6 +109,24 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
     () => payoutMethods.filter((m) => isCryptoType(m.type)),
     [payoutMethods],
   )
+
+  async function onSetDefault(id: string) {
+    try {
+      await setDefault.mutateAsync(id)
+      toast.success('Primary payout method updated')
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : 'Could not update primary method')
+    }
+  }
+
+  async function onDelete(id: string) {
+    try {
+      await deleteMethod.mutateAsync(id)
+      toast.success('Payout method removed')
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : 'Could not remove payout method')
+    }
+  }
 
   const apiUser = session?.user
   const user = apiUser
@@ -236,7 +273,13 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
                 title="No bank accounts"
                 description="Add an INR account to receive withdrawals."
                 action={
-                  <Button variant="secondary" onClick={() => toast.info('Add bank account is a UI preview.')}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setEditingBank(null)
+                      setBankOpen(true)
+                    }}
+                  >
                     Add bank account
                   </Button>
                 }
@@ -254,23 +297,60 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
                           : 'border-line/80 bg-inset/30',
                       )}
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-body-sm font-medium text-fg">
-                          {b.label}
-                          {b.isDefault ? (
-                            <span className="ml-2 text-caption text-accent-300">Primary</span>
-                          ) : null}
-                        </p>
-                        <StatusPill status={b.isVerified ? 'APPROVED' : 'PENDING'} />
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-body-sm font-medium text-fg">
+                              {b.label}
+                              {b.isDefault ? (
+                                <span className="ml-2 text-caption text-accent-300">Primary</span>
+                              ) : null}
+                            </p>
+                            <StatusPill status={b.isVerified ? 'APPROVED' : 'PENDING'} />
+                          </div>
+                          <p className="mt-1 text-caption text-fg-muted">{b.maskedDetails}</p>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="size-9 shrink-0 rounded-full p-0"
+                              aria-label={`Manage ${b.label}`}
+                            >
+                              <MoreHorizontal aria-hidden />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                setEditingBank(b)
+                                setBankOpen(true)
+                              }}
+                            >
+                              Edit
+                            </DropdownMenuItem>
+                            {!b.isDefault ? (
+                              <DropdownMenuItem onSelect={() => void onSetDefault(b.id)}>
+                                Set as primary
+                              </DropdownMenuItem>
+                            ) : null}
+                            <DropdownMenuItem destructive onSelect={() => void onDelete(b.id)}>
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                      <p className="mt-1 text-caption text-fg-muted">{b.maskedDetails}</p>
                     </li>
                   ))}
                 </ul>
                 <Button
                   className="mt-3.5"
                   variant="secondary"
-                  onClick={() => toast.info('Add bank account is a UI preview.')}
+                  onClick={() => {
+                    setEditingBank(null)
+                    setBankOpen(true)
+                  }}
                 >
                   Add bank account
                 </Button>
@@ -290,6 +370,17 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
                 variant="wallet"
                 title="No wallets yet"
                 description="Save a crypto address for faster withdrawals."
+                action={
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setEditingWallet(null)
+                      setWalletOpen(true)
+                    }}
+                  >
+                    Add wallet
+                  </Button>
+                }
               />
             ) : (
               <>
@@ -297,24 +388,66 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
                   {cryptoWallets.map((w) => (
                     <li
                       key={w.id}
-                      className="rounded-xl border border-line/80 bg-inset/30 px-3.5 py-3"
+                      className={cn(
+                        'rounded-xl border px-3.5 py-3',
+                        w.isDefault
+                          ? 'border-accent-700/40 bg-accent-500/8'
+                          : 'border-line/80 bg-inset/30',
+                      )}
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-body-sm font-medium text-fg">
-                          {w.label}
-                          {w.isDefault ? (
-                            <span className="ml-2 text-caption text-accent-300">Primary</span>
-                          ) : null}
-                        </p>
-                        <span className="text-caption text-fg-subtle">
-                          {w.type.replaceAll('_', ' ')}
-                        </span>
-                      </div>
-                      <div className="mt-2 flex items-start gap-2">
-                        <p className="min-w-0 flex-1 break-all font-mono text-caption text-fg-muted">
-                          {w.maskedDetails}
-                        </p>
-                        <CopyButton value={w.maskedDetails} label="Wallet address" />
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-body-sm font-medium text-fg">
+                              {w.label}
+                              {w.isDefault ? (
+                                <span className="ml-2 text-caption text-accent-300">Primary</span>
+                              ) : null}
+                            </p>
+                            <span className="text-caption text-fg-subtle">
+                              {w.type.replaceAll('_', ' ')}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex items-start gap-2">
+                            <p className="min-w-0 flex-1 break-all font-mono text-caption text-fg-muted">
+                              {w.maskedDetails}
+                            </p>
+                            <CopyButton
+                              value={w.details?.address ?? w.maskedDetails}
+                              label="Wallet address"
+                            />
+                          </div>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="size-9 shrink-0 rounded-full p-0"
+                              aria-label={`Manage ${w.label}`}
+                            >
+                              <MoreHorizontal aria-hidden />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                setEditingWallet(w)
+                                setWalletOpen(true)
+                              }}
+                            >
+                              Edit
+                            </DropdownMenuItem>
+                            {!w.isDefault ? (
+                              <DropdownMenuItem onSelect={() => void onSetDefault(w.id)}>
+                                Set as primary
+                              </DropdownMenuItem>
+                            ) : null}
+                            <DropdownMenuItem destructive onSelect={() => void onDelete(w.id)}>
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </li>
                   ))}
@@ -322,7 +455,10 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
                 <Button
                   className="mt-3.5"
                   variant="secondary"
-                  onClick={() => toast.info('Add wallet is a UI preview.')}
+                  onClick={() => {
+                    setEditingWallet(null)
+                    setWalletOpen(true)
+                  }}
                 >
                   Add wallet
                 </Button>
@@ -473,6 +609,25 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
           </SettingsCard>
         </TabsContent>
       </Tabs>
+
+      <AddBankAccountDialog
+        open={bankOpen}
+        onOpenChange={(open) => {
+          setBankOpen(open)
+          if (!open) setEditingBank(null)
+        }}
+        method={editingBank}
+        defaultAsPrimary={bankAccounts.length === 0}
+      />
+      <AddCryptoWalletDialog
+        open={walletOpen}
+        onOpenChange={(open) => {
+          setWalletOpen(open)
+          if (!open) setEditingWallet(null)
+        }}
+        method={editingWallet}
+        defaultAsPrimary={cryptoWallets.length === 0}
+      />
     </div>
   )
 }

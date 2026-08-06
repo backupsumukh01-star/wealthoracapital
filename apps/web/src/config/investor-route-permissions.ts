@@ -18,6 +18,5 @@ export const INVESTOR_ROUTE_PERMISSIONS: Record<string, Permission | Permission[
   [ROUTES.dashboard.settings.security]: 'sessions.manage',
   [ROUTES.dashboard.settings.payoutMethods]: 'withdrawals.view',
   [ROUTES.dashboard.settings.preferences]: 'profile.view',
-  [ROUTES.dashboard.settings.emails]: 'profile.view',
   [ROUTES.dashboard.referrals]: 'profile.view',
 }

@@ -252,13 +252,6 @@ export const DASHBOARD_SETTINGS_NAV: NavItem[] = [
     description: 'Notifications, theme and number format',
     permission: 'profile.view',
   },
-  {
-    label: 'Email preview',
-    href: ROUTES.dashboard.settings.emails,
-    icon: Mail,
-    description: 'Lifecycle email templates',
-    permission: 'profile.view',
-  },
 ]
 
 /* -------------------------------------------------------------------------- */

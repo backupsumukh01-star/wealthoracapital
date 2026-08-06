@@ -32,6 +32,12 @@ export type CreatePayoutMethodBody = {
   isDefault?: boolean
 }
 
+export type UpdatePayoutMethodBody = {
+  label?: string
+  details?: Record<string, string>
+  isDefault?: boolean
+}
+
 export type RequestWithdrawalOtpBody = {
   amount: string
   payoutMethodId: string
@@ -59,6 +65,22 @@ export const withdrawService = {
     apiClient<PayoutMethod>(API_ROUTES.withdrawals.methods, {
       method: 'POST',
       body,
+    }),
+
+  updatePayoutMethod: (id: string, body: UpdatePayoutMethodBody) =>
+    apiClient<PayoutMethod>(API_ROUTES.withdrawals.method(id), {
+      method: 'PATCH',
+      body,
+    }),
+
+  deletePayoutMethod: (id: string) =>
+    apiClient<{ id: string }>(API_ROUTES.withdrawals.method(id), {
+      method: 'DELETE',
+    }),
+
+  setDefaultPayoutMethod: (id: string) =>
+    apiClient<PayoutMethod>(API_ROUTES.withdrawals.methodDefault(id), {
+      method: 'POST',
     }),
 
   requestOtp: (body: RequestWithdrawalOtpBody) =>

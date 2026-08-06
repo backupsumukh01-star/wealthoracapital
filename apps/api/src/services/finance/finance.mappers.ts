@@ -180,11 +180,20 @@ export function mapPaymentMethod(method: PaymentMethod) {
 }
 
 export function mapPayoutMethod(method: PayoutMethod) {
+  const raw = method.details
+  const details: Record<string, string> = {}
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+      if (typeof value === 'string') details[key] = value
+    }
+  }
+
   return {
     id: method.id,
     label: method.label,
     type: method.type,
     maskedDetails: method.maskedDetails,
+    details,
     isDefault: method.isDefault,
     isVerified: method.isVerified,
   }

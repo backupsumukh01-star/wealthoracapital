@@ -200,6 +200,129 @@ export const withdrawalService = {
     return mapPayoutMethod(created)
   },
 
+  async updatePayoutMethod(
+    userId: string,
+    id: string,
+    body: {
+      label?: string
+      details?: Record<string, string>
+      isDefault?: boolean
+    },
+    context: Ctx,
+  ) {
+    await requireActiveInvestor(userId)
+    const existing = await prisma.payoutMethod.findFirst({
+      where: { id, userId, deletedAt: null },
+    })
+    if (!existing) throw notFound('Payout method not found.')
+
+    const nextLabel = body.label?.trim() ?? existing.label
+    const normalized =
+      body.details != null ? normalizePayoutDetails(existing.type, body.details) : null
+    const makeDefault = body.isDefault === true
+
+    const updated = await prisma.$transaction(async (tx) => {
+      if (makeDefault) {
+        await tx.payoutMethod.updateMany({
+          where: { userId, deletedAt: null, id: { not: id } },
+          data: { isDefault: false },
+        })
+      }
+      return tx.payoutMethod.update({
+        where: { id },
+        data: {
+          label: nextLabel,
+          ...(normalized
+            ? { details: normalized.details, maskedDetails: normalized.maskedDetails }
+            : {}),
+          ...(makeDefault ? { isDefault: true } : body.isDefault === false ? { isDefault: false } : {}),
+        },
+      })
+    })
+
+    await auditService.record({
+      actorId: userId,
+      targetUserId: userId,
+      action: 'payout_method.update',
+      module: 'finance',
+      newValue: { id: updated.id, type: updated.type, label: updated.label },
+      ip: context.ip,
+      userAgent: context.userAgent,
+    })
+
+    return mapPayoutMethod(updated)
+  },
+
+  async deletePayoutMethod(userId: string, id: string, context: Ctx) {
+    await requireActiveInvestor(userId)
+    const existing = await prisma.payoutMethod.findFirst({
+      where: { id, userId, deletedAt: null },
+    })
+    if (!existing) throw notFound('Payout method not found.')
+
+    await prisma.$transaction(async (tx) => {
+      await tx.payoutMethod.update({
+        where: { id },
+        data: { deletedAt: new Date(), isDefault: false },
+      })
+      if (existing.isDefault) {
+        const next = await tx.payoutMethod.findFirst({
+          where: { userId, deletedAt: null },
+          orderBy: { createdAt: 'desc' },
+        })
+        if (next) {
+          await tx.payoutMethod.update({
+            where: { id: next.id },
+            data: { isDefault: true },
+          })
+        }
+      }
+    })
+
+    await auditService.record({
+      actorId: userId,
+      targetUserId: userId,
+      action: 'payout_method.delete',
+      module: 'finance',
+      newValue: { id: existing.id, type: existing.type, label: existing.label },
+      ip: context.ip,
+      userAgent: context.userAgent,
+    })
+
+    return { id }
+  },
+
+  async setDefaultPayoutMethod(userId: string, id: string, context: Ctx) {
+    await requireActiveInvestor(userId)
+    const existing = await prisma.payoutMethod.findFirst({
+      where: { id, userId, deletedAt: null },
+    })
+    if (!existing) throw notFound('Payout method not found.')
+
+    const updated = await prisma.$transaction(async (tx) => {
+      await tx.payoutMethod.updateMany({
+        where: { userId, deletedAt: null },
+        data: { isDefault: false },
+      })
+      return tx.payoutMethod.update({
+        where: { id },
+        data: { isDefault: true },
+      })
+    })
+
+    await auditService.record({
+      actorId: userId,
+      targetUserId: userId,
+      action: 'payout_method.set_default',
+      module: 'finance',
+      newValue: { id: updated.id, type: updated.type, label: updated.label },
+      ip: context.ip,
+      userAgent: context.userAgent,
+    })
+
+    return mapPayoutMethod(updated)
+  },
+
   async list(
     userId: string,
     query: { status?: WithdrawalStatus; cursor?: string; limit?: number },

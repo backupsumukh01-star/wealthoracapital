@@ -161,6 +161,8 @@ export const API_ROUTES = {
     root: '/withdrawals',
     limits: '/withdrawals/limits',
     methods: '/withdrawals/methods',
+    method: (id: string) => `/withdrawals/methods/${id}`,
+    methodDefault: (id: string) => `/withdrawals/methods/${id}/default`,
     otp: '/withdrawals/otp',
     cancel: (id: string) => `/withdrawals/${id}/cancel`,
   },
