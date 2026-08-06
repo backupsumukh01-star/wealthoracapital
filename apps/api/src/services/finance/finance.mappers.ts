@@ -10,6 +10,7 @@ import type {
 
 import { env } from '../../config/env.js'
 import { d, moneyDisplay } from '../../utils/money.js'
+import { inrDisplay, usdDisplay } from '../../utils/fx.js'
 
 type DepositWithMethod = Deposit & {
   paymentMethod: Pick<PaymentMethod, 'id' | 'name' | 'type'>
@@ -51,10 +52,17 @@ export function mapDeposit(deposit: DepositWithMethod) {
     nonempty(details?.utr) ??
     nonempty(details?.userReference)
 
+  const amountUsd = usdDisplay(deposit.amount)
+  const amountInr = deposit.amountInr != null ? inrDisplay(deposit.amountInr) : null
+
   return {
     id: deposit.id,
     reference: deposit.reference,
-    amount: moneyDisplay(deposit.amount),
+    amount: amountUsd,
+    amountUsd,
+    amountInr,
+    depositUsd: amountUsd,
+    depositInr: amountInr,
     creditedAmount: deposit.creditedAmount ? moneyDisplay(deposit.creditedAmount) : null,
     fee: moneyDisplay(deposit.fee),
     currency: deposit.currency,
@@ -183,10 +191,17 @@ export function mapPayoutMethod(method: PayoutMethod) {
 }
 
 export function mapWithdrawal(withdrawal: Withdrawal) {
+  const amountUsd = usdDisplay(withdrawal.amount)
+  const amountInr = withdrawal.amountInr != null ? inrDisplay(withdrawal.amountInr) : null
+
   return {
     id: withdrawal.id,
     reference: withdrawal.reference,
-    amount: moneyDisplay(withdrawal.amount),
+    amount: amountUsd,
+    amountUsd,
+    amountInr,
+    withdrawUsd: amountUsd,
+    withdrawInr: amountInr,
     fee: moneyDisplay(withdrawal.fee),
     netAmount: moneyDisplay(withdrawal.netAmount),
     currency: withdrawal.currency,

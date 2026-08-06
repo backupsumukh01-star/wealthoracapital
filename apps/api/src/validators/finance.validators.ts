@@ -4,6 +4,9 @@ const money = z
   .string()
   .regex(/^\d+(\.\d{1,8})?$/, 'Amount must be a positive decimal string.')
 
+/** Whole-rupee INR amount (no fractional digits). */
+const inrMoney = z.string().regex(/^\d+$/, 'INR amount must be a whole-rupee integer string.')
+
 export const cursorLimitQuerySchema = z.object({
   cursor: z.string().uuid().optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
@@ -15,6 +18,8 @@ export const cursorLimitQuerySchema = z.object({
 
 export const createDepositSchema = z.object({
   amount: money,
+  /** Optional INR snapshot from the dual-currency form; server recomputes if omitted. */
+  amountInr: inrMoney.optional(),
   methodId: z.string().uuid(),
   userReference: z.string().max(120).optional(),
   txHash: z.string().max(120).optional(),
@@ -26,6 +31,8 @@ export const createDepositSchema = z.object({
 
 export const createWithdrawalSchema = z.object({
   amount: money,
+  /** Optional INR snapshot from the dual-currency form; server recomputes if omitted. */
+  amountInr: inrMoney.optional(),
   payoutMethodId: z.string().uuid(),
   otp: z.string().trim().min(4).max(12),
   idempotencyKey: z.string().min(8).max(120),

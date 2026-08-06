@@ -19,6 +19,12 @@ export const adminSettingsUpdateSchema = z.object({
   maxDeposit: z.string().optional(),
   minWithdrawal: z.string().optional(),
   maxWithdrawal: z.string().optional(),
+  /** Desk USD→INR rate; must be a positive decimal string. */
+  usdInrRate: z
+    .string()
+    .regex(/^\d+(\.\d{1,8})?$/, 'Exchange rate must be a positive decimal.')
+    .refine((v) => Number(v) > 0, 'Exchange rate must be greater than zero.')
+    .optional(),
 })
 
 export const featureFlagsUpdateSchema = z.record(z.string(), z.boolean())

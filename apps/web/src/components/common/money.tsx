@@ -46,6 +46,7 @@ export function Money({
   className,
 }: MoneyProps) {
   const sign = signed ? signOf(value) : 0
+  const decimals = currency === 'INR' ? 0 : 2
 
   return (
     <span
@@ -58,7 +59,7 @@ export function Money({
         className,
       )}
     >
-      {formatMoney(value, { currency, signed, compact, bare })}
+      {formatMoney(value, { currency, signed, compact, bare, decimals })}
     </span>
   )
 }

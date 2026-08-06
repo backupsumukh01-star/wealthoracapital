@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client'
 
 import { prisma } from '../database/prisma.js'
 import { moneyDisplay } from '../utils/money.js'
+import { DEFAULT_USD_INR_RATE, rateDisplay } from '../utils/fx.js'
 import { userRepository } from '../repositories/user.repository.js'
 import { profileRepository } from '../repositories/profile.repository.js'
 import { notFound } from '../utils/errors.js'
@@ -25,6 +26,7 @@ function mapSettings(row: {
   maxDeposit: Prisma.Decimal
   minWithdrawal: Prisma.Decimal
   maxWithdrawal: Prisma.Decimal
+  usdInrRate: Prisma.Decimal
 }) {
   return {
     companyName: row.companyName,
@@ -35,6 +37,7 @@ function mapSettings(row: {
     maintenanceMode: row.maintenanceMode,
     networks: Array.isArray(row.networks) ? (row.networks as string[]) : DEFAULT_NETWORKS,
     coins: Array.isArray(row.coins) ? (row.coins as string[]) : DEFAULT_COINS,
+    usdInrRate: rateDisplay(row.usdInrRate ?? DEFAULT_USD_INR_RATE),
     limits: {
       minDeposit: moneyDisplay(row.minDeposit),
       maxDeposit: moneyDisplay(row.maxDeposit),
@@ -49,7 +52,11 @@ export const settingsService = {
     const existing = await prisma.platformSetting.findFirst()
     if (existing) return existing
     return prisma.platformSetting.create({
-      data: { networks: DEFAULT_NETWORKS, coins: DEFAULT_COINS },
+      data: {
+        networks: DEFAULT_NETWORKS,
+        coins: DEFAULT_COINS,
+        usdInrRate: DEFAULT_USD_INR_RATE.toFixed(8),
+      },
     })
   },
 
@@ -64,6 +71,7 @@ export const settingsService = {
       supportEmail: mapped.supportEmail,
       defaultCurrency: mapped.defaultCurrency,
       maintenanceMode: mapped.maintenanceMode,
+      usdInrRate: mapped.usdInrRate,
       featureFlags: Object.fromEntries(flags.map((f) => [f.key, f.enabled])),
       limits: mapped.limits,
     }
@@ -124,6 +132,7 @@ export const settingsService = {
       maxDeposit: string
       minWithdrawal: string
       maxWithdrawal: string
+      usdInrRate: string
     }>,
     context: Ctx,
   ) {
@@ -143,6 +152,7 @@ export const settingsService = {
         ...(body.maxDeposit !== undefined ? { maxDeposit: body.maxDeposit } : {}),
         ...(body.minWithdrawal !== undefined ? { minWithdrawal: body.minWithdrawal } : {}),
         ...(body.maxWithdrawal !== undefined ? { maxWithdrawal: body.maxWithdrawal } : {}),
+        ...(body.usdInrRate !== undefined ? { usdInrRate: body.usdInrRate } : {}),
         updatedById: actorId,
       },
     })

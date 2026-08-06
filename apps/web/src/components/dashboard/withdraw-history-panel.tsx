@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { ROUTES } from '@meridian/shared'
 import { ArrowUpFromLine } from 'lucide-react'
 
-import { Money } from '@/components/common/money'
+import { DualMoney } from '@/components/common/dual-money'
 import { PageHeader } from '@/components/common/page-header'
 import { PremiumEmptyState } from '@/components/dashboard/premium-empty-state'
 import { StatusPill } from '@/components/dashboard/status-pill'
@@ -59,7 +59,11 @@ export function WithdrawHistoryPanel() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Money value={row.amount} className="text-body-sm font-medium" />
+                  <DualMoney
+                    usd={row.amount}
+                    inr={row.amountInr ?? row.withdrawInr}
+                    className="text-body-sm font-medium"
+                  />
                   <StatusPill status={row.status} />
                 </div>
               </li>

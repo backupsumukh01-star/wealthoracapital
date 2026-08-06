@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 
 import { DepositProofViewer } from '@/components/common/deposit-proof-viewer'
-import { Money } from '@/components/common/money'
+import { DualMoney } from '@/components/common/dual-money'
 import { PageHeader, SectionHeader } from '@/components/common/page-header'
 import { RiskDisclosure } from '@/components/common/risk-disclosure'
 import { QrFrame } from '@/components/dashboard/qr-frame'
@@ -47,8 +47,8 @@ import {
   useDeposits,
   useUploadDepositProof,
 } from '@/features/deposits/hooks'
+import { useExchangeRate } from '@/hooks/use-exchange-rate'
 import { ApiError } from '@/lib/api-client'
-import { cn } from '@/lib/cn'
 import { formatDateTime } from '@/lib/format'
 import { useSession } from '@/providers/session-provider'
 
@@ -202,7 +202,11 @@ function DepositHistory() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Money value={row.amount} className="text-body-sm font-medium" />
+                  <DualMoney
+                    usd={row.amount}
+                    inr={row.amountInr ?? row.depositInr}
+                    className="text-body-sm font-medium"
+                  />
                   <StatusPill status={row.status} />
                   {row.hasProof || row.proofImageUrl ? (
                     <Button
@@ -235,11 +239,13 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
   const createDeposit = useCreateDeposit()
   const uploadProof = useUploadDepositProof()
   const cancelDeposit = useCancelDeposit()
+  const { rate, usdToInr, inrToUsd } = useExchangeRate()
 
   const [step, setStep] = useState<Step>('method')
   const [rail, setRail] = useState<Rail | null>(null)
   const [methodId, setMethodId] = useState<string | null>(null)
-  const [amount, setAmount] = useState('')
+  const [depositUsd, setDepositUsd] = useState('')
+  const [depositInr, setDepositInr] = useState('')
   const [walletId, setWalletId] = useState<string | null>(null)
   const [txHash, setTxHash] = useState('')
   const [utr, setUtr] = useState('')
@@ -247,6 +253,8 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
   const [proof, setProof] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState<Deposit | null>(null)
+
+  const amount = depositUsd
 
   const railMethods = useMemo(
     () => (rail ? pickMethods(methods, rail) : []),
@@ -292,11 +300,24 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
     return null
   })()
 
+  function onUsdChange(raw: string) {
+    const next = raw.replace(/[^\d.]/g, '')
+    setDepositUsd(next)
+    setDepositInr(next ? usdToInr(next) : '')
+  }
+
+  function onInrChange(raw: string) {
+    const next = raw.replace(/[^\d]/g, '')
+    setDepositInr(next)
+    setDepositUsd(next ? inrToUsd(next) : '')
+  }
+
   function chooseRail(next: Rail) {
     setRail(next)
     const list = pickMethods(methods, next)
     setMethodId(list[0]?.id ?? null)
-    setAmount('')
+    setDepositUsd('')
+    setDepositInr('')
     setStep('amount')
   }
 
@@ -385,7 +406,8 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
               })
 
       const deposit = await createDeposit.mutateAsync({
-        amount: amount.trim(),
+        amount: depositUsd.trim(),
+        amountInr: depositInr.trim() || undefined,
         methodId: selected.id,
         userReference: reference,
         txHash: rail === 'CRYPTO' ? reference : undefined,
@@ -428,7 +450,8 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
     setStep('method')
     setRail(null)
     setMethodId(null)
-    setAmount('')
+    setDepositUsd('')
+    setDepositInr('')
     setTxHash('')
     setUtr('')
     setNotes('')
@@ -546,16 +569,28 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
             <FormField
               label="Investment amount (USD)"
               required
-              hint={`Minimum $${selected.minAmount}${selected.maxAmount ? ` · Maximum $${selected.maxAmount}` : ''}`}
+              hint={`Minimum $${selected.minAmount}${selected.maxAmount ? ` · Maximum $${selected.maxAmount}` : ''} · Desk rate 1 USD = ₹${rate}`}
               error={amount.trim() ? amountError ?? undefined : undefined}
             >
               <Input
                 prefix="$"
                 inputMode="decimal"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))}
-                placeholder="Enter custom amount"
+                value={depositUsd}
+                onChange={(e) => onUsdChange(e.target.value)}
+                placeholder="Enter USD amount"
                 autoFocus
+              />
+            </FormField>
+            <FormField
+              label="Amount (INR)"
+              hint="Synced live from the desk rate. Whole rupees only."
+            >
+              <Input
+                prefix="₹"
+                inputMode="numeric"
+                value={depositInr}
+                onChange={(e) => onInrChange(e.target.value)}
+                placeholder="Enter INR amount"
               />
             </FormField>
             <Button type="button" className="w-full" onClick={goDetails} disabled={Boolean(amountError)}>
@@ -718,7 +753,12 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
             <div className="border-line/60 bg-inset/40 grid gap-3 rounded-2xl border p-4 sm:grid-cols-2">
               <div>
                 <p className="text-caption text-fg-subtle">Amount</p>
-                <p className="text-heading-sm text-fg tabular-nums">${amount}</p>
+                <p className="text-heading-sm text-fg tabular-nums">
+                  ${depositUsd}
+                  {depositInr ? (
+                    <span className="text-body-sm text-fg-subtle font-normal"> · ₹{depositInr}</span>
+                  ) : null}
+                </p>
               </div>
               <div>
                 <p className="text-caption text-fg-subtle">Method</p>
@@ -767,6 +807,9 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
               <p className="text-heading-sm text-fg">Pending review</p>
               <p className="text-body-sm text-fg-muted mt-1">
                 {submitted.reference} · ${submitted.amount}
+                {submitted.amountInr || submitted.depositInr
+                  ? ` · ₹${submitted.amountInr ?? submitted.depositInr}`
+                  : ''}
                 {submitted.hasProof ? ' · Proof uploaded' : ''}
               </p>
             </div>

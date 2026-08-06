@@ -8,6 +8,8 @@ import { auditService } from '../audit.service.js'
 import { notificationService } from '../notification.service.js'
 import { badRequest, conflict, forbidden, notFound } from '../../utils/errors.js'
 import { d, moneyDisplay, moneyString } from '../../utils/money.js'
+import { DEFAULT_USD_INR_RATE, inrStorage, usdToInr } from '../../utils/fx.js'
+import { settingsService } from '../settings.service.js'
 import { mapPayoutMethod, mapWithdrawal } from './finance.mappers.js'
 import { ledgerService } from './ledger.service.js'
 
@@ -224,7 +226,13 @@ export const withdrawalService = {
 
   async create(
     userId: string,
-    body: { amount: string; payoutMethodId: string; otp: string; idempotencyKey: string },
+    body: {
+      amount: string
+      amountInr?: string
+      payoutMethodId: string
+      otp: string
+      idempotencyKey: string
+    },
     context: Ctx,
   ) {
     await requireActiveInvestor(userId)
@@ -247,6 +255,11 @@ export const withdrawalService = {
       where: { id: body.payoutMethodId, userId, deletedAt: null },
     })
     if (!payout) throw badRequest('Payout method not found.')
+
+    const platform = await settingsService.getOrInitPlatformSettings()
+    const rate = d(platform.usdInrRate ?? DEFAULT_USD_INR_RATE)
+    const amountInr = body.amountInr ? d(body.amountInr) : usdToInr(amount, rate)
+    if (!amountInr.isFinite() || amountInr.lte(0)) throw badRequest('Invalid INR amount.')
 
     // Verify OTP only after amount/method validation so a bad request does not burn the code.
     await emailOtpService.verifyWithdrawalOtp(userId, body.otp, {
@@ -294,6 +307,7 @@ export const withdrawalService = {
             walletId: wallet.id,
             payoutMethodId: payout.id,
             amount: moneyString(amount),
+            amountInr: inrStorage(amountInr),
             fee: moneyString(fee),
             netAmount: moneyString(net),
             status: 'PENDING',
@@ -303,6 +317,9 @@ export const withdrawalService = {
               type: payout.type,
               details: payout.details,
               maskedDetails: payout.maskedDetails,
+              usdInrRate: rate.toFixed(8),
+              withdrawUsd: moneyDisplay(amount),
+              withdrawInr: amountInr.toFixed(0),
             },
             otpVerifiedAt: new Date(),
             idempotencyKey: body.idempotencyKey,

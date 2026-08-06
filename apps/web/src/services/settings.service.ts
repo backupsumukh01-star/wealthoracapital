@@ -27,6 +27,7 @@ export const settingsService = {
     maxDeposit?: string
     minWithdrawal?: string
     maxWithdrawal?: string
+    usdInrRate?: string
   }) =>
     apiClient<PlatformSettings>(API_ROUTES.admin.settings, { method: 'PUT', body }),
 

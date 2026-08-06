@@ -10,6 +10,7 @@ import { Percent } from '@/components/common/percent'
 import { AnimatedNumber } from '@/components/motion/animated-number'
 import { Button } from '@/components/ui/button'
 import { useWalletSummary } from '@/features/wallet/hooks'
+import { useExchangeRate } from '@/hooks/use-exchange-rate'
 import { accountAccessMessage, canTransact } from '@/lib/account-access'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { useSession } from '@/providers/session-provider'
@@ -39,6 +40,7 @@ export function PortfolioHero({
     enabled: Boolean(session),
     refetchInterval: 15_000,
   })
+  const { usdToInr, rate } = useExchangeRate({ enabled: Boolean(session) })
 
   const wallet = summary?.wallet ?? session?.wallet
   const balance = wallet?.availableBalance ?? '0.00'
@@ -52,6 +54,7 @@ export function PortfolioHero({
   const name = session?.user.firstName ?? 'Investor'
   const allowed = canTransact(session?.user.kycStatus)
   const access = accountAccessMessage(session?.user.kycStatus)
+  const balanceInr = usdToInr(balance)
 
   const depositBtn = onDeposit ? (
     <Button
@@ -132,6 +135,12 @@ export function PortfolioHero({
               className="text-inherit"
             />
           </p>
+          {balanceInr ? (
+            <p className="mt-1 text-body-sm text-fg-muted tabular-nums">
+              ≈ <Money value={balanceInr} currency="INR" size="sm" />
+              <span className="text-caption text-fg-subtle"> · 1 USD = ₹{rate}</span>
+            </p>
+          ) : null}
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-1 rounded-full border border-profit/20 bg-profit/10 px-2.5 py-1 text-caption text-profit">
               Today <Percent value={todayReturnPct} showArrow />
@@ -145,22 +154,30 @@ export function PortfolioHero({
             { label: 'Total profit', value: totalProfit, tone: 'profit' as const },
             { label: 'Total investment', value: invested, tone: 'neutral' as const },
             { label: 'Available', value: available, tone: 'neutral' as const },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-2xl border border-white/5 bg-inset/40 px-3 py-3 transition-transform duration-200 hover:-translate-y-0.5 sm:px-3.5"
-            >
-              <p className="text-[11px] text-fg-subtle">{stat.label}</p>
-              <p
-                className={cn(
-                  'mt-1 text-body-sm font-semibold tabular-nums sm:text-body',
-                  stat.tone === 'profit' ? 'text-profit' : 'text-fg',
-                )}
+          ].map((stat) => {
+            const inr = usdToInr(stat.value)
+            return (
+              <div
+                key={stat.label}
+                className="rounded-2xl border border-white/5 bg-inset/40 px-3 py-3 transition-transform duration-200 hover:-translate-y-0.5 sm:px-3.5"
               >
-                <Money value={stat.value} signed={stat.tone === 'profit'} size="sm" />
-              </p>
-            </div>
-          ))}
+                <p className="text-[11px] text-fg-subtle">{stat.label}</p>
+                <p
+                  className={cn(
+                    'mt-1 text-body-sm font-semibold tabular-nums sm:text-body',
+                    stat.tone === 'profit' ? 'text-profit' : 'text-fg',
+                  )}
+                >
+                  <Money value={stat.value} signed={stat.tone === 'profit'} size="sm" />
+                </p>
+                {inr ? (
+                  <p className="mt-0.5 text-[11px] text-fg-subtle tabular-nums">
+                    <Money value={inr} currency="INR" size="inherit" />
+                  </p>
+                ) : null}
+              </div>
+            )
+          })}
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-caption text-fg-subtle sm:flex sm:gap-6">

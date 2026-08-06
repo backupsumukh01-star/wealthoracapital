@@ -14,6 +14,8 @@ import { assertUploadMagicBytes } from '../../utils/upload-magic.js'
 import { badRequest, conflict, forbidden, notFound } from '../../utils/errors.js'
 import { logger } from '../../utils/logger.js'
 import { d, moneyDisplay, moneyString } from '../../utils/money.js'
+import { DEFAULT_USD_INR_RATE, inrStorage, usdToInr } from '../../utils/fx.js'
+import { settingsService } from '../settings.service.js'
 import { buildDepositProofImageUrl, mapDeposit } from './finance.mappers.js'
 import { mapPaymentMethodDetailed } from './payment-method.mapper.js'
 import { ledgerService } from './ledger.service.js'
@@ -76,6 +78,7 @@ export const depositService = {
     userId: string,
     body: {
       amount: string
+      amountInr?: string
       methodId: string
       userReference?: string
       txHash?: string
@@ -114,6 +117,11 @@ export const depositService = {
       if (dupHash) throw conflict('This transaction hash was already used.')
     }
 
+    const platform = await settingsService.getOrInitPlatformSettings()
+    const rate = d(platform.usdInrRate ?? DEFAULT_USD_INR_RATE)
+    const amountInr = body.amountInr ? d(body.amountInr) : usdToInr(amount, rate)
+    if (!amountInr.isFinite() || amountInr.lte(0)) throw badRequest('Invalid INR amount.')
+
     const fee = amount.mul(d(method.feePct)).div(100)
     const wallet = await ledgerService.getInvestmentWallet(userId)
 
@@ -125,6 +133,9 @@ export const depositService = {
           clientIp: context.ip ?? '',
           userAgent: context.userAgent ?? '',
           submittedAt: new Date().toISOString(),
+          usdInrRate: rate.toFixed(8),
+          depositUsd: moneyDisplay(amount),
+          depositInr: amountInr.toFixed(0),
         }
         const created = await tx.deposit.create({
           data: {
@@ -133,6 +144,7 @@ export const depositService = {
             walletId: wallet.id,
             paymentMethodId: method.id,
             amount: moneyString(amount),
+            amountInr: inrStorage(amountInr),
             fee: moneyString(fee),
             status: 'PENDING',
             userReference: body.userReference?.slice(0, 120) ?? null,

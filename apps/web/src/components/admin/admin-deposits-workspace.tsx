@@ -15,6 +15,7 @@ import {
 import { AdminPanel } from '@/components/admin/admin-panel'
 import { AdminDepositPill } from '@/components/admin/admin-status-pills'
 import { DepositProofViewer } from '@/components/common/deposit-proof-viewer'
+import { DualMoney } from '@/components/common/dual-money'
 import { Money } from '@/components/common/money'
 import { PageHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
@@ -215,7 +216,11 @@ export function AdminDepositsWorkspace() {
                     <td className="px-4 py-3 font-mono text-[11px] text-fg-muted">{d.reference}</td>
                     <td className="px-4 py-3 text-fg">{investorName(d.user)}</td>
                     <td className="px-4 py-3">
-                      <Money value={d.amount as MoneyString} size="sm" />
+                      <DualMoney
+                        usd={d.amount as MoneyString}
+                        inr={(d.amountInr ?? d.depositInr) as MoneyString | null | undefined}
+                        size="sm"
+                      />
                     </td>
                     <td className="px-4 py-3 text-fg-muted">{methodLabel(d.method)}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-fg-muted">
@@ -270,7 +275,16 @@ export function AdminDepositsWorkspace() {
                   <div>
                     <dt className="text-fg-subtle">Amount</dt>
                     <dd>
-                      <Money value={selected.amount as MoneyString} size="sm" />
+                      <DualMoney
+                        usd={selected.amount as MoneyString}
+                        inr={
+                          (selected.amountInr ?? selected.depositInr) as
+                            | MoneyString
+                            | null
+                            | undefined
+                        }
+                        size="sm"
+                      />
                     </dd>
                   </div>
                   <div>

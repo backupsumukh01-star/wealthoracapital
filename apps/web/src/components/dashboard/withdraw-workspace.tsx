@@ -18,6 +18,7 @@ import {
   Wallet,
 } from 'lucide-react'
 
+import { DualMoney } from '@/components/common/dual-money'
 import { Money } from '@/components/common/money'
 import { PageHeader, SectionHeader } from '@/components/common/page-header'
 import { StatCard } from '@/components/common/stat-card'
@@ -42,6 +43,7 @@ import {
   useWithdrawalLimits,
   useWithdrawals,
 } from '@/features/withdrawals/hooks'
+import { useExchangeRate } from '@/hooks/use-exchange-rate'
 import { ApiError } from '@/lib/api-client'
 import { cn } from '@/lib/cn'
 import { formatDateTime } from '@/lib/format'
@@ -119,7 +121,11 @@ function WithdrawalHistory({ rows, isLoading }: { rows: Withdrawal[]; isLoading:
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <Money value={row.amount} className="text-body-sm font-medium" />
+                <DualMoney
+                  usd={row.amount}
+                  inr={row.amountInr ?? row.withdrawInr}
+                  className="text-body-sm font-medium"
+                />
                 <StatusPill status={row.status} />
               </div>
             </li>
@@ -141,6 +147,7 @@ export function WithdrawWorkspace() {
   const createPayoutMethod = useCreatePayoutMethod()
   const requestOtp = useRequestWithdrawalOtp()
   const createWithdrawal = useCreateWithdrawal()
+  const { rate, usdToInr, inrToUsd } = useExchangeRate()
 
   const methods = payoutMethods ?? []
   const withdrawals = withdrawalsData?.items ?? []
@@ -155,11 +162,14 @@ export function WithdrawWorkspace() {
 
   const [step, setStep] = useState<Step>('home')
   const [rail, setRail] = useState<Rail | null>(null)
-  const [amount, setAmount] = useState('')
+  const [withdrawUsd, setWithdrawUsd] = useState('')
+  const [withdrawInr, setWithdrawInr] = useState('')
   const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null)
   const [otp, setOtp] = useState('')
   const [otpExpiresHint, setOtpExpiresHint] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState<Withdrawal | null>(null)
+
+  const amount = withdrawUsd
 
   // Add wallet form
   const [newCryptoType, setNewCryptoType] = useState<CryptoType>('USDT_TRC20')
@@ -191,6 +201,18 @@ export function WithdrawWorkspace() {
     }
     return null
   })()
+
+  function onUsdChange(raw: string) {
+    const next = raw.replace(/[^\d.]/g, '')
+    setWithdrawUsd(next)
+    setWithdrawInr(next ? usdToInr(next) : '')
+  }
+
+  function onInrChange(raw: string) {
+    const next = raw.replace(/[^\d]/g, '')
+    setWithdrawInr(next)
+    setWithdrawUsd(next ? inrToUsd(next) : '')
+  }
 
   const railMethods = rail ? filterMethods(methods, rail) : []
   const selectedMethod =
@@ -373,7 +395,8 @@ export function WithdrawWorkspace() {
     setBusy(true)
     try {
       const withdrawal = await createWithdrawal.mutateAsync({
-        amount: amount.trim(),
+        amount: withdrawUsd.trim(),
+        amountInr: withdrawInr.trim() || undefined,
         payoutMethodId: selectedMethodId,
         otp: otp.trim(),
       })
@@ -388,7 +411,8 @@ export function WithdrawWorkspace() {
   }
 
   function resetAll() {
-    setAmount('')
+    setWithdrawUsd('')
+    setWithdrawInr('')
     setSubmitted(null)
     goHome()
   }
@@ -509,15 +533,27 @@ export function WithdrawWorkspace() {
               required
               hint={`Available $${limits?.availableBalance ?? '0.00'}${
                 limits?.min ? ` · Min $${limits.min}` : ''
-              }`}
+              } · Desk rate 1 USD = ₹${rate}`}
               error={amount.trim() ? amountError ?? undefined : undefined}
             >
               <Input
                 prefix="$"
                 inputMode="decimal"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))}
-                placeholder="Enter amount"
+                value={withdrawUsd}
+                onChange={(e) => onUsdChange(e.target.value)}
+                placeholder="Enter USD amount"
+              />
+            </FormField>
+            <FormField
+              label="Amount (INR)"
+              hint="Synced live from the desk rate. Whole rupees only."
+            >
+              <Input
+                prefix="₹"
+                inputMode="numeric"
+                value={withdrawInr}
+                onChange={(e) => onInrChange(e.target.value)}
+                placeholder="Enter INR amount"
               />
             </FormField>
 
@@ -712,7 +748,12 @@ export function WithdrawWorkspace() {
             <div className="border-line/60 bg-inset/40 grid gap-3 rounded-2xl border p-4 sm:grid-cols-2">
               <div>
                 <p className="text-caption text-fg-subtle">Amount</p>
-                <p className="text-heading-sm text-fg tabular-nums">${amount}</p>
+                <p className="text-heading-sm text-fg tabular-nums">
+                  ${withdrawUsd}
+                  {withdrawInr ? (
+                    <span className="text-body-sm text-fg-subtle font-normal"> · ₹{withdrawInr}</span>
+                  ) : null}
+                </p>
               </div>
               <div>
                 <p className="text-caption text-fg-subtle">Method</p>
@@ -806,7 +847,11 @@ export function WithdrawWorkspace() {
             <div>
               <p className="text-heading-sm text-fg">Pending review</p>
               <p className="text-body-sm text-fg-muted mt-1">
-                {submitted.reference} · ${submitted.amount} · {submitted.status}
+                {submitted.reference} · ${submitted.amount}
+                {submitted.amountInr || submitted.withdrawInr
+                  ? ` · ₹${submitted.amountInr ?? submitted.withdrawInr}`
+                  : ''}{' '}
+                · {submitted.status}
               </p>
             </div>
             <Button type="button" variant="secondary" onClick={resetAll}>
