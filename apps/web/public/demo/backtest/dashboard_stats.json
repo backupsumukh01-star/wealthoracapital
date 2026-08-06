@@ -1,0 +1,21 @@
+{
+  "tradingDayCount": 783,
+  "tradeCount": 2786,
+  "winCount": 2216,
+  "lossCount": 570,
+  "winRatePct": 79.54,
+  "positiveDayPct": 80.97,
+  "avgMonthlyReturnPct": 7.3,
+  "monthsInBand": 37,
+  "monthCount": 37,
+  "bestDay": {
+    "date": "2026-08-03",
+    "returnPct": 3.746697
+  },
+  "worstDay": {
+    "date": "2025-03-19",
+    "returnPct": -1.10457
+  },
+  "totalReturnPct": 1255.15,
+  "endingEquity": 1355.1533
+}

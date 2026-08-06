@@ -67,6 +67,11 @@ export const MARKETING_NAV: NavItem[] = [
     description: 'Public track record',
   },
   {
+    label: 'Historical Performance',
+    href: ROUTES.marketing.historicalPerformance,
+    description: '3-year demo backtest center',
+  },
+  {
     label: 'Strategy',
     href: ROUTES.marketing.ourTradingSystem,
     description: 'How returns are generated',
@@ -115,6 +120,7 @@ export const FOOTER_NAV: NavSection[] = [
     items: [
       { label: 'Our trading system', href: ROUTES.marketing.ourTradingSystem },
       { label: 'Performance', href: ROUTES.marketing.performance },
+      { label: 'Historical Performance', href: ROUTES.marketing.historicalPerformance },
       { label: 'Transparency', href: ROUTES.marketing.transparency },
       { label: 'Security', href: ROUTES.marketing.security },
       { label: 'Technology', href: ROUTES.marketing.technology },

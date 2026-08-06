@@ -1,0 +1,50 @@
+%PDF-1.4
+1 0 obj<< /Type /Catalog /Pages 2 0 R >>endobj
+2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1 >>endobj
+3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>endobj
+4 0 obj<< /Length 499 >>stream
+BT
+/F1 11 Tf
+50 780 Td
+14 TL
+/F1 16 Tf (3-Year Demo / Backtest Dataset) Tj
+T*
+/F1 11 Tf
+(Seed: growzy-3y-backtest-v1) Tj
+T*
+(Range: 2023-08-07 to 2026-08-05) Tj
+T*
+(Trading days: 783) Tj
+T*
+(Trades: 2786) Tj
+T*
+(Avg monthly return: 7.3%) Tj
+T*
+(Months in 5-10% band: 37/37) Tj
+T*
+(Total return: 1255.15%) Tj
+T*
+(Ending equity \(base 100\): 1355.1533) Tj
+T*
+() Tj
+T*
+(DISCLAIMER: Synthetic demo data for UI presentation only.) Tj
+T*
+(Not live trading history. Do not import into production.) Tj
+T*
+ET
+endstream
+endobj
+5 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000056 00000 n 
+0000000111 00000 n 
+0000000235 00000 n 
+0000000783 00000 n 
+trailer<< /Size 6 /Root 1 0 R >>
+startxref
+851
+%%EOF
