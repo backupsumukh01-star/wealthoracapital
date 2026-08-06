@@ -23,10 +23,8 @@
     "clean": "turbo run clean && rimraf node_modules",
     "render:build:api": "pnpm --filter @meridian/api... build",
     "render:build:web": "pnpm --filter @meridian/web... build",
-    "render:start:api": "pnpm --filter @meridian/api start",
-    "render:start:web": "pnpm --filter @meridian/web start",
-    "render:start:worker": "pnpm --filter @meridian/api worker:start",
-    "render:migrate": "pnpm --filter @meridian/api exec prisma migrate deploy"
+    "render:migrate": "pnpm --filter @meridian/api run db:migrate:deploy",
+    "render:start:api": "pnpm --filter @meridian/api run db:migrate:deploy && pnpm --filter @meridian/api start",
   },
   "devDependencies": {
     "@meridian/config": "workspace:*",
