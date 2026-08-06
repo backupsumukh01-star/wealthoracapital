@@ -8,6 +8,7 @@ import { ROUTES } from '@meridian/shared'
 import { AuthCard } from '@/components/auth/auth-card'
 import { Spinner } from '@/components/ui/spinner'
 import { authQueryKeys } from '@/features/auth/hooks'
+import { ensureCsrfToken } from '@/lib/csrf'
 import { authService } from '@/services/auth.service'
 
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
@@ -42,13 +43,14 @@ function OAuthCallbackInner() {
     }
 
     // Cookies were set on the API domain during the Google redirect — hydrate session.
-    authService
-      .me()
+    void ensureCsrfToken(true)
+      .then(() => authService.me())
       .then(async (session) => {
         queryClient.setQueryData(authQueryKeys.session(), session)
         // Ensure refresh cookie works for the new session family.
         try {
           await authService.refresh()
+          await ensureCsrfToken(true)
         } catch {
           // Access token may still be valid; continue.
         }

@@ -1,6 +1,6 @@
 import { ERROR_CODES, type ApiResponse } from '@meridian/shared'
 
-import { csrfHeaders, readCsrfCookie } from './csrf'
+import { clearRememberedCsrfToken, ensureCsrfToken, rememberCsrfToken } from './csrf'
 import { env } from './env'
 
 /**
@@ -35,6 +35,8 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
   idempotencyKey?: string
   /** Internal: prevents an infinite refresh loop. */
   skipRefresh?: boolean
+  /** Internal: one CSRF re-bootstrap after CSRF_REJECTED. */
+  skipCsrfRetry?: boolean
 }
 
 /**
@@ -44,15 +46,33 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
  */
 let refreshInFlight: Promise<boolean> | null = null
 
+function isMutatingMethod(method: string | undefined): boolean {
+  const m = (method ?? 'GET').toUpperCase()
+  return m !== 'GET' && m !== 'HEAD' && m !== 'OPTIONS'
+}
+
 async function refreshSession(): Promise<boolean> {
+  const csrf = await ensureCsrfToken()
   refreshInFlight ??= fetch(`${env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
     method: 'POST',
     credentials: 'include',
     headers: {
-      ...csrfHeaders(),
+      ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
     },
   })
-    .then((response) => response.ok)
+    .then(async (response) => {
+      if (!response.ok) return false
+      try {
+        const payload = (await response.json()) as {
+          success?: boolean
+          data?: { csrfToken?: string }
+        }
+        if (payload?.data?.csrfToken) rememberCsrfToken(payload.data.csrfToken)
+      } catch {
+        // Cookie may still have been rotated via Set-Cookie.
+      }
+      return true
+    })
     .catch(() => false)
     .finally(() => {
       refreshInFlight = null
@@ -62,8 +82,12 @@ async function refreshSession(): Promise<boolean> {
 }
 
 export async function apiClient<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { body, idempotencyKey, skipRefresh, headers, ...rest } = options
-  const csrf = readCsrfCookie()
+  const { body, idempotencyKey, skipRefresh, skipCsrfRetry, headers, ...rest } = options
+
+  if (isMutatingMethod(rest.method)) {
+    await ensureCsrfToken()
+  }
+  const csrf = await ensureCsrfToken()
 
   const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${path}`, {
     ...rest,
@@ -98,6 +122,13 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
 
   const error = payload && !payload.success ? payload.error : null
   const code = error?.code ?? ERROR_CODES.INTERNAL_ERROR
+
+  // CSRF cookie may be host-only on the API after Google OAuth — re-bootstrap once.
+  if (response.status === 403 && code === 'CSRF_REJECTED' && !skipCsrfRetry) {
+    clearRememberedCsrfToken()
+    await ensureCsrfToken(true)
+    return apiClient<T>(path, { ...options, skipCsrfRetry: true })
+  }
 
   // Retry once, and only once, behind a silent refresh.
   if (response.status === 401 && code === ERROR_CODES.TOKEN_EXPIRED && !skipRefresh) {

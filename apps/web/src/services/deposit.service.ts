@@ -2,7 +2,7 @@ import { API_ROUTES, ERROR_CODES, type Deposit } from '@meridian/shared'
 
 import { ApiError, apiClient } from './http'
 import { env } from '@/lib/env'
-import { csrfHeaders } from '@/lib/csrf'
+import { ensureCsrfToken } from '@/lib/csrf'
 
 export type CreateDepositBody = {
   amount: string
@@ -12,11 +12,12 @@ export type CreateDepositBody = {
 }
 
 async function apiFormData<T>(path: string, form: FormData): Promise<T> {
+  const csrf = await ensureCsrfToken()
   const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${path}`, {
     method: 'POST',
     credentials: 'include',
     headers: {
-      ...csrfHeaders(),
+      ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
     },
     body: form,
   })

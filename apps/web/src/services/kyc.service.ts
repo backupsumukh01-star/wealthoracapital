@@ -2,7 +2,7 @@ import { API_ROUTES, ERROR_CODES, type KycStatus, type User } from '@meridian/sh
 
 import { ApiError, apiClient } from './http'
 import { env } from '@/lib/env'
-import { csrfHeaders } from '@/lib/csrf'
+import { ensureCsrfToken } from '@/lib/csrf'
 
 export type KycProfile = {
   status: KycStatus
@@ -15,11 +15,12 @@ export type KycProfile = {
 }
 
 async function apiFormData<T>(path: string, form: FormData): Promise<T> {
+  const csrf = await ensureCsrfToken()
   const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${path}`, {
     method: 'POST',
     credentials: 'include',
     headers: {
-      ...csrfHeaders(),
+      ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
     },
     body: form,
   })
@@ -28,6 +29,27 @@ async function apiFormData<T>(path: string, form: FormData): Promise<T> {
     error: { code: string; message: string }
   }
   if (response.ok && payload.success) return payload.data
+  if (!payload.success && payload.error.code === 'CSRF_REJECTED') {
+    const retry = await ensureCsrfToken(true)
+    const response2 = await fetch(`${env.NEXT_PUBLIC_API_URL}${path}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        ...(retry ? { 'X-CSRF-Token': retry } : {}),
+      },
+      body: form,
+    })
+    const payload2 = (await response2.json()) as { success: true; data: T } | {
+      success: false
+      error: { code: string; message: string }
+    }
+    if (response2.ok && payload2.success) return payload2.data
+    throw new ApiError(
+      (!payload2.success && payload2.error.code) || ERROR_CODES.INTERNAL_ERROR,
+      (!payload2.success && payload2.error.message) || 'Upload failed.',
+      response2.status,
+    )
+  }
   throw new ApiError(
     (!payload.success && payload.error.code) || ERROR_CODES.INTERNAL_ERROR,
     (!payload.success && payload.error.message) || 'Upload failed.',

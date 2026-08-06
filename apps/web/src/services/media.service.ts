@@ -2,7 +2,7 @@ import { API_ROUTES, ERROR_CODES, type ApiResponse } from '@meridian/shared'
 
 import { env } from '@/lib/env'
 import { ApiError } from '@/lib/api-client'
-import { csrfHeaders } from '@/lib/csrf'
+import { ensureCsrfToken } from '@/lib/csrf'
 
 import { apiClient } from './http'
 
@@ -46,11 +46,12 @@ export const mediaService = {
     form.append('file', file)
     if (folder) form.append('folder', folder)
 
+    const csrf = await ensureCsrfToken()
     const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${API_ROUTES.admin.media}/upload`, {
       method: 'POST',
       credentials: 'include',
       headers: {
-        ...csrfHeaders(),
+        ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
       },
       body: form,
     }).catch(() => {
