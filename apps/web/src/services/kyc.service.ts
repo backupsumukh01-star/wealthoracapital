@@ -84,7 +84,25 @@ export const kycService = {
 
   adminMetrics: () => apiClient<Record<string, unknown>>(`${API_ROUTES.admin.kyc}/metrics`),
 
-  adminGet: (id: string) => apiClient<unknown>(`${API_ROUTES.admin.kyc}/${id}`),
+  adminGet: (id: string) =>
+    apiClient<{
+      city?: string
+      addressLine1?: string
+      occupation?: string
+      dateOfBirth?: string
+      primaryDocumentType?: string
+      country?: string
+      documents?: Array<{
+        id: string
+        kind?: string
+        documentType?: string
+        side?: string
+        mimeType?: string
+        originalName?: string
+        downloadUrl?: string
+        status?: string
+      }>
+    }>(`${API_ROUTES.admin.kyc}/${id}`),
 
   adminReview: (userId: string, body: { decision: 'APPROVE' | 'REJECT'; reason?: string }) =>
     apiClient<KycProfile>(`${API_ROUTES.admin.kyc}/${userId}/review`, {

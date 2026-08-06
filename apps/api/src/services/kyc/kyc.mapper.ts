@@ -12,7 +12,8 @@ export function mapDocument(doc: KycDocument) {
     mimeType: doc.mimeType,
     sizeBytes: doc.sizeBytes,
     originalName: doc.originalName,
-    downloadUrl: storage.createSignedDownloadUrl(doc.storageKey),
+    // 1h so admins can review without links expiring mid-session
+    downloadUrl: storage.createSignedDownloadUrl(doc.storageKey, 3600),
     createdAt: doc.createdAt.toISOString(),
   }
 }

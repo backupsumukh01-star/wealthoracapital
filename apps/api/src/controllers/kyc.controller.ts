@@ -101,10 +101,11 @@ export const kycController = {
     const key = String(req.query.key ?? '')
     const expires = String(req.query.expires ?? '')
     const signature = String(req.query.signature ?? '')
-    const storageKey = await kycService.resolveSignedFile(key, expires, signature)
-    res.setHeader('Content-Type', 'application/octet-stream')
-    res.setHeader('Content-Disposition', `inline; filename="${path.basename(storageKey)}"`)
-    const stream = await storage.openReadStream(storageKey)
+    const file = await kycService.resolveSignedFile(key, expires, signature)
+    res.setHeader('Content-Type', file.mimeType)
+    res.setHeader('Content-Disposition', `inline; filename="${path.basename(file.originalName)}"`)
+    res.setHeader('Cache-Control', 'private, max-age=300')
+    const stream = await storage.openReadStream(file.storageKey)
     stream.pipe(res)
   }),
 

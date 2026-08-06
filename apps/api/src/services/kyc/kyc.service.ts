@@ -8,6 +8,7 @@ import type {
   Prisma,
 } from '@prisma/client'
 import { createHash, randomBytes } from 'node:crypto'
+import path from 'node:path'
 
 import { kycRepository } from '../../repositories/kyc.repository.js'
 import { userRepository } from '../../repositories/user.repository.js'
@@ -694,6 +695,11 @@ export const kycService = {
     if (!key.startsWith('kyc/')) {
       throw forbidden('Invalid file key.')
     }
-    return key
+    const doc = await kycRepository.findDocumentByStorageKey(key)
+    return {
+      storageKey: key,
+      mimeType: doc?.mimeType ?? 'application/octet-stream',
+      originalName: doc?.originalName ?? path.basename(key),
+    }
   },
 }

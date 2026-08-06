@@ -93,6 +93,13 @@ export const kycRepository = {
     })
   },
 
+  findDocumentByStorageKey(storageKey: string) {
+    return prisma.kycDocument.findFirst({
+      where: { storageKey, deletedAt: null },
+      select: { mimeType: true, originalName: true, storageKey: true },
+    })
+  },
+
   softDeleteDocument(id: string): Promise<KycDocument> {
     return prisma.kycDocument.update({
       where: { id },

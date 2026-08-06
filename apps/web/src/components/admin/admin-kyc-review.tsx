@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { ROUTES } from '@meridian/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ExternalLink, FileText } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -17,18 +18,110 @@ import { PageHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useAdminUser } from '@/features/admin/hooks'
+import { cn } from '@/lib/cn'
 import { kycService } from '@/services/kyc.service'
 
-function DocSlot({ label }: { label: string }) {
+type KycDoc = {
+  id: string
+  kind?: string
+  documentType?: string
+  side?: string
+  mimeType?: string
+  originalName?: string
+  downloadUrl?: string
+  status?: string
+}
+
+type KycSubmissionDetail = {
+  city?: string
+  addressLine1?: string
+  occupation?: string
+  dateOfBirth?: string
+  primaryDocumentType?: string
+  country?: string
+  documents?: KycDoc[]
+}
+
+function docLabel(doc: KycDoc): string {
+  const type = (doc.documentType ?? doc.kind ?? 'Document').replaceAll('_', ' ')
+  const side = doc.side && doc.side !== 'SINGLE' ? ` · ${doc.side}` : ''
+  return `${type}${side}`
+}
+
+function KycDocCard({
+  label,
+  doc,
+}: {
+  label: string
+  doc?: KycDoc
+}) {
+  const url = doc?.downloadUrl
+  const isImage = Boolean(doc?.mimeType?.startsWith('image/'))
+  const isPdf = doc?.mimeType === 'application/pdf'
+
   return (
-    <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-white/[0.08] bg-gradient-to-br from-accent-500/10 via-inset to-info/10">
-      <div className="absolute inset-0 bg-grid opacity-20" />
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-4 text-center">
-        <p className="text-body-sm font-medium text-fg">{label}</p>
-        <p className="text-caption text-fg-subtle">Preview placeholder · API upload later</p>
+    <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-inset/40">
+      <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] px-3 py-2">
+        <p className="truncate text-body-sm font-medium text-fg">{label}</p>
+        {url ? (
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex shrink-0 items-center gap-1 text-caption text-accent-300 hover:underline"
+          >
+            Open <ExternalLink className="size-3.5" aria-hidden />
+          </a>
+        ) : null}
+      </div>
+      <div className="relative aspect-[4/3] bg-gradient-to-br from-accent-500/10 via-inset to-info/10">
+        {url && isImage ? (
+          // Signed KYC download URL — not user-controlled HTML
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={url}
+            alt={label}
+            className="absolute inset-0 size-full object-contain p-2"
+          />
+        ) : url && isPdf ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
+            <FileText className="size-8 text-fg-muted" aria-hidden />
+            <p className="text-caption text-fg-muted">{doc?.originalName ?? 'PDF document'}</p>
+            <Button asChild size="sm" variant="secondary">
+              <a href={url} target="_blank" rel="noreferrer">
+                View PDF
+              </a>
+            </Button>
+          </div>
+        ) : url ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
+            <FileText className="size-8 text-fg-muted" aria-hidden />
+            <p className="text-caption text-fg-muted">{doc?.originalName ?? 'Document uploaded'}</p>
+            <Button asChild size="sm" variant="secondary">
+              <a href={url} target="_blank" rel="noreferrer">
+                Open file
+              </a>
+            </Button>
+          </div>
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-4 text-center">
+            <p className={cn('text-body-sm font-medium text-fg')}>{label}</p>
+            <p className="text-caption text-fg-subtle">No file uploaded</p>
+          </div>
+        )}
       </div>
     </div>
   )
+}
+
+function pickDoc(docs: KycDoc[], side: string, kinds?: string[]): KycDoc | undefined {
+  return docs.find((d) => {
+    const type = d.documentType ?? d.kind ?? ''
+    const sideOk = (d.side ?? 'SINGLE') === side
+    if (!sideOk) return false
+    if (!kinds?.length) return true
+    return kinds.includes(type)
+  })
 }
 
 export function AdminKycReviewWorkspace() {
@@ -37,7 +130,7 @@ export function AdminKycReviewWorkspace() {
   const queryClient = useQueryClient()
   const userId = decodeURIComponent(params.userId)
   const { data: account, isLoading, isError } = useAdminUser(userId)
-  const { data: kycDetail } = useQuery({
+  const { data: kycDetail, isLoading: kycLoading } = useQuery({
     queryKey: ['admin', 'kyc', userId],
     queryFn: () => kycService.adminGet(userId),
     enabled: Boolean(userId),
@@ -96,16 +189,15 @@ export function AdminKycReviewWorkspace() {
     )
   }
 
-  const submission = kycDetail as
-    | {
-        city?: string
-        addressLine1?: string
-        occupation?: string
-        dateOfBirth?: string
-        primaryDocumentType?: string
-        country?: string
-      }
-    | undefined
+  const submission = kycDetail
+  const documents = submission?.documents ?? []
+  const idKinds = ['NATIONAL_ID', 'DRIVING_LICENSE', 'RESIDENCE_PERMIT', 'PASSPORT']
+  const front = pickDoc(documents, 'FRONT', idKinds) ?? pickDoc(documents, 'FRONT')
+  const back = pickDoc(documents, 'BACK', idKinds) ?? pickDoc(documents, 'BACK')
+  const selfie = pickDoc(documents, 'SINGLE', ['SELFIE']) ?? pickDoc(documents, 'SINGLE')
+  const extras = documents.filter(
+    (d) => d.id !== front?.id && d.id !== back?.id && d.id !== selfie?.id,
+  )
   const country = submission?.country ?? account.country ?? '—'
   const busy = approve.isPending || reject.isPending || resubmit.isPending
 
@@ -194,10 +286,20 @@ export function AdminKycReviewWorkspace() {
         </AdminPanel>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <DocSlot label="Front ID" />
-        <DocSlot label="Back ID" />
-        <DocSlot label="Selfie" />
+      <div>
+        <h2 className="mb-3 text-heading-sm text-fg">Submitted documents</h2>
+        {kycLoading ? (
+          <p className="text-body-sm text-fg-muted">Loading documents…</p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-3">
+            <KycDocCard label="Front ID" doc={front} />
+            <KycDocCard label="Back ID" doc={back} />
+            <KycDocCard label="Selfie" doc={selfie} />
+            {extras.map((doc) => (
+              <KycDocCard key={doc.id} label={docLabel(doc)} doc={doc} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
