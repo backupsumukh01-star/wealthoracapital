@@ -1,8 +1,22 @@
 'use client'
 
+/**
+ * Production withdrawal flow — always starts on Withdrawal Home.
+ * Add Wallet opens only when zero crypto wallets exist or user taps "Add New Wallet".
+ */
+
 import { useMemo, useState } from 'react'
 import type { MoneyString, PaymentMethodType, PayoutMethod, Withdrawal } from '@meridian/shared'
-import { Building2, ShieldCheck, Wallet } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  Plus,
+  ShieldCheck,
+  Smartphone,
+  Wallet,
+} from 'lucide-react'
 
 import { Money } from '@/components/common/money'
 import { PageHeader, SectionHeader } from '@/components/common/page-header'
@@ -29,27 +43,26 @@ import {
   useWithdrawals,
 } from '@/features/withdrawals/hooks'
 import { ApiError } from '@/lib/api-client'
+import { cn } from '@/lib/cn'
 import { formatDateTime } from '@/lib/format'
 import { useSession } from '@/providers/session-provider'
 
-type WithdrawalMethod = Extract<
-  PaymentMethodType,
-  'BANK_TRANSFER' | 'UPI' | 'USDT_TRC20' | 'USDT_BEP20' | 'BTC' | 'ETH'
->
+type Rail = 'CRYPTO' | 'BANK' | 'UPI'
+type Step = 'home' | 'destination' | 'add-wallet' | 'add-bank' | 'add-upi' | 'review' | 'otp' | 'done'
 
-const METHOD_OPTIONS: Array<{ value: WithdrawalMethod; label: string }> = [
-  { value: 'BANK_TRANSFER', label: 'Bank' },
-  { value: 'UPI', label: 'UPI' },
-  { value: 'USDT_TRC20', label: 'USDT TRC20' },
-  { value: 'USDT_BEP20', label: 'USDT BEP20' },
-  { value: 'BTC', label: 'BTC' },
-  { value: 'ETH', label: 'ETH' },
-]
+type CryptoType = Extract<PaymentMethodType, 'USDT_TRC20' | 'USDT_BEP20' | 'BTC' | 'ETH'>
 
 const PENDING_STATUSES = new Set(['PENDING', 'UNDER_REVIEW', 'APPROVED', 'PROCESSING'])
 
-function money(value: number): MoneyString {
-  return value.toFixed(2) as MoneyString
+const CRYPTO_NETWORKS: Array<{ type: CryptoType; coin: string; network: string; label: string }> = [
+  { type: 'USDT_TRC20', coin: 'USDT', network: 'TRC20', label: 'USDT · TRC20' },
+  { type: 'USDT_BEP20', coin: 'USDT', network: 'BEP20', label: 'USDT · BEP20' },
+  { type: 'BTC', coin: 'BTC', network: 'BTC', label: 'BTC' },
+  { type: 'ETH', coin: 'ETH', network: 'ETH', label: 'ETH' },
+]
+
+function isCryptoType(type: string) {
+  return ['CRYPTO', 'USDT_TRC20', 'USDT_BEP20', 'BTC', 'ETH'].includes(type)
 }
 
 function toNumber(value: string | undefined) {
@@ -57,16 +70,8 @@ function toNumber(value: string | undefined) {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
-function methodLabel(method: WithdrawalMethod) {
-  return METHOD_OPTIONS.find((option) => option.value === method)?.label ?? method
-}
-
-function cryptoDefaults(method: WithdrawalMethod) {
-  if (method === 'USDT_TRC20') return { coin: 'USDT', network: 'TRC20' }
-  if (method === 'USDT_BEP20') return { coin: 'USDT', network: 'BEP20' }
-  if (method === 'BTC') return { coin: 'BTC', network: 'BTC' }
-  if (method === 'ETH') return { coin: 'ETH', network: 'ETH' }
-  return { coin: '', network: '' }
+function money(value: number): MoneyString {
+  return value.toFixed(2) as MoneyString
 }
 
 function errorMessage(error: unknown) {
@@ -77,66 +82,40 @@ function errorMessage(error: unknown) {
       : 'Something went wrong. Please try again.'
 }
 
-function PayoutMethodList({
-  methods,
-  isLoading,
-}: {
-  methods: PayoutMethod[]
-  isLoading: boolean
-}) {
-  return (
-    <Card variant="glass" className="p-5 sm:p-6">
-      <SectionHeader title="Wallets and payout methods" as="h3" />
-      {isLoading ? (
-        <p className="mt-4 text-body-sm text-fg-subtle">Loading payout methods...</p>
-      ) : methods.length === 0 ? (
-        <p className="mt-4 text-body-sm text-fg-subtle">No payout methods saved yet.</p>
-      ) : (
-        <ul className="mt-4 divide-y divide-line/70">
-          {methods.map((method) => (
-            <li key={method.id} className="flex items-center justify-between gap-3 py-3 first:pt-0">
-              <div className="min-w-0">
-                <p className="text-body-sm font-medium text-fg">{method.label}</p>
-                <p className="text-caption text-fg-subtle">
-                  {methodLabel(method.type as WithdrawalMethod)} - {method.maskedDetails}
-                </p>
-              </div>
-              <p className="text-caption text-fg-muted">
-                {method.isDefault ? 'Default' : method.isVerified ? 'Verified' : 'Saved'}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
-  )
+function cryptoMeta(type: string) {
+  return CRYPTO_NETWORKS.find((item) => item.type === type) ?? {
+    type: 'USDT_TRC20' as CryptoType,
+    coin: 'USDT',
+    network: 'TRC20',
+    label: 'USDT · TRC20',
+  }
 }
 
-function WithdrawalHistory({
-  rows,
-  isLoading,
-}: {
-  rows: Withdrawal[]
-  isLoading: boolean
-}) {
+function filterMethods(methods: PayoutMethod[], rail: Rail) {
+  if (rail === 'CRYPTO') return methods.filter((m) => isCryptoType(m.type))
+  if (rail === 'BANK') return methods.filter((m) => m.type === 'BANK_TRANSFER')
+  return methods.filter((m) => m.type === 'UPI')
+}
+
+function WithdrawalHistory({ rows, isLoading }: { rows: Withdrawal[]; isLoading: boolean }) {
   return (
     <Card variant="glass" className="p-5 sm:p-6">
       <SectionHeader title="Withdrawal history" as="h3" description="API-backed payout requests." />
       {isLoading ? (
-        <p className="mt-4 text-body-sm text-fg-subtle">Loading withdrawals...</p>
+        <p className="mt-4 text-body-sm text-fg-subtle">Loading withdrawals…</p>
       ) : rows.length === 0 ? (
         <p className="mt-4 text-body-sm text-fg-subtle">No withdrawals yet.</p>
       ) : (
-        <ul className="mt-4 divide-y divide-line/70">
+        <ul className="divide-line/70 mt-4 divide-y">
           {rows.map((row) => (
             <li
               key={row.id}
               className="flex flex-wrap items-center justify-between gap-3 py-3.5 first:pt-0"
             >
               <div className="min-w-0">
-                <p className="text-body-sm font-medium text-fg">{row.reference || row.id}</p>
+                <p className="text-body-sm text-fg font-medium">{row.reference || row.id}</p>
                 <p className="text-caption text-fg-subtle">
-                  {row.destinationLabel} - {formatDateTime(row.createdAt)}
+                  {row.destinationLabel} · {formatDateTime(row.createdAt)}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -169,124 +148,268 @@ export function WithdrawWorkspace() {
   const pendingWithdrawal = useMemo(
     () =>
       withdrawals
-        .filter((withdrawal) => PENDING_STATUSES.has(withdrawal.status))
-        .reduce((sum, withdrawal) => sum + toNumber(withdrawal.amount), 0),
+        .filter((w) => PENDING_STATUSES.has(w.status))
+        .reduce((sum, w) => sum + toNumber(w.amount), 0),
     [withdrawals],
   )
 
+  const [step, setStep] = useState<Step>('home')
+  const [rail, setRail] = useState<Rail | null>(null)
   const [amount, setAmount] = useState('')
-  const [methodSource, setMethodSource] = useState<'existing' | 'new'>('new')
-  const [selectedMethodId, setSelectedMethodId] = useState('')
-  const [methodType, setMethodType] = useState<WithdrawalMethod>('BANK_TRANSFER')
+  const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null)
+  const [otp, setOtp] = useState('')
+  const [otpExpiresHint, setOtpExpiresHint] = useState<string | null>(null)
+  const [submitted, setSubmitted] = useState<Withdrawal | null>(null)
+
+  // Add wallet form
+  const [newCryptoType, setNewCryptoType] = useState<CryptoType>('USDT_TRC20')
+  const [newAddress, setNewAddress] = useState('')
+  const [newLabel, setNewLabel] = useState('')
+
+  // Add bank form
   const [accountHolderName, setAccountHolderName] = useState('')
   const [bankName, setBankName] = useState('')
   const [accountNumber, setAccountNumber] = useState('')
   const [confirmAccountNumber, setConfirmAccountNumber] = useState('')
   const [ifscCode, setIfscCode] = useState('')
+
+  // Add UPI form
   const [upiId, setUpiId] = useState('')
-  const [walletAddress, setWalletAddress] = useState('')
-  const [otp, setOtp] = useState('')
-  const [otpMethodId, setOtpMethodId] = useState('')
-  const [otpRequested, setOtpRequested] = useState(false)
 
-  const crypto = cryptoDefaults(methodType)
-  const isCrypto = Boolean(crypto.coin)
-  const isSubmitting =
-    createPayoutMethod.isPending || requestOtp.isPending || createWithdrawal.isPending
+  const [busy, setBusy] = useState(false)
 
-  async function ensurePayoutMethod() {
-    if (methodSource === 'existing') {
-      if (!selectedMethodId) throw new Error('Select a payout method.')
-      return selectedMethodId
+  const amountNum = toNumber(amount)
+  const amountError = (() => {
+    if (!amount.trim()) return 'Enter a withdrawal amount.'
+    if (!(amountNum > 0)) return 'Amount must be a positive number.'
+    if (amountNum > available) return 'Amount cannot exceed available balance.'
+    if (limits?.min && amountNum < toNumber(limits.min)) {
+      return `Minimum withdrawal is $${limits.min}.`
     }
-
-    if (methodType === 'BANK_TRANSFER') {
-      if (!accountHolderName || !bankName || !accountNumber || !ifscCode) {
-        throw new Error('Complete all bank account fields.')
-      }
-      if (accountNumber !== confirmAccountNumber) {
-        throw new Error('Account numbers do not match.')
-      }
-      const created = await createPayoutMethod.mutateAsync({
-        label: `${bankName} ${accountNumber.slice(-4)}`,
-        type: methodType,
-        details: { accountHolderName, bankName, accountNumber, ifscCode },
-        isDefault: methods.length === 0,
-      })
-      return created.id
+    if (limits?.dailyRemaining && amountNum > toNumber(limits.dailyRemaining)) {
+      return 'Amount exceeds remaining daily limit.'
     }
+    return null
+  })()
 
-    if (methodType === 'UPI') {
-      if (!upiId) throw new Error('Enter a UPI ID.')
-      const created = await createPayoutMethod.mutateAsync({
-        label: `UPI ${upiId}`,
-        type: methodType,
-        details: { upiId },
-        isDefault: methods.length === 0,
-      })
-      return created.id
-    }
+  const railMethods = rail ? filterMethods(methods, rail) : []
+  const selectedMethod =
+    railMethods.find((m) => m.id === selectedMethodId) ?? railMethods[0] ?? null
 
-    if (!walletAddress) throw new Error('Enter a wallet address.')
-    const created = await createPayoutMethod.mutateAsync({
-      label: `${crypto.coin} ${crypto.network}`,
-      type: methodType,
-      details: { coin: crypto.coin, network: crypto.network, address: walletAddress },
-      isDefault: methods.length === 0,
-    })
-    return created.id
+  function goHome() {
+    setStep('home')
+    setRail(null)
+    setSelectedMethodId(null)
+    setOtp('')
+    setOtpExpiresHint(null)
   }
 
-  async function requestWithdrawalOtp(e: React.FormEvent) {
-    e.preventDefault()
-    const amountNumber = toNumber(amount)
-    if (amountNumber <= 0) {
-      toast.error('Enter a valid withdrawal amount.')
+  function continueFromHome() {
+    if (!rail) {
+      toast.error('Select a withdrawal method.')
       return
     }
-    if (amountNumber > available) {
-      toast.error('Amount exceeds available balance.')
-      return
-    }
-    if (limits && amountNumber > toNumber(limits.dailyRemaining)) {
-      toast.error('Amount exceeds your remaining daily withdrawal limit.')
+    if (amountError) {
+      toast.error(amountError)
       return
     }
 
+    const existing = filterMethods(methods, rail)
+    if (rail === 'CRYPTO') {
+      if (existing.length === 0) {
+        // Only auto-open Add Wallet when the user has zero saved crypto wallets.
+        setStep('add-wallet')
+        return
+      }
+      setSelectedMethodId(existing.find((m) => m.isDefault)?.id ?? existing[0]?.id ?? null)
+      setStep('destination')
+      return
+    }
+
+    if (rail === 'BANK') {
+      if (existing.length === 0) {
+        setStep('add-bank')
+        return
+      }
+      setSelectedMethodId(existing.find((m) => m.isDefault)?.id ?? existing[0]?.id ?? null)
+      setStep('destination')
+      return
+    }
+
+    // UPI
+    if (existing.length === 0) {
+      setStep('add-upi')
+      return
+    }
+    setSelectedMethodId(existing.find((m) => m.isDefault)?.id ?? existing[0]?.id ?? null)
+    setStep('destination')
+  }
+
+  function goReview() {
+    if (!selectedMethod) {
+      toast.error('Select a destination first.')
+      return
+    }
+    setSelectedMethodId(selectedMethod.id)
+    setStep('review')
+  }
+
+  async function saveCryptoWallet() {
+    if (!newAddress.trim()) {
+      toast.error('Wallet address is required.')
+      return
+    }
+    const meta = cryptoMeta(newCryptoType)
+    setBusy(true)
     try {
-      const payoutMethodId = await ensurePayoutMethod()
-      await requestOtp.mutateAsync({ amount, payoutMethodId })
-      setOtpMethodId(payoutMethodId)
-      setOtpRequested(true)
-      toast.success('OTP sent', 'Check your registered email before submitting.')
+      const created = await createPayoutMethod.mutateAsync({
+        label: newLabel.trim() || `${meta.coin} ${meta.network}`,
+        type: newCryptoType,
+        details: {
+          coin: meta.coin,
+          network: meta.network,
+          address: newAddress.trim(),
+        },
+        isDefault: filterMethods(methods, 'CRYPTO').length === 0,
+      })
+      setSelectedMethodId(created.id)
+      setNewAddress('')
+      setNewLabel('')
+      setStep('review')
+      toast.success('Wallet saved')
     } catch (error) {
       toast.error(errorMessage(error))
+    } finally {
+      setBusy(false)
     }
   }
 
-  async function submitWithdrawal(e: React.FormEvent) {
-    e.preventDefault()
-    if (!otpMethodId) {
-      toast.error('Request OTP before creating the withdrawal.')
+  async function saveBank() {
+    if (!accountHolderName.trim() || !bankName.trim() || !accountNumber.trim() || !ifscCode.trim()) {
+      toast.error('Complete all bank fields.')
       return
     }
+    if (accountNumber !== confirmAccountNumber) {
+      toast.error('Account numbers do not match.')
+      return
+    }
+    setBusy(true)
     try {
-      await createWithdrawal.mutateAsync({ amount, payoutMethodId: otpMethodId, otp })
-      toast.success('Withdrawal requested', 'Status is Pending Review.')
-      setAmount('')
+      const created = await createPayoutMethod.mutateAsync({
+        label: `${bankName.trim()} ${accountNumber.trim().slice(-4)}`,
+        type: 'BANK_TRANSFER',
+        details: {
+          accountHolderName: accountHolderName.trim(),
+          bankName: bankName.trim(),
+          accountNumber: accountNumber.trim(),
+          ifscCode: ifscCode.trim().toUpperCase(),
+        },
+        isDefault: filterMethods(methods, 'BANK').length === 0,
+      })
+      setSelectedMethodId(created.id)
+      setStep('review')
+      toast.success('Bank account saved')
+    } catch (error) {
+      toast.error(errorMessage(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function saveUpi() {
+    if (!upiId.trim()) {
+      toast.error('UPI ID is required.')
+      return
+    }
+    setBusy(true)
+    try {
+      const created = await createPayoutMethod.mutateAsync({
+        label: `UPI ${upiId.trim()}`,
+        type: 'UPI',
+        details: { upiId: upiId.trim() },
+        isDefault: filterMethods(methods, 'UPI').length === 0,
+      })
+      setSelectedMethodId(created.id)
+      setStep('review')
+      toast.success('UPI saved')
+    } catch (error) {
+      toast.error(errorMessage(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function sendOtpAndContinue() {
+    if (!selectedMethodId) {
+      toast.error('Select a destination.')
+      return
+    }
+    setBusy(true)
+    try {
+      const res = await requestOtp.mutateAsync({
+        amount: amount.trim(),
+        payoutMethodId: selectedMethodId,
+      })
       setOtp('')
-      setOtpMethodId('')
-      setOtpRequested(false)
+      setOtpExpiresHint(
+        res.expiresAt
+          ? `Expires ${formatDateTime(res.expiresAt)}`
+          : res.message ?? 'Code expires in 10 minutes.',
+      )
+      setStep('otp')
+      toast.success('OTP sent', 'Check your registered email.')
     } catch (error) {
       toast.error(errorMessage(error))
+    } finally {
+      setBusy(false)
     }
   }
+
+  async function verifyOtpAndCreate() {
+    if (!selectedMethodId || !otp.trim()) {
+      toast.error('Enter the OTP from your email.')
+      return
+    }
+    setBusy(true)
+    try {
+      const withdrawal = await createWithdrawal.mutateAsync({
+        amount: amount.trim(),
+        payoutMethodId: selectedMethodId,
+        otp: otp.trim(),
+      })
+      setSubmitted(withdrawal)
+      setStep('done')
+      toast.success('Withdrawal submitted', 'Status: Pending Review')
+    } catch (error) {
+      toast.error(errorMessage(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function resetAll() {
+    setAmount('')
+    setSubmitted(null)
+    goHome()
+  }
+
+  const reviewMeta = selectedMethod ? cryptoMeta(selectedMethod.type) : null
+  const stepLabel =
+    step === 'home'
+      ? 'Step 1 · Home'
+      : step === 'destination' || step === 'add-wallet' || step === 'add-bank' || step === 'add-upi'
+        ? 'Step 2 · Destination'
+        : step === 'review'
+          ? 'Step 3 · Review'
+          : step === 'otp'
+            ? 'Step 4 · OTP'
+            : 'Submitted'
 
   return (
     <div className="space-y-6 lg:space-y-8">
       <PageHeader
         title="Withdraw"
-        description="Create a payout method, verify by email OTP, and submit for finance review."
+        description="Available balance, method, destination, review, then email OTP — request is created only after OTP verification."
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -308,198 +431,390 @@ export function WithdrawWorkspace() {
         />
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-        <Card variant="glass" className="p-5 sm:p-6">
-          <SectionHeader
-            title="Withdrawal request"
-            description={`Min $${limits?.min ?? '0.00'} - Daily remaining $${limits?.dailyRemaining ?? '0.00'}`}
-          />
-          <form
-            className="mt-5 grid gap-4 sm:grid-cols-2"
-            onSubmit={(e) => void (otpRequested ? submitWithdrawal(e) : requestWithdrawalOtp(e))}
+      <Card variant="glass" className="p-5 sm:p-6">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <SectionHeader title="Withdrawal" description="Start here every time." as="h3" />
+          <p className="text-caption text-fg-subtle tabular-nums">{stepLabel}</p>
+        </div>
+
+        {step !== 'home' && step !== 'done' ? (
+          <button
+            type="button"
+            className="text-caption text-fg-subtle mb-4 inline-flex items-center gap-1.5 hover:text-fg"
+            onClick={() => {
+              if (step === 'destination') setStep('home')
+              else if (step === 'add-wallet' || step === 'add-bank' || step === 'add-upi') {
+                // Prefer destination list when wallets already exist; otherwise home.
+                if (rail && filterMethods(methods, rail).length > 0) setStep('destination')
+                else setStep('home')
+              } else if (step === 'review') {
+                setStep(rail && filterMethods(methods, rail).length > 0 ? 'destination' : 'home')
+              } else if (step === 'otp') setStep('review')
+            }}
           >
+            <ArrowLeft className="size-3.5" aria-hidden />
+            Back
+          </button>
+        ) : null}
+
+        {/* HOME — always first */}
+        {step === 'home' ? (
+          <div className="space-y-5">
+            <div>
+              <p className="text-body-sm text-fg mb-2 font-medium">Withdrawal method</p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {(
+                  [
+                    {
+                      id: 'CRYPTO' as const,
+                      title: 'Crypto (USDT)',
+                      desc: 'USDT, BTC, ETH',
+                      icon: Wallet,
+                    },
+                    {
+                      id: 'BANK' as const,
+                      title: 'Bank (INR)',
+                      desc: 'IMPS / NEFT / RTGS',
+                      icon: Building2,
+                    },
+                    {
+                      id: 'UPI' as const,
+                      title: 'UPI (INR)',
+                      desc: 'UPI ID payout',
+                      icon: Smartphone,
+                    },
+                  ] as const
+                ).map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setRail(item.id)}
+                    className={cn(
+                      'border-line/70 bg-inset/40 flex flex-col gap-2 rounded-2xl border p-4 text-left transition',
+                      rail === item.id
+                        ? 'border-accent/60 bg-accent/10 ring-accent/30 ring-1'
+                        : 'hover:border-accent/40',
+                    )}
+                  >
+                    <item.icon className="text-accent-300 size-5" aria-hidden />
+                    <span className="text-body-sm text-fg font-medium">{item.title}</span>
+                    <span className="text-caption text-fg-subtle">{item.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <FormField
               label="Amount (USD)"
               required
-              hint={`Available $${limits?.availableBalance ?? '0.00'}`}
-              className="sm:col-span-2"
+              hint={`Available $${limits?.availableBalance ?? '0.00'}${
+                limits?.min ? ` · Min $${limits.min}` : ''
+              }`}
+              error={amount.trim() ? amountError ?? undefined : undefined}
             >
               <Input
-                numeric
                 prefix="$"
                 inputMode="decimal"
                 value={amount}
-                max={limits?.availableBalance}
-                disabled={otpRequested}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))}
+                placeholder="Enter amount"
               />
             </FormField>
 
-            <FormField label="Payout method source" required>
+            <Button
+              type="button"
+              className="w-full sm:w-auto"
+              disabled={!rail || Boolean(amountError)}
+              onClick={continueFromHome}
+            >
+              Continue
+              <ArrowRight aria-hidden />
+            </Button>
+          </div>
+        ) : null}
+
+        {/* DESTINATION — saved wallets/accounts list */}
+        {step === 'destination' && rail ? (
+          <div className="space-y-4">
+            {methodsLoading ? (
+              <p className="text-body-sm text-fg-subtle">Loading saved destinations…</p>
+            ) : (
+              <div className="space-y-2">
+                {railMethods.map((method) => (
+                  <button
+                    key={method.id}
+                    type="button"
+                    onClick={() => setSelectedMethodId(method.id)}
+                    className={cn(
+                      'border-line/70 w-full rounded-xl border px-4 py-3 text-left transition',
+                      selectedMethodId === method.id
+                        ? 'border-accent/60 bg-accent/10'
+                        : 'bg-inset/40 hover:border-accent/40',
+                    )}
+                  >
+                    <p className="text-body-sm text-fg font-medium">{method.label}</p>
+                    <p className="text-caption text-fg-subtle">{method.maskedDetails}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {rail === 'CRYPTO' ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full"
+                onClick={() => setStep('add-wallet')}
+              >
+                <Plus aria-hidden />
+                Add New Wallet
+              </Button>
+            ) : null}
+            {rail === 'BANK' ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full"
+                onClick={() => setStep('add-bank')}
+              >
+                <Plus aria-hidden />
+                Add bank account
+              </Button>
+            ) : null}
+            {rail === 'UPI' ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full"
+                onClick={() => setStep('add-upi')}
+              >
+                <Plus aria-hidden />
+                Add UPI ID
+              </Button>
+            ) : null}
+
+            <Button
+              type="button"
+              className="w-full sm:w-auto"
+              disabled={!selectedMethodId}
+              onClick={goReview}
+            >
+              Continue to review
+              <ArrowRight aria-hidden />
+            </Button>
+          </div>
+        ) : null}
+
+        {/* ADD WALLET — never auto unless zero wallets */}
+        {step === 'add-wallet' ? (
+          <div className="mx-auto max-w-md space-y-4">
+            <p className="text-body-sm text-fg-muted">
+              {filterMethods(methods, 'CRYPTO').length === 0
+                ? 'No saved crypto wallets yet — add one to continue.'
+                : 'Add a new destination wallet.'}
+            </p>
+            <FormField label="Coin / network" required>
               <Select
-                value={methodSource}
-                disabled={otpRequested}
-                onValueChange={(value) => setMethodSource(value as 'existing' | 'new')}
+                value={newCryptoType}
+                onValueChange={(v) => setNewCryptoType(v as CryptoType)}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="new">Create from form</SelectItem>
-                  <SelectItem value="existing">Use saved method</SelectItem>
+                  {CRYPTO_NETWORKS.map((item) => (
+                    <SelectItem key={item.type} value={item.type}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </FormField>
+            <FormField label="Label (optional)">
+              <Input
+                value={newLabel}
+                onChange={(e) => setNewLabel(e.target.value)}
+                placeholder="Personal USDT"
+              />
+            </FormField>
+            <FormField label="Wallet address" required>
+              <Input
+                value={newAddress}
+                onChange={(e) => setNewAddress(e.target.value)}
+                className="font-mono text-sm"
+                placeholder="Paste address"
+              />
+            </FormField>
+            <Button
+              type="button"
+              className="w-full"
+              loading={busy}
+              onClick={() => void saveCryptoWallet()}
+            >
+              Save wallet & continue
+            </Button>
+          </div>
+        ) : null}
 
-            {methodSource === 'existing' ? (
-              <FormField label="Saved payout method" required>
-                <Select
-                  value={selectedMethodId}
-                  disabled={otpRequested}
-                  onValueChange={setSelectedMethodId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {methods.map((method) => (
-                      <SelectItem key={method.id} value={method.id}>
-                        {method.label} - {method.maskedDetails}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormField>
-            ) : (
-              <FormField label="Method" required>
-                <Select
-                  value={methodType}
-                  disabled={otpRequested}
-                  onValueChange={(value) => setMethodType(value as WithdrawalMethod)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {METHOD_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormField>
-            )}
+        {step === 'add-bank' ? (
+          <div className="mx-auto max-w-md space-y-4">
+            <FormField label="Account holder name" required>
+              <Input
+                value={accountHolderName}
+                onChange={(e) => setAccountHolderName(e.target.value)}
+              />
+            </FormField>
+            <FormField label="Bank name" required>
+              <Input value={bankName} onChange={(e) => setBankName(e.target.value)} />
+            </FormField>
+            <FormField label="Account number" required>
+              <Input
+                value={accountNumber}
+                onChange={(e) => setAccountNumber(e.target.value)}
+              />
+            </FormField>
+            <FormField label="Confirm account number" required>
+              <Input
+                value={confirmAccountNumber}
+                onChange={(e) => setConfirmAccountNumber(e.target.value)}
+              />
+            </FormField>
+            <FormField label="IFSC" required>
+              <Input
+                value={ifscCode}
+                onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
+              />
+            </FormField>
+            <Button type="button" className="w-full" loading={busy} onClick={() => void saveBank()}>
+              Save bank & continue
+            </Button>
+          </div>
+        ) : null}
 
-            {methodSource === 'new' && methodType === 'BANK_TRANSFER' ? (
-              <>
-                <FormField label="Account holder name" required>
-                  <Input
-                    value={accountHolderName}
-                    disabled={otpRequested}
-                    onChange={(e) => setAccountHolderName(e.target.value)}
-                  />
-                </FormField>
-                <FormField label="Bank name" required>
-                  <Input
-                    value={bankName}
-                    disabled={otpRequested}
-                    onChange={(e) => setBankName(e.target.value)}
-                  />
-                </FormField>
-                <FormField label="Account #" required>
-                  <Input
-                    value={accountNumber}
-                    disabled={otpRequested}
-                    onChange={(e) => setAccountNumber(e.target.value)}
-                  />
-                </FormField>
-                <FormField label="Confirm account #" required>
-                  <Input
-                    value={confirmAccountNumber}
-                    disabled={otpRequested}
-                    onChange={(e) => setConfirmAccountNumber(e.target.value)}
-                  />
-                </FormField>
-                <FormField label="IFSC" required>
-                  <Input
-                    value={ifscCode}
-                    disabled={otpRequested}
-                    onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
-                  />
-                </FormField>
-              </>
-            ) : null}
+        {step === 'add-upi' ? (
+          <div className="mx-auto max-w-md space-y-4">
+            <FormField label="UPI ID" required>
+              <Input
+                value={upiId}
+                onChange={(e) => setUpiId(e.target.value)}
+                placeholder="name@bank"
+              />
+            </FormField>
+            <Button type="button" className="w-full" loading={busy} onClick={() => void saveUpi()}>
+              Save UPI & continue
+            </Button>
+          </div>
+        ) : null}
 
-            {methodSource === 'new' && methodType === 'UPI' ? (
-              <FormField label="UPI ID" required>
-                <Input
-                  value={upiId}
-                  disabled={otpRequested}
-                  onChange={(e) => setUpiId(e.target.value)}
-                />
-              </FormField>
-            ) : null}
-
-            {methodSource === 'new' && isCrypto ? (
-              <>
-                <FormField label="Coin" required>
-                  <Input value={crypto.coin} disabled readOnly />
-                </FormField>
-                <FormField label="Network" required>
-                  <Input value={crypto.network} disabled readOnly />
-                </FormField>
-                <FormField label="Wallet address" required className="sm:col-span-2">
-                  <Input
-                    value={walletAddress}
-                    disabled={otpRequested}
-                    onChange={(e) => setWalletAddress(e.target.value)}
-                    placeholder="Paste destination wallet address"
-                    className="font-mono text-sm"
-                  />
-                </FormField>
-              </>
-            ) : null}
-
-            {otpRequested ? (
-              <FormField
-                label="Email OTP"
-                required
-                hint="Enter the code sent to your registered email."
-                className="sm:col-span-2"
-              >
-                <Input
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                />
-              </FormField>
-            ) : null}
-
-            <div className="flex flex-wrap gap-3 sm:col-span-2">
-              <Button type="submit" loading={isSubmitting}>
-                {otpRequested ? 'Create withdrawal' : 'Request OTP'}
-              </Button>
-              {otpRequested ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
-                    setOtp('')
-                    setOtpMethodId('')
-                    setOtpRequested(false)
-                  }}
-                >
-                  Edit details
-                </Button>
+        {/* REVIEW */}
+        {step === 'review' && selectedMethod ? (
+          <div className="space-y-5">
+            <div className="border-line/60 bg-inset/40 grid gap-3 rounded-2xl border p-4 sm:grid-cols-2">
+              <div>
+                <p className="text-caption text-fg-subtle">Amount</p>
+                <p className="text-heading-sm text-fg tabular-nums">${amount}</p>
+              </div>
+              <div>
+                <p className="text-caption text-fg-subtle">Method</p>
+                <p className="text-body-sm text-fg font-medium">
+                  {rail === 'CRYPTO' ? 'Crypto' : rail === 'BANK' ? 'Bank (INR)' : 'UPI (INR)'}
+                </p>
+              </div>
+              {isCryptoType(selectedMethod.type) ? (
+                <>
+                  <div>
+                    <p className="text-caption text-fg-subtle">Coin</p>
+                    <p className="text-body-sm text-fg">{reviewMeta?.coin ?? '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-caption text-fg-subtle">Network</p>
+                    <p className="text-body-sm text-fg">{reviewMeta?.network ?? '—'}</p>
+                  </div>
+                </>
               ) : null}
+              <div className="sm:col-span-2">
+                <p className="text-caption text-fg-subtle">
+                  {isCryptoType(selectedMethod.type) ? 'Wallet address' : 'Destination'}
+                </p>
+                <p className="text-body-sm text-fg break-all font-mono">
+                  {selectedMethod.maskedDetails}
+                </p>
+                <p className="text-caption text-fg-muted mt-1">{selectedMethod.label}</p>
+              </div>
+              <div className="sm:col-span-2">
+                <p className="text-caption text-fg-subtle">Estimated processing time</p>
+                <p className="text-body-sm text-fg">1–24 hours after admin approval</p>
+              </div>
             </div>
-          </form>
-        </Card>
+            <Button
+              type="button"
+              className="w-full sm:w-auto"
+              loading={busy}
+              onClick={() => void sendOtpAndContinue()}
+            >
+              Continue — send email OTP
+              <ArrowRight aria-hidden />
+            </Button>
+          </div>
+        ) : null}
 
-        <PayoutMethodList methods={methods} isLoading={methodsLoading} />
-      </div>
+        {/* OTP */}
+        {step === 'otp' ? (
+          <div className="mx-auto max-w-md space-y-4">
+            <p className="text-body-sm text-fg-muted">
+              Enter the code emailed to your registered address. The withdrawal is created only after
+              OTP verification.
+            </p>
+            {otpExpiresHint ? (
+              <p className="text-caption text-fg-subtle">{otpExpiresHint}</p>
+            ) : null}
+            <FormField label="Email OTP" required>
+              <Input
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="6-digit code"
+                autoFocus
+              />
+            </FormField>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                type="button"
+                loading={busy}
+                disabled={!otp.trim()}
+                onClick={() => void verifyOtpAndCreate()}
+              >
+                Verify OTP & submit
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => void sendOtpAndContinue()}
+              >
+                Resend OTP
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* DONE */}
+        {step === 'done' && submitted ? (
+          <div className="space-y-4 text-center">
+            <CheckCircle2 className="text-success mx-auto size-10" aria-hidden />
+            <div>
+              <p className="text-heading-sm text-fg">Pending review</p>
+              <p className="text-body-sm text-fg-muted mt-1">
+                {submitted.reference} · ${submitted.amount} · {submitted.status}
+              </p>
+            </div>
+            <Button type="button" variant="secondary" onClick={resetAll}>
+              New withdrawal
+            </Button>
+          </div>
+        ) : null}
+      </Card>
 
       <WithdrawalHistory rows={withdrawals} isLoading={withdrawalsLoading} />
     </div>

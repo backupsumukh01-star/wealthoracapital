@@ -40,13 +40,14 @@ export const ROUTES = {
 
   dashboard: {
     root: '/dashboard',
+    /** Full withdrawal flow (home → destination → review → OTP). */
+    withdraw: '/withdraw',
+    withdrawHistory: '/withdraw/history',
+    /** Wallet Center — balances and history; deposit/withdraw route to dedicated pages. */
+    wallet: '/wallet',
     /** Full deposit submission flow (amount, method, proof). */
     deposit: '/deposit',
     depositHistory: '/deposit/history',
-    /** Wallet Center — withdraw modal lives here; deposit routes to `/deposit`. */
-    wallet: '/wallet',
-    withdraw: '/withdraw',
-    withdrawHistory: '/withdraw/history',
     trades: '/trades',
     trade: (tradeId: string) => `/trades/${tradeId}`,
     // `/performance` belongs to the public marketing track record, which is SEO-critical and

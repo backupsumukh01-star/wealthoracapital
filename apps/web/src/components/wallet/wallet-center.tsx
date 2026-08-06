@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ROUTES } from '@meridian/shared'
@@ -17,7 +17,6 @@ import { PageHeader, SectionHeader } from '@/components/common/page-header'
 import { StatCard } from '@/components/common/stat-card'
 import { PremiumEmptyState } from '@/components/dashboard/premium-empty-state'
 import { StatusPill } from '@/components/dashboard/status-pill'
-import { WithdrawModal } from '@/components/wallet/withdraw-modal'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Alert } from '@/components/ui/alert'
@@ -42,7 +41,6 @@ export function WalletCenter() {
   const withdrawals = withdrawalsData?.items ?? []
   const { data: cmsBoot, isSuccess: cmsReady } = useCmsBootstrap()
   const cms = cmsReady ? cmsBoot?.platform.wallet : null
-  const [withdrawOpen, setWithdrawOpen] = useState(false)
 
   function tryDeposit() {
     if (!allowed) return
@@ -51,7 +49,7 @@ export function WalletCenter() {
 
   function tryWithdraw() {
     if (!allowed) return
-    setWithdrawOpen(true)
+    router.push(ROUTES.dashboard.withdraw)
   }
 
   useEffect(() => {
@@ -59,10 +57,9 @@ export function WalletCenter() {
     if (action === 'deposit') {
       router.replace(ROUTES.dashboard.deposit)
     } else if (action === 'withdraw') {
-      if (allowed) setWithdrawOpen(true)
-      router.replace(ROUTES.dashboard.wallet, { scroll: false })
+      router.replace(ROUTES.dashboard.withdraw)
     }
-  }, [searchParams, router, allowed])
+  }, [searchParams, router])
 
   const pendingDeposit = deposits.find(
     (d) => d.status === 'UNDER_REVIEW' || d.status === 'PENDING',
@@ -291,8 +288,6 @@ export function WalletCenter() {
           )}
         </Card>
       </div>
-
-      <WithdrawModal open={withdrawOpen} onOpenChange={setWithdrawOpen} />
     </div>
   )
 }

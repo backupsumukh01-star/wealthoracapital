@@ -19,7 +19,6 @@ import { TradeCards } from '@/components/dashboard/trade-cards'
 import { WalletFab } from '@/components/dashboard/wallet-fab'
 import { WealthQuickActions } from '@/components/dashboard/wealth-quick-actions'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
-import { WithdrawModal } from '@/components/wallet/withdraw-modal'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { accountAccessMessage, canTransact } from '@/lib/account-access'
 import { useCmsBootstrap } from '@/features/cms/hooks'
@@ -33,7 +32,6 @@ export function WealthHome() {
   const allowed = canTransact(session?.user.kycStatus)
   const access = accountAccessMessage(session?.user.kycStatus)
   const { data: cmsBoot, isSuccess: cmsReady } = useCmsBootstrap()
-  const [withdrawOpen, setWithdrawOpen] = useState(false)
   const [booting, setBooting] = useState(!prefersReducedMotion)
 
   useEffect(() => {
@@ -60,7 +58,7 @@ export function WealthHome() {
       router.push(access.nextActionHref || ROUTES.auth.onboarding)
       return
     }
-    setWithdrawOpen(true)
+    router.push(ROUTES.dashboard.withdraw)
   }
 
   if (booting) {
@@ -118,8 +116,6 @@ export function WealthHome() {
       <LiveActivityFeed />
 
       <WalletFab onDeposit={tryDeposit} onWithdraw={tryWithdraw} />
-
-      <WithdrawModal open={withdrawOpen} onOpenChange={setWithdrawOpen} />
     </>
   )
 }

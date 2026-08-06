@@ -1,7 +1,5 @@
-import { redirect } from 'next/navigation'
-import { ROUTES } from '@meridian/shared'
+import { WithdrawWorkspace } from '@/components/dashboard/withdraw-workspace'
 
-/** Legacy route — Wallet Center owns withdraw via modal. */
-export default function WithdrawRedirectPage() {
-  redirect(`${ROUTES.dashboard.wallet}?action=withdraw`)
+export default function WithdrawPage() {
+  return <WithdrawWorkspace />
 }
