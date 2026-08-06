@@ -130,7 +130,9 @@ function TestimonialCard({ item }: { item: WallItem }) {
         </div>
       ) : null}
 
-      <blockquote className="mt-3 flex-1 text-body-sm text-fg-muted">"{item.quote}"</blockquote>
+      <blockquote className="mt-3 flex-1 text-body-sm text-fg-muted">
+        &ldquo;{item.quote}&rdquo;
+      </blockquote>
       <p className="mt-3 text-caption text-fg-subtle">{item.date}</p>
     </figure>
   )

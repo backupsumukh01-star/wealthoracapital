@@ -1146,8 +1146,9 @@ model DailyReturnRun {
 
   distributions ProfitDistribution[]
 
-  /// One economic distribution per calendar day + basis — blocks dual-key double-pay.
-  @@unique([date, returnBasis])
+  /// Multiple completed settlements per calendar day + basis are allowed (ops can publish repeatedly).
+  /// Idempotency is enforced per publish via `idempotencyKey` and per-wallet keys inside a run.
+  @@index([date, returnBasis])
   @@index([date, status])
   @@map("daily_return_runs")
 }

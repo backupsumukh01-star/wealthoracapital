@@ -59,6 +59,7 @@ export const walletService = {
       today: extras.today,
       performance: extras.performance,
       chart: extras.chart,
+      analyticsCharts: extras.analyticsCharts,
       recentTrades: extras.recentTrades,
       pending: {
         deposits: pendingDeposits,

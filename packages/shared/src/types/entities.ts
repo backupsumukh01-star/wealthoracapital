@@ -271,6 +271,26 @@ export interface EquityPoint {
   cumulativeProfit: MoneyString
 }
 
+export interface AnalyticsChartPoint {
+  date: IsoDate
+  label: string
+  profit: MoneyString
+  cumulativeProfit: MoneyString
+  balance: MoneyString
+  returnPct: PercentString
+}
+
+export interface InvestorAnalyticsCharts {
+  range: string
+  equity: EquityPoint[]
+  dailyProfit: AnalyticsChartPoint[]
+  monthly: Array<{
+    month: string
+    profit: MoneyString
+    returnPct: PercentString
+  }>
+}
+
 export interface PerformanceSummary {
   roiPct: PercentString
   thisMonthProfit: MoneyString
@@ -295,6 +315,7 @@ export interface WalletSummary {
   }
   performance: PerformanceSummary
   chart: { range: string; points: EquityPoint[] }
+  analyticsCharts: InvestorAnalyticsCharts
   recentTrades: Trade[]
   pending: {
     deposits: number

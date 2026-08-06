@@ -75,7 +75,7 @@ export const adminService = {
           paidAmount: string
         }
         kyc: { total: number; approved: number; rejected: number; pending: number }
-        profit: { daily: string; monthly: string; lifetime: string }
+        profit: { daily: string; monthly: string; lifetime: string; lifetimeCount: number }
         wallets: {
           available: string
           locked: string

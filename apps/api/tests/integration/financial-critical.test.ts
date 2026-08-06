@@ -135,7 +135,7 @@ describe.skipIf(!hasDb)('Financial critical regressions', () => {
     expect(row.status).toBe('CANCELLED')
   })
 
-  it('C2: second distribution key for same date+basis is rejected', async () => {
+  it('C2: second distribution key for same date+basis is allowed (unlimited publishes)', async () => {
     const admin = await prisma.user.create({
       data: {
         email: `admin_${randomUUID().slice(0, 8)}@example.com`,
@@ -154,23 +154,30 @@ describe.skipIf(!hasDb)('Financial critical regressions', () => {
     const date = new Date()
     date.setUTCHours(0, 0, 0, 0)
     date.setUTCDate(date.getUTCDate() - Math.floor(Math.random() * 200) - 1)
+    const dateLabel = date.toISOString().slice(0, 10)
 
     const key1 = `run-c2-a-${randomUUID()}`
     const key2 = `run-c2-b-${randomUUID()}`
 
-    await distributionService.publishReturn(
+    const first = await distributionService.publishReturn(
       admin.id,
-      { date: date.toISOString().slice(0, 10), returnPct: '0.10', idempotencyKey: key1 },
+      { date: dateLabel, returnPct: '0.10', idempotencyKey: key1 },
+      {},
+    )
+    const second = await distributionService.publishReturn(
+      admin.id,
+      { date: dateLabel, returnPct: '0.10', idempotencyKey: key2 },
       {},
     )
 
-    await expect(
-      distributionService.publishReturn(
-        admin.id,
-        { date: date.toISOString().slice(0, 10), returnPct: '0.10', idempotencyKey: key2 },
-        {},
-      ),
-    ).rejects.toThrow(/already been published|already exists|original idempotency/i)
+    expect(first.status).toBe('COMPLETED')
+    expect(second.status).toBe('COMPLETED')
+    expect(second.id).not.toBe(first.id)
+
+    const runs = await prisma.dailyReturnRun.count({
+      where: { date, returnBasis: 'INVESTED', status: 'COMPLETED' },
+    })
+    expect(runs).toBeGreaterThanOrEqual(2)
   })
 
   it('C3: completing a withdrawal decreases investedAmount', async () => {

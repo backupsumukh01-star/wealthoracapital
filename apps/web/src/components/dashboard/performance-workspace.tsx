@@ -8,6 +8,7 @@ import { Percent } from '@/components/common/percent'
 import { StatCard } from '@/components/common/stat-card'
 import { LivePerformanceChart } from '@/components/dashboard/live-performance-chart'
 import { PortfolioAllocation } from '@/components/dashboard/portfolio-allocation'
+import { UserAnalyticsCharts } from '@/components/dashboard/user-analytics-charts'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { toast } from '@/components/ui/toast'
@@ -126,6 +127,8 @@ export function PerformanceWorkspace() {
       </div>
 
       <LivePerformanceChart />
+
+      <UserAnalyticsCharts />
 
       <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
         <Card variant="glass" className="p-5 sm:p-6">

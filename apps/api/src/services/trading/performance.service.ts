@@ -319,9 +319,50 @@ export const performanceService = {
     })
   },
 
+  async investorAnalyticsCharts(userId: string, range = '90d') {
+    const equitySeries = await this.series(userId, range)
+    const invested = d(
+      (
+        await prisma.wallet.findUnique({
+          where: { userId_kind: { userId, kind: 'INVESTMENT' } },
+        })
+      )?.investedAmount ?? 0,
+    )
+
+    const dailyProfit = equitySeries.points.map((point) => {
+      const profit = d(point.profit)
+      const returnPct = invested.gt(0) ? profit.div(invested).mul(100) : d(0)
+      return {
+        date: point.date,
+        label: point.date.slice(5),
+        profit: point.profit,
+        cumulativeProfit: point.cumulativeProfit,
+        balance: point.balance,
+        returnPct: returnPct.toFixed(6),
+      }
+    })
+
+    const monthly = await this.monthly(userId)
+    return {
+      range: equitySeries.range,
+      equity: equitySeries.points,
+      dailyProfit,
+      monthly: monthly.map((row) => {
+        const profit = d(row.profit)
+        const returnPct = invested.gt(0) ? profit.div(invested).mul(100) : d(0)
+        return {
+          month: row.month,
+          profit: row.profit,
+          returnPct: returnPct.toFixed(6),
+        }
+      }),
+    }
+  },
+
   async walletSummaryExtras(userId: string) {
     const performance = await this.summary(userId)
     const chart = await this.series(userId, '30d')
+    const analyticsCharts = await this.investorAnalyticsCharts(userId, '90d')
     const todayKey = dayKey(new Date())
     const todayDist = await prisma.profitDistribution.findFirst({
       where: { userId, date: dayDate(todayKey), isReversed: false },
@@ -343,6 +384,7 @@ export const performanceService = {
       },
       performance,
       chart,
+      analyticsCharts,
       recentTrades: recentTrades.map(mapTrade),
     }
   },
