@@ -109,6 +109,7 @@ export const kycService = {
 
   adminGet: (id: string) =>
     apiClient<{
+      id: string
       city?: string
       addressLine1?: string
       occupation?: string
@@ -126,6 +127,31 @@ export const kycService = {
         status?: string
       }>
     }>(`${API_ROUTES.admin.kyc}/${id}`),
+
+  /** Authenticated binary fetch for admin document previews (session cookies). */
+  adminDocumentBlob: async (submissionOrUserId: string, documentId: string): Promise<Blob> => {
+    const response = await fetch(
+      `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.admin.kyc}/${submissionOrUserId}/documents/${documentId}`,
+      {
+        method: 'GET',
+        credentials: 'include',
+        headers: { Accept: '*/*' },
+      },
+    )
+    if (!response.ok) {
+      let message = 'Could not load document preview.'
+      try {
+        const payload = (await response.json()) as {
+          error?: { message?: string }
+        }
+        if (payload?.error?.message) message = payload.error.message
+      } catch {
+        // binary or empty error body
+      }
+      throw new ApiError(ERROR_CODES.INTERNAL_ERROR, message, response.status)
+    }
+    return response.blob()
+  },
 
   adminReview: (userId: string, body: { decision: 'APPROVE' | 'REJECT'; reason?: string }) =>
     apiClient<KycProfile>(`${API_ROUTES.admin.kyc}/${userId}/review`, {

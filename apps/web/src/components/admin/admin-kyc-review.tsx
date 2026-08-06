@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { ROUTES } from '@meridian/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ExternalLink, FileText } from 'lucide-react'
-import { useState } from 'react'
+import { ExternalLink, FileText, Loader2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -32,40 +32,85 @@ type KycDoc = {
   status?: string
 }
 
-type KycSubmissionDetail = {
-  city?: string
-  addressLine1?: string
-  occupation?: string
-  dateOfBirth?: string
-  primaryDocumentType?: string
-  country?: string
-  documents?: KycDoc[]
-}
-
 function docLabel(doc: KycDoc): string {
   const type = (doc.documentType ?? doc.kind ?? 'Document').replaceAll('_', ' ')
   const side = doc.side && doc.side !== 'SINGLE' ? ` · ${doc.side}` : ''
   return `${type}${side}`
 }
 
+function looksLikeImage(doc: KycDoc): boolean {
+  if (doc.mimeType?.startsWith('image/')) return true
+  const name = (doc.originalName ?? '').toLowerCase()
+  return /\.(jpe?g|png|webp|gif|bmp)$/i.test(name)
+}
+
+function looksLikePdf(doc: KycDoc): boolean {
+  return doc.mimeType === 'application/pdf' || /\.pdf$/i.test(doc.originalName ?? '')
+}
+
+function useAdminDocPreview(ownerId: string | undefined, doc: KycDoc | undefined) {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!ownerId || !doc?.id) {
+      setBlobUrl(null)
+      setError(null)
+      setLoading(false)
+      return
+    }
+
+    let objectUrl: string | null = null
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+    setBlobUrl(null)
+
+    void kycService
+      .adminDocumentBlob(ownerId, doc.id)
+      .then((blob) => {
+        if (cancelled) return
+        objectUrl = URL.createObjectURL(blob)
+        setBlobUrl(objectUrl)
+      })
+      .catch((err: Error) => {
+        if (cancelled) return
+        setError(err.message || 'Preview unavailable')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [ownerId, doc?.id])
+
+  return { blobUrl, error, loading }
+}
+
 function KycDocCard({
   label,
   doc,
+  ownerId,
 }: {
   label: string
   doc?: KycDoc
+  ownerId?: string
 }) {
-  const url = doc?.downloadUrl
-  const isImage = Boolean(doc?.mimeType?.startsWith('image/'))
-  const isPdf = doc?.mimeType === 'application/pdf'
+  const { blobUrl, error, loading } = useAdminDocPreview(ownerId, doc)
+  const isImage = doc ? looksLikeImage(doc) : false
+  const isPdf = doc ? looksLikePdf(doc) : false
 
   return (
     <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-inset/40">
       <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] px-3 py-2">
         <p className="truncate text-body-sm font-medium text-fg">{label}</p>
-        {url ? (
+        {blobUrl ? (
           <a
-            href={url}
+            href={blobUrl}
             target="_blank"
             rel="noreferrer"
             className="inline-flex shrink-0 items-center gap-1 text-caption text-accent-300 hover:underline"
@@ -75,30 +120,36 @@ function KycDocCard({
         ) : null}
       </div>
       <div className="relative aspect-[4/3] bg-gradient-to-br from-accent-500/10 via-inset to-info/10">
-        {url && isImage ? (
-          // Signed KYC download URL — not user-controlled HTML
+        {loading ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-fg-muted">
+            <Loader2 className="size-6 animate-spin" aria-hidden />
+            <p className="text-caption">Loading preview…</p>
+          </div>
+        ) : error ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
+            <FileText className="size-8 text-warning" aria-hidden />
+            <p className="text-caption text-warning">{error}</p>
+            <p className="text-[11px] text-fg-subtle">
+              If the file was uploaded before persistent disk was attached, ask the investor to
+              re-upload.
+            </p>
+          </div>
+        ) : blobUrl && isImage ? (
+          // Object URL from authenticated admin fetch
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={url}
+            src={blobUrl}
             alt={label}
             className="absolute inset-0 size-full object-contain p-2"
           />
-        ) : url && isPdf ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
-            <FileText className="size-8 text-fg-muted" aria-hidden />
-            <p className="text-caption text-fg-muted">{doc?.originalName ?? 'PDF document'}</p>
-            <Button asChild size="sm" variant="secondary">
-              <a href={url} target="_blank" rel="noreferrer">
-                View PDF
-              </a>
-            </Button>
-          </div>
-        ) : url ? (
+        ) : blobUrl && isPdf ? (
+          <iframe title={label} src={blobUrl} className="absolute inset-0 size-full bg-white" />
+        ) : blobUrl ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
             <FileText className="size-8 text-fg-muted" aria-hidden />
             <p className="text-caption text-fg-muted">{doc?.originalName ?? 'Document uploaded'}</p>
             <Button asChild size="sm" variant="secondary">
-              <a href={url} target="_blank" rel="noreferrer">
+              <a href={blobUrl} target="_blank" rel="noreferrer">
                 Open file
               </a>
             </Button>
@@ -190,11 +241,15 @@ export function AdminKycReviewWorkspace() {
   }
 
   const submission = kycDetail
+  const ownerId = submission?.id ?? userId
   const documents = submission?.documents ?? []
   const idKinds = ['NATIONAL_ID', 'DRIVING_LICENSE', 'RESIDENCE_PERMIT', 'PASSPORT']
   const front = pickDoc(documents, 'FRONT', idKinds) ?? pickDoc(documents, 'FRONT')
   const back = pickDoc(documents, 'BACK', idKinds) ?? pickDoc(documents, 'BACK')
-  const selfie = pickDoc(documents, 'SINGLE', ['SELFIE']) ?? pickDoc(documents, 'SINGLE')
+  const selfie =
+    pickDoc(documents, 'SINGLE', ['SELFIE']) ??
+    documents.find((d) => (d.documentType ?? d.kind) === 'SELFIE') ??
+    pickDoc(documents, 'SINGLE')
   const extras = documents.filter(
     (d) => d.id !== front?.id && d.id !== back?.id && d.id !== selfie?.id,
   )
@@ -234,6 +289,7 @@ export function AdminKycReviewWorkspace() {
               ['DOB', submission?.dateOfBirth ?? '—'],
               ['Occupation', submission?.occupation ?? '—'],
               ['ID type', submission?.primaryDocumentType?.replaceAll('_', ' ') ?? '—'],
+              ['Documents', String(documents.length)],
             ].map(([k, v]) => (
               <div key={k}>
                 <dt className="text-caption text-fg-subtle">{k}</dt>
@@ -290,13 +346,17 @@ export function AdminKycReviewWorkspace() {
         <h2 className="mb-3 text-heading-sm text-fg">Submitted documents</h2>
         {kycLoading ? (
           <p className="text-body-sm text-fg-muted">Loading documents…</p>
+        ) : documents.length === 0 ? (
+          <AdminPanel className="p-6 text-body-sm text-fg-muted">
+            No documents are attached to this KYC submission. Ask the investor to upload again.
+          </AdminPanel>
         ) : (
           <div className="grid gap-4 sm:grid-cols-3">
-            <KycDocCard label="Front ID" doc={front} />
-            <KycDocCard label="Back ID" doc={back} />
-            <KycDocCard label="Selfie" doc={selfie} />
+            <KycDocCard label="Front ID" doc={front} ownerId={ownerId} />
+            <KycDocCard label="Back ID" doc={back} ownerId={ownerId} />
+            <KycDocCard label="Selfie" doc={selfie} ownerId={ownerId} />
             {extras.map((doc) => (
-              <KycDocCard key={doc.id} label={docLabel(doc)} doc={doc} />
+              <KycDocCard key={doc.id} label={docLabel(doc)} doc={doc} ownerId={ownerId} />
             ))}
           </div>
         )}

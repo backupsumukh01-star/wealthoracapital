@@ -105,8 +105,49 @@ export const kycController = {
     res.setHeader('Content-Type', file.mimeType)
     res.setHeader('Content-Disposition', `inline; filename="${path.basename(file.originalName)}"`)
     res.setHeader('Cache-Control', 'private, max-age=300')
-    const stream = await storage.openReadStream(file.storageKey)
-    stream.pipe(res)
+    try {
+      const stream = await storage.openReadStream(file.storageKey)
+      stream.on('error', () => {
+        if (!res.headersSent) {
+          res.status(404).json({
+            success: false,
+            error: { code: 'NOT_FOUND', message: 'File missing on storage disk.' },
+          })
+        } else {
+          res.end()
+        }
+      })
+      stream.pipe(res)
+    } catch {
+      throw badRequest('File missing on storage disk. Ask the investor to re-upload.')
+    }
+  }),
+
+  adminDocumentContent: asyncHandler(async (req, res) => {
+    const file = await kycService.resolveAdminDocument(req.params.id!, req.params.docId!)
+    res.setHeader('Content-Type', file.mimeType)
+    res.setHeader('Content-Disposition', `inline; filename="${path.basename(file.originalName)}"`)
+    res.setHeader('Cache-Control', 'private, no-store')
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    try {
+      const stream = await storage.openReadStream(file.storageKey)
+      stream.on('error', () => {
+        if (!res.headersSent) {
+          res.status(404).json({
+            success: false,
+            error: {
+              code: 'NOT_FOUND',
+              message: 'File missing on storage disk. Ask the investor to re-upload.',
+            },
+          })
+        } else {
+          res.end()
+        }
+      })
+      stream.pipe(res)
+    } catch {
+      throw badRequest('File missing on storage disk. Ask the investor to re-upload.')
+    }
   }),
 
   adminList: asyncHandler(async (req, res) => {

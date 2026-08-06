@@ -34,6 +34,12 @@ adminKycRouter.get(
   kycController.adminGet,
 )
 
+adminKycRouter.get(
+  '/:id/documents/:docId',
+  requirePermission(PERMISSIONS['kyc.view']),
+  kycController.adminDocumentContent,
+)
+
 adminKycRouter.post(
   '/:id/approve',
   requirePermission(PERMISSIONS['kyc.review']),

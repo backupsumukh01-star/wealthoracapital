@@ -717,4 +717,20 @@ export const kycService = {
       originalName: doc?.originalName ?? path.basename(key),
     }
   },
+
+  /**
+   * Admin-authenticated document stream. Prefer this over signed URLs in the
+   * operator console so previews work with session cookies across subdomains.
+   */
+  async resolveAdminDocument(submissionOrUserId: string, documentId: string) {
+    const submission = await this.resolveSubmission(submissionOrUserId)
+    if (!submission) throw notFound('KYC submission not found.')
+    const doc = (submission.documents ?? []).find((d) => d.id === documentId && !d.deletedAt)
+    if (!doc) throw notFound('Document not found.')
+    return {
+      storageKey: doc.storageKey,
+      mimeType: doc.mimeType || 'application/octet-stream',
+      originalName: doc.originalName || 'document',
+    }
+  },
 }

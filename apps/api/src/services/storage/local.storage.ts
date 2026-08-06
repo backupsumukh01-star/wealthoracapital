@@ -1,6 +1,7 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { createReadStream } from 'node:fs'
-import { mkdir, unlink, writeFile } from 'node:fs/promises'
+import { access, mkdir, unlink, writeFile } from 'node:fs/promises'
+import { constants as fsConstants } from 'node:fs'
 import path from 'node:path'
 
 import { env } from '../../config/env.js'
@@ -50,7 +51,13 @@ export class LocalStorageDriver implements StorageDriver {
   }
 
   async openReadStream(key: string): Promise<NodeJS.ReadableStream> {
-    return createReadStream(this.getAbsolutePath(key))
+    const absolute = this.getAbsolutePath(key)
+    try {
+      await access(absolute, fsConstants.R_OK)
+    } catch {
+      throw new Error(`Storage object not found: ${key}`)
+    }
+    return createReadStream(absolute)
   }
 
   getPublicUrl(key: string): string {
