@@ -62,6 +62,11 @@ async function bootstrap(): Promise<void> {
     logger.error({ reason }, 'Unhandled promise rejection in worker')
     captureException(reason)
   })
+  process.on('uncaughtException', (error) => {
+    logger.fatal({ error }, 'Uncaught exception in worker')
+    captureException(error)
+    void shutdown('uncaughtException')
+  })
 }
 
 bootstrap().catch((error: unknown) => {

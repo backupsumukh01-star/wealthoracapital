@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Growzy Email System V2 — Preview Gallery</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #070A0E; color: #E8EEF6; }
+    header { padding: 28px 24px; border-bottom: 1px solid #1E2836; }
+    h1 { margin: 0 0 8px; font-size: 22px; }
+    p { margin: 0; color: #8B9BB0; font-size: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; padding: 24px; }
+    a { display: block; padding: 14px 16px; border-radius: 12px; background: #0F141B; border: 1px solid #1E2836; color: #2AE8FF; text-decoration: none; font-size: 14px; }
+    a:hover { border-color: #2AE8FF55; }
+    .meta { color: #5C6B7E; font-size: 12px; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Growzy Email System V2</h1>
+    <p>Open a template · use desktop/ or mobile/ shells for screenshot framing</p>
+  </header>
+  <div class="grid" id="list"></div>
+  <script>
+    const templates = [
+      'welcome','email-verification','login-otp','withdrawal-otp','password-reset','security-alert','registration-attempt',
+      'kyc-submitted','kyc-under-review','kyc-approved','kyc-rejected',
+      'deposit-submitted','deposit-approved','deposit-rejected',
+      'withdrawal-submitted','withdrawal-approved','withdrawal-rejected',
+      'daily-roi','investment-created','investment-completed',
+      'support-reply','platform-notification','admin-alert','broadcast'
+    ]
+    const el = document.getElementById('list')
+    for (const t of templates) {
+      const a = document.createElement('a')
+      a.href = './' + t + '.html'
+      a.innerHTML = t + '<div class="meta"><a href="./desktop/' + t + '.html" style="display:inline;border:0;padding:0;background:none">Desktop</a> · <a href="./mobile/' + t + '.html" style="display:inline;border:0;padding:0;background:none">Mobile</a></div>'
+      el.appendChild(a)
+    }
+  </script>
+</body>
+</html>

@@ -230,10 +230,10 @@ export function OnboardingWizard() {
     return (
       <AuthCard
         title="KYC under review"
-        description="Our compliance team is reviewing your documents. Expected review: 24–48 hours."
+        description="Your KYC is currently under review."
       >
         <Alert tone="warning" title="Deposit locked">
-          You cannot deposit or withdraw until KYC is approved.
+          You cannot deposit or withdraw until KYC is approved. Expected review: 24–48 hours.
         </Alert>
         <Button fullWidth size="lg" onClick={() => router.push(ROUTES.dashboard.root)}>
           Go to dashboard

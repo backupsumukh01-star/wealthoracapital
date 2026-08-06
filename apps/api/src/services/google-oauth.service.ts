@@ -13,6 +13,7 @@ import { AppError, badRequest, forbidden, serviceUnavailable, unauthorized } fro
 import { logger } from '../utils/logger.js'
 import { activityService } from './activity.service.js'
 import { authService } from './auth.service.js'
+import { opsAlertService } from './ops-alert.service.js'
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
@@ -311,6 +312,16 @@ export const googleOAuthService = {
       title: 'Account created via Google',
     })
 
+    await opsAlertService.notify({
+      event: 'USER_REGISTERED',
+      title: 'User registered (Google)',
+      action: 'New investor account created via Google OAuth',
+      userId: user.id,
+      userName: `${user.firstName} ${user.lastName}`.trim(),
+      userEmail: user.email,
+      adminPath: `/admin/users/${user.id}`,
+    })
+
     logger.info({ userId: user.id }, 'User registered via Google OAuth')
     return user
   },
@@ -333,6 +344,20 @@ export const googleOAuthService = {
       title: 'Signed in with Google',
       ip: context.ip,
       userAgent: context.userAgent,
+    })
+    const isStaff =
+      user.role === 'ADMIN' ||
+      user.role === 'SUPER_ADMIN' ||
+      Boolean(user.staffRole)
+    await opsAlertService.notify({
+      event: isStaff ? 'ADMIN_LOGIN' : 'GOOGLE_LOGIN',
+      title: isStaff ? 'Admin Google login' : 'Google login',
+      action: isStaff ? 'Staff signed in with Google' : 'Investor signed in with Google',
+      userId: user.id,
+      userName: `${user.firstName} ${user.lastName}`.trim(),
+      userEmail: user.email,
+      ip: context.ip,
+      adminPath: `/admin/users/${user.id}`,
     })
     logger.info({ userId: user.id }, 'User logged in via Google OAuth')
     return { user, tokens }

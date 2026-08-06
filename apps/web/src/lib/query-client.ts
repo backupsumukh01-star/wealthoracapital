@@ -29,4 +29,5 @@ export function createQueryClient() {
 /** Shared shape for optional query-hook params — lets callers gate a fetch behind auth/route state. */
 export interface QueryHookOptions {
   enabled?: boolean
+  refetchInterval?: number | false
 }

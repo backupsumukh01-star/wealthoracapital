@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger.js'
 import { recordSystemLog } from '../observability/log-buffer.js'
+import { processStability } from '../observability/process-stability.js'
 import type { JobHandler, JobName, JobPayloadMap, JobQueueDriver } from './types.js'
 
 export class InMemoryJobQueue implements JobQueueDriver {
@@ -27,7 +28,13 @@ export class InMemoryJobQueue implements JobQueueDriver {
         message: `Job failed: ${name}`,
         meta: { err: error instanceof Error ? error.message : String(error) },
       })
-      throw error
+      processStability.recordCrash({
+        kind: 'job',
+        message: `Job ${name}: ${error instanceof Error ? error.message : String(error)}`,
+        stack: error instanceof Error ? error.stack : undefined,
+        service: 'growzy-api',
+      })
+      // Never rethrow — background work must not crash the API or leak unhandled rejections.
     }
   }
 

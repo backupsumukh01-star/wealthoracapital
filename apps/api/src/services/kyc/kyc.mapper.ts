@@ -68,13 +68,26 @@ export function mapSubmission(
     createdAt: submission.createdAt.toISOString(),
     updatedAt: submission.updatedAt.toISOString(),
     documents: documents.map((doc) => mapDocument(doc)),
-    history: (submission.history ?? []).map((item) => ({
-      id: item.id,
-      action: item.action,
-      message: item.message,
-      actorId: item.actorId,
-      createdAt: item.createdAt.toISOString(),
-    })),
+    history: (submission.history ?? []).map((item) => {
+      const meta =
+        item.metadata && typeof item.metadata === 'object' && !Array.isArray(item.metadata)
+          ? (item.metadata as Record<string, unknown>)
+          : {}
+      return {
+        id: item.id,
+        action: item.action,
+        message: item.message,
+        actorId: item.actorId,
+        actorName: typeof meta.actorName === 'string' ? meta.actorName : null,
+        actorEmail: typeof meta.actorEmail === 'string' ? meta.actorEmail : null,
+        oldStatus: typeof meta.oldStatus === 'string' ? meta.oldStatus : null,
+        newStatus: typeof meta.newStatus === 'string' ? meta.newStatus : null,
+        reason: typeof meta.reason === 'string' ? meta.reason : item.message,
+        ip: typeof meta.ip === 'string' ? meta.ip : null,
+        metadata: meta,
+        createdAt: item.createdAt.toISOString(),
+      }
+    }),
     user: submission.user
       ? {
           id: submission.user.id,

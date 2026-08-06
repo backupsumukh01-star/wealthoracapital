@@ -28,6 +28,7 @@ import type {
   VerifyEmailInput,
 } from '../validators/auth.validators.js'
 import { activityService } from './activity.service.js'
+import { opsAlertService } from './ops-alert.service.js'
 import { passwordService } from './password.service.js'
 import { tokenService } from './token.service.js'
 
@@ -161,6 +162,16 @@ export const authService = {
       kind: 'REGISTRATION',
       title: 'Account registered',
     })
+    await opsAlertService.notify({
+      event: 'USER_REGISTERED',
+      title: 'User registered',
+      action: 'New investor account created',
+      userId: user.id,
+      userName: `${user.firstName} ${user.lastName}`.trim(),
+      userEmail: user.email,
+      adminPath: `/admin/users/${user.id}`,
+      recordActivity: false,
+    })
     return { userId: user.id }
   },
 
@@ -240,6 +251,24 @@ export const authService = {
       ip: context.ip,
       userAgent: context.userAgent,
     })
+
+    const isStaff =
+      user.role === 'ADMIN' ||
+      user.role === 'SUPER_ADMIN' ||
+      Boolean(user.staffRole)
+    if (isStaff) {
+      await opsAlertService.notify({
+        event: 'ADMIN_LOGIN',
+        title: 'Admin login',
+        action: 'Staff member signed in',
+        userId: user.id,
+        userName: `${user.firstName} ${user.lastName}`.trim(),
+        userEmail: user.email,
+        ip: context.ip,
+        adminPath: `/admin/users/${user.id}`,
+        details: { Role: user.role, StaffRole: user.staffRole ?? '—' },
+      })
+    }
 
     return {
       user: toPublicUser(user),
@@ -366,6 +395,15 @@ export const authService = {
     await verificationTokenRepository.markUsed(record.id)
     await emailService.sendWelcomeEmail({ to: user.email, firstName: user.firstName })
     logger.info({ userId: user.id }, 'Email verified')
+    await opsAlertService.notify({
+      event: 'EMAIL_VERIFIED',
+      title: 'Email verified',
+      action: 'Investor verified their email address',
+      userId: user.id,
+      userName: `${user.firstName} ${user.lastName}`.trim(),
+      userEmail: user.email,
+      adminPath: `/admin/users/${user.id}`,
+    })
   },
 
   async resendVerification(input: ResendVerificationInput): Promise<void> {
@@ -413,6 +451,13 @@ export const authService = {
       actorId: record.userId,
       kind: 'PASSWORD_CHANGE',
       title: 'Password reset completed',
+    })
+    await opsAlertService.notify({
+      event: 'PASSWORD_RESET',
+      title: 'Password reset',
+      action: 'Investor completed a password reset',
+      userId: record.userId,
+      adminPath: `/admin/users/${record.userId}`,
     })
   },
 

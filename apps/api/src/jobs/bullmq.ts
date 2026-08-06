@@ -41,6 +41,8 @@ const HANDLER_TO_GROUP: Record<JobName, QueueGroup> = {
   'broadcast-scheduled-send': 'scheduler',
   'generate-report': 'reports',
   'send-notification': 'notifications',
+  'daily-owner-report': 'reports',
+  'stability-monitor': 'scheduler',
 }
 
 export function jobGroup(name: JobName): QueueGroup {
@@ -106,6 +108,8 @@ export async function registerRepeatableJobs(): Promise<void> {
     { name: 'performance-recalculate', every: 24 * 60 * 60 * 1000 },
     { name: 'cleanup-expired-sessions', every: 60 * 60 * 1000 },
     { name: 'cleanup-expired-tokens', every: 60 * 60 * 1000 },
+    { name: 'daily-owner-report', every: 24 * 60 * 60 * 1000 },
+    { name: 'stability-monitor', every: 60_000 },
   ]
 
   for (const job of repeats) {

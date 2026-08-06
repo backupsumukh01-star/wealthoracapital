@@ -138,6 +138,53 @@ export function AdminSystemHealthWorkspace() {
         </AdminPanel>
       </div>
 
+      {h.widgets?.stability ? (
+        <AdminPanel>
+          <AdminPanelHeader
+            title="Reliability"
+            description="Uptime, latency, deploy identity, and recent crash buffer."
+          />
+          <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-4 sm:p-5">
+            {[
+              ['API uptime', `${h.widgets.stability.apiUptimeSeconds}s`],
+              ['DB uptime', `${h.widgets.stability.databaseUptimeSeconds}s`],
+              [
+                'Avg response',
+                h.widgets.stability.averageResponseMs != null
+                  ? `${h.widgets.stability.averageResponseMs} ms`
+                  : '—',
+              ],
+              ['Restarts', String(h.widgets.stability.restartCount)],
+              ['Errors', String(h.widgets.stability.errorCount)],
+              [
+                'Disk',
+                h.widgets.stability.diskUsedPct != null
+                  ? `${h.widgets.stability.diskUsedPct}%`
+                  : 'n/a',
+              ],
+              ['Git', h.widgets.stability.gitCommit.slice(0, 10)],
+              ['Instance', h.widgets.stability.renderInstance],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                <p className="text-caption text-fg-subtle">{label}</p>
+                <p className="mt-1 truncate text-body-sm font-medium text-fg">{value}</p>
+              </div>
+            ))}
+          </div>
+          {(h.widgets.stability.recentCrashes?.length ?? 0) > 0 ? (
+            <LogTable
+              empty=""
+              rows={h.widgets.stability.recentCrashes.map((c) => ({
+                id: c.id,
+                at: c.at,
+                primary: c.message,
+                secondary: c.kind,
+              }))}
+            />
+          ) : null}
+        </AdminPanel>
+      ) : null}
+
       {h.metrics.length === 0 && !isError ? (
         <AdminPanel>
           <div className="p-4 sm:p-5">

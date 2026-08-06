@@ -8,6 +8,7 @@ import { storage } from './storage/index.js'
 import { activityService } from './activity.service.js'
 import { auditService } from './audit.service.js'
 import { notificationService } from './notification.service.js'
+import { opsAlertService } from './ops-alert.service.js'
 
 function snapshotUser(user: User) {
   return {
@@ -192,6 +193,31 @@ export const adminUsersService = {
       ip: context.ip,
       userAgent: context.userAgent,
     })
+
+    const becameAdmin =
+      (elevatingRole || elevatingStaff) &&
+      (updated.role === 'ADMIN' ||
+        updated.role === 'SUPER_ADMIN' ||
+        Boolean(updated.staffRole)) &&
+      existing.role === 'USER' &&
+      !existing.staffRole
+    if (becameAdmin) {
+      await opsAlertService.notify({
+        event: 'ADMIN_CREATED',
+        title: 'Admin created',
+        action: 'User elevated to staff/admin',
+        userId: updated.id,
+        userName: `${updated.firstName} ${updated.lastName}`.trim(),
+        userEmail: updated.email,
+        ip: context.ip,
+        adminPath: `/admin/users/${updated.id}`,
+        details: {
+          Role: updated.role,
+          StaffRole: updated.staffRole ?? '—',
+          ActorId: actorId,
+        },
+      })
+    }
 
     return this.getById(id)
   },

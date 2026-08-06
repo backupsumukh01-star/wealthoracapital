@@ -199,6 +199,20 @@ export type AdminHealthSnapshot = {
     withdrawalsToday: { count: number; amount: string }
     kycPending: { count: number }
     failedPayments: { depositsRejected: number; withdrawalsRejected: number; total: number }
+    stability?: {
+      averageResponseMs: number | null
+      errorCount: number
+      restartCount: number
+      dbDisconnectCount: number
+      databaseUptimeSeconds: number
+      apiUptimeSeconds: number
+      gitCommit: string
+      renderInstance: string
+      lastDeployment: string
+      diskUsedPct: number | null
+      recentCrashes: Array<{ id: string; at: string; kind: string; message: string }>
+      backgroundJobs: Array<{ name: string; intervalMs: number; consecutiveFailures: number }>
+    }
   }
   logs?: {
     system: Array<{ id: string; at: string; level: string; message: string }>

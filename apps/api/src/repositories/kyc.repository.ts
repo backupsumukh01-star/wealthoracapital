@@ -63,8 +63,10 @@ export const kycRepository = {
     return prisma.kycSubmission.findFirst({
       where: {
         userId,
-        status: { in: ['SUBMITTED', 'UNDER_REVIEW'] },
+        // Edit only when PENDING / NEED_MORE_INFO / REJECTED
+        status: { in: ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED'] },
       },
+      orderBy: { createdAt: 'desc' },
     })
   },
 

@@ -3,13 +3,17 @@ import { env } from './config/env.js'
 import { connectDatabase, disconnectDatabase } from './database/prisma.js'
 import { DEFAULT_EMAIL_TEMPLATES } from './emails/default-templates.js'
 import { registerDefaultJobs } from './jobs/index.js'
+import { scheduler } from './jobs/scheduler.js'
 import { captureException, initSentry } from './observability/sentry.js'
+import { processStability } from './observability/process-stability.js'
+import { recordSystemLog } from './observability/log-buffer.js'
 import { emailTemplateService } from './services/email/email-template.service.js'
 import { disconnectRedis } from './services/redis/client.js'
 import { ensureUploadRoot } from './services/storage/ensure-upload-root.js'
 import { logger } from './utils/logger.js'
 
 async function bootstrap(): Promise<void> {
+  processStability.boot()
   await initSentry()
   registerDefaultJobs()
   await connectDatabase()
@@ -33,10 +37,21 @@ async function bootstrap(): Promise<void> {
         cacheDriver: env.CACHE_DRIVER,
         storageDriver: env.STORAGE_DRIVER,
         uploadRoot: env.STORAGE_DRIVER === 'local' ? env.UPLOAD_ROOT : undefined,
+        requestTimeoutMs: env.REQUEST_TIMEOUT_MS,
       },
       'Growzy API listening',
     )
+    recordSystemLog({
+      level: 'info',
+      message: 'API process started',
+      meta: processStability.snapshot(),
+    })
   })
+
+  // Avoid hanging sockets after idle clients (Render / LB friendly)
+  server.keepAliveTimeout = 65_000
+  server.headersTimeout = 70_000
+  server.requestTimeout = env.REQUEST_TIMEOUT_MS > 0 ? env.REQUEST_TIMEOUT_MS + 5_000 : 0
 
   let shuttingDown = false
   const shutdown = async (signal: string) => {
@@ -44,7 +59,15 @@ async function bootstrap(): Promise<void> {
       return
     }
     shuttingDown = true
-    logger.info({ signal }, 'Shutting down API')
+    logger.info({ signal }, 'Graceful shutdown started')
+    recordSystemLog({ level: 'info', message: `Graceful shutdown: ${signal}` })
+
+    // Stop accepting new work from in-process crons
+    try {
+      scheduler.unregisterAll()
+    } catch {
+      // ignore
+    }
 
     server.close(async (error) => {
       if (error) {
@@ -71,14 +94,30 @@ async function bootstrap(): Promise<void> {
   process.on('SIGTERM', () => {
     void shutdown('SIGTERM')
   })
+
   process.on('unhandledRejection', (reason) => {
     logger.error({ reason }, 'Unhandled promise rejection')
     captureException(reason)
+    void import('./services/stability-monitor.service.js').then(({ stabilityMonitorService }) =>
+      stabilityMonitorService.notifyUnhandled('unhandledRejection', reason),
+    )
+    // Do NOT exit — isolate the failure; Express and jobs must keep serving.
   })
+
   process.on('uncaughtException', (error) => {
     logger.fatal({ error }, 'Uncaught exception')
     captureException(error)
-    void shutdown('uncaughtException')
+    void import('./services/stability-monitor.service.js').then(({ stabilityMonitorService }) =>
+      stabilityMonitorService.notifyUnhandled('uncaughtException', error),
+    )
+    if (env.EXIT_ON_UNCAUGHT) {
+      // Controlled exit so Render restarts a clean process (self-heal at platform layer).
+      void shutdown('uncaughtException')
+    } else {
+      // Stay alive for request-serving; admin is alerted. Prefer EXIT_ON_UNCAUGHT=true in prod
+      // once monitoring confirms restarts are healthy.
+      logger.fatal('Continuing after uncaughtException (EXIT_ON_UNCAUGHT=false)')
+    }
   })
 }
 

@@ -117,6 +117,19 @@ export const kycService = {
         absolutePath?: string | null
         status?: string
       }>
+      history?: Array<{
+        id: string
+        action: string
+        message?: string | null
+        actorId?: string | null
+        actorName?: string | null
+        actorEmail?: string | null
+        oldStatus?: string | null
+        newStatus?: string | null
+        reason?: string | null
+        ip?: string | null
+        createdAt: string
+      }>
     }>(`${API_ROUTES.admin.kyc}/${id}`),
 
   /** Authenticated binary fetch for admin document previews (session cookies). */

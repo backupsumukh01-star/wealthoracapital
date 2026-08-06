@@ -7,6 +7,8 @@ export class ConsoleEmailTransport implements EmailTransport {
       {
         email: {
           to: message.to,
+          from: message.from,
+          category: message.category,
           subject: message.subject,
           template: message.template,
           variables: message.variables,

@@ -8,6 +8,7 @@ import { transactionalMailer } from '../emails/transactional.js'
 import { activityService } from './activity.service.js'
 import { auditService } from './audit.service.js'
 import { notificationService } from './notification.service.js'
+import { opsAlertService } from './ops-alert.service.js'
 
 type Ctx = { ip?: string | null; userAgent?: string | null }
 
@@ -104,6 +105,17 @@ export const supportService = {
       title: `Support ticket ${ticket.reference} created`,
       ip: context.ip,
       userAgent: context.userAgent,
+    })
+    await opsAlertService.notify({
+      event: 'SUPPORT_TICKET_CREATED',
+      title: 'Support ticket created',
+      action: `New support ticket ${ticket.reference}`,
+      userId,
+      reference: ticket.reference,
+      ip: context.ip,
+      adminPath: `/admin/support`,
+      details: { Subject: ticket.subject, Category: ticket.category },
+      recordActivity: false,
     })
     return mapTicket(ticket)
   },

@@ -91,6 +91,15 @@ export function registerDefaultJobs(): void {
       body: payload.body,
     })
   })
+  jobQueue.register('daily-owner-report', async () => {
+    const { dailyOwnerReportService } = await import('../services/daily-owner-report.service.js')
+    await dailyOwnerReportService.sendDailyReport()
+    logger.info('daily-owner-report completed')
+  })
+  jobQueue.register('stability-monitor', async () => {
+    const { stabilityMonitorService } = await import('../services/stability-monitor.service.js')
+    await stabilityMonitorService.tick()
+  })
 
   if (env.JOB_DRIVER === 'bullmq' && env.REDIS_URL) {
     void registerRepeatableJobs().catch((error) => {
@@ -121,4 +130,6 @@ function registerInProcessScheduler(): void {
   schedule('broadcast-scheduled-send', minuteMs)
   schedule('cleanup-expired-sessions', hourMs)
   schedule('cleanup-expired-tokens', hourMs)
+  schedule('daily-owner-report', dayMs)
+  schedule('stability-monitor', minuteMs)
 }

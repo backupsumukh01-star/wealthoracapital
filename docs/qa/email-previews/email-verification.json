@@ -1,0 +1,4 @@
+{
+  "subject": "Verify your Growzy email",
+  "text": "Hi Aisha,\n\nVerify your email: http://localhost:3000/verify-email?token=verify-token-demo\n\nExpires in 24 hours.\n\nGrowzy will never ask for your password or OTP."
+}

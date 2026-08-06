@@ -1,7 +1,6 @@
 /**
  * Seed data for DB-managed email templates (admin CMS).
  * Event sends use static responsive templates in `./templates/index.ts`.
- * These seeds keep the admin library aligned for preview/editing.
  */
 
 import { env } from '../config/env.js'
@@ -17,8 +16,14 @@ export type DefaultEmailTemplate = {
   variables: string[]
 }
 
-function seedLayout(title: string, body: string, ctaLabel?: string): string {
+function seedLayout(
+  category: 'Security' | 'Finance' | 'Support' | 'KYC' | 'Investment' | 'System',
+  title: string,
+  body: string,
+  ctaLabel?: string,
+): string {
   return emailLayout({
+    category,
     title,
     bodyHtml: body,
     cta: ctaLabel
@@ -34,6 +39,7 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
     category: 'FINANCE',
     subject: 'Deposit {{reference}} received',
     bodyHtml: seedLayout(
+      'Finance',
       'Deposit submitted',
       `<p>Hi {{firstName}},</p><p>We received your deposit and it is pending review.</p>${detailRows([
         ['Reference', '{{reference}}'],
@@ -50,6 +56,7 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
     category: 'FINANCE',
     subject: 'Deposit {{reference}} approved',
     bodyHtml: seedLayout(
+      'Finance',
       'Deposit approved',
       `<p>Hi {{firstName}},</p><p>Your deposit was approved and credited.</p>${detailRows([
         ['Reference', '{{reference}}'],
@@ -66,6 +73,7 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
     category: 'FINANCE',
     subject: 'Deposit {{reference}} rejected',
     bodyHtml: seedLayout(
+      'Finance',
       'Deposit rejected',
       `<p>Hi {{firstName}},</p><p>Your deposit could not be approved.</p>${detailRows([
         ['Reference', '{{reference}}'],
@@ -82,6 +90,7 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
     category: 'FINANCE',
     subject: 'Withdrawal {{reference}} under review',
     bodyHtml: seedLayout(
+      'Finance',
       'Withdrawal submitted',
       `<p>Hi {{firstName}},</p><p>Your withdrawal is under review.</p>${detailRows([
         ['Reference', '{{reference}}'],
@@ -98,6 +107,7 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
     category: 'FINANCE',
     subject: 'Withdrawal {{reference}} approved',
     bodyHtml: seedLayout(
+      'Finance',
       'Withdrawal approved',
       `<p>Hi {{firstName}},</p><p>Your withdrawal was approved and is being processed.</p>${detailRows([
         ['Reference', '{{reference}}'],
@@ -114,6 +124,7 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
     category: 'FINANCE',
     subject: 'Withdrawal {{reference}} rejected',
     bodyHtml: seedLayout(
+      'Finance',
       'Withdrawal rejected',
       `<p>Hi {{firstName}},</p><p>Your withdrawal was rejected and funds released.</p>${detailRows([
         ['Reference', '{{reference}}'],
@@ -130,6 +141,7 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
     category: 'KYC',
     subject: 'Identity verification received',
     bodyHtml: seedLayout(
+      'KYC',
       'KYC submitted',
       '<p>Hi {{firstName}},</p><p>We received your identity verification documents.</p>',
       'Check status',
@@ -143,6 +155,7 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
     category: 'KYC',
     subject: 'Your identity verification is approved',
     bodyHtml: seedLayout(
+      'KYC',
       'KYC approved',
       '<p>Hi {{firstName}},</p><p>Your identity verification has been approved.</p>',
       'Go to wallet',
@@ -156,6 +169,7 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
     category: 'KYC',
     subject: 'Your identity verification needs attention',
     bodyHtml: seedLayout(
+      'KYC',
       'KYC needs attention',
       '<p>Hi {{firstName}},</p><p>{{reason}}</p>',
       'Update KYC',
@@ -169,6 +183,7 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
     category: 'SUPPORT',
     subject: 'New reply on ticket {{reference}}',
     bodyHtml: seedLayout(
+      'Support',
       'Support replied',
       '<p>Hi {{firstName}},</p><p>{{message}}</p>',
       'Open support',
@@ -181,7 +196,7 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
     name: 'Admin alert',
     category: 'OPS',
     subject: '[Alert] {{alertTitle}}',
-    bodyHtml: seedLayout('{{alertTitle}}', '<p>{{alertBody}}</p><p>Ref: {{reference}}</p>', 'Open admin'),
+    bodyHtml: seedLayout('System', '{{alertTitle}}', '<p>{{alertBody}}</p><p>Ref: {{reference}}</p>', 'Open admin'),
     bodyText: '{{alertTitle}}\n\n{{alertBody}}\n\nRef: {{reference}}',
     variables: ['alertTitle', 'alertBody', 'reference', 'companyName'],
   },
@@ -190,7 +205,7 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
     name: 'Broadcast',
     category: 'MARKETING',
     subject: '{{title}}',
-    bodyHtml: seedLayout('{{title}}', '<p>{{body}}</p>', 'Open Growzy'),
+    bodyHtml: seedLayout('System', '{{title}}', '<p>{{body}}</p>', 'Open Growzy'),
     bodyText: '{{title}}\n\n{{body}}',
     variables: ['title', 'body', 'companyName'],
   },

@@ -10,6 +10,8 @@ export type JobName =
   | 'broadcast-scheduled-send'
   | 'generate-report'
   | 'send-notification'
+  | 'daily-owner-report'
+  | 'stability-monitor'
 
 export interface JobPayloadMap {
   'send-email': { to: string; template: string }
@@ -23,6 +25,8 @@ export interface JobPayloadMap {
   'broadcast-scheduled-send': Record<string, never>
   'generate-report': { reportJobId: string }
   'send-notification': { userId: string; title: string; body: string }
+  'daily-owner-report': Record<string, never>
+  'stability-monitor': Record<string, never>
 }
 
 export interface Job<T extends JobName = JobName> {

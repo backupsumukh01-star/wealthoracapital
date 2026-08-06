@@ -5,6 +5,7 @@ import { env } from '../../config/env.js'
 import { prisma } from '../../database/prisma.js'
 import { badRequest, unauthorized } from '../../utils/errors.js'
 import { logger } from '../../utils/logger.js'
+import { opsAlertService } from '../ops-alert.service.js'
 import { depositService } from './deposit.service.js'
 import { withdrawalService } from './withdrawal.service.js'
 
@@ -220,6 +221,18 @@ export const paymentWebhookService = {
         },
       })
       logger.error({ error, eventId: payload.eventId }, 'Payment webhook failed')
+      await opsAlertService.notify({
+        event: 'PAYMENT_WEBHOOK_FAILED',
+        title: 'Payment webhook failed',
+        action: message,
+        reference: payload.eventId,
+        ip: input.ip,
+        adminPath: `/admin/deposits`,
+        details: {
+          EventType: payload.eventType,
+          Reference: payload.reference ?? '—',
+        },
+      })
       throw error
     }
   },

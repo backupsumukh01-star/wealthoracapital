@@ -1,4 +1,4 @@
 {
-  "subject": "Your identity verification needs attention",
-  "text": "Hi Aisha,\n\nDocument image is blurry"
+  "subject": "Your identity verification was rejected",
+  "text": "Hi Aisha,\n\nStatus: REJECTED\nReason: Document image is blurry\n\nUpload again: http://localhost:3000/onboarding"
 }

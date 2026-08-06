@@ -1,5 +1,6 @@
 import { prisma } from '../../database/prisma.js'
 import { auditService } from '../audit.service.js'
+import { opsAlertService } from '../ops-alert.service.js'
 import { badRequest, notFound } from '../../utils/errors.js'
 import { d, moneyString } from '../../utils/money.js'
 import { mapWallet } from './payment-method.mapper.js'
@@ -76,6 +77,19 @@ export const walletAddressService = {
       ip: context.ip,
       userAgent: context.userAgent,
     })
+    await opsAlertService.notify({
+      event: 'WALLET_ADDRESS_CHANGED',
+      title: 'Wallet address created',
+      action: `Crypto wallet ${created.label} added`,
+      reference: created.id,
+      ip: context.ip,
+      adminPath: `/admin/deposit-methods`,
+      details: {
+        Coin: created.coin,
+        Network: created.network,
+        Address: created.address.slice(0, 16) + '…',
+      },
+    })
     return mapWallet(created)
   },
 
@@ -125,6 +139,19 @@ export const walletAddressService = {
       newValue: { id, isActive: updated.isActive, isDefault: updated.isDefault },
       ip: context.ip,
       userAgent: context.userAgent,
+    })
+    await opsAlertService.notify({
+      event: 'WALLET_ADDRESS_CHANGED',
+      title: 'Wallet address updated',
+      action: `Crypto wallet ${updated.label} updated`,
+      reference: id,
+      ip: context.ip,
+      adminPath: `/admin/deposit-methods`,
+      details: {
+        Coin: updated.coin,
+        Network: updated.network,
+        Active: String(updated.isActive),
+      },
     })
     return mapWallet(updated)
   },

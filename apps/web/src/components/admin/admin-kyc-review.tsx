@@ -369,6 +369,24 @@ export function AdminKycReviewWorkspace() {
     enabled: Boolean(userId),
   })
   const [reason, setReason] = useState('')
+  const [reasonPreset, setReasonPreset] = useState('')
+
+  const REJECTION_PRESETS = [
+    'Document blurry',
+    'Photo cropped',
+    'Address proof expired',
+    'Name mismatch',
+    'Other',
+  ] as const
+
+  const applyPreset = (preset: string) => {
+    setReasonPreset(preset)
+    if (preset === 'Other') {
+      setReason((prev) => prev.trim() || '')
+      return
+    }
+    setReason(preset)
+  }
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ['admin', 'kyc'] })
@@ -489,10 +507,32 @@ export function AdminKycReviewWorkspace() {
 
         <AdminPanel className="space-y-4 p-4 sm:p-5">
           <AdminPanelHeader title="Decision" className="border-0 px-0 py-0" />
+          <div className="flex flex-wrap gap-2">
+            {REJECTION_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => applyPreset(preset)}
+                className={cn(
+                  'rounded-lg border px-2.5 py-1 text-caption transition',
+                  reasonPreset === preset
+                    ? 'border-accent/40 bg-accent/10 text-fg'
+                    : 'border-white/[0.08] text-fg-muted hover:border-white/20 hover:text-fg',
+                )}
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
           <Textarea
             value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Reason for reject or resubmission…"
+            onChange={(e) => {
+              setReason(e.target.value)
+              if (reasonPreset && reasonPreset !== 'Other' && e.target.value !== reasonPreset) {
+                setReasonPreset('Other')
+              }
+            }}
+            placeholder="Rejection reason is required to reject…"
             rows={4}
           />
           <div className="flex flex-wrap gap-2">
@@ -505,7 +545,7 @@ export function AdminKycReviewWorkspace() {
               disabled={busy}
               onClick={() => {
                 if (!reason.trim()) {
-                  toast.error('Add a rejection reason')
+                  toast.error('Rejection reason is required')
                   return
                 }
                 reject.mutate(reason.trim())
@@ -529,6 +569,55 @@ export function AdminKycReviewWorkspace() {
           </div>
         </AdminPanel>
       </div>
+
+      <AdminPanel className="space-y-3 p-4 sm:p-5">
+        <AdminPanelHeader
+          title="Audit trail"
+          description="Every KYC event with admin, status change, reason, and IP"
+          className="border-0 px-0 py-0"
+        />
+        {(submission?.history ?? []).length === 0 ? (
+          <p className="text-body-sm text-fg-muted">No history recorded yet.</p>
+        ) : (
+          <ul className="divide-y divide-white/[0.05]">
+            {(
+              submission?.history as Array<{
+                id: string
+                action: string
+                actorName?: string | null
+                actorEmail?: string | null
+                oldStatus?: string | null
+                newStatus?: string | null
+                reason?: string | null
+                ip?: string | null
+                createdAt: string
+                message?: string | null
+              }>
+            ).map((h) => (
+              <li key={h.id} className="grid gap-1 py-3 text-caption sm:grid-cols-[140px_1fr]">
+                <time className="text-fg-subtle">{new Date(h.createdAt).toLocaleString()}</time>
+                <div className="min-w-0 space-y-0.5">
+                  <p className="font-medium text-fg">{h.action.replaceAll('_', ' ')}</p>
+                  {(h.oldStatus || h.newStatus) && (
+                    <p className="text-fg-muted">
+                      {h.oldStatus ?? '—'} → {h.newStatus ?? '—'}
+                    </p>
+                  )}
+                  {(h.actorName || h.actorEmail) && (
+                    <p className="text-fg-subtle">
+                      {[h.actorName, h.actorEmail].filter(Boolean).join(' · ')}
+                    </p>
+                  )}
+                  {(h.reason || h.message) && (
+                    <p className="text-fg-muted">Reason: {h.reason || h.message}</p>
+                  )}
+                  {h.ip && <p className="font-mono text-[11px] text-fg-subtle">IP {h.ip}</p>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </AdminPanel>
 
       <div>
         <h2 className="mb-3 text-heading-sm text-fg">Submitted documents</h2>

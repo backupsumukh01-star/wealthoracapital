@@ -55,6 +55,7 @@ export function useAdminUsers(query?: { q?: string; cursor?: string }, options?:
     queryKey: adminQueryKeys.users(query),
     queryFn: () => adminApi.users(query),
     enabled: options?.enabled,
+    refetchInterval: options?.refetchInterval,
   })
 }
 
@@ -71,6 +72,7 @@ export function useAdminDeposits(query?: { status?: string }, options?: QueryHoo
     queryKey: adminQueryKeys.deposits(query),
     queryFn: () => adminApi.deposits(query),
     enabled: options?.enabled,
+    refetchInterval: options?.refetchInterval,
   })
 }
 
@@ -79,6 +81,7 @@ export function useAdminWithdrawals(query?: { status?: string }, options?: Query
     queryKey: adminQueryKeys.withdrawals(query),
     queryFn: () => adminApi.withdrawals(query),
     enabled: options?.enabled,
+    refetchInterval: options?.refetchInterval,
   })
 }
 
@@ -95,6 +98,7 @@ export function useAdminReturns(options?: QueryHookOptions) {
     queryKey: adminQueryKeys.returns(),
     queryFn: () => adminApi.returns(),
     enabled: options?.enabled,
+    refetchInterval: options?.refetchInterval,
   })
 }
 
@@ -111,6 +115,7 @@ export function useAdminActivity(query?: { kind?: string; cursor?: string }, opt
     queryKey: adminQueryKeys.activity(query),
     queryFn: () => adminApi.activity(query),
     enabled: options?.enabled,
+    refetchInterval: options?.refetchInterval,
   })
 }
 

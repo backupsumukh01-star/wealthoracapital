@@ -9,7 +9,9 @@ import { APP_VERSION } from '../config/constants.js'
 import { env } from '../config/env.js'
 import { prisma } from '../database/prisma.js'
 import { getQueueCounts } from '../jobs/bullmq.js'
+import { scheduler } from '../jobs/scheduler.js'
 import { getErrorLogs, getSystemLogs, recordSystemLog } from '../observability/log-buffer.js'
+import { processStability } from '../observability/process-stability.js'
 import { getRedis, pingRedis } from './redis/client.js'
 
 export type HealthTone = 'healthy' | 'warning' | 'critical'
@@ -57,6 +59,20 @@ export type AdminHealthSnapshot = {
     withdrawalsToday: { count: number; amount: string }
     kycPending: { count: number }
     failedPayments: { depositsRejected: number; withdrawalsRejected: number; total: number }
+    stability: {
+      averageResponseMs: number | null
+      errorCount: number
+      restartCount: number
+      dbDisconnectCount: number
+      databaseUptimeSeconds: number
+      apiUptimeSeconds: number
+      gitCommit: string
+      renderInstance: string
+      lastDeployment: string
+      diskUsedPct: number | null
+      recentCrashes: Array<{ id: string; at: string; kind: string; message: string }>
+      backgroundJobs: Array<{ name: string; intervalMs: number; consecutiveFailures: number }>
+    }
   }
   logs: {
     system: Array<{ id: string; at: string; level: string; message: string }>
@@ -85,9 +101,25 @@ async function probeDatabase(): Promise<{ status: 'up' | 'down'; latencyMs: numb
   const t0 = Date.now()
   try {
     await prisma.$queryRaw`SELECT 1`
+    processStability.markDbUp()
     return { status: 'up', latencyMs: Date.now() - t0 }
   } catch {
+    processStability.markDbDown()
     return { status: 'down', latencyMs: null }
+  }
+}
+
+async function probeDisk(): Promise<number | null> {
+  try {
+    const { statfs } = await import('node:fs/promises')
+    const root = path.resolve(env.UPLOAD_ROOT).startsWith('/data')
+      ? '/data'
+      : path.resolve(env.UPLOAD_ROOT)
+    const s = await statfs(root)
+    if (!s.blocks) return null
+    return Math.round((1 - Number(s.bavail) / Number(s.blocks)) * 1000) / 10
+  } catch {
+    return null
   }
 }
 
@@ -184,11 +216,12 @@ export const adminHealthService = {
     dayEnd.setUTCDate(dayEnd.getUTCDate() + 1)
     const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000)
 
-    const [database, redis, storage, queue] = await Promise.all([
+    const [database, redis, storage, queue, diskUsedPct] = await Promise.all([
       probeDatabase(),
       probeRedis(),
       probeStorage(),
       queueSnapshot(),
+      probeDisk(),
     ])
 
     const [
@@ -338,6 +371,28 @@ export const adminHealthService = {
         withdrawalsRejected,
         total: failedPaymentsTotal,
       },
+      stability: (() => {
+        const s = processStability.snapshot()
+        return {
+          averageResponseMs: s.averageResponseMs,
+          errorCount: s.errorCount,
+          restartCount: s.restartCount,
+          dbDisconnectCount: s.dbDisconnectCount,
+          databaseUptimeSeconds: s.databaseUptimeSeconds,
+          apiUptimeSeconds: s.uptimeSeconds,
+          gitCommit: s.gitCommit,
+          renderInstance: s.renderInstance,
+          lastDeployment: s.lastDeployment,
+          diskUsedPct,
+          recentCrashes: s.recentCrashes.map((c) => ({
+            id: c.id,
+            at: c.at,
+            kind: c.kind,
+            message: c.message,
+          })),
+          backgroundJobs: scheduler.list(),
+        }
+      })(),
     }
 
     const systemLogCount = getSystemLogs().length
@@ -499,6 +554,91 @@ export const adminHealthService = {
         detail: 'Buffered 5xx / unhandled errors',
         tone: toneUp(errorLogCount === 0, errorLogCount > 0),
         group: 'security',
+      },
+      {
+        id: 'api-uptime',
+        label: 'API uptime',
+        value: `${Math.floor(widgets.stability.apiUptimeSeconds / 3600)}h`,
+        detail: `${widgets.stability.apiUptimeSeconds}s · restarts ${widgets.stability.restartCount}`,
+        tone: 'healthy',
+        group: 'infra',
+      },
+      {
+        id: 'db-uptime',
+        label: 'Database uptime',
+        value:
+          database.status === 'up'
+            ? `${Math.floor(widgets.stability.databaseUptimeSeconds / 3600)}h`
+            : 'DOWN',
+        detail: `disconnects ${widgets.stability.dbDisconnectCount}`,
+        tone: toneUp(database.status === 'up'),
+        group: 'infra',
+      },
+      {
+        id: 'avg-latency',
+        label: 'Avg response time',
+        value:
+          widgets.stability.averageResponseMs != null
+            ? `${widgets.stability.averageResponseMs} ms`
+            : '—',
+        detail: 'Rolling in-process sample',
+        tone: toneUp(
+          true,
+          (widgets.stability.averageResponseMs ?? 0) > 500,
+        ),
+        group: 'infra',
+      },
+      {
+        id: 'disk',
+        label: 'Disk usage',
+        value:
+          widgets.stability.diskUsedPct != null
+            ? `${widgets.stability.diskUsedPct}%`
+            : 'n/a',
+        detail: env.UPLOAD_ROOT,
+        tone: toneUp(
+          (widgets.stability.diskUsedPct ?? 0) < 90,
+          (widgets.stability.diskUsedPct ?? 0) >= 80,
+        ),
+        group: 'infra',
+      },
+      {
+        id: 'crashes',
+        label: 'Recent crashes',
+        value: String(widgets.stability.recentCrashes.length),
+        detail: `Errors recorded ${widgets.stability.errorCount}`,
+        tone: toneUp(widgets.stability.recentCrashes.length === 0, widgets.stability.recentCrashes.length > 0),
+        group: 'security',
+      },
+      {
+        id: 'git-commit',
+        label: 'Git commit',
+        value: widgets.stability.gitCommit.slice(0, 8),
+        detail: `instance ${widgets.stability.renderInstance}`,
+        tone: 'healthy',
+        group: 'infra',
+      },
+      {
+        id: 'last-deploy',
+        label: 'Last deployment',
+        value: widgets.stability.lastDeployment.slice(0, 19).replace('T', ' '),
+        detail: 'Render / process boot marker',
+        tone: 'healthy',
+        group: 'infra',
+      },
+      {
+        id: 'bg-jobs',
+        label: 'Background jobs',
+        value: String(widgets.stability.backgroundJobs.length),
+        detail: widgets.stability.backgroundJobs
+          .map((j) => `${j.name}${j.consecutiveFailures ? `(!${j.consecutiveFailures})` : ''}`)
+          .slice(0, 4)
+          .join(', ') || 'none scheduled',
+        tone: toneUp(
+          widgets.stability.backgroundJobs.every((j) => j.consecutiveFailures === 0),
+          widgets.stability.backgroundJobs.some((j) => j.consecutiveFailures > 0),
+        ),
+        group: 'services',
       },
     ]
 

@@ -2,11 +2,12 @@ import { env } from '../config/env.js'
 import { prisma } from '../database/prisma.js'
 import { logger } from '../utils/logger.js'
 import { emailService } from './email.service.js'
+import { opsAlertService } from '../services/ops-alert.service.js'
 
 async function loadUser(userId: string) {
   return prisma.user.findFirst({
     where: { id: userId, deletedAt: null },
-    select: { id: true, email: true, firstName: true },
+    select: { id: true, email: true, firstName: true, lastName: true },
   })
 }
 
@@ -18,23 +19,16 @@ async function safe(label: string, run: () => Promise<void>): Promise<void> {
   }
 }
 
-function adminAlertRecipients(): string[] {
-  const raw = env.ADMIN_ALERT_EMAILS?.trim()
-  if (raw) {
-    return raw
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean)
-  }
-  if (env.SMTP_FROM_ADDRESS && !env.SMTP_FROM_ADDRESS.includes('localhost')) {
-    return [env.SMTP_FROM_ADDRESS]
-  }
-  return []
+function fullName(user: { firstName: string; lastName: string }) {
+  return `${user.firstName} ${user.lastName}`.trim()
 }
 
 /** Fire-and-forget transactional mail — never blocks finance/KYC flows. */
 export const transactionalMailer = {
-  async depositSubmitted(userId: string, input: { reference: string; amount: string }) {
+  async depositSubmitted(
+    userId: string,
+    input: { reference: string; amount: string; ip?: string | null },
+  ) {
     const user = await loadUser(userId)
     if (!user) return
     await safe('deposit-submitted', () =>
@@ -45,14 +39,26 @@ export const transactionalMailer = {
         amount: input.amount,
       }),
     )
-    await this.adminAlert({
-      alertTitle: 'Deposit submitted',
-      alertBody: `${user.email} submitted deposit ${input.reference} for ${input.amount}.`,
+    await opsAlertService.notify({
+      event: 'DEPOSIT_SUBMITTED',
+      title: 'Deposit submitted',
+      action: 'Investor submitted a deposit for review',
+      userId: user.id,
+      userName: fullName(user),
+      userEmail: user.email,
+      amount: input.amount,
       reference: input.reference,
+      ip: input.ip,
+      adminPath: `/admin/deposits`,
+      recordActivity: true,
+      activityKind: 'DEPOSIT_SUBMITTED',
     })
   },
 
-  async depositApproved(userId: string, input: { reference: string; amount: string }) {
+  async depositApproved(
+    userId: string,
+    input: { reference: string; amount: string; ip?: string | null },
+  ) {
     const user = await loadUser(userId)
     if (!user) return
     await safe('deposit-approved', () =>
@@ -63,11 +69,23 @@ export const transactionalMailer = {
         amount: input.amount,
       }),
     )
+    await opsAlertService.notify({
+      event: 'DEPOSIT_APPROVED',
+      title: 'Deposit approved',
+      action: 'Deposit credited to investor wallet',
+      userId: user.id,
+      userName: fullName(user),
+      userEmail: user.email,
+      amount: input.amount,
+      reference: input.reference,
+      ip: input.ip,
+      adminPath: `/admin/deposits`,
+    })
   },
 
   async depositRejected(
     userId: string,
-    input: { reference: string; amount: string; reason: string },
+    input: { reference: string; amount: string; reason: string; ip?: string | null },
   ) {
     const user = await loadUser(userId)
     if (!user) return
@@ -80,9 +98,25 @@ export const transactionalMailer = {
         reason: input.reason,
       }),
     )
+    await opsAlertService.notify({
+      event: 'DEPOSIT_REJECTED',
+      title: 'Deposit rejected',
+      action: 'Deposit was rejected by admin',
+      userId: user.id,
+      userName: fullName(user),
+      userEmail: user.email,
+      amount: input.amount,
+      reference: input.reference,
+      reason: input.reason,
+      ip: input.ip,
+      adminPath: `/admin/deposits`,
+    })
   },
 
-  async withdrawalSubmitted(userId: string, input: { reference: string; amount: string }) {
+  async withdrawalSubmitted(
+    userId: string,
+    input: { reference: string; amount: string; ip?: string | null },
+  ) {
     const user = await loadUser(userId)
     if (!user) return
     await safe('withdrawal-submitted', () =>
@@ -93,14 +127,26 @@ export const transactionalMailer = {
         amount: input.amount,
       }),
     )
-    await this.adminAlert({
-      alertTitle: 'Withdrawal submitted',
-      alertBody: `${user.email} requested withdrawal ${input.reference} for ${input.amount}.`,
+    await opsAlertService.notify({
+      event: 'WITHDRAWAL_SUBMITTED',
+      title: 'Withdrawal submitted',
+      action: 'Investor requested a withdrawal',
+      userId: user.id,
+      userName: fullName(user),
+      userEmail: user.email,
+      amount: input.amount,
       reference: input.reference,
+      ip: input.ip,
+      adminPath: `/admin/withdrawals`,
+      recordActivity: true,
+      activityKind: 'WITHDRAWAL_SUBMITTED',
     })
   },
 
-  async withdrawalApproved(userId: string, input: { reference: string; amount: string }) {
+  async withdrawalApproved(
+    userId: string,
+    input: { reference: string; amount: string; ip?: string | null },
+  ) {
     const user = await loadUser(userId)
     if (!user) return
     await safe('withdrawal-approved', () =>
@@ -111,11 +157,23 @@ export const transactionalMailer = {
         amount: input.amount,
       }),
     )
+    await opsAlertService.notify({
+      event: 'WITHDRAWAL_APPROVED',
+      title: 'Withdrawal approved',
+      action: 'Withdrawal approved for payout',
+      userId: user.id,
+      userName: fullName(user),
+      userEmail: user.email,
+      amount: input.amount,
+      reference: input.reference,
+      ip: input.ip,
+      adminPath: `/admin/withdrawals`,
+    })
   },
 
   async withdrawalRejected(
     userId: string,
-    input: { reference: string; amount: string; reason: string },
+    input: { reference: string; amount: string; reason: string; ip?: string | null },
   ) {
     const user = await loadUser(userId)
     if (!user) return
@@ -128,30 +186,68 @@ export const transactionalMailer = {
         reason: input.reason,
       }),
     )
+    await opsAlertService.notify({
+      event: 'WITHDRAWAL_REJECTED',
+      title: 'Withdrawal rejected',
+      action: 'Withdrawal was rejected by admin',
+      userId: user.id,
+      userName: fullName(user),
+      userEmail: user.email,
+      amount: input.amount,
+      reference: input.reference,
+      reason: input.reason,
+      ip: input.ip,
+      adminPath: `/admin/withdrawals`,
+    })
   },
 
-  async kycSubmitted(userId: string) {
+  async kycSubmitted(userId: string, input?: { ip?: string | null; submissionId?: string }) {
     const user = await loadUser(userId)
     if (!user) return
     await safe('kyc-submitted', () =>
       emailService.sendKycSubmitted({ to: user.email, firstName: user.firstName }),
     )
-    await this.adminAlert({
-      alertTitle: 'KYC submitted',
-      alertBody: `${user.email} submitted KYC for review.`,
-      reference: user.id,
+    await opsAlertService.notify({
+      event: 'KYC_SUBMITTED',
+      title: 'KYC submitted',
+      action: 'Investor submitted KYC for review',
+      userId: user.id,
+      userName: fullName(user),
+      userEmail: user.email,
+      reference: input?.submissionId ?? user.id,
+      ip: input?.ip,
+      adminPath: `/admin/kyc/${user.id}`,
+      recordActivity: true,
+      activityKind: 'KYC_SUBMITTED',
     })
   },
 
-  async kycApproved(userId: string) {
+  async kycApproved(userId: string, input?: { ip?: string | null; submissionId?: string }) {
     const user = await loadUser(userId)
     if (!user) return
     await safe('kyc-approved', () =>
       emailService.sendKycApproved({ to: user.email, firstName: user.firstName }),
     )
+    await opsAlertService.notify({
+      event: 'KYC_APPROVED',
+      title: 'KYC approved',
+      action: 'KYC approved by admin',
+      userId: user.id,
+      userName: fullName(user),
+      userEmail: user.email,
+      reference: input?.submissionId ?? user.id,
+      ip: input?.ip,
+      adminPath: `/admin/kyc/${user.id}`,
+      recordActivity: true,
+      activityKind: 'KYC_APPROVED',
+    })
   },
 
-  async kycRejected(userId: string, reason: string) {
+  async kycRejected(
+    userId: string,
+    reason: string,
+    input?: { ip?: string | null; submissionId?: string },
+  ) {
     const user = await loadUser(userId)
     if (!user) return
     await safe('kyc-rejected', () =>
@@ -161,6 +257,20 @@ export const transactionalMailer = {
         reason,
       }),
     )
+    await opsAlertService.notify({
+      event: 'KYC_REJECTED',
+      title: 'KYC rejected',
+      action: 'KYC rejected by admin',
+      userId: user.id,
+      userName: fullName(user),
+      userEmail: user.email,
+      reason,
+      reference: input?.submissionId ?? user.id,
+      ip: input?.ip,
+      adminPath: `/admin/kyc/${user.id}`,
+      recordActivity: true,
+      activityKind: 'KYC_REJECTED',
+    })
   },
 
   async kycInfoRequested(userId: string, reason: string) {
@@ -190,6 +300,17 @@ export const transactionalMailer = {
         message: input.message,
       }),
     )
+    await opsAlertService.notify({
+      event: 'SUPPORT_REPLY',
+      title: 'Support reply sent',
+      action: 'Admin replied to support ticket',
+      userId: user.id,
+      userName: fullName(user),
+      userEmail: user.email,
+      reference: input.reference,
+      adminPath: `/admin/support`,
+      details: { Subject: input.subject },
+    })
   },
 
   async broadcast(to: string, input: { firstName?: string; title: string; body: string }) {
@@ -203,21 +324,18 @@ export const transactionalMailer = {
     )
   },
 
+  /** @deprecated Prefer opsAlertService.notify — kept for callers that still pass free-form text. */
   async adminAlert(input: { alertTitle: string; alertBody: string; reference?: string }) {
-    const recipients = adminAlertRecipients()
-    if (recipients.length === 0) {
+    const recipients = opsAlertService.recipients()
+    if (recipients.length === 0 && !(env.SMTP_FROM_ADDRESS && !env.SMTP_FROM_ADDRESS.includes('localhost'))) {
       logger.debug({ title: input.alertTitle }, 'No ADMIN_ALERT_EMAILS configured; skipping admin alert')
       return
     }
-    for (const to of recipients) {
-      await safe('admin-alert', () =>
-        emailService.sendAdminAlert({
-          to,
-          alertTitle: input.alertTitle,
-          alertBody: input.alertBody,
-          reference: input.reference,
-        }),
-      )
-    }
+    await opsAlertService.notify({
+      event: 'SYSTEM_ERROR',
+      title: input.alertTitle,
+      action: input.alertBody,
+      reference: input.reference,
+    })
   },
 }

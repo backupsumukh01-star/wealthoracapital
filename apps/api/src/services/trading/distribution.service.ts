@@ -5,6 +5,7 @@ import { activityService } from '../activity.service.js'
 import { auditService } from '../audit.service.js'
 import { ledgerService } from '../finance/ledger.service.js'
 import { notificationService } from '../notification.service.js'
+import { opsAlertService } from '../ops-alert.service.js'
 import { badRequest, conflict, notFound } from '../../utils/errors.js'
 import { d, moneyDisplay, moneyString } from '../../utils/money.js'
 import { mapDailyReturn, mapDailyReturnRun, mapProfitDistribution } from './trade.mappers.js'
@@ -335,6 +336,20 @@ export const distributionService = {
         },
         ip: context.ip,
         userAgent: context.userAgent,
+      })
+      await opsAlertService.notify({
+        event: 'ROI_DISTRIBUTED',
+        title: 'Daily ROI distribution completed',
+        action: `Distributed ${moneyDisplay(distributed)} across ${processed} wallets`,
+        amount: moneyDisplay(distributed),
+        reference: run.id,
+        ip: context.ip,
+        adminPath: `/admin/daily-return`,
+        details: {
+          Date: date.toISOString().slice(0, 10),
+          'Return %': returnPct.toFixed(4),
+          Wallets: String(processed),
+        },
       })
 
       // Snapshots + performance refresh

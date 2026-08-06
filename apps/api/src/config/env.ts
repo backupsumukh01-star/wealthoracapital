@@ -42,6 +42,12 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional().default(''),
   SMTP_FROM_NAME: z.string().default('Growzy'),
   SMTP_FROM_ADDRESS: z.string().min(3).default('noreply@localhost'),
+  /** Auth / security lane (verification, OTP, password reset). */
+  EMAIL_FROM_AUTH: z.string().optional().default('noreply@growzycapital.com'),
+  /** Support / KYC lane. */
+  EMAIL_FROM_SUPPORT: z.string().optional().default('support@growzycapital.com'),
+  /** Finance / investment / admin alerts lane. */
+  EMAIL_FROM_FINANCE: z.string().optional().default('info@growzycapital.com'),
   RESEND_API_KEY: z.string().optional().default(''),
   SENDGRID_API_KEY: z.string().optional().default(''),
   SES_ACCESS_KEY_ID: z.string().optional().default(''),
@@ -50,6 +56,13 @@ const envSchema = z.object({
   MAILGUN_API_KEY: z.string().optional().default(''),
   MAILGUN_DOMAIN: z.string().optional().default(''),
   EMAIL_OUTBOX_POLL_MS: z.coerce.number().int().positive().default(30_000),
+  /** Abort HTTP handlers that hang longer than this (ms). 0 disables. */
+  REQUEST_TIMEOUT_MS: z.coerce.number().int().min(0).default(30_000),
+  /** Soft-exit after uncaughtException (Render restarts). false = stay alive + alert. */
+  EXIT_ON_UNCAUGHT: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
   /** Comma-separated ops inboxes for deposit/withdrawal/KYC admin alerts */
   ADMIN_ALERT_EMAILS: z.string().optional().default(''),
 

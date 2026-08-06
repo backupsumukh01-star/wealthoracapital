@@ -2,6 +2,7 @@ import type { PaymentMethodType, Prisma } from '@prisma/client'
 
 import { prisma } from '../../database/prisma.js'
 import { auditService } from '../audit.service.js'
+import { opsAlertService } from '../ops-alert.service.js'
 import { badRequest, notFound } from '../../utils/errors.js'
 import { d, moneyString } from '../../utils/money.js'
 import { mapPaymentMethodDetailed } from './payment-method.mapper.js'
@@ -232,6 +233,15 @@ export const paymentMethodService = {
       ip: context.ip,
       userAgent: context.userAgent,
     })
+    await opsAlertService.notify({
+      event: 'PAYMENT_METHOD_CHANGED',
+      title: 'Payment method created',
+      action: `Payment method "${created.name}" created`,
+      reference: created.id,
+      ip: context.ip,
+      adminPath: `/admin/deposit-methods`,
+      details: { Type: created.type, Name: created.name },
+    })
     return mapPaymentMethodDetailed(created, { includeInactiveWallets: true })
   },
 
@@ -376,6 +386,15 @@ export const paymentMethodService = {
       newValue: { id, isActive: updated.isActive },
       ip: context.ip,
       userAgent: context.userAgent,
+    })
+    await opsAlertService.notify({
+      event: 'PAYMENT_METHOD_CHANGED',
+      title: 'Payment method updated',
+      action: `Payment method "${updated.name}" updated`,
+      reference: id,
+      ip: context.ip,
+      adminPath: `/admin/deposit-methods`,
+      details: { Type: updated.type, Name: updated.name, Active: String(updated.isActive) },
     })
     return mapPaymentMethodDetailed(updated, { includeInactiveWallets: true })
   },

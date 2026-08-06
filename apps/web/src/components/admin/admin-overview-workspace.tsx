@@ -101,15 +101,18 @@ function metricNumber(health: ReturnType<typeof useAdminHealth>['data'], id: str
 }
 
 export function AdminOverviewWorkspace() {
-  const { data: usersData } = useAdminUsers()
-  const { data: depositsData } = useAdminDeposits()
-  const { data: withdrawalsData } = useAdminWithdrawals()
-  const { data: returnsData } = useAdminReturns()
+  const { data: usersData } = useAdminUsers(undefined, { refetchInterval: 30_000 })
+  const { data: depositsData } = useAdminDeposits(undefined, { refetchInterval: 30_000 })
+  const { data: withdrawalsData } = useAdminWithdrawals(undefined, { refetchInterval: 30_000 })
+  const { data: returnsData } = useAdminReturns({ refetchInterval: 30_000 })
   const { data: health } = useAdminHealth()
-  const { data: activity } = useAdminActivity()
+  const { data: activity, dataUpdatedAt } = useAdminActivity(undefined, {
+    refetchInterval: 30_000,
+  })
   const { data: kycQueue } = useQuery({
     queryKey: ['admin', 'kyc', 'queue', 'overview'],
     queryFn: () => kycService.adminList({ status: 'UNDER_REVIEW' }),
+    refetchInterval: 30_000,
   })
 
   const accounts = usersData?.items ?? []
@@ -329,6 +332,39 @@ export function AdminOverviewWorkspace() {
           </ul>
         </AdminPanel>
       </div>
+
+      <AdminPanel>
+        <AdminPanelHeader
+          title="Recent activity · live feed"
+          description={`Auto-refreshes every 30s · last sync ${
+            dataUpdatedAt ? formatDateTime(new Date(dataUpdatedAt).toISOString()) : '—'
+          }`}
+          action={
+            <Button asChild variant="ghost" size="sm">
+              <Link href={ROUTES.admin.activity}>Full feed</Link>
+            </Button>
+          }
+        />
+        {(activity?.items ?? []).length === 0 ? (
+          <PremiumEmptyState
+            title="No recent activity"
+            description="Registrations, KYC, deposits, withdrawals, ROI, and admin actions appear here."
+            variant="activity"
+          />
+        ) : (
+          <ul className="divide-y divide-white/[0.05] px-4 sm:px-5">
+            {(activity?.items ?? []).slice(0, 12).map((item) => (
+              <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-caption">
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-fg">{item.title}</p>
+                  <p className="text-fg-subtle">{item.kind.replaceAll('_', ' ')}</p>
+                </div>
+                <span className="shrink-0 text-fg-muted">{formatDateTime(item.at)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </AdminPanel>
 
       <AdminPanel>
         <AdminPanelHeader

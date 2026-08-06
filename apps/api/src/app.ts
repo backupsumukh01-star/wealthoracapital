@@ -11,6 +11,7 @@ import { csrfProtection } from './middlewares/csrf.js'
 import { globalRateLimiter } from './middlewares/rate-limit.js'
 import { metricsMiddleware } from './middlewares/metrics.js'
 import { requestIdMiddleware } from './middlewares/request-id.js'
+import { requestTimeoutMiddleware } from './middlewares/request-timeout.js'
 import { sanitizeRequest } from './middlewares/sanitize.js'
 import { createApiRouter } from './routes/index.js'
 import { createMeta } from './utils/response.js'
@@ -23,6 +24,7 @@ export function createApp() {
   app.disable('x-powered-by')
 
   app.use(requestIdMiddleware)
+  app.use(requestTimeoutMiddleware)
   app.use(
     pinoHttp({
       logger,

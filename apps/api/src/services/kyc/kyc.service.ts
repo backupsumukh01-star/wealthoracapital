@@ -13,6 +13,7 @@ import path from 'node:path'
 import { kycRepository } from '../../repositories/kyc.repository.js'
 import { userRepository } from '../../repositories/user.repository.js'
 import { env } from '../../config/env.js'
+import { prisma } from '../../database/prisma.js'
 import { badRequest, forbidden, notFound } from '../../utils/errors.js'
 import { logger } from '../../utils/logger.js'
 import { assertUploadMagicBytes } from '../../utils/upload-magic.js'
@@ -35,7 +36,17 @@ const ALLOWED_MIME = new Set([
 const MAX_BYTES = 8 * 1024 * 1024
 
 const EDITABLE: KycStatus[] = ['PENDING', 'NEED_MORE_INFO', 'REJECTED']
-const LOCKED: KycStatus[] = ['SUBMITTED', 'UNDER_REVIEW']
+const LOCKED: KycStatus[] = ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED']
+
+function editLockMessage(status: KycStatus): string {
+  if (status === 'APPROVED') {
+    return 'Your KYC is approved and cannot be edited.'
+  }
+  if (status === 'SUBMITTED' || status === 'UNDER_REVIEW') {
+    return 'Your KYC is currently under review.'
+  }
+  return 'Documents cannot be changed in the current KYC status.'
+}
 
 function referenceId(): string {
   return `KYC-${randomBytes(4).toString('hex').toUpperCase()}`
@@ -142,7 +153,7 @@ export const kycService = {
     const dob = assertAdult(input.dateOfBirth)
     const locked = await kycRepository.findActiveLock(userId)
     if (locked) {
-      throw forbidden('KYC is locked while under review.')
+      throw forbidden(editLockMessage(locked.status))
     }
 
     const existing = await kycRepository.findEditableByUser(userId)
@@ -208,14 +219,14 @@ export const kycService = {
     assertUploadMagicBytes(file.buffer, file.mimetype)
 
     const locked = await kycRepository.findActiveLock(userId)
-    if (locked) throw forbidden('KYC is locked while under review.')
+    if (locked) throw forbidden(editLockMessage(locked.status))
 
     let submission = await kycRepository.findEditableByUser(userId)
     if (!submission) {
       throw badRequest('Create or update your KYC profile before uploading documents.')
     }
     if (!EDITABLE.includes(submission.status)) {
-      throw forbidden('Documents cannot be changed in the current KYC status.')
+      throw forbidden(editLockMessage(submission.status))
     }
 
     const checksum = createHash('sha256').update(file.buffer).digest('hex')
@@ -283,8 +294,8 @@ export const kycService = {
     if (!doc || doc.submission.userId !== userId) {
       throw notFound('Document not found.')
     }
-    if (LOCKED.includes(doc.submission.status) || doc.submission.status === 'APPROVED') {
-      throw forbidden('Documents cannot be deleted in the current KYC status.')
+    if (LOCKED.includes(doc.submission.status)) {
+      throw forbidden(editLockMessage(doc.submission.status))
     }
 
     await kycRepository.softDeleteDocument(documentId)
@@ -304,7 +315,7 @@ export const kycService = {
 
   async submit(userId: string, context: { ip?: string | null; userAgent?: string | null }) {
     const locked = await kycRepository.findActiveLock(userId)
-    if (locked) throw forbidden('A KYC submission is already under review.')
+    if (locked) throw forbidden(editLockMessage(locked.status))
 
     const submission = await kycRepository.findEditableByUser(userId)
     if (!submission) throw badRequest('No KYC draft found to submit.')
@@ -336,16 +347,31 @@ export const kycService = {
     await kycRepository.syncUserKycStatus(userId, 'UNDER_REVIEW')
     await appendHistory(submission.id, 'SUBMITTED', userId, 'KYC submitted for review', {
       risk,
+      oldStatus: submission.status,
+      newStatus: 'SUBMITTED',
+      ip: context.ip ?? null,
     })
-    await appendHistory(submission.id, 'UNDER_REVIEW', userId, 'Moved to under review')
+    await appendHistory(submission.id, 'UNDER_REVIEW', userId, 'Moved to under review', {
+      oldStatus: 'SUBMITTED',
+      newStatus: 'UNDER_REVIEW',
+      ip: context.ip ?? null,
+    })
     await recordActivity(userId, userId, 'KYC_SUBMITTED', 'KYC submitted', context)
-    await notifyKyc(userId, 'KYC submitted', 'Your verification documents are under review.')
-    await transactionalMailer.kycSubmitted(userId)
+    await notifyKyc(
+      userId,
+      'KYC submitted',
+      'Your KYC is currently under review. Expected review: 24–48 hours.',
+    )
+    await transactionalMailer.kycSubmitted(userId, {
+      ip: context.ip,
+      submissionId: updated.id,
+    })
     await auditService.record({
       actorId: userId,
       targetUserId: userId,
       action: 'kyc.submit',
       module: 'kyc',
+      oldValue: { status: submission.status },
       newValue: { submissionId: updated.id, status: 'UNDER_REVIEW', risk },
       ip: context.ip,
       userAgent: context.userAgent,
@@ -502,6 +528,21 @@ export const kycService = {
               },
               'KYC document missing on storage disk',
             )
+            void import('../ops-alert.service.js').then(({ opsAlertService }) =>
+              opsAlertService.notify({
+                event: 'STORAGE_ERROR',
+                title: 'KYC storage error',
+                action: 'Document file missing on disk during admin review',
+                userId: submission.userId,
+                reference: doc.id,
+                adminPath: `/admin/kyc/${submission.userId}`,
+                details: {
+                  storageKey: doc.storageKey,
+                  absolutePath: absolutePath ?? '—',
+                  submissionId: submission.id,
+                },
+              }),
+            )
           }
           return mapDocument(doc, { fileExists, absolutePath })
         }),
@@ -640,13 +681,33 @@ export const kycService = {
         fraudFlag: body.fraudFlag ?? null,
         documentQuality: body.documentQuality ?? null,
       })
-      await appendHistory(submission.id, historyAction, actorId, body.reason)
+      const actor = await prisma.user.findFirst({
+        where: { id: actorId },
+        select: { email: true, firstName: true, lastName: true },
+      })
+      await appendHistory(submission.id, historyAction, actorId, body.reason, {
+        oldStatus: submission.status,
+        newStatus: nextStatus,
+        decision,
+        reason: body.reason ?? null,
+        ip: context.ip ?? null,
+        actorId,
+        actorEmail: actor?.email ?? null,
+        actorName: actor ? `${actor.firstName} ${actor.lastName}`.trim() : null,
+      })
       await recordActivity(submission.userId, actorId, activityKind, notifyTitle, context)
       await notifyKyc(submission.userId, notifyTitle, notifyBody)
       if (decision === 'APPROVE') {
-        await transactionalMailer.kycApproved(submission.userId)
+        await transactionalMailer.kycApproved(submission.userId, {
+          ip: context.ip,
+          submissionId: submission.id,
+        })
       } else if (decision === 'REJECT') {
-        await transactionalMailer.kycRejected(submission.userId, body.reason ?? 'Verification rejected')
+        await transactionalMailer.kycRejected(
+          submission.userId,
+          body.reason ?? 'Verification rejected',
+          { ip: context.ip, submissionId: submission.id },
+        )
       } else if (decision === 'REQUEST_INFORMATION') {
         await transactionalMailer.kycInfoRequested(
           submission.userId,

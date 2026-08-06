@@ -221,6 +221,16 @@ export const tradeService = {
       ip: context.ip,
       userAgent: context.userAgent,
     })
+    const { opsAlertService } = await import('../ops-alert.service.js')
+    await opsAlertService.notify({
+      event: 'INVESTMENT_CREATED',
+      title: 'Investment / trade created',
+      action: `Trade ${trade.reference} created`,
+      reference: trade.reference,
+      ip: context.ip,
+      adminPath: `/admin/trades`,
+      details: { Pair: trade.pair, Direction: trade.direction },
+    })
     return mapTrade(trade)
   },
 
@@ -434,6 +444,15 @@ export const tradeService = {
       newValue: { id },
       ip: context.ip,
       userAgent: context.userAgent,
+    })
+    const { opsAlertService } = await import('../ops-alert.service.js')
+    await opsAlertService.notify({
+      event: 'INVESTMENT_CANCELLED',
+      title: 'Investment / trade cancelled',
+      action: `Trade ${trade.reference} cancelled`,
+      reference: trade.reference,
+      ip: context.ip,
+      adminPath: `/admin/trades`,
     })
     return mapTrade(updated)
   },
