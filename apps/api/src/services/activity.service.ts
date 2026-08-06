@@ -2,6 +2,44 @@ import type { ActivityKind, Prisma } from '@prisma/client'
 
 import { activityRepository } from '../repositories/activity.repository.js'
 
+export type ActivityCategory = 'deposits' | 'withdrawals' | 'kyc' | 'profit' | 'security'
+
+const CATEGORY_KINDS: Record<ActivityCategory, ActivityKind[]> = {
+  deposits: ['DEPOSIT_SUBMITTED', 'DEPOSIT_APPROVED', 'DEPOSIT_REJECTED', 'DEPOSIT_CANCELLED'],
+  withdrawals: [
+    'WITHDRAWAL_SUBMITTED',
+    'WITHDRAWAL_APPROVED',
+    'WITHDRAWAL_REJECTED',
+    'WITHDRAWAL_CANCELLED',
+    'WITHDRAWAL_PAID',
+  ],
+  kyc: [
+    'KYC_SUBMITTED',
+    'KYC_APPROVED',
+    'KYC_REJECTED',
+    'KYC_INFO_REQUESTED',
+    'KYC_EXPIRED',
+    'KYC_SUSPENDED',
+    'KYC_REOPENED',
+  ],
+  profit: [
+    'DAILY_RETURN_APPLIED',
+    'DISTRIBUTION_COMPLETE',
+    'TRADE_OPENED',
+    'TRADE_CLOSED',
+    'TRADE_PUBLISHED',
+  ],
+  security: [
+    'LOGIN',
+    'LOGOUT',
+    'PASSWORD_CHANGE',
+    'EMAIL_CHANGE',
+    'SESSION_TERMINATED',
+    'REGISTRATION',
+    'PROFILE_UPDATE',
+  ],
+}
+
 export const activityService = {
   async record(input: {
     userId: string
@@ -28,6 +66,7 @@ export const activityService = {
   async list(input: {
     userId?: string
     kind?: ActivityKind
+    category?: ActivityCategory
     page: number
     limit: number
     cursor?: string
@@ -35,7 +74,11 @@ export const activityService = {
   }) {
     const where: Prisma.ActivityLogWhereInput = {
       ...(input.userId ? { userId: input.userId } : {}),
-      ...(input.kind ? { kind: input.kind } : {}),
+      ...(input.category
+        ? { kind: { in: CATEGORY_KINDS[input.category] } }
+        : input.kind
+          ? { kind: input.kind }
+          : {}),
     }
     const skip = (input.page - 1) * input.limit
     const { items, total } = await activityRepository.list({

@@ -21,6 +21,7 @@ export function toPublicUser(user: User): SharedUser {
     status: user.status,
     kycStatus: user.kycStatus,
     emailVerified: user.emailVerifiedAt !== null,
+    deletedAt: user.deletedAt ? user.deletedAt.toISOString() : null,
     createdAt: user.createdAt.toISOString(),
   }
 }

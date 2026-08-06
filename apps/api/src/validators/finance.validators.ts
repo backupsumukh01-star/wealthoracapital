@@ -18,13 +18,29 @@ export const createDepositSchema = z.object({
   methodId: z.string().uuid(),
   userReference: z.string().max(120).optional(),
   txHash: z.string().max(120).optional(),
+  notes: z.string().max(2000).optional(),
+  /** Method-specific investor fields (UPI ID used, sender bank, etc.). */
+  submissionDetails: z.record(z.string(), z.string().max(240)).optional(),
   idempotencyKey: z.string().min(8).max(120),
 })
 
 export const createWithdrawalSchema = z.object({
   amount: money,
   payoutMethodId: z.string().uuid(),
+  otp: z.string().trim().min(4).max(12),
   idempotencyKey: z.string().min(8).max(120),
+})
+
+export const requestWithdrawalOtpSchema = z.object({
+  amount: money,
+  payoutMethodId: z.string().uuid(),
+})
+
+export const createPayoutMethodSchema = z.object({
+  label: z.string().trim().min(2).max(80),
+  type: z.enum(['UPI', 'BANK_TRANSFER', 'USDT_TRC20', 'USDT_BEP20', 'BTC', 'ETH']),
+  details: z.record(z.string(), z.string().trim().max(240)),
+  isDefault: z.boolean().optional(),
 })
 
 export const idParamSchema = z.object({
@@ -161,3 +177,5 @@ export const walletAddressUpdateSchema = walletAddressCreateSchema.partial().ext
 
 export type CreateDepositInput = z.infer<typeof createDepositSchema>
 export type CreateWithdrawalInput = z.infer<typeof createWithdrawalSchema>
+export type RequestWithdrawalOtpInput = z.infer<typeof requestWithdrawalOtpSchema>
+export type CreatePayoutMethodInput = z.infer<typeof createPayoutMethodSchema>

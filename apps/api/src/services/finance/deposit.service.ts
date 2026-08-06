@@ -74,6 +74,8 @@ export const depositService = {
       methodId: string
       userReference?: string
       txHash?: string
+      notes?: string
+      submissionDetails?: Record<string, string>
       idempotencyKey: string
     },
     context: Ctx,
@@ -122,6 +124,8 @@ export const depositService = {
           status: 'PENDING',
           userReference: body.userReference?.slice(0, 120) ?? null,
           txHash: body.txHash?.slice(0, 120) ?? null,
+          notes: body.notes?.slice(0, 2000) ?? null,
+          submissionDetails: body.submissionDetails ?? undefined,
           idempotencyKey: body.idempotencyKey,
           expiresAt: new Date(Date.now() + 7 * 24 * 3_600_000),
         },
@@ -368,17 +372,42 @@ export const depositService = {
       where: { id },
       include: {
         paymentMethod: true,
-        user: { select: { id: true, email: true, firstName: true, lastName: true, kycStatus: true } },
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+            kycStatus: true,
+          },
+        },
         reviews: { orderBy: { createdAt: 'desc' } },
         queue: true,
       },
     })
     if (!deposit) throw notFound('Deposit not found.')
+    let proofUrl: string | null = null
+    if (deposit.proofKey) {
+      try {
+        const { storage } = await import('../storage/index.js')
+        proofUrl = storage.createSignedDownloadUrl(deposit.proofKey, 60 * 60)
+      } catch {
+        proofUrl = null
+      }
+    }
     return {
       ...mapDeposit(deposit),
-      user: deposit.user,
+      user: {
+        ...deposit.user,
+        phone: (deposit.user as { phone?: string | null }).phone ?? null,
+      },
       internalNotes: deposit.internalNotes,
+      notes: deposit.notes,
+      submissionDetails: deposit.submissionDetails,
       txHash: deposit.txHash,
+      proofUrl,
+      proofKey: deposit.proofKey,
       reviews: deposit.reviews,
       queue: deposit.queue,
       paymentMethod: mapPaymentMethod(deposit.paymentMethod),

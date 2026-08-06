@@ -105,6 +105,7 @@ export function mapDeposit(deposit: DepositWithMethod) {
     amount: moneyDisplay(deposit.amount),
     creditedAmount: deposit.creditedAmount ? moneyDisplay(deposit.creditedAmount) : null,
     fee: moneyDisplay(deposit.fee),
+    currency: deposit.currency,
     status: deposit.status,
     method: {
       id: deposit.paymentMethod.id,
@@ -114,6 +115,11 @@ export function mapDeposit(deposit: DepositWithMethod) {
     hasProof: Boolean(deposit.proofKey),
     userReference: deposit.userReference,
     txHash: deposit.txHash,
+    notes: deposit.notes ?? null,
+    submissionDetails:
+      deposit.submissionDetails && typeof deposit.submissionDetails === 'object'
+        ? (deposit.submissionDetails as Record<string, unknown>)
+        : null,
     rejectionReason: deposit.rejectionReason,
     createdAt: deposit.createdAt.toISOString(),
     reviewedAt: deposit.reviewedAt?.toISOString() ?? null,
@@ -138,10 +144,13 @@ export function mapWithdrawal(withdrawal: Withdrawal) {
     amount: moneyDisplay(withdrawal.amount),
     fee: moneyDisplay(withdrawal.fee),
     netAmount: moneyDisplay(withdrawal.netAmount),
+    currency: withdrawal.currency,
     status: withdrawal.status === 'COMPLETED' ? 'PAID' : withdrawal.status,
     destinationLabel: withdrawal.destinationLabel,
+    destinationSnapshot: withdrawal.destinationSnapshot,
     transactionRef: withdrawal.transactionRef,
     rejectionReason: withdrawal.rejectionReason,
+    otpVerifiedAt: withdrawal.otpVerifiedAt?.toISOString() ?? null,
     createdAt: withdrawal.createdAt.toISOString(),
     reviewedAt: withdrawal.reviewedAt?.toISOString() ?? null,
     paidAt: withdrawal.paidAt?.toISOString() ?? null,

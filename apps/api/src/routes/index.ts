@@ -15,6 +15,7 @@ import { notificationRouter } from './notification.routes.js'
 import { paymentWebhookRouter } from './payment-webhook.routes.js'
 import { performanceRouter } from './performance.routes.js'
 import { portfolioRouter } from './portfolio.routes.js'
+import { activityRouter } from './activity.routes.js'
 import { profileRouter } from './profile.routes.js'
 import { reportRouter } from './report.routes.js'
 import { returnsRouter } from './returns.routes.js'
@@ -46,6 +47,7 @@ export function createApiRouter(): Router {
   router.use('/v1/auth', authRouter)
   router.use('/v1/users', usersRouter)
   router.use('/v1/profile', profileRouter)
+  router.use('/v1/activity', activityRouter)
   router.use('/v1/kyc', kycRouter)
   router.use('/v1/wallet', walletRouter)
   router.use('/v1/deposits', depositRouter)

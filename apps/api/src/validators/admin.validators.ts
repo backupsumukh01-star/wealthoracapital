@@ -77,6 +77,7 @@ export const adminUpdateUserSchema = z.object({
 
 export const adminStatusReasonSchema = z.object({
   reason: z.string().trim().min(3).max(500).optional(),
+  mode: z.enum(['soft', 'hard']).optional(),
 })
 
 export const adminAuditQuerySchema = z.object({

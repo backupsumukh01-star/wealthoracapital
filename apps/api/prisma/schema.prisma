@@ -368,6 +368,7 @@ model User {
   firstName       String     @map("first_name") @db.VarChar(60)
   lastName        String     @map("last_name") @db.VarChar(60)
   phone           String?    @db.VarChar(24)
+  // Uniqueness for non-deleted phones enforced via partial unique index in migration.
   country         String?    @db.Char(2)
   timezone        String     @default("UTC")
   avatarKey       String?    @map("avatar_key")
@@ -872,6 +873,8 @@ model Deposit {
   status          DepositStatus @default(PENDING)
   userReference   String?       @map("user_reference") @db.VarChar(120)
   txHash          String?       @map("tx_hash") @db.VarChar(120)
+  notes           String?       @db.VarChar(2000)
+  submissionDetails Json?       @map("submission_details")
   proofKey        String?       @map("proof_key") @db.VarChar(400)
   proofChecksum   String?       @map("proof_checksum") @db.VarChar(64)
   rejectionReason String?       @map("rejection_reason") @db.VarChar(500)
@@ -915,6 +918,7 @@ model Withdrawal {
   transactionRef      String?          @map("transaction_ref") @db.VarChar(120)
   rejectionReason     String?          @map("rejection_reason") @db.VarChar(500)
   internalNotes       String?          @map("internal_notes") @db.VarChar(2000)
+  otpVerifiedAt       DateTime?        @map("otp_verified_at")
   idempotencyKey      String           @unique @map("idempotency_key") @db.VarChar(120)
   reviewedById        String?          @map("reviewed_by_id") @db.Uuid
   reviewedAt          DateTime?        @map("reviewed_at")

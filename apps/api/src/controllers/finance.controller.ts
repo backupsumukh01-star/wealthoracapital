@@ -17,6 +17,7 @@ import type {
   adminWalletAdjustSchema,
   adminWithdrawalReviewSchema,
   createDepositSchema,
+  createPayoutMethodSchema,
   createWithdrawalSchema,
   paymentMethodCreateSchema,
   paymentMethodReorderSchema,
@@ -28,6 +29,7 @@ import type { z } from 'zod'
 
 type CreateDeposit = z.infer<typeof createDepositSchema>
 type CreateWithdrawal = z.infer<typeof createWithdrawalSchema>
+type CreatePayoutMethod = z.infer<typeof createPayoutMethodSchema>
 type AdminList = z.infer<typeof adminFinanceListQuerySchema>
 type DepositReview = z.infer<typeof adminDepositReviewSchema>
 type WithdrawalReview = z.infer<typeof adminWithdrawalReviewSchema>
@@ -146,6 +148,17 @@ export const financeController = {
     sendSuccess(res, await withdrawalService.listPayoutMethods(req.user!.id))
   }),
 
+  withdrawalMethodCreate: asyncHandler(async (req, res) => {
+    sendSuccess(
+      res,
+      await withdrawalService.createPayoutMethod(
+        req.user!.id,
+        req.body as CreatePayoutMethod,
+        requestContext(req),
+      ),
+    )
+  }),
+
   withdrawalList: asyncHandler(async (req, res) => {
     const q = req.query as { status?: string; cursor?: string; limit?: string }
     sendSuccess(
@@ -168,6 +181,17 @@ export const financeController = {
       await withdrawalService.create(
         req.user!.id,
         req.body as CreateWithdrawal,
+        requestContext(req),
+      ),
+    )
+  }),
+
+  withdrawalRequestOtp: asyncHandler(async (req, res) => {
+    sendSuccess(
+      res,
+      await withdrawalService.requestOtp(
+        req.user!.id,
+        req.body as { amount: string; payoutMethodId: string },
         requestContext(req),
       ),
     )

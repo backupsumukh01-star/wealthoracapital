@@ -48,6 +48,7 @@ export interface User {
   status: UserStatus
   kycStatus: KycStatus
   emailVerified: boolean
+  deletedAt?: IsoDateTime | null
   createdAt: IsoDateTime
 }
 
@@ -137,10 +138,14 @@ export interface Deposit {
   amount: MoneyString
   creditedAmount: MoneyString | null
   fee: MoneyString
+  currency?: string
   status: DepositStatus
   method: Pick<PaymentMethod, 'id' | 'name' | 'type'> | null
   hasProof: boolean
   userReference: string | null
+  txHash?: string | null
+  notes?: string | null
+  submissionDetails?: Record<string, unknown> | null
   rejectionReason: string | null
   createdAt: IsoDateTime
   reviewedAt: IsoDateTime | null
@@ -161,10 +166,13 @@ export interface Withdrawal {
   amount: MoneyString
   fee: MoneyString
   netAmount: MoneyString
+  currency?: string
   status: WithdrawalStatus
   destinationLabel: string
+  destinationSnapshot?: Record<string, unknown> | null
   transactionRef: string | null
   rejectionReason: string | null
+  otpVerifiedAt?: IsoDateTime | null
   createdAt: IsoDateTime
   reviewedAt: IsoDateTime | null
   paidAt: IsoDateTime | null

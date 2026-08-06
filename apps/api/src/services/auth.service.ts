@@ -229,6 +229,13 @@ export const authService = {
       return { userId: randomUUID(), emailSent: true }
     }
 
+    if (input.phone?.trim()) {
+      const phoneOwner = await userRepository.findByPhone(input.phone.trim())
+      if (phoneOwner) {
+        throw badRequest('An account with this phone number already exists. Sign in or use a different number.')
+      }
+    }
+
     let referredById: string | null = null
     if (input.referralCode) {
       const referrer = await userRepository.findByReferralCode(input.referralCode.toUpperCase())
@@ -552,6 +559,13 @@ export const authService = {
       userName: `${user.firstName} ${user.lastName}`.trim(),
       userEmail: user.email,
       adminPath: `/admin/users/${user.id}`,
+    })
+    await activityService.record({
+      userId: user.id,
+      actorId: user.id,
+      kind: 'PROFILE_UPDATE',
+      title: 'Email verified',
+      description: 'Investor confirmed their email address',
     })
   },
 

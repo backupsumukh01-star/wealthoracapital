@@ -154,7 +154,11 @@ export const API_ROUTES = {
     root: '/withdrawals',
     limits: '/withdrawals/limits',
     methods: '/withdrawals/methods',
+    otp: '/withdrawals/otp',
     cancel: (id: string) => `/withdrawals/${id}/cancel`,
+  },
+  activity: {
+    root: '/activity',
   },
   transactions: { root: '/transactions' },
   trades: {

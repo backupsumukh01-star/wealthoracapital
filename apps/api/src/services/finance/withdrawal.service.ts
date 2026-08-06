@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import type { Prisma, WithdrawalStatus } from '@prisma/client'
+import type { PaymentMethodType, Prisma, WithdrawalStatus } from '@prisma/client'
 
 import { prisma } from '../../database/prisma.js'
 import { transactionalMailer } from '../../emails/transactional.js'
@@ -20,6 +20,44 @@ const DAILY_LIMIT = d('50000')
 
 function withdrawalRef(): string {
   return `WD-${randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase()}`
+}
+
+function last4(value: string) {
+  return value.replace(/\s+/g, '').slice(-4).padStart(4, '•')
+}
+
+function normalizePayoutDetails(type: PaymentMethodType, details: Record<string, string>) {
+  if (type === 'BANK_TRANSFER') {
+    const accountHolderName = details.accountHolderName?.trim()
+    const bankName = details.bankName?.trim()
+    const accountNumber = details.accountNumber?.trim()
+    const ifscCode = details.ifscCode?.trim().toUpperCase()
+    if (!accountHolderName || !bankName || !accountNumber || !ifscCode) {
+      throw badRequest('Bank account name, bank name, account number and IFSC are required.')
+    }
+    return {
+      details: { accountHolderName, bankName, accountNumber, ifscCode },
+      maskedDetails: `${bankName} ••••${last4(accountNumber)}`,
+    }
+  }
+
+  if (type === 'UPI') {
+    const upiId = details.upiId?.trim()
+    if (!upiId) throw badRequest('UPI ID is required.')
+    return {
+      details: { upiId },
+      maskedDetails: `UPI ${upiId.replace(/^(.{2}).+(@.+)$/, '$1••••$2')}`,
+    }
+  }
+
+  const coin = (details.coin?.trim() || type.replace(/_.+$/, '')).toUpperCase()
+  const network = (details.network?.trim() || type.replace(/^USDT_/, '')).toUpperCase()
+  const address = details.address?.trim()
+  if (!address) throw badRequest('Wallet address is required.')
+  return {
+    details: { coin, network, address },
+    maskedDetails: `${coin} ${network} ••••${last4(address)}`,
+  }
 }
 
 async function requireActiveInvestor(userId: string) {
@@ -48,40 +86,115 @@ export const withdrawalService = {
       _sum: { amount: true },
     })
     const used = d(withdrawnToday._sum.amount ?? 0)
-    const remaining = DecimalMax(DAILY_LIMIT.minus(used), d(0))
-    const available = d(wallet.availableBalance)
-    const max = DecimalMin(DEFAULT_MAX, available, remaining)
-
     return {
       min: moneyDisplay(DEFAULT_MIN),
-      max: moneyDisplay(max),
-      dailyRemaining: moneyDisplay(remaining),
+      max: moneyDisplay(DEFAULT_MAX),
+      dailyRemaining: moneyDisplay(DecimalMax(DAILY_LIMIT.minus(used), d(0))),
       feePct: moneyDisplay(DEFAULT_FEE_PCT),
-      availableBalance: moneyDisplay(available),
+      availableBalance: moneyDisplay(wallet.availableBalance),
+      lockedBalance: moneyDisplay(wallet.lockedBalance),
     }
+  },
+
+  /** Issue email OTP — must succeed before create(). */
+  async requestOtp(
+    userId: string,
+    body: { amount: string; payoutMethodId: string },
+    _context: Ctx,
+  ) {
+    await requireActiveInvestor(userId)
+    const amount = d(body.amount)
+    if (!amount.isFinite() || amount.lte(0)) throw badRequest('Invalid withdrawal amount.')
+
+    const payout = await prisma.payoutMethod.findFirst({
+      where: { id: body.payoutMethodId, userId, deletedAt: null },
+    })
+    if (!payout) throw badRequest('Payout method not found.')
+
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { email: true, firstName: true },
+    })
+
+    // 60s cooldown between OTP sends
+    const recent = await prisma.verificationToken.findFirst({
+      where: { userId, type: 'EMAIL_CHANGE', createdAt: { gt: new Date(Date.now() - 60_000) } },
+      orderBy: { createdAt: 'desc' },
+    })
+    if (recent) {
+      const payload = recent.payload as { otpKind?: string } | null
+      if (payload?.otpKind === 'WITHDRAWAL_OTP') {
+        throw badRequest('Please wait 60 seconds before requesting another code.')
+      }
+    }
+
+    const details = (payout.details ?? {}) as Record<string, string>
+    const { emailOtpService } = await import('../email-otp.service.js')
+    return emailOtpService.issueWithdrawalOtp({
+      userId,
+      email: user.email,
+      firstName: user.firstName,
+      amount: moneyDisplay(amount),
+      wallet: details.address ?? details.upiId ?? details.accountNumber ?? payout.maskedDetails,
+      network: details.network ?? payout.type,
+    })
   },
 
   async listPayoutMethods(userId: string) {
     await requireActiveInvestor(userId)
-    let methods = await prisma.payoutMethod.findMany({
+    const methods = await prisma.payoutMethod.findMany({
       where: { userId, deletedAt: null },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
     })
-    if (methods.length === 0) {
-      const created = await prisma.payoutMethod.create({
+    return methods.map(mapPayoutMethod)
+  },
+
+  async createPayoutMethod(
+    userId: string,
+    body: {
+      label: string
+      type: PaymentMethodType
+      details: Record<string, string>
+      isDefault?: boolean
+    },
+    context: Ctx,
+  ) {
+    await requireActiveInvestor(userId)
+    const normalized = normalizePayoutDetails(body.type, body.details)
+    const existingCount = await prisma.payoutMethod.count({ where: { userId, deletedAt: null } })
+    const isDefault = body.isDefault ?? existingCount === 0
+
+    const created = await prisma.$transaction(async (tx) => {
+      if (isDefault) {
+        await tx.payoutMethod.updateMany({
+          where: { userId, deletedAt: null },
+          data: { isDefault: false },
+        })
+      }
+      return tx.payoutMethod.create({
         data: {
           userId,
-          label: 'Primary USDT TRC20',
-          type: 'USDT_TRC20',
-          details: { address: 'PENDING_USER_SETUP', network: 'TRC20' },
-          maskedDetails: 'USDT TRC20 ••••• setup required',
-          isDefault: true,
+          label: body.label.trim(),
+          type: body.type,
+          details: normalized.details,
+          maskedDetails: normalized.maskedDetails,
+          isDefault,
           isVerified: false,
         },
       })
-      methods = [created]
-    }
-    return methods.map(mapPayoutMethod)
+    })
+
+    await auditService.record({
+      actorId: userId,
+      targetUserId: userId,
+      action: 'payout_method.create',
+      module: 'finance',
+      newValue: { id: created.id, type: created.type, label: created.label },
+      ip: context.ip,
+      userAgent: context.userAgent,
+    })
+
+    return mapPayoutMethod(created)
   },
 
   async list(
@@ -110,7 +223,7 @@ export const withdrawalService = {
 
   async create(
     userId: string,
-    body: { amount: string; payoutMethodId: string; idempotencyKey: string },
+    body: { amount: string; payoutMethodId: string; otp: string; idempotencyKey: string },
     context: Ctx,
   ) {
     await requireActiveInvestor(userId)
@@ -121,6 +234,9 @@ export const withdrawalService = {
       if (existing.userId !== userId) throw conflict('Idempotency key conflict.')
       return mapWithdrawal(existing)
     }
+
+    const { emailOtpService } = await import('../email-otp.service.js')
+    await emailOtpService.verifyWithdrawalOtp(userId, body.otp)
 
     const amount = d(body.amount)
     if (!amount.isFinite() || amount.lte(0)) throw badRequest('Invalid withdrawal amount.')
@@ -182,6 +298,7 @@ export const withdrawalService = {
               details: payout.details,
               maskedDetails: payout.maskedDetails,
             },
+            otpVerifiedAt: new Date(),
             idempotencyKey: body.idempotencyKey,
           },
         })
@@ -934,7 +1051,4 @@ export const withdrawalService = {
 
 function DecimalMax(a: ReturnType<typeof d>, b: ReturnType<typeof d>) {
   return a.gt(b) ? a : b
-}
-function DecimalMin(...values: Array<ReturnType<typeof d>>) {
-  return values.reduce((min, v) => (v.lt(min) ? v : min))
 }

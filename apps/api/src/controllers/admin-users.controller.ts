@@ -107,13 +107,22 @@ export const adminUsersController = {
   }),
 
   remove: asyncHandler(async (req, res) => {
-    const body = req.body as ReasonBody
-    const data = await adminUsersService.softDelete(
-      req.user!.id,
-      req.params.id!,
-      body.reason ?? null,
-      requestContext(req),
-    )
+    const body = req.body as ReasonBody & { mode?: 'soft' | 'hard' }
+    const mode = body.mode === 'hard' ? 'hard' : 'soft'
+    const data =
+      mode === 'hard'
+        ? await adminUsersService.hardDelete(
+            req.user!.id,
+            req.params.id!,
+            body.reason ?? null,
+            requestContext(req),
+          )
+        : await adminUsersService.softDelete(
+            req.user!.id,
+            req.params.id!,
+            body.reason ?? null,
+            requestContext(req),
+          )
     sendSuccess(res, data)
   }),
 
