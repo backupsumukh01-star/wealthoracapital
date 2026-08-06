@@ -74,6 +74,13 @@ services:
         value: Growzy
       - key: SMTP_FROM_ADDRESS
         sync: false
+      # Optional lane overrides — leave unset to use SMTP_FROM_ADDRESS (verified Resend sender)
+      - key: EMAIL_FROM_AUTH
+        sync: false
+      - key: EMAIL_FROM_SUPPORT
+        sync: false
+      - key: EMAIL_FROM_FINANCE
+        sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
@@ -101,6 +108,10 @@ services:
         value: "true"
       - key: LOG_LEVEL
         value: info
+      - key: EXIT_ON_UNCAUGHT
+        value: "true"
+      - key: REQUEST_TIMEOUT_MS
+        value: "30000"
       # Persistent Disk is mounted at /data on growzy-api — UPLOAD_ROOT must stay under that mount.
       - key: UPLOAD_ROOT
         value: /data/uploads
@@ -122,7 +133,7 @@ services:
     # Start uses node …/server.js via apps/web scripts/start-production.mjs — not `next start`.
     buildCommand: corepack enable && corepack prepare pnpm@9.15.0 --activate && pnpm install --frozen-lockfile --prod=false && pnpm --filter @meridian/web... build
     startCommand: pnpm --filter @meridian/web start
-    healthCheckPath: /
+    healthCheckPath: /api/version
     autoDeploy: true
     envVars:
       - key: NODE_VERSION

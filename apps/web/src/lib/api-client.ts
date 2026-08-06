@@ -37,6 +37,8 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
   skipRefresh?: boolean
   /** Internal: one CSRF re-bootstrap after CSRF_REJECTED. */
   skipCsrfRetry?: boolean
+  /** Override default request timeout (ms). */
+  timeoutMs?: number
 }
 
 /**
@@ -45,6 +47,8 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
  * (docs/08 §5).
  */
 let refreshInFlight: Promise<boolean> | null = null
+
+const DEFAULT_TIMEOUT_MS = 30_000
 
 function isMutatingMethod(method: string | undefined): boolean {
   const m = (method ?? 'GET').toUpperCase()
@@ -81,33 +85,83 @@ async function refreshSession(): Promise<boolean> {
   return refreshInFlight
 }
 
+async function fetchWithTimeout(
+  input: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController()
+  const external = init.signal
+  if (external) {
+    if (external.aborted) {
+      controller.abort()
+    } else {
+      external.addEventListener('abort', () => controller.abort(), { once: true })
+    }
+  }
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(input, { ...init, signal: controller.signal })
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 export async function apiClient<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { body, idempotencyKey, skipRefresh, skipCsrfRetry, headers, ...rest } = options
+  const {
+    body,
+    idempotencyKey,
+    skipRefresh,
+    skipCsrfRetry,
+    headers,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    ...rest
+  } = options
+
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    throw new ApiError(
+      ERROR_CODES.NETWORK_ERROR,
+      'You appear to be offline. Reconnect and try again.',
+      0,
+    )
+  }
 
   if (isMutatingMethod(rest.method)) {
     await ensureCsrfToken()
   }
   const csrf = await ensureCsrfToken()
 
-  const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${path}`, {
-    ...rest,
-    // Auth travels as httpOnly cookies, never as a bearer token in JS.
-    credentials: 'include',
-    headers: {
-      Accept: 'application/json',
-      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
-      ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
-      ...headers,
-    },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-  }).catch(() => {
+  let response: Response
+  try {
+    response = await fetchWithTimeout(
+      `${env.NEXT_PUBLIC_API_URL}${path}`,
+      {
+        ...rest,
+        // Auth travels as httpOnly cookies, never as a bearer token in JS.
+        credentials: 'include',
+        cache: 'no-store',
+        headers: {
+          Accept: 'application/json',
+          'Cache-Control': 'no-cache',
+          ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+          ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+          ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
+          ...headers,
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      },
+      timeoutMs,
+    )
+  } catch (err) {
+    const aborted = err instanceof Error && err.name === 'AbortError'
     throw new ApiError(
       ERROR_CODES.NETWORK_ERROR,
-      'We could not reach the server. Check your connection and try again.',
+      aborted
+        ? 'The request timed out. Please try again.'
+        : 'We could not reach the server. Check your connection and try again.',
       0,
     )
-  })
+  }
 
   let payload: ApiResponse<T> | null = null
   try {

@@ -83,13 +83,91 @@ async function issueAuthTokens(user: User, context: SessionContext): Promise<{
 async function createVerificationToken(userId: string): Promise<string> {
   await verificationTokenRepository.invalidateActiveTokens(userId, 'EMAIL_VERIFICATION')
   const raw = tokenService.createOpaqueRefreshToken().raw
+  const expiresAt = new Date(Date.now() + AUTH_LIMITS.emailVerificationTtlHours * 3_600_000)
   await verificationTokenRepository.create({
     user: { connect: { id: userId } },
     tokenHash: tokenService.hashToken(raw),
     type: 'EMAIL_VERIFICATION',
-    expiresAt: new Date(Date.now() + AUTH_LIMITS.emailVerificationTtlHours * 3_600_000),
+    expiresAt,
   })
+  logger.info(
+    {
+      userId,
+      tokenPrefix: raw.slice(0, 8),
+      expiresAt: expiresAt.toISOString(),
+      ttlHours: AUTH_LIMITS.emailVerificationTtlHours,
+    },
+    'Email verification token created',
+  )
   return raw
+}
+
+/** Send verification email without failing the parent auth flow when transport errors. */
+async function trySendVerificationEmail(input: {
+  userId: string
+  to: string
+  firstName: string
+  token: string
+  reason: string
+}): Promise<boolean> {
+  try {
+    await emailService.sendVerificationEmail({
+      to: input.to,
+      firstName: input.firstName,
+      token: input.token,
+    })
+    logger.info(
+      { userId: input.userId, to: input.to, reason: input.reason },
+      'Verification email sent',
+    )
+    return true
+  } catch (err) {
+    logger.error(
+      {
+        err,
+        userId: input.userId,
+        to: input.to,
+        reason: input.reason,
+        message: err instanceof Error ? err.message : String(err),
+      },
+      'Verification email send failed',
+    )
+    return false
+  }
+}
+
+async function assertVerificationResendAllowed(userId: string): Promise<void> {
+  const latest = await verificationTokenRepository.findLatestByUserAndType(
+    userId,
+    'EMAIL_VERIFICATION',
+  )
+  if (latest) {
+    const ageMs = Date.now() - latest.createdAt.getTime()
+    const cooldownMs = AUTH_LIMITS.verificationResendCooldownSeconds * 1000
+    if (ageMs < cooldownMs) {
+      const retryAfterSec = Math.ceil((cooldownMs - ageMs) / 1000)
+      throw new AppError(
+        429,
+        ERROR_CODES.RATE_LIMITED,
+        `Please wait ${retryAfterSec}s before requesting another verification email.`,
+        { retryAfterSec },
+      )
+    }
+  }
+
+  const since = new Date(Date.now() - 3_600_000)
+  const sentLastHour = await verificationTokenRepository.countCreatedSince(
+    userId,
+    'EMAIL_VERIFICATION',
+    since,
+  )
+  if (sentLastHour >= AUTH_LIMITS.verificationResendMaxPerHour) {
+    throw new AppError(
+      429,
+      ERROR_CODES.RATE_LIMITED,
+      'Too many verification emails. Try again in an hour.',
+    )
+  }
 }
 
 async function createPasswordResetToken(userId: string): Promise<string> {
@@ -110,15 +188,45 @@ export const authService = {
     return issueAuthTokens(user, context)
   },
 
-  async register(input: RegisterInput): Promise<{ userId: string }> {
+  async register(input: RegisterInput): Promise<{ userId: string; emailSent: boolean }> {
     const existing = await userRepository.findByEmail(input.email)
+
+    // Unverified accounts: allow re-register to update password + resend link
+    // (fixes "I registered but got no email / wrong password" when first email failed).
+    if (existing && !existing.emailVerifiedAt) {
+      logger.info(
+        { userId: existing.id, email: input.email },
+        'Registration for existing unverified email — refreshing credentials',
+      )
+      const passwordHash = await passwordService.hash(input.password)
+      await userRepository.update(existing.id, {
+        passwordHash,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        phone: input.phone ?? existing.phone,
+        country: input.country ?? existing.country,
+        status: 'PENDING_VERIFICATION',
+      })
+      const token = await createVerificationToken(existing.id)
+      const emailSent = await trySendVerificationEmail({
+        userId: existing.id,
+        to: existing.email,
+        firstName: input.firstName,
+        token,
+        reason: 'register-unverified-retry',
+      })
+      return { userId: existing.id, emailSent }
+    }
+
     if (existing) {
       await emailService.sendRegistrationAttemptEmail({
         to: existing.email,
         firstName: existing.firstName,
+      }).catch((err) => {
+        logger.warn({ err, email: input.email }, 'Registration-attempt email failed')
       })
-      logger.info({ email: input.email }, 'Registration attempted for existing email')
-      return { userId: randomUUID() }
+      logger.info({ email: input.email }, 'Registration attempted for existing verified email')
+      return { userId: randomUUID(), emailSent: true }
     }
 
     let referredById: string | null = null
@@ -148,14 +256,28 @@ export const authService = {
       riskAcceptedAt: input.acceptRisk === false ? null : now,
     })
 
+    logger.info(
+      {
+        userId: user.id,
+        email: user.email,
+        status: user.status,
+        emailVerifiedAt: user.emailVerifiedAt,
+        hasPasswordHash: Boolean(user.passwordHash),
+        passwordHashPrefix: user.passwordHash?.slice(0, 7),
+      },
+      'User row created on register',
+    )
+
     const token = await createVerificationToken(user.id)
-    await emailService.sendVerificationEmail({
+    const emailSent = await trySendVerificationEmail({
+      userId: user.id,
       to: user.email,
       firstName: user.firstName,
       token,
+      reason: 'register',
     })
 
-    logger.info({ userId: user.id }, 'User registered')
+    logger.info({ userId: user.id, emailSent }, 'User registered')
     await activityService.record({
       userId: user.id,
       actorId: user.id,
@@ -172,7 +294,7 @@ export const authService = {
       adminPath: `/admin/users/${user.id}`,
       recordActivity: false,
     })
-    return { userId: user.id }
+    return { userId: user.id, emailSent }
   },
 
   async login(
@@ -183,18 +305,25 @@ export const authService = {
 
     if (!user || !user.passwordHash) {
       await passwordService.verify(input.password, DUMMY_PASSWORD_HASH)
+      logger.info(
+        { email: input.email, found: Boolean(user), hasPasswordHash: Boolean(user?.passwordHash) },
+        'Login failed: user missing or no password',
+      )
       throw unauthorized('Incorrect email or password.')
     }
 
     if (user.lockedUntil && user.lockedUntil > new Date()) {
+      logger.info({ userId: user.id }, 'Login failed: account locked')
       throw forbidden('Account temporarily locked due to failed login attempts.')
     }
 
     if (user.status === 'SUSPENDED' || user.status === 'BLOCKED') {
+      logger.info({ userId: user.id, status: user.status }, 'Login failed: suspended')
       throw new AppError(403, ERROR_CODES.ACCOUNT_SUSPENDED, 'This account has been suspended.')
     }
 
     if (user.status === 'CLOSED' || user.status === 'ARCHIVED') {
+      logger.info({ userId: user.id, status: user.status }, 'Login failed: closed/archived')
       throw unauthorized('Incorrect email or password.')
     }
 
@@ -206,11 +335,17 @@ export const authService = {
           ? new Date(Date.now() + AUTH_LIMITS.lockoutMinutes * 60_000)
           : null
       await userRepository.recordFailedLogin(user.id, failedLoginCount, lockedUntil)
+      logger.info(
+        { userId: user.id, failedLoginCount, locked: Boolean(lockedUntil) },
+        'Login failed: password mismatch',
+      )
       if (lockedUntil) {
         await emailService.sendSecurityAlertEmail({
           to: user.email,
           firstName: user.firstName,
           message: 'Your account was locked after multiple failed login attempts.',
+        }).catch((err) => {
+          logger.warn({ err, userId: user.id }, 'Security alert email failed')
         })
       }
       throw unauthorized('Incorrect email or password.')
@@ -227,16 +362,16 @@ export const authService = {
     }
 
     if (!user.emailVerifiedAt) {
-      const token = await createVerificationToken(user.id)
-      await emailService.sendVerificationEmail({
-        to: user.email,
-        firstName: user.firstName,
-        token,
-      })
+      logger.info(
+        { userId: user.id, status: user.status },
+        'Login blocked: email not verified',
+      )
+      // Do not rotate the verification token here — that would invalidate the link
+      // already sitting in the user's inbox. Resend is available on /verify-email.
       throw new AppError(
         403,
         ERROR_CODES.EMAIL_NOT_VERIFIED,
-        'Please verify your email before signing in.',
+        'Please verify your email before logging in.',
       )
     }
 
@@ -378,23 +513,37 @@ export const authService = {
     const tokenHash = tokenService.hashToken(input.token)
     const record = await verificationTokenRepository.findByHash(tokenHash)
     if (!record || record.type !== 'EMAIL_VERIFICATION') {
+      logger.warn({ tokenPrefix: input.token.slice(0, 8) }, 'Verify email: invalid token')
       throw badRequest('This verification link is invalid.')
     }
     if (record.usedAt) {
       const user = await userRepository.findById(record.userId)
       if (user?.emailVerifiedAt) {
+        logger.info({ userId: user.id }, 'Verify email: already verified (idempotent)')
         return
       }
+      logger.warn({ userId: record.userId }, 'Verify email: token already used')
       throw badRequest('This verification link has already been used.')
     }
     if (record.expiresAt <= new Date()) {
+      logger.warn(
+        { userId: record.userId, expiresAt: record.expiresAt.toISOString() },
+        'Verify email: token expired',
+      )
       throw badRequest('This verification link has expired.')
     }
 
     const user = await userRepository.markEmailVerified(record.userId)
     await verificationTokenRepository.markUsed(record.id)
-    await emailService.sendWelcomeEmail({ to: user.email, firstName: user.firstName })
-    logger.info({ userId: user.id }, 'Email verified')
+    await emailService
+      .sendWelcomeEmail({ to: user.email, firstName: user.firstName })
+      .catch((err) => {
+        logger.warn({ err, userId: user.id }, 'Welcome email failed after verify')
+      })
+    logger.info(
+      { userId: user.id, email: user.email, status: user.status },
+      'Email verified',
+    )
     await opsAlertService.notify({
       event: 'EMAIL_VERIFIED',
       title: 'Email verified',
@@ -406,18 +555,35 @@ export const authService = {
     })
   },
 
-  async resendVerification(input: ResendVerificationInput): Promise<void> {
+  async resendVerification(input: ResendVerificationInput): Promise<{ emailSent: boolean }> {
     const user = await userRepository.findByEmail(input.email)
     if (!user || user.emailVerifiedAt) {
-      return
+      logger.info(
+        { email: input.email, found: Boolean(user), alreadyVerified: Boolean(user?.emailVerifiedAt) },
+        'Resend verification: no-op',
+      )
+      // Enumeration-safe success
+      return { emailSent: true }
     }
+
+    await assertVerificationResendAllowed(user.id)
     const token = await createVerificationToken(user.id)
-    await emailService.sendVerificationEmail({
+    const emailSent = await trySendVerificationEmail({
+      userId: user.id,
       to: user.email,
       firstName: user.firstName,
       token,
+      reason: 'resend',
     })
+    if (!emailSent) {
+      throw new AppError(
+        503,
+        ERROR_CODES.INTERNAL_ERROR,
+        'Could not send the verification email. Please try again shortly.',
+      )
+    }
     logger.info({ userId: user.id }, 'Verification email resent')
+    return { emailSent: true }
   },
 
   async forgotPassword(input: ForgotPasswordInput): Promise<void> {

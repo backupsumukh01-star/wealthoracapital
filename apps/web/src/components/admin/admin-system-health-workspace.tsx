@@ -162,8 +162,20 @@ export function AdminSystemHealthWorkspace() {
                   ? `${h.widgets.stability.diskUsedPct}%`
                   : 'n/a',
               ],
-              ['Git', h.widgets.stability.gitCommit.slice(0, 10)],
+              ['Git commit', h.widgets.stability.gitCommit.slice(0, 12)],
+              ['Build version', h.widgets.stability.buildVersion ?? h.version],
+              [
+                'Last deploy',
+                h.widgets.stability.lastDeployment.slice(0, 19).replace('T', ' '),
+              ],
+              [
+                'Last crash',
+                h.widgets.stability.lastCrash
+                  ? `${h.widgets.stability.lastCrash.kind} · ${h.widgets.stability.lastCrash.at.slice(0, 19)}`
+                  : 'None',
+              ],
               ['Instance', h.widgets.stability.renderInstance],
+              ['Web build', process.env.NEXT_PUBLIC_BUILD_ID?.slice(0, 12) ?? '—'],
             ].map(([label, value]) => (
               <div key={label} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
                 <p className="text-caption text-fg-subtle">{label}</p>

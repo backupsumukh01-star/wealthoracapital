@@ -9,16 +9,21 @@ const defaultOptions: DefaultOptions = {
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
+    refetchOnMount: true,
+    networkMode: 'online',
     retry(failureCount, error) {
       // A 4xx is a decision, not a hiccup. Retrying it just delays the message.
       if (error instanceof ApiError && error.status >= 400 && error.status < 500) return false
+      // Network / 5xx — brief backoff, max 2 retries.
       return failureCount < 2
     },
+    retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 8_000),
   },
   mutations: {
     // Mutations move money. A blind retry is exactly what idempotency keys exist to make safe,
     // so retries are opted into per-mutation rather than applied globally.
     retry: false,
+    networkMode: 'online',
   },
 }
 

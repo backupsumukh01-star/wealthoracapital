@@ -23,7 +23,10 @@ export type RegisterBody = {
 /** Auth API — cookies carry session; no tokens in JS. */
 export const authService = {
   register: (body: RegisterBody) =>
-    apiClient<{ userId: string }>(API_ROUTES.auth.register, { method: 'POST', body }),
+    apiClient<{ userId: string; emailSent?: boolean }>(API_ROUTES.auth.register, {
+      method: 'POST',
+      body,
+    }),
 
   login: (body: LoginBody) =>
     apiClient<AuthSessionPayload>(API_ROUTES.auth.login, { method: 'POST', body }),
@@ -38,7 +41,10 @@ export const authService = {
     apiClient<null>(API_ROUTES.auth.verifyEmail, { method: 'POST', body }),
 
   resendVerification: (body: { email: string }) =>
-    apiClient<null>(API_ROUTES.auth.resendVerification, { method: 'POST', body }),
+    apiClient<{ emailSent?: boolean }>(API_ROUTES.auth.resendVerification, {
+      method: 'POST',
+      body,
+    }),
 
   forgotPassword: (body: { email: string }) =>
     apiClient<null>(API_ROUTES.auth.forgotPassword, { method: 'POST', body }),

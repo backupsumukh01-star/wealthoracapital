@@ -77,13 +77,19 @@ export const healthController = {
   }),
 
   version: asyncHandler(async (_req: Request, res: Response) => {
+    const snap = (await import('../observability/process-stability.js')).processStability.snapshot()
+    res.setHeader('Cache-Control', 'no-store')
     sendSuccess(res, {
       name: env.APP_NAME,
       version: APP_VERSION,
-      commit: process.env.RENDER_GIT_COMMIT ?? process.env.GIT_COMMIT ?? 'local',
+      buildVersion: APP_VERSION,
+      commit: snap.gitCommit,
       branch: process.env.RENDER_GIT_BRANCH ?? process.env.GIT_BRANCH ?? 'local',
+      deployedAt: snap.lastDeployment,
       api: 'v1',
       node: process.version,
+      uptimeSeconds: snap.uptimeSeconds,
+      restartCount: snap.restartCount,
     })
   }),
 }

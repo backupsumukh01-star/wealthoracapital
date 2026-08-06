@@ -12,6 +12,7 @@ import { globalRateLimiter } from './middlewares/rate-limit.js'
 import { metricsMiddleware } from './middlewares/metrics.js'
 import { requestIdMiddleware } from './middlewares/request-id.js'
 import { requestTimeoutMiddleware } from './middlewares/request-timeout.js'
+import { noStoreCacheMiddleware } from './middlewares/no-store-cache.js'
 import { sanitizeRequest } from './middlewares/sanitize.js'
 import { createApiRouter } from './routes/index.js'
 import { createMeta } from './utils/response.js'
@@ -25,6 +26,7 @@ export function createApp() {
 
   app.use(requestIdMiddleware)
   app.use(requestTimeoutMiddleware)
+  app.use(noStoreCacheMiddleware)
   app.use(
     pinoHttp({
       logger,

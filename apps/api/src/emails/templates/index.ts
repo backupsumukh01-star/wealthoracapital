@@ -18,8 +18,14 @@ interface RenderedEmail {
   html: string
 }
 
+function appUrl(path: string): string {
+  const base = env.APP_URL.replace(/\/$/, '')
+  const normalized = path.startsWith('/') ? path : `/${path}`
+  return `${base}${normalized}`
+}
+
 function dashboardUrl(path = '/dashboard'): string {
-  return `${env.APP_URL.replace(/\/$/, '')}${path}`
+  return appUrl(path)
 }
 
 function secureAccountUrl(): string {
@@ -55,7 +61,7 @@ export function renderEmailTemplate(
 
   switch (template) {
     case 'email-verification': {
-      const link = `${env.APP_URL}/verify-email?token=${encodeURIComponent(v.token ?? '')}`
+      const link = appUrl(`/verify-email?token=${encodeURIComponent(v.token ?? '')}`)
       return {
         subject: `Verify your ${env.APP_NAME} email`,
         text: `Hi ${v.firstName},\n\nVerify your email: ${link}\n\nExpires in 24 hours.\n\nGrowzy will never ask for your password or OTP.`,

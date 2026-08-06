@@ -96,6 +96,10 @@ export const processStability = {
         process.env.GIT_COMMIT ||
         process.env.COMMIT_SHA ||
         'unknown',
+      buildVersion:
+        process.env.BUILD_VERSION ||
+        process.env.npm_package_version ||
+        '0.1.0',
       renderInstance:
         process.env.RENDER_INSTANCE_ID ||
         process.env.RENDER_SERVICE_ID ||
@@ -105,6 +109,9 @@ export const processStability = {
         process.env.RENDER_GIT_COMMIT_TIMESTAMP ||
         process.env.DEPLOYED_AT ||
         new Date(startedAt).toISOString(),
+      lastCrash: crashes[0]
+        ? { at: crashes[0].at, kind: crashes[0].kind, message: crashes[0].message }
+        : null,
     }
   },
 }

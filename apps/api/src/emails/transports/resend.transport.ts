@@ -39,10 +39,27 @@ export class ResendEmailTransport implements EmailTransport {
     if (!response.ok) {
       const detail = await response.text().catch(() => '')
       logger.error(
-        { status: response.status, detail, to: message.to, subject: message.subject, from },
+        {
+          status: response.status,
+          detail,
+          to: message.to,
+          subject: message.subject,
+          from,
+          template: message.template,
+        },
         'Resend API rejected email',
       )
-      throw new Error(`Resend send failed (${response.status})`)
+      throw new Error(
+        `Resend send failed (${response.status}): ${detail.slice(0, 500) || response.statusText}`,
+      )
+    }
+
+    let resendId: string | undefined
+    try {
+      const body = (await response.json()) as { id?: string }
+      resendId = body.id
+    } catch {
+      // Response body optional
     }
 
     logger.info(
@@ -52,6 +69,7 @@ export class ResendEmailTransport implements EmailTransport {
         template: message.template,
         from,
         category: message.category,
+        resendId,
       },
       'Email dispatched via Resend',
     )

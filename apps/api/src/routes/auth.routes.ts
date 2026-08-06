@@ -2,7 +2,7 @@ import { Router } from 'express'
 
 import { authController } from '../controllers/auth.controller.js'
 import { authenticate, optionalAuthenticate } from '../middlewares/authenticate.js'
-import { authRateLimiter } from '../middlewares/rate-limit.js'
+import { authRateLimiter, verificationResendRateLimiter } from '../middlewares/rate-limit.js'
 import { validate } from '../middlewares/validate.js'
 import {
   changePasswordSchema,
@@ -27,6 +27,7 @@ authRouter.post('/verify-email', authRateLimiter, validate(verifyEmailSchema), a
 authRouter.post(
   '/verify-email/resend',
   authRateLimiter,
+  verificationResendRateLimiter,
   validate(resendVerificationSchema),
   authController.resendVerification,
 )

@@ -101,6 +101,136 @@ describe('Auth flows', () => {
     expect(res.body.success).toBe(false)
   })
 
+  it('register creates user + token; unverified login returns EMAIL_NOT_VERIFIED', async () => {
+    const email = uniqueEmail()
+    const password = 'SecurePass1!'
+
+    const reg = await request(app).post('/api/v1/auth/register').send({
+      email,
+      password,
+      firstName: 'Qa',
+      lastName: 'Verify',
+      acceptTerms: true,
+      acceptRisk: true,
+    })
+    expect(reg.status).toBe(201)
+    expect(reg.body.data.userId).toBeTruthy()
+    expect(typeof reg.body.data.emailSent).toBe('boolean')
+
+    const { prisma } = await import('../../src/database/prisma.js')
+    const user = await prisma.user.findFirst({ where: { email } })
+    expect(user).toBeTruthy()
+    expect(user!.passwordHash).toMatch(/^\$2[aby]\$/)
+    expect(user!.status).toBe('PENDING_VERIFICATION')
+    expect(user!.emailVerifiedAt).toBeNull()
+
+    const tokens = await prisma.verificationToken.findMany({
+      where: { userId: user!.id, type: 'EMAIL_VERIFICATION' },
+    })
+    expect(tokens.length).toBeGreaterThanOrEqual(1)
+    expect(tokens.some((t) => t.expiresAt > new Date() && !t.usedAt)).toBe(true)
+
+    const login = await request(app).post('/api/v1/auth/login').send({ email, password })
+    expect(login.status).toBe(403)
+    expect(login.body.error.code).toBe('EMAIL_NOT_VERIFIED')
+    expect(login.body.error.message).toBe('Please verify your email before logging in.')
+  })
+
+  it('verify email then login succeeds', async () => {
+    const email = uniqueEmail()
+    const password = 'SecurePass1!'
+
+    await request(app).post('/api/v1/auth/register').send({
+      email,
+      password,
+      firstName: 'Qa',
+      lastName: 'Flow',
+      acceptTerms: true,
+      acceptRisk: true,
+    })
+
+    const { prisma } = await import('../../src/database/prisma.js')
+    const { tokenService } = await import('../../src/services/token.service.js')
+    const user = await prisma.user.findFirstOrThrow({ where: { email } })
+
+    const raw = tokenService.createOpaqueRefreshToken().raw
+    await prisma.verificationToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: tokenService.hashToken(raw),
+        type: 'EMAIL_VERIFICATION',
+        expiresAt: new Date(Date.now() + 3_600_000),
+      },
+    })
+
+    const verify = await request(app).post('/api/v1/auth/verify-email').send({ token: raw })
+    expect(verify.status).toBe(200)
+
+    const refreshed = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
+    expect(refreshed.emailVerifiedAt).toBeTruthy()
+    expect(refreshed.status).toBe('ACTIVE')
+
+    const login = await request(app).post('/api/v1/auth/login').send({ email, password })
+    expect(login.status).toBe(200)
+    expect(login.body.data.user.email.toLowerCase()).toBe(email)
+  })
+
+  it('resend verification is rate-limited per account cooldown', async () => {
+    const email = uniqueEmail()
+    await request(app).post('/api/v1/auth/register').send({
+      email,
+      password: 'SecurePass1!',
+      firstName: 'Qa',
+      lastName: 'Resend',
+      acceptTerms: true,
+      acceptRisk: true,
+    })
+
+    const first = await request(app).post('/api/v1/auth/verify-email/resend').send({ email })
+    // Cooldown after register token — expect 429, or 200 if clock skew / first send path
+    expect([200, 429]).toContain(first.status)
+    if (first.status === 200) {
+      const second = await request(app).post('/api/v1/auth/verify-email/resend').send({ email })
+      expect(second.status).toBe(429)
+      expect(second.body.error.code).toBe('RATE_LIMITED')
+    } else {
+      expect(first.body.error.code).toBe('RATE_LIMITED')
+    }
+  })
+
+  it('unverified re-register updates password so login reaches verify gate', async () => {
+    const email = uniqueEmail()
+    await request(app).post('/api/v1/auth/register').send({
+      email,
+      password: 'OldPassword1!',
+      firstName: 'Qa',
+      lastName: 'Retry',
+      acceptTerms: true,
+      acceptRisk: true,
+    })
+
+    const again = await request(app).post('/api/v1/auth/register').send({
+      email,
+      password: 'NewPassword1!',
+      firstName: 'Qa',
+      lastName: 'Retry',
+      acceptTerms: true,
+      acceptRisk: true,
+    })
+    expect(again.status).toBe(201)
+
+    const loginOld = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email, password: 'OldPassword1!' })
+    expect(loginOld.status).toBe(401)
+
+    const loginNew = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email, password: 'NewPassword1!' })
+    expect(loginNew.status).toBe(403)
+    expect(loginNew.body.error.code).toBe('EMAIL_NOT_VERIFIED')
+  })
+
   it('protected routes reject missing auth cookie', async () => {
     const res = await request(app).get('/api/v1/wallet')
     expect(res.status).toBe(401)

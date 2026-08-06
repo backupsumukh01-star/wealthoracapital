@@ -30,4 +30,18 @@ export const verificationTokenRepository = {
       data: { usedAt: new Date() },
     })
   },
+
+  /** Most recent EMAIL_VERIFICATION / PASSWORD_RESET row for cooldown checks. */
+  findLatestByUserAndType(userId: string, type: TokenType): Promise<VerificationToken | null> {
+    return prisma.verificationToken.findFirst({
+      where: { userId, type },
+      orderBy: { createdAt: 'desc' },
+    })
+  },
+
+  countCreatedSince(userId: string, type: TokenType, since: Date): Promise<number> {
+    return prisma.verificationToken.count({
+      where: { userId, type, createdAt: { gte: since } },
+    })
+  },
 }

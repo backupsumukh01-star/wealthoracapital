@@ -4,6 +4,8 @@ import type { ReactNode } from 'react'
 
 import { LogoIntro } from '@/components/brand/logo-intro'
 import { MotionConfigProvider } from '@/components/motion/motion-config'
+import { DeployVersionGuard } from '@/components/system/deploy-version-guard'
+import { NetworkStatusBanner } from '@/components/system/network-status-banner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 import { AdminOsProvider } from './admin-os-provider'
@@ -29,6 +31,8 @@ export function Providers({
             <NotificationsProvider>
               <MotionConfigProvider>
                 <TooltipProvider delayDuration={200}>
+                  <DeployVersionGuard />
+                  <NetworkStatusBanner />
                   <LogoIntro />
                   {children}
                   <ToastProvider />

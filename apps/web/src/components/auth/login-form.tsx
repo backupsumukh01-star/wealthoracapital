@@ -89,9 +89,9 @@ export function LoginForm() {
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.code === ERROR_CODES.EMAIL_NOT_VERIFIED) {
-          toast.message('Verify your email to continue.')
+          toast.message('Please verify your email before logging in.')
           router.push(
-            `${ROUTES.auth.verifyEmail}?email=${encodeURIComponent(values.identifier)}&from=login`,
+            `${ROUTES.auth.verifyEmail}?email=${encodeURIComponent(values.identifier.trim().toLowerCase())}&from=login`,
           )
           return
         }

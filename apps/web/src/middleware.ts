@@ -8,6 +8,9 @@ import { ROUTES } from '@meridian/shared'
  * admin areas both gate on its presence; the API itself re-verifies the role server-side
  * on every request.
  *
+ * Also stamps HTML/document responses with no-store so CDNs and browsers never pin an
+ * old shell that references deleted `/_next/static` chunks after a deploy.
+ *
  * Disable with `NEXT_PUBLIC_ENABLE_ROUTE_GUARDS=false`.
  */
 
@@ -43,9 +46,19 @@ function startsWithAny(pathname: string, prefixes: string[]) {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
 }
 
+function withDocumentCacheHeaders(response: NextResponse): NextResponse {
+  response.headers.set(
+    'Cache-Control',
+    'private, no-cache, no-store, max-age=0, must-revalidate',
+  )
+  response.headers.set('Pragma', 'no-cache')
+  response.headers.set('Expires', '0')
+  return response
+}
+
 export function middleware(request: NextRequest) {
   if (!GUARDS_ENABLED) {
-    return NextResponse.next()
+    return withDocumentCacheHeaders(NextResponse.next())
   }
 
   const { pathname, search } = request.nextUrl
@@ -60,7 +73,7 @@ export function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = ROUTES.admin.login
     url.search = `?next=${encodeURIComponent(pathname + search)}`
-    return NextResponse.redirect(url)
+    return withDocumentCacheHeaders(NextResponse.redirect(url))
   }
 
   // No redirect-away-from-login-when-authenticated rule here: `mfx_at` is shared by every
@@ -72,17 +85,17 @@ export function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = ROUTES.auth.login
     url.search = `?next=${encodeURIComponent(pathname + search)}`
-    return NextResponse.redirect(url)
+    return withDocumentCacheHeaders(NextResponse.redirect(url))
   }
 
   if (startsWithAny(pathname, AUTH_ONLY_PREFIXES) && hasInvestor) {
     const url = request.nextUrl.clone()
     url.pathname = ROUTES.dashboard.root
     url.search = ''
-    return NextResponse.redirect(url)
+    return withDocumentCacheHeaders(NextResponse.redirect(url))
   }
 
-  return NextResponse.next()
+  return withDocumentCacheHeaders(NextResponse.next())
 }
 
 export const config = {

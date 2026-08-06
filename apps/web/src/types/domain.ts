@@ -207,8 +207,10 @@ export type AdminHealthSnapshot = {
       databaseUptimeSeconds: number
       apiUptimeSeconds: number
       gitCommit: string
+      buildVersion?: string
       renderInstance: string
       lastDeployment: string
+      lastCrash?: { at: string; kind: string; message: string } | null
       diskUsedPct: number | null
       recentCrashes: Array<{ id: string; at: string; kind: string; message: string }>
       backgroundJobs: Array<{ name: string; intervalMs: number; consecutiveFailures: number }>

@@ -67,8 +67,10 @@ export type AdminHealthSnapshot = {
       databaseUptimeSeconds: number
       apiUptimeSeconds: number
       gitCommit: string
+      buildVersion: string
       renderInstance: string
       lastDeployment: string
+      lastCrash: { at: string; kind: string; message: string } | null
       diskUsedPct: number | null
       recentCrashes: Array<{ id: string; at: string; kind: string; message: string }>
       backgroundJobs: Array<{ name: string; intervalMs: number; consecutiveFailures: number }>
@@ -381,8 +383,10 @@ export const adminHealthService = {
           databaseUptimeSeconds: s.databaseUptimeSeconds,
           apiUptimeSeconds: s.uptimeSeconds,
           gitCommit: s.gitCommit,
+          buildVersion: s.buildVersion,
           renderInstance: s.renderInstance,
           lastDeployment: s.lastDeployment,
+          lastCrash: s.lastCrash,
           diskUsedPct,
           recentCrashes: s.recentCrashes.map((c) => ({
             id: c.id,
@@ -614,7 +618,15 @@ export const adminHealthService = {
         id: 'git-commit',
         label: 'Git commit',
         value: widgets.stability.gitCommit.slice(0, 8),
-        detail: `instance ${widgets.stability.renderInstance}`,
+        detail: `v${widgets.stability.buildVersion} · ${widgets.stability.renderInstance}`,
+        tone: 'healthy',
+        group: 'infra',
+      },
+      {
+        id: 'build-version',
+        label: 'Build version',
+        value: widgets.stability.buildVersion,
+        detail: `deploy ${widgets.stability.lastDeployment.slice(0, 19).replace('T', ' ')}`,
         tone: 'healthy',
         group: 'infra',
       },
@@ -622,8 +634,10 @@ export const adminHealthService = {
         id: 'last-deploy',
         label: 'Last deployment',
         value: widgets.stability.lastDeployment.slice(0, 19).replace('T', ' '),
-        detail: 'Render / process boot marker',
-        tone: 'healthy',
+        detail: widgets.stability.lastCrash
+          ? `Last crash: ${widgets.stability.lastCrash.kind} @ ${widgets.stability.lastCrash.at.slice(0, 19)}`
+          : 'No crashes in buffer',
+        tone: widgets.stability.lastCrash ? 'warning' : 'healthy',
         group: 'infra',
       },
       {

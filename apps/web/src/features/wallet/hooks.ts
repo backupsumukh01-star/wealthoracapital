@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { LedgerEntry, Wallet, WalletSummary } from '@meridian/shared'
 
 import { walletApi } from './api'
+import { QUERY_STALE_TIME } from '@/lib/constants'
 import type { QueryHookOptions } from '@/lib/query-client'
 
 export const walletQueryKeys = {
@@ -15,12 +16,15 @@ export const walletQueryKeys = {
     [...walletQueryKeys.all, 'transactions', filters ?? {}] as const,
 }
 
-/** The investor's wallet — balance, locked funds, lifetime totals. */
+/** The investor's wallet — balance, locked funds, lifetime totals. Always fresh. */
 export function useWallet(options?: QueryHookOptions) {
   return useQuery<Wallet>({
     queryKey: walletQueryKeys.all,
     queryFn: () => walletApi.get(),
     enabled: options?.enabled,
+    staleTime: QUERY_STALE_TIME.fast,
+    refetchOnMount: 'always',
+    refetchInterval: options?.refetchInterval,
   })
 }
 
@@ -30,6 +34,9 @@ export function useWalletSummary(options?: QueryHookOptions) {
     queryKey: walletQueryKeys.summary(),
     queryFn: () => walletApi.summary(),
     enabled: options?.enabled,
+    staleTime: QUERY_STALE_TIME.fast,
+    refetchOnMount: 'always',
+    refetchInterval: options?.refetchInterval,
   })
 }
 
@@ -42,5 +49,6 @@ export function useWalletTransactions(
     queryKey: walletQueryKeys.transactions(query),
     queryFn: () => walletApi.transactions(query),
     enabled: options?.enabled,
+    staleTime: QUERY_STALE_TIME.fast,
   })
 }

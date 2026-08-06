@@ -34,7 +34,8 @@ export function useAuthSession() {
     queryKey: authQueryKeys.session(),
     queryFn: authService.me,
     retry: false,
-    staleTime: 60_000,
+    staleTime: 30_000,
+    refetchOnMount: true,
   })
 }
 

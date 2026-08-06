@@ -26,6 +26,21 @@ export const globalRateLimiter = rateLimit({
   legacyHeaders: false,
   validate,
   ...(optionalRedisStore() ? { store: optionalRedisStore() } : {}),
+  skip: (req) => {
+    const path = req.path || ''
+    // Health / version / metrics must never 429 — Render probes + ops dashboards.
+    return (
+      path === '/api/health' ||
+      path === '/api/health/live' ||
+      path === '/api/health/ready' ||
+      path === '/api/version' ||
+      path === '/api/metrics' ||
+      path === '/' ||
+      path.startsWith('/api/docs') ||
+      path === '/api/openapi.json' ||
+      path === '/api/redoc'
+    )
+  },
   handler: (req, res) => {
     res.status(429).json({
       success: false,
@@ -51,6 +66,28 @@ export const authRateLimiter = rateLimit({
       error: {
         code: ERROR_CODES.RATE_LIMITED,
         message: 'Too many authentication attempts. Please try again later.',
+      },
+      meta: createMeta(req.requestId),
+    })
+  },
+})
+
+/** Stricter limiter for verification email resend (abuse + inbox flooding). */
+export const verificationResendRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate,
+  ...(optionalRedisStore('rl:verify-resend:')
+    ? { store: optionalRedisStore('rl:verify-resend:') }
+    : {}),
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: {
+        code: ERROR_CODES.RATE_LIMITED,
+        message: 'Too many verification email requests. Please try again later.',
       },
       meta: createMeta(req.requestId),
     })

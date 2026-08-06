@@ -10,8 +10,12 @@ import { LoadingScreen } from '@/components/auth/loading-screen'
 import { SuccessState } from '@/components/auth/success-state'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { FormField } from '@/components/ui/form-field'
+import { Input } from '@/components/ui/input'
 import { useResendVerification, useVerifyEmail } from '@/features/auth/hooks'
 import { ApiError } from '@/lib/api-client'
+
+const RESEND_COOLDOWN_SEC = 60
 
 /**
  * Email verification: the link from the welcome email carries `?token=…`, which this page
@@ -20,13 +24,14 @@ import { ApiError } from '@/lib/api-client'
 export function VerifyEmailPanel() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
-  const email = searchParams.get('email')?.trim().toLowerCase() ?? ''
+  const initialEmail = searchParams.get('email')?.trim().toLowerCase() ?? ''
   const from = searchParams.get('from')
 
   const verifyEmail = useVerifyEmail()
   const resendVerification = useResendVerification()
   const attempted = useRef(false)
-  const [resent, setResent] = useState(false)
+  const [email, setEmail] = useState(initialEmail)
+  const [cooldown, setCooldown] = useState(0)
 
   useEffect(() => {
     if (!token || attempted.current) return
@@ -35,6 +40,14 @@ export function VerifyEmailPanel() {
     // verifyEmail is a stable mutate function from useMutation; token drives the single attempt.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const id = window.setInterval(() => {
+      setCooldown((s) => Math.max(0, s - 1))
+    }, 1000)
+    return () => window.clearInterval(id)
+  }, [cooldown])
 
   if (token && verifyEmail.isPending) {
     return <LoadingScreen label="Verifying your email…" compact />
@@ -59,6 +72,8 @@ export function VerifyEmailPanel() {
     )
   }
 
+  const canResend = Boolean(email.trim()) && cooldown === 0 && !resendVerification.isPending
+
   return (
     <AuthCard
       title="Verify your email"
@@ -67,7 +82,7 @@ export function VerifyEmailPanel() {
           ? 'That verification link is invalid or has expired. Request a new one below.'
           : email
             ? `We sent a verification link to ${email}. Open it on this device to continue.`
-            : 'Check your inbox for a verification link to continue.'
+            : 'Enter your email to resend the verification link.'
       }
     >
       {token && verifyEmail.isError ? (
@@ -78,26 +93,61 @@ export function VerifyEmailPanel() {
         </Alert>
       ) : null}
 
+      {!initialEmail ? (
+        <FormField label="Email" required>
+          <Input
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value.trim().toLowerCase())}
+          />
+        </FormField>
+      ) : null}
+
       <Button
         type="button"
         fullWidth
         size="lg"
         loading={resendVerification.isPending}
-        disabled={!email || resent}
+        disabled={!canResend}
         onClick={() => {
+          const target = email.trim().toLowerCase()
+          if (!target) {
+            toast.error('Enter your email address')
+            return
+          }
           resendVerification.mutate(
-            { email },
+            { email: target },
             {
               onSuccess: () => {
-                setResent(true)
-                toast.success('Verification email resent')
+                setCooldown(RESEND_COOLDOWN_SEC)
+                toast.success('Verification email resent', {
+                  description: 'Check your inbox and spam folder.',
+                })
               },
-              onError: () => toast.error('Could not resend the email'),
+              onError: (error) => {
+                const message =
+                  error instanceof ApiError
+                    ? error.message
+                    : 'Could not resend the email'
+                toast.error(message)
+                if (error instanceof ApiError && error.code === 'RATE_LIMITED') {
+                  const retry =
+                    typeof (error.details as { retryAfterSec?: number } | undefined)
+                      ?.retryAfterSec === 'number'
+                      ? (error.details as { retryAfterSec: number }).retryAfterSec
+                      : RESEND_COOLDOWN_SEC
+                  setCooldown(retry)
+                }
+              },
             },
           )
         }}
       >
-        {resent ? 'Email sent' : 'Resend verification email'}
+        {cooldown > 0
+          ? `Resend available in ${cooldown}s`
+          : 'Resend verification email'}
       </Button>
     </AuthCard>
   )

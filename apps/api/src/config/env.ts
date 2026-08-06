@@ -42,12 +42,14 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional().default(''),
   SMTP_FROM_NAME: z.string().default('Growzy'),
   SMTP_FROM_ADDRESS: z.string().min(3).default('noreply@localhost'),
-  /** Auth / security lane (verification, OTP, password reset). */
-  EMAIL_FROM_AUTH: z.string().optional().default('noreply@growzycapital.com'),
-  /** Support / KYC lane. */
-  EMAIL_FROM_SUPPORT: z.string().optional().default('support@growzycapital.com'),
-  /** Finance / investment / admin alerts lane. */
-  EMAIL_FROM_FINANCE: z.string().optional().default('info@growzycapital.com'),
+  /**
+   * Optional per-lane From addresses. Empty → fall back to SMTP_FROM_ADDRESS
+   * (the address verified in Resend / SMTP). Hardcoding noreply@ without verifying
+   * that mailbox in Resend caused production verification emails to fail.
+   */
+  EMAIL_FROM_AUTH: z.string().optional().default(''),
+  EMAIL_FROM_SUPPORT: z.string().optional().default(''),
+  EMAIL_FROM_FINANCE: z.string().optional().default(''),
   RESEND_API_KEY: z.string().optional().default(''),
   SENDGRID_API_KEY: z.string().optional().default(''),
   SES_ACCESS_KEY_ID: z.string().optional().default(''),

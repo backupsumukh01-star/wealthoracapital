@@ -60,7 +60,13 @@ export const viewport: Viewport = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const release = process.env.RENDER_GIT_COMMIT ?? process.env.GIT_COMMIT ?? 'local'
+  const release =
+    process.env.NEXT_PUBLIC_GIT_COMMIT ??
+    process.env.RENDER_GIT_COMMIT ??
+    process.env.GIT_COMMIT ??
+    'local'
+  const buildId = process.env.NEXT_PUBLIC_BUILD_ID ?? release
+  const buildTime = process.env.NEXT_PUBLIC_BUILD_TIME ?? ''
 
   return (
     // `suppressHydrationWarning` is required by next-themes, which writes the theme class on the
@@ -68,6 +74,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
       <body
         data-release={release}
+        data-build-id={buildId}
+        data-build-time={buildTime}
         className="min-h-dvh overflow-x-clip bg-base font-sans text-fg antialiased"
       >
         <a

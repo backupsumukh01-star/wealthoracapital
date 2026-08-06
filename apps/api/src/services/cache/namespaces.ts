@@ -1,6 +1,10 @@
 /**
  * Namespaced Redis/cache keys for Growzy performance surfaces.
  * Uses the shared cache client (memory or Redis).
+ *
+ * NEVER cache: auth sessions as truth source, wallet balances, notifications unread,
+ * or any per-user money-moving read behind a shared `api:` key without a userId hash.
+ * Prefer short TTLs and explicit invalidation. HTTP responses already send no-store.
  */
 import { cache } from './index.js'
 

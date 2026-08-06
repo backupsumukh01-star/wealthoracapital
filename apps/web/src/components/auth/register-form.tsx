@@ -47,7 +47,7 @@ export function RegisterForm() {
 
   async function onSubmit(values: RegisterInput) {
     try {
-      await registerMutation.mutateAsync({
+      const result = await registerMutation.mutateAsync({
         firstName: values.firstName,
         lastName: values.lastName,
         email: values.email.trim().toLowerCase(),
@@ -57,7 +57,10 @@ export function RegisterForm() {
         acceptRisk: true,
       })
       toast.success('Account created', {
-        description: 'Check your email to verify your address, then sign in.',
+        description:
+          result.emailSent === false
+            ? 'We could not send the verification email yet. Use Resend on the next screen.'
+            : 'Check your email to verify your address, then sign in.',
       })
       router.push(
         `${ROUTES.auth.verifyEmail}?email=${encodeURIComponent(values.email.trim().toLowerCase())}&from=register`,

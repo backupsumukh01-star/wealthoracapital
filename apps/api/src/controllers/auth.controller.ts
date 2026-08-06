@@ -127,8 +127,8 @@ export const authController = {
   }),
 
   resendVerification: asyncHandler(async (req, res) => {
-    await authService.resendVerification(req.body as ResendVerificationInput)
-    sendSuccess(res, null)
+    const data = await authService.resendVerification(req.body as ResendVerificationInput)
+    sendSuccess(res, data)
   }),
 
   forgotPassword: asyncHandler(async (req, res) => {
