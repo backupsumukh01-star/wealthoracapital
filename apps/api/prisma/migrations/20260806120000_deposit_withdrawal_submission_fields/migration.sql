@@ -1,4 +1,4 @@
-﻿-- Deposit investor submission fields
+-- Deposit investor submission fields
 ALTER TABLE "deposits" ADD COLUMN IF NOT EXISTS "notes" VARCHAR(2000);
 ALTER TABLE "deposits" ADD COLUMN IF NOT EXISTS "submission_details" JSONB;
 
