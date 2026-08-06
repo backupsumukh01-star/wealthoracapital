@@ -26,6 +26,7 @@
     "db:migrate:deploy:raw": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "admin:promote": "node scripts/promote-admin.mjs",
+    "db:seed:demo": "tsx scripts/seed-demo-backtest.mjs",
     "db:push": "prisma db push",
     "openapi:generate": "node ../../scripts/generate-openapi.mjs",
     "postinstall": "prisma generate --schema=./prisma/schema.prisma",

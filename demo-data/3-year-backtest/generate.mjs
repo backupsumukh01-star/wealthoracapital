@@ -235,7 +235,7 @@ function buildTradesForDay(dayDate, dayReturnPct, tradeSeqStart) {
       takeProfit: round(entry * (direction === 'BUY' ? 1.004 : 0.996), meta.digits),
       openTime: openTime.toISOString(),
       closeTime: closeTime.toISOString(),
-      status: 'SETTLED',
+      status: 'CLOSED',
       outcome,
       returnPct: ret,
       pips,
@@ -298,7 +298,8 @@ function buildDataset() {
     tradingDays.push({
       id,
       date,
-      status: 'DISTRIBUTED',
+      // TradingDayStatus: DRAFT | PUBLISHED | DISTRIBUTED | REVERSED (never SETTLED)
+      status: 'PUBLISHED',
       computedReturnPct: netReturnPct,
       netReturnPct,
       tradeCount: dayTrades.length,

@@ -2,7 +2,7 @@
   {
     "id": "2d1c3cb8-0814-6e0c-3cd8-3822ba25d368",
     "date": "2023-08-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.380915,
     "netReturnPct": 0.380915,
     "tradeCount": 4,
@@ -14,7 +14,7 @@
   {
     "id": "5effb448-7d23-5bd6-c88c-3687e417fbdd",
     "date": "2023-08-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.504006,
     "netReturnPct": 0.504006,
     "tradeCount": 3,
@@ -26,7 +26,7 @@
   {
     "id": "bd2184bd-c4f8-efe9-2b6d-e617bc42666c",
     "date": "2023-08-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.055744,
     "netReturnPct": -0.055744,
     "tradeCount": 4,
@@ -38,7 +38,7 @@
   {
     "id": "3dce4eeb-58e2-fd7a-9af7-558b71b83657",
     "date": "2023-08-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.267292,
     "netReturnPct": -0.267292,
     "tradeCount": 2,
@@ -50,7 +50,7 @@
   {
     "id": "f983b12c-5faf-3835-4c76-3ce668dadebf",
     "date": "2023-08-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.346917,
     "netReturnPct": 0.346917,
     "tradeCount": 2,
@@ -62,7 +62,7 @@
   {
     "id": "c9189711-53eb-b6f5-cf4f-5a1c9936f730",
     "date": "2023-08-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.050618,
     "netReturnPct": 0.050618,
     "tradeCount": 5,
@@ -74,7 +74,7 @@
   {
     "id": "874778f5-4ca7-c34e-d212-c7484a466ac6",
     "date": "2023-08-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.018936,
     "netReturnPct": 0.018936,
     "tradeCount": 2,
@@ -86,7 +86,7 @@
   {
     "id": "e7ca4019-91b7-730c-5e9b-3fca4ccfd3e8",
     "date": "2023-08-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.575629,
     "netReturnPct": 0.575629,
     "tradeCount": 5,
@@ -98,7 +98,7 @@
   {
     "id": "fe6f6718-8f70-1769-89e4-c5da043028e4",
     "date": "2023-08-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.090717,
     "netReturnPct": -0.090717,
     "tradeCount": 3,
@@ -110,7 +110,7 @@
   {
     "id": "1bbe860e-c493-6c7e-ab39-d61353bc0679",
     "date": "2023-08-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.402253,
     "netReturnPct": 0.402253,
     "tradeCount": 4,
@@ -122,7 +122,7 @@
   {
     "id": "df1a74c4-103f-cfcd-2036-7e8a45fc780e",
     "date": "2023-08-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.420549,
     "netReturnPct": 0.420549,
     "tradeCount": 2,
@@ -134,7 +134,7 @@
   {
     "id": "eac6f04f-67cf-27b6-8444-81f43b731d30",
     "date": "2023-08-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.199007,
     "netReturnPct": 0.199007,
     "tradeCount": 4,
@@ -146,7 +146,7 @@
   {
     "id": "2ddb4cbc-7e71-4312-2c6b-84a7bbb8598b",
     "date": "2023-08-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.375743,
     "netReturnPct": 0.375743,
     "tradeCount": 2,
@@ -158,7 +158,7 @@
   {
     "id": "525fca2b-5706-2ece-9ed8-a526c12320bb",
     "date": "2023-08-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.536989,
     "netReturnPct": 0.536989,
     "tradeCount": 4,
@@ -170,7 +170,7 @@
   {
     "id": "39b6ef8b-ec25-5553-8858-b18ea85a125e",
     "date": "2023-08-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.472203,
     "netReturnPct": 0.472203,
     "tradeCount": 4,
@@ -182,7 +182,7 @@
   {
     "id": "b4d80047-56ea-a5cf-95f8-e3bd58333971",
     "date": "2023-08-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.416108,
     "netReturnPct": 0.416108,
     "tradeCount": 4,
@@ -194,7 +194,7 @@
   {
     "id": "1e71ba3a-f1e0-0c25-72b4-8cc4be48efad",
     "date": "2023-08-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.459267,
     "netReturnPct": 0.459267,
     "tradeCount": 5,
@@ -206,7 +206,7 @@
   {
     "id": "9d2e9fcd-0139-6dc7-83ad-9d2adc7f9395",
     "date": "2023-08-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.130451,
     "netReturnPct": 0.130451,
     "tradeCount": 4,
@@ -218,7 +218,7 @@
   {
     "id": "91dd1d6c-57a8-bc0f-d305-1406ce9b64d1",
     "date": "2023-08-31",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.52935,
     "netReturnPct": 0.52935,
     "tradeCount": 3,
@@ -230,7 +230,7 @@
   {
     "id": "c3dcb4d2-9ef5-db88-f166-f07c6c06a896",
     "date": "2023-09-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.218763,
     "netReturnPct": 0.218763,
     "tradeCount": 4,
@@ -242,7 +242,7 @@
   {
     "id": "a71fb929-c460-6b15-1091-da982f182447",
     "date": "2023-09-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.255507,
     "netReturnPct": 0.255507,
     "tradeCount": 3,
@@ -254,7 +254,7 @@
   {
     "id": "894e1440-bd22-6dce-c99f-9788848c4cc3",
     "date": "2023-09-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.268656,
     "netReturnPct": 0.268656,
     "tradeCount": 2,
@@ -266,7 +266,7 @@
   {
     "id": "24e6fd59-055b-c9ae-47b1-a25e998189d5",
     "date": "2023-09-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.061522,
     "netReturnPct": -0.061522,
     "tradeCount": 2,
@@ -278,7 +278,7 @@
   {
     "id": "79e86267-6f0a-c4ac-3016-d3ab96e56cba",
     "date": "2023-09-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.456279,
     "netReturnPct": 0.456279,
     "tradeCount": 4,
@@ -290,7 +290,7 @@
   {
     "id": "5ef58ee5-7a41-d7bd-260c-8d7cccd53455",
     "date": "2023-09-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.165797,
     "netReturnPct": 0.165797,
     "tradeCount": 3,
@@ -302,7 +302,7 @@
   {
     "id": "47a18063-9b9d-f59f-bfbd-df6c4d1f9d7d",
     "date": "2023-09-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.25425,
     "netReturnPct": 0.25425,
     "tradeCount": 4,
@@ -314,7 +314,7 @@
   {
     "id": "1aaae230-62b2-c9e0-05dc-c41722d045df",
     "date": "2023-09-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.140068,
     "netReturnPct": 0.140068,
     "tradeCount": 2,
@@ -326,7 +326,7 @@
   {
     "id": "c52f2702-1b6d-0a50-b566-412637dd1a0f",
     "date": "2023-09-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.372006,
     "netReturnPct": 0.372006,
     "tradeCount": 2,
@@ -338,7 +338,7 @@
   {
     "id": "4d66c031-48f1-c413-9c04-8fbd071090d9",
     "date": "2023-09-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.291202,
     "netReturnPct": 0.291202,
     "tradeCount": 2,
@@ -350,7 +350,7 @@
   {
     "id": "56a2aea5-72cc-50c4-bbb6-e51077ea4b38",
     "date": "2023-09-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.400199,
     "netReturnPct": 0.400199,
     "tradeCount": 3,
@@ -362,7 +362,7 @@
   {
     "id": "6b8bcb36-a045-ac21-9b51-6ea8f10032d7",
     "date": "2023-09-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.160244,
     "netReturnPct": -0.160244,
     "tradeCount": 2,
@@ -374,7 +374,7 @@
   {
     "id": "5121476a-2a36-a751-5aa0-a7a36fba4913",
     "date": "2023-09-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.484608,
     "netReturnPct": 0.484608,
     "tradeCount": 2,
@@ -386,7 +386,7 @@
   {
     "id": "df1a95d8-e41b-be38-2966-57810c285baa",
     "date": "2023-09-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.425165,
     "netReturnPct": 0.425165,
     "tradeCount": 3,
@@ -398,7 +398,7 @@
   {
     "id": "a363a2f4-a26c-b69b-2be2-dba19388b74a",
     "date": "2023-09-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.435407,
     "netReturnPct": 0.435407,
     "tradeCount": 5,
@@ -410,7 +410,7 @@
   {
     "id": "9c74c7a2-c59f-b6e7-b656-431d811acf08",
     "date": "2023-09-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.107333,
     "netReturnPct": 0.107333,
     "tradeCount": 3,
@@ -422,7 +422,7 @@
   {
     "id": "c22d40f3-d006-0d1c-69c1-a9a68679cf14",
     "date": "2023-09-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.429624,
     "netReturnPct": 0.429624,
     "tradeCount": 2,
@@ -434,7 +434,7 @@
   {
     "id": "a5d36bc9-0a39-b9db-bb8e-7adc2749f5d9",
     "date": "2023-09-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.367973,
     "netReturnPct": 0.367973,
     "tradeCount": 5,
@@ -446,7 +446,7 @@
   {
     "id": "ffc89ba6-6264-1312-cb80-66c38e8165ca",
     "date": "2023-09-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.381006,
     "netReturnPct": 0.381006,
     "tradeCount": 2,
@@ -458,7 +458,7 @@
   {
     "id": "2fa2a7a4-5d0d-bba4-b2cf-e24adc1bbcee",
     "date": "2023-09-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.338275,
     "netReturnPct": 0.338275,
     "tradeCount": 5,
@@ -470,7 +470,7 @@
   {
     "id": "cc7f0b70-c1ee-403b-4fcc-019acc59fbb6",
     "date": "2023-09-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.362033,
     "netReturnPct": 0.362033,
     "tradeCount": 3,
@@ -482,7 +482,7 @@
   {
     "id": "acab30ed-9e4d-96b3-9e2a-bd7728166cfa",
     "date": "2023-10-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.963856,
     "netReturnPct": 0.963856,
     "tradeCount": 3,
@@ -494,7 +494,7 @@
   {
     "id": "2778bbd4-0988-6d91-e23b-32bffc447aee",
     "date": "2023-10-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.626837,
     "netReturnPct": 0.626837,
     "tradeCount": 5,
@@ -506,7 +506,7 @@
   {
     "id": "34b1ca41-08c9-b89b-7f52-d8cd6be57694",
     "date": "2023-10-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.740987,
     "netReturnPct": 0.740987,
     "tradeCount": 2,
@@ -518,7 +518,7 @@
   {
     "id": "d8e76cf4-f43d-0fc1-a19e-5d757a31086e",
     "date": "2023-10-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.958594,
     "netReturnPct": 0.958594,
     "tradeCount": 4,
@@ -530,7 +530,7 @@
   {
     "id": "f82cb950-e470-8052-6ae6-02b42f92b14e",
     "date": "2023-10-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.587627,
     "netReturnPct": 0.587627,
     "tradeCount": 5,
@@ -542,7 +542,7 @@
   {
     "id": "ce2f379c-5e21-9f5d-c1e8-c09a0abaed75",
     "date": "2023-10-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.332672,
     "netReturnPct": 0.332672,
     "tradeCount": 4,
@@ -554,7 +554,7 @@
   {
     "id": "1a03a8be-c365-d5c0-d51c-aa9630654441",
     "date": "2023-10-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.37815,
     "netReturnPct": 0.37815,
     "tradeCount": 5,
@@ -566,7 +566,7 @@
   {
     "id": "cb10fdb1-9acf-628a-76cc-2a4d7325d995",
     "date": "2023-10-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.466844,
     "netReturnPct": 0.466844,
     "tradeCount": 3,
@@ -578,7 +578,7 @@
   {
     "id": "e1f6c4b2-ca1a-14b3-450f-5d0d5cb1aaac",
     "date": "2023-10-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.554627,
     "netReturnPct": 0.554627,
     "tradeCount": 5,
@@ -590,7 +590,7 @@
   {
     "id": "b1bce902-3bf1-3ad6-1a20-297e24dbb2a0",
     "date": "2023-10-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.231915,
     "netReturnPct": -0.231915,
     "tradeCount": 3,
@@ -602,7 +602,7 @@
   {
     "id": "5a19cc0b-9b04-32ae-f182-9e42728246b0",
     "date": "2023-10-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.785271,
     "netReturnPct": 0.785271,
     "tradeCount": 2,
@@ -614,7 +614,7 @@
   {
     "id": "eef563a0-b714-7655-c14a-17ff8b74206c",
     "date": "2023-10-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.929557,
     "netReturnPct": 0.929557,
     "tradeCount": 4,
@@ -626,7 +626,7 @@
   {
     "id": "34bab99a-fb14-c624-221b-d895744c7e99",
     "date": "2023-10-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.04609,
     "netReturnPct": 0.04609,
     "tradeCount": 3,
@@ -638,7 +638,7 @@
   {
     "id": "02f5a066-4c1a-9885-4270-8e891a51c755",
     "date": "2023-10-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.373923,
     "netReturnPct": 0.373923,
     "tradeCount": 3,
@@ -650,7 +650,7 @@
   {
     "id": "ee9cc598-285d-22a1-9fdf-c21b340bc549",
     "date": "2023-10-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.074147,
     "netReturnPct": -0.074147,
     "tradeCount": 4,
@@ -662,7 +662,7 @@
   {
     "id": "5a86af8e-c324-475b-7957-58f4a26a8c45",
     "date": "2023-10-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.817481,
     "netReturnPct": 0.817481,
     "tradeCount": 5,
@@ -674,7 +674,7 @@
   {
     "id": "4a9857d1-62bd-e265-2dba-c61af3ded6dd",
     "date": "2023-10-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.739408,
     "netReturnPct": 0.739408,
     "tradeCount": 2,
@@ -686,7 +686,7 @@
   {
     "id": "73d24ba3-7a92-56ff-0514-7b4ffb1581d6",
     "date": "2023-10-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.329369,
     "netReturnPct": 0.329369,
     "tradeCount": 5,
@@ -698,7 +698,7 @@
   {
     "id": "482fc1b0-739d-541a-86ce-f6d3f1851d0d",
     "date": "2023-10-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.376122,
     "netReturnPct": -0.376122,
     "tradeCount": 4,
@@ -710,7 +710,7 @@
   {
     "id": "ed364c5c-a4a2-3ea7-f2c0-b319c7070d79",
     "date": "2023-10-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.451158,
     "netReturnPct": -0.451158,
     "tradeCount": 5,
@@ -722,7 +722,7 @@
   {
     "id": "11ba4684-b159-edaa-ff30-e61b8f19f9a4",
     "date": "2023-10-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.067934,
     "netReturnPct": 0.067934,
     "tradeCount": 5,
@@ -734,7 +734,7 @@
   {
     "id": "8b8c8f73-6a0b-2802-8d8b-c71b3bcc216c",
     "date": "2023-10-31",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.262565,
     "netReturnPct": 0.262565,
     "tradeCount": 5,
@@ -746,7 +746,7 @@
   {
     "id": "9ddfa271-03dd-18d2-a3a7-dab8c288713a",
     "date": "2023-11-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.778036,
     "netReturnPct": 0.778036,
     "tradeCount": 3,
@@ -758,7 +758,7 @@
   {
     "id": "036d53ac-84e8-7de6-a20d-55af1acd1700",
     "date": "2023-11-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.750057,
     "netReturnPct": 0.750057,
     "tradeCount": 2,
@@ -770,7 +770,7 @@
   {
     "id": "c9b1f50c-4115-7f60-502c-4f9d9fee49ce",
     "date": "2023-11-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.760351,
     "netReturnPct": 0.760351,
     "tradeCount": 5,
@@ -782,7 +782,7 @@
   {
     "id": "16c52b73-882b-2d10-0107-d8e2c6b1a6c9",
     "date": "2023-11-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.699771,
     "netReturnPct": 0.699771,
     "tradeCount": 3,
@@ -794,7 +794,7 @@
   {
     "id": "8d4eff55-f61f-2f35-e8d9-38fe552e42fd",
     "date": "2023-11-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.228206,
     "netReturnPct": 0.228206,
     "tradeCount": 4,
@@ -806,7 +806,7 @@
   {
     "id": "b016fac5-43a3-28dd-6d30-e1918f2a4004",
     "date": "2023-11-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.225376,
     "netReturnPct": 0.225376,
     "tradeCount": 5,
@@ -818,7 +818,7 @@
   {
     "id": "74a889a6-7e13-8850-3028-9bf9e9ba65d5",
     "date": "2023-11-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.408155,
     "netReturnPct": -0.408155,
     "tradeCount": 3,
@@ -830,7 +830,7 @@
   {
     "id": "76f2501b-7125-3770-1019-e161261619d1",
     "date": "2023-11-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.384604,
     "netReturnPct": -0.384604,
     "tradeCount": 5,
@@ -842,7 +842,7 @@
   {
     "id": "df51bf64-0f3f-7c35-6dfb-4d8fd9da799e",
     "date": "2023-11-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.848472,
     "netReturnPct": 0.848472,
     "tradeCount": 5,
@@ -854,7 +854,7 @@
   {
     "id": "cf8ff2e9-2564-057a-e0d1-d3a7547d24e8",
     "date": "2023-11-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.188127,
     "netReturnPct": 0.188127,
     "tradeCount": 3,
@@ -866,7 +866,7 @@
   {
     "id": "fe2a8b54-d856-f40c-3c16-f4ce4cf8226c",
     "date": "2023-11-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.805846,
     "netReturnPct": 0.805846,
     "tradeCount": 3,
@@ -878,7 +878,7 @@
   {
     "id": "eb131ba0-4f03-57e6-423e-d25384eb4abc",
     "date": "2023-11-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.378177,
     "netReturnPct": -0.378177,
     "tradeCount": 2,
@@ -890,7 +890,7 @@
   {
     "id": "6dd837e5-1357-5edd-3144-19fba4419336",
     "date": "2023-11-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.222949,
     "netReturnPct": 0.222949,
     "tradeCount": 2,
@@ -902,7 +902,7 @@
   {
     "id": "66ec4904-da5d-7e8d-2e97-ac324eb422db",
     "date": "2023-11-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.865379,
     "netReturnPct": 0.865379,
     "tradeCount": 4,
@@ -914,7 +914,7 @@
   {
     "id": "db95ee1f-6586-c9a0-cad9-6c1bd7eed67b",
     "date": "2023-11-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.484827,
     "netReturnPct": 0.484827,
     "tradeCount": 4,
@@ -926,7 +926,7 @@
   {
     "id": "3ac30725-6e9b-a77a-aad3-901a2e496acd",
     "date": "2023-11-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.563917,
     "netReturnPct": 0.563917,
     "tradeCount": 3,
@@ -938,7 +938,7 @@
   {
     "id": "ffdc77e7-8b06-8fa4-eb47-c1f70a1b46b6",
     "date": "2023-11-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.43355,
     "netReturnPct": -0.43355,
     "tradeCount": 3,
@@ -950,7 +950,7 @@
   {
     "id": "388312f7-ccfb-8c61-4b1f-0feeef47b158",
     "date": "2023-11-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.188606,
     "netReturnPct": 0.188606,
     "tradeCount": 2,
@@ -962,7 +962,7 @@
   {
     "id": "8d99bcf9-4e06-093b-bb24-bdfa86356a9d",
     "date": "2023-11-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.805448,
     "netReturnPct": 0.805448,
     "tradeCount": 2,
@@ -974,7 +974,7 @@
   {
     "id": "b810d50a-1943-eab7-e9aa-b9176ca13dc0",
     "date": "2023-11-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.630038,
     "netReturnPct": 0.630038,
     "tradeCount": 3,
@@ -986,7 +986,7 @@
   {
     "id": "b4110552-f0d6-533b-f212-f939c7ba1a83",
     "date": "2023-11-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.463959,
     "netReturnPct": 0.463959,
     "tradeCount": 3,
@@ -998,7 +998,7 @@
   {
     "id": "c850b27e-5da9-a023-6cd4-e2b10553b9ad",
     "date": "2023-11-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.316304,
     "netReturnPct": 0.316304,
     "tradeCount": 3,
@@ -1010,7 +1010,7 @@
   {
     "id": "36c441c7-0b98-bc41-2c34-9b7bb8a638a6",
     "date": "2023-12-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.427018,
     "netReturnPct": 0.427018,
     "tradeCount": 4,
@@ -1022,7 +1022,7 @@
   {
     "id": "83fe51a5-25a6-3abe-67a8-df83fc7bfd36",
     "date": "2023-12-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.046946,
     "netReturnPct": 0.046946,
     "tradeCount": 5,
@@ -1034,7 +1034,7 @@
   {
     "id": "7c294301-06d5-e791-6af5-5d919acf1c16",
     "date": "2023-12-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.541326,
     "netReturnPct": 0.541326,
     "tradeCount": 3,
@@ -1046,7 +1046,7 @@
   {
     "id": "5ddd653f-d1e8-6a71-d447-ea811d977129",
     "date": "2023-12-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.079809,
     "netReturnPct": 0.079809,
     "tradeCount": 3,
@@ -1058,7 +1058,7 @@
   {
     "id": "4423ec95-5bcc-1bc6-6328-98ac26a568c2",
     "date": "2023-12-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.383379,
     "netReturnPct": 0.383379,
     "tradeCount": 2,
@@ -1070,7 +1070,7 @@
   {
     "id": "d67fdcd7-ea9b-99bb-4cde-c91cd3ceee7f",
     "date": "2023-12-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.48735,
     "netReturnPct": 0.48735,
     "tradeCount": 5,
@@ -1082,7 +1082,7 @@
   {
     "id": "30359cd2-3358-cc5e-818b-62a945ffc174",
     "date": "2023-12-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.301066,
     "netReturnPct": 0.301066,
     "tradeCount": 2,
@@ -1094,7 +1094,7 @@
   {
     "id": "c35ed161-61ec-1207-ddff-b0bed867fcab",
     "date": "2023-12-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.629405,
     "netReturnPct": 0.629405,
     "tradeCount": 2,
@@ -1106,7 +1106,7 @@
   {
     "id": "a67b3551-9a64-9794-336b-e7c6e9133db5",
     "date": "2023-12-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.898013,
     "netReturnPct": 0.898013,
     "tradeCount": 4,
@@ -1118,7 +1118,7 @@
   {
     "id": "751be53b-af4f-e7cb-c763-b32922a3bace",
     "date": "2023-12-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.703108,
     "netReturnPct": 0.703108,
     "tradeCount": 5,
@@ -1130,7 +1130,7 @@
   {
     "id": "7aaf7d43-4116-1d0a-907d-e59aef84b13c",
     "date": "2023-12-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.381028,
     "netReturnPct": 0.381028,
     "tradeCount": 2,
@@ -1142,7 +1142,7 @@
   {
     "id": "d6ba45d3-0f2c-44fb-51b8-1543e6d0b89f",
     "date": "2023-12-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.455363,
     "netReturnPct": 0.455363,
     "tradeCount": 2,
@@ -1154,7 +1154,7 @@
   {
     "id": "4f70dc02-19e3-2820-23ec-45900afc1a71",
     "date": "2023-12-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.490858,
     "netReturnPct": 0.490858,
     "tradeCount": 4,
@@ -1166,7 +1166,7 @@
   {
     "id": "048d064f-82a0-6cdb-3e7f-eac72ac93cfa",
     "date": "2023-12-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.326456,
     "netReturnPct": 0.326456,
     "tradeCount": 3,
@@ -1178,7 +1178,7 @@
   {
     "id": "c8a18328-27c8-1e6b-4513-689842bdbd53",
     "date": "2023-12-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.069351,
     "netReturnPct": 0.069351,
     "tradeCount": 2,
@@ -1190,7 +1190,7 @@
   {
     "id": "b8ea69e2-e440-1c4a-c7ca-3b77d048c49a",
     "date": "2023-12-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.079533,
     "netReturnPct": -0.079533,
     "tradeCount": 3,
@@ -1202,7 +1202,7 @@
   {
     "id": "cab590b8-b73f-badf-b940-fbd57e2e7539",
     "date": "2023-12-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.596051,
     "netReturnPct": 0.596051,
     "tradeCount": 3,
@@ -1214,7 +1214,7 @@
   {
     "id": "0af74b54-66ce-e95b-0dda-cf390642d34c",
     "date": "2023-12-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.505895,
     "netReturnPct": -0.505895,
     "tradeCount": 3,
@@ -1226,7 +1226,7 @@
   {
     "id": "f7b426a6-a7ef-1ba1-5e28-3fe8a465dfba",
     "date": "2023-12-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.28034,
     "netReturnPct": 0.28034,
     "tradeCount": 4,
@@ -1238,7 +1238,7 @@
   {
     "id": "9e5406ab-2c3c-1ee8-5b18-53e33c732f3a",
     "date": "2023-12-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.894355,
     "netReturnPct": 0.894355,
     "tradeCount": 2,
@@ -1250,7 +1250,7 @@
   {
     "id": "0b1cf281-5b67-2c86-4930-f38d4f6817b5",
     "date": "2023-12-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.400215,
     "netReturnPct": -0.400215,
     "tradeCount": 3,
@@ -1262,7 +1262,7 @@
   {
     "id": "18a82b62-4d4f-515d-8673-e1544d4d9e2c",
     "date": "2024-01-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.439418,
     "netReturnPct": 0.439418,
     "tradeCount": 3,
@@ -1274,7 +1274,7 @@
   {
     "id": "651ad150-b0f4-573d-c4c9-6ca8bbaf9732",
     "date": "2024-01-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.584965,
     "netReturnPct": 0.584965,
     "tradeCount": 4,
@@ -1286,7 +1286,7 @@
   {
     "id": "8765162e-d888-8a13-516c-d6d850e6ce77",
     "date": "2024-01-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.779207,
     "netReturnPct": 0.779207,
     "tradeCount": 2,
@@ -1298,7 +1298,7 @@
   {
     "id": "a3bac7c8-2710-5ef9-de67-55bda8f371ec",
     "date": "2024-01-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.392861,
     "netReturnPct": 0.392861,
     "tradeCount": 2,
@@ -1310,7 +1310,7 @@
   {
     "id": "d1b71e42-2848-5b5b-a097-7eb515bbafb0",
     "date": "2024-01-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.443591,
     "netReturnPct": 0.443591,
     "tradeCount": 5,
@@ -1322,7 +1322,7 @@
   {
     "id": "2ff0260b-7872-2bdf-2920-9c11f89816b6",
     "date": "2024-01-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.47706,
     "netReturnPct": 0.47706,
     "tradeCount": 5,
@@ -1334,7 +1334,7 @@
   {
     "id": "6bfff788-b6ef-c822-735f-ebb06ec704d2",
     "date": "2024-01-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.141156,
     "netReturnPct": 0.141156,
     "tradeCount": 2,
@@ -1346,7 +1346,7 @@
   {
     "id": "cac17fcf-b885-f3cd-49c0-cee859c043e3",
     "date": "2024-01-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.326984,
     "netReturnPct": 0.326984,
     "tradeCount": 4,
@@ -1358,7 +1358,7 @@
   {
     "id": "eaa8e75a-0c84-36a7-2876-7b3d33d7c959",
     "date": "2024-01-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.313038,
     "netReturnPct": -0.313038,
     "tradeCount": 2,
@@ -1370,7 +1370,7 @@
   {
     "id": "1c4cdb96-0836-7f78-7a15-e35ddf41ccd2",
     "date": "2024-01-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.638299,
     "netReturnPct": 0.638299,
     "tradeCount": 5,
@@ -1382,7 +1382,7 @@
   {
     "id": "02384bf2-b565-cec3-94a6-814cc8a5fb5a",
     "date": "2024-01-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.880555,
     "netReturnPct": 0.880555,
     "tradeCount": 4,
@@ -1394,7 +1394,7 @@
   {
     "id": "02980f1b-a82a-cb47-7c60-b21087771765",
     "date": "2024-01-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.058022,
     "netReturnPct": 1.058022,
     "tradeCount": 4,
@@ -1406,7 +1406,7 @@
   {
     "id": "5a4bec2e-7d2f-8f04-c6ff-dc3b045db662",
     "date": "2024-01-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.299354,
     "netReturnPct": -0.299354,
     "tradeCount": 2,
@@ -1418,7 +1418,7 @@
   {
     "id": "c7bd349e-41eb-dc1a-c22d-1f233e53fd75",
     "date": "2024-01-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.038618,
     "netReturnPct": 1.038618,
     "tradeCount": 5,
@@ -1430,7 +1430,7 @@
   {
     "id": "48e698cc-2996-f00d-cd30-76753ea78159",
     "date": "2024-01-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.153557,
     "netReturnPct": 0.153557,
     "tradeCount": 3,
@@ -1442,7 +1442,7 @@
   {
     "id": "6430c589-6b2d-f6ae-9da8-a15f1f81513b",
     "date": "2024-01-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.517139,
     "netReturnPct": -0.517139,
     "tradeCount": 2,
@@ -1454,7 +1454,7 @@
   {
     "id": "0ad0761d-8e26-cc19-c519-c60e87a346a6",
     "date": "2024-01-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.084554,
     "netReturnPct": 0.084554,
     "tradeCount": 5,
@@ -1466,7 +1466,7 @@
   {
     "id": "3616133d-89a0-047a-4cf1-796d50bc8817",
     "date": "2024-01-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.903242,
     "netReturnPct": 0.903242,
     "tradeCount": 5,
@@ -1478,7 +1478,7 @@
   {
     "id": "7903e9a4-6c61-054b-281f-bf5595701960",
     "date": "2024-01-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.14672,
     "netReturnPct": -0.14672,
     "tradeCount": 4,
@@ -1490,7 +1490,7 @@
   {
     "id": "737bcb96-f241-5d9c-35a2-47a119803572",
     "date": "2024-01-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.111252,
     "netReturnPct": 1.111252,
     "tradeCount": 5,
@@ -1502,7 +1502,7 @@
   {
     "id": "b1319e27-0c8c-7a31-034c-5c442e351994",
     "date": "2024-01-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.908917,
     "netReturnPct": 0.908917,
     "tradeCount": 5,
@@ -1514,7 +1514,7 @@
   {
     "id": "8bdf6f8a-1971-4f3d-1fa7-44470725052a",
     "date": "2024-01-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.623727,
     "netReturnPct": -0.623727,
     "tradeCount": 3,
@@ -1526,7 +1526,7 @@
   {
     "id": "38cafedb-82bb-eeb4-1643-825e2219cd18",
     "date": "2024-01-31",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.249964,
     "netReturnPct": -0.249964,
     "tradeCount": 5,
@@ -1538,7 +1538,7 @@
   {
     "id": "2ea98dd3-c543-bd12-b527-4575cdde1840",
     "date": "2024-02-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.586676,
     "netReturnPct": 0.586676,
     "tradeCount": 4,
@@ -1550,7 +1550,7 @@
   {
     "id": "093cb032-1768-0ad1-4558-f338b67f9d5d",
     "date": "2024-02-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.561416,
     "netReturnPct": 0.561416,
     "tradeCount": 5,
@@ -1562,7 +1562,7 @@
   {
     "id": "1d3b06fb-671c-32d4-79c0-2af961c4d36a",
     "date": "2024-02-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.784212,
     "netReturnPct": 0.784212,
     "tradeCount": 4,
@@ -1574,7 +1574,7 @@
   {
     "id": "fb4a1001-0ab6-79f8-1469-dd37cf22ee41",
     "date": "2024-02-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.410957,
     "netReturnPct": -0.410957,
     "tradeCount": 3,
@@ -1586,7 +1586,7 @@
   {
     "id": "d40acb70-bb2a-b053-1d1b-68ce2ebe7943",
     "date": "2024-02-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.579852,
     "netReturnPct": 0.579852,
     "tradeCount": 2,
@@ -1598,7 +1598,7 @@
   {
     "id": "c25bedc6-9e32-daba-5dea-5e3935f0e1c7",
     "date": "2024-02-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.588633,
     "netReturnPct": 0.588633,
     "tradeCount": 4,
@@ -1610,7 +1610,7 @@
   {
     "id": "3ca8b8df-a47e-be41-4bda-3278d068e62f",
     "date": "2024-02-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.52257,
     "netReturnPct": 0.52257,
     "tradeCount": 2,
@@ -1622,7 +1622,7 @@
   {
     "id": "d9106ab3-0ebb-d2b0-2768-6710cdeb8ef6",
     "date": "2024-02-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.454676,
     "netReturnPct": 0.454676,
     "tradeCount": 5,
@@ -1634,7 +1634,7 @@
   {
     "id": "58e7447b-0834-96d0-4d95-f7063068b9b3",
     "date": "2024-02-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.711586,
     "netReturnPct": 0.711586,
     "tradeCount": 3,
@@ -1646,7 +1646,7 @@
   {
     "id": "5c5d9fee-dad0-fde2-69e0-d4c0c6511fe3",
     "date": "2024-02-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.737511,
     "netReturnPct": 0.737511,
     "tradeCount": 2,
@@ -1658,7 +1658,7 @@
   {
     "id": "1f833bc4-c2dc-bd28-1159-f2cf0d99c40e",
     "date": "2024-02-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.514136,
     "netReturnPct": 0.514136,
     "tradeCount": 3,
@@ -1670,7 +1670,7 @@
   {
     "id": "c2a1aeef-27e3-4556-e3dd-18dcf093447d",
     "date": "2024-02-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.325807,
     "netReturnPct": 0.325807,
     "tradeCount": 3,
@@ -1682,7 +1682,7 @@
   {
     "id": "f40f81f0-d01b-2240-b941-fdd69727475d",
     "date": "2024-02-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.440218,
     "netReturnPct": 0.440218,
     "tradeCount": 4,
@@ -1694,7 +1694,7 @@
   {
     "id": "5e38a12d-b507-71c2-0879-c710e0e1840e",
     "date": "2024-02-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.216896,
     "netReturnPct": 0.216896,
     "tradeCount": 2,
@@ -1706,7 +1706,7 @@
   {
     "id": "bf65843e-9823-4b8d-6d6f-a9467a29314d",
     "date": "2024-02-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.169701,
     "netReturnPct": 0.169701,
     "tradeCount": 4,
@@ -1718,7 +1718,7 @@
   {
     "id": "dd59b467-9c10-0dc7-5569-bcc019a3febf",
     "date": "2024-02-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.227299,
     "netReturnPct": -0.227299,
     "tradeCount": 2,
@@ -1730,7 +1730,7 @@
   {
     "id": "03ca8729-21bd-091a-8bb8-eee2ba7ee86f",
     "date": "2024-02-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.486474,
     "netReturnPct": 0.486474,
     "tradeCount": 3,
@@ -1742,7 +1742,7 @@
   {
     "id": "23f599f7-81ce-6f57-a7d2-1473fdc94037",
     "date": "2024-02-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.417092,
     "netReturnPct": -0.417092,
     "tradeCount": 4,
@@ -1754,7 +1754,7 @@
   {
     "id": "0e01e41b-2db4-e8fa-f07f-2b0cf4ef0254",
     "date": "2024-02-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.503193,
     "netReturnPct": 0.503193,
     "tradeCount": 3,
@@ -1766,7 +1766,7 @@
   {
     "id": "c43b13d9-dd0a-b4ae-f175-ca93dc26c1d0",
     "date": "2024-02-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.205469,
     "netReturnPct": 0.205469,
     "tradeCount": 5,
@@ -1778,7 +1778,7 @@
   {
     "id": "2467f8db-8d16-09fd-5759-882c7bb89c6e",
     "date": "2024-02-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.583561,
     "netReturnPct": 0.583561,
     "tradeCount": 4,
@@ -1790,7 +1790,7 @@
   {
     "id": "69b56223-7e48-7a0f-f18e-914bb9faac28",
     "date": "2024-03-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.53429,
     "netReturnPct": 0.53429,
     "tradeCount": 5,
@@ -1802,7 +1802,7 @@
   {
     "id": "eb6c0911-4fef-8dd9-2ff2-b8822e003248",
     "date": "2024-03-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.31367,
     "netReturnPct": 0.31367,
     "tradeCount": 2,
@@ -1814,7 +1814,7 @@
   {
     "id": "28189e82-a24a-1346-1c97-77e9256370d2",
     "date": "2024-03-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.06782,
     "netReturnPct": 0.06782,
     "tradeCount": 4,
@@ -1826,7 +1826,7 @@
   {
     "id": "46ef4bb8-9f63-630f-9684-c25e07e59bf3",
     "date": "2024-03-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.117416,
     "netReturnPct": -0.117416,
     "tradeCount": 5,
@@ -1838,7 +1838,7 @@
   {
     "id": "2afd8baf-73f9-fe83-1196-d8073c4bd3c6",
     "date": "2024-03-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.516259,
     "netReturnPct": 0.516259,
     "tradeCount": 4,
@@ -1850,7 +1850,7 @@
   {
     "id": "64c37431-be85-2d4f-e94d-df20638342ba",
     "date": "2024-03-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.289617,
     "netReturnPct": -0.289617,
     "tradeCount": 5,
@@ -1862,7 +1862,7 @@
   {
     "id": "84131c03-e5c4-fca2-b603-a91cb8bd1828",
     "date": "2024-03-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.616446,
     "netReturnPct": 0.616446,
     "tradeCount": 4,
@@ -1874,7 +1874,7 @@
   {
     "id": "c5059eb5-dc32-ec00-e639-dc34db7a9d40",
     "date": "2024-03-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.453418,
     "netReturnPct": 0.453418,
     "tradeCount": 5,
@@ -1886,7 +1886,7 @@
   {
     "id": "f33ee738-27d5-07ea-5f2f-c1d03d63c1d3",
     "date": "2024-03-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.555376,
     "netReturnPct": 0.555376,
     "tradeCount": 2,
@@ -1898,7 +1898,7 @@
   {
     "id": "ede38320-ac8e-acd1-5a8b-ee6bc9275e28",
     "date": "2024-03-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.647039,
     "netReturnPct": 0.647039,
     "tradeCount": 4,
@@ -1910,7 +1910,7 @@
   {
     "id": "37e076e3-14c5-1a18-b97c-6d38a11e71f1",
     "date": "2024-03-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.553087,
     "netReturnPct": 0.553087,
     "tradeCount": 5,
@@ -1922,7 +1922,7 @@
   {
     "id": "d76be115-56f5-c5ce-42d8-8729f6af7a47",
     "date": "2024-03-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.130224,
     "netReturnPct": -0.130224,
     "tradeCount": 4,
@@ -1934,7 +1934,7 @@
   {
     "id": "ee79abd0-038b-f8da-de27-58ed81021fa6",
     "date": "2024-03-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.196598,
     "netReturnPct": -0.196598,
     "tradeCount": 5,
@@ -1946,7 +1946,7 @@
   {
     "id": "4328eb4a-e239-c2dc-3916-ecd0b4bbf697",
     "date": "2024-03-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.66642,
     "netReturnPct": 0.66642,
     "tradeCount": 5,
@@ -1958,7 +1958,7 @@
   {
     "id": "41204341-e631-03a9-ca5b-ade173e88600",
     "date": "2024-03-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.622394,
     "netReturnPct": 0.622394,
     "tradeCount": 5,
@@ -1970,7 +1970,7 @@
   {
     "id": "5ff4311d-0a64-0a27-e1c2-7d93d029586e",
     "date": "2024-03-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.534117,
     "netReturnPct": 0.534117,
     "tradeCount": 4,
@@ -1982,7 +1982,7 @@
   {
     "id": "205bd028-ba17-695d-e44c-79e53c2c395f",
     "date": "2024-03-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.475976,
     "netReturnPct": 0.475976,
     "tradeCount": 2,
@@ -1994,7 +1994,7 @@
   {
     "id": "fafb040b-450a-a126-dae7-7127fc4da109",
     "date": "2024-03-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.310179,
     "netReturnPct": 0.310179,
     "tradeCount": 5,
@@ -2006,7 +2006,7 @@
   {
     "id": "af2f5518-b1cc-d051-1e93-6baac8403ded",
     "date": "2024-03-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.138841,
     "netReturnPct": -0.138841,
     "tradeCount": 2,
@@ -2018,7 +2018,7 @@
   {
     "id": "8be26e4c-c6ec-6587-e998-53232a5f9b68",
     "date": "2024-03-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.696958,
     "netReturnPct": 0.696958,
     "tradeCount": 5,
@@ -2030,7 +2030,7 @@
   {
     "id": "6c6b0113-5679-eecc-5db6-1ae12351ca2e",
     "date": "2024-03-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.433713,
     "netReturnPct": 0.433713,
     "tradeCount": 5,
@@ -2042,7 +2042,7 @@
   {
     "id": "bf83a4c8-aeb7-18e7-c09d-e2094565368b",
     "date": "2024-04-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.076019,
     "netReturnPct": 0.076019,
     "tradeCount": 5,
@@ -2054,7 +2054,7 @@
   {
     "id": "e9b53c57-1af3-ad71-e4cc-0631a6fc2ea5",
     "date": "2024-04-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.65134,
     "netReturnPct": 0.65134,
     "tradeCount": 5,
@@ -2066,7 +2066,7 @@
   {
     "id": "623461b8-491b-9329-8ae9-8c89d1def93f",
     "date": "2024-04-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.154769,
     "netReturnPct": 0.154769,
     "tradeCount": 5,
@@ -2078,7 +2078,7 @@
   {
     "id": "7967db0a-14b3-f0ad-91d6-05b03979c2d7",
     "date": "2024-04-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.243015,
     "netReturnPct": -0.243015,
     "tradeCount": 4,
@@ -2090,7 +2090,7 @@
   {
     "id": "14d5715e-81da-e3ad-da4e-1dfcfd58b698",
     "date": "2024-04-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.337927,
     "netReturnPct": 0.337927,
     "tradeCount": 3,
@@ -2102,7 +2102,7 @@
   {
     "id": "fb4bc37d-827b-667b-c89a-fcfacf30ecbf",
     "date": "2024-04-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.443151,
     "netReturnPct": 0.443151,
     "tradeCount": 4,
@@ -2114,7 +2114,7 @@
   {
     "id": "b6d17596-05ce-6bbf-db57-71f622397c4c",
     "date": "2024-04-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.070587,
     "netReturnPct": 0.070587,
     "tradeCount": 5,
@@ -2126,7 +2126,7 @@
   {
     "id": "836902fd-0914-eb1e-0d84-d50adf3b69b0",
     "date": "2024-04-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.520246,
     "netReturnPct": 0.520246,
     "tradeCount": 5,
@@ -2138,7 +2138,7 @@
   {
     "id": "c67a17e8-d2f1-e920-6599-adaa3b331d43",
     "date": "2024-04-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.173405,
     "netReturnPct": 0.173405,
     "tradeCount": 4,
@@ -2150,7 +2150,7 @@
   {
     "id": "95ff17a9-766a-b385-9cd4-0de368cd5613",
     "date": "2024-04-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.367234,
     "netReturnPct": -0.367234,
     "tradeCount": 5,
@@ -2162,7 +2162,7 @@
   {
     "id": "88e39c92-9156-5f64-c403-b44315423c8d",
     "date": "2024-04-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.426718,
     "netReturnPct": 0.426718,
     "tradeCount": 4,
@@ -2174,7 +2174,7 @@
   {
     "id": "6b24f9b6-abd8-0fad-abab-30b9941dbf64",
     "date": "2024-04-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.512761,
     "netReturnPct": 0.512761,
     "tradeCount": 4,
@@ -2186,7 +2186,7 @@
   {
     "id": "a37373a6-89a6-39a6-57f7-0e5fe2c9498e",
     "date": "2024-04-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.664881,
     "netReturnPct": 0.664881,
     "tradeCount": 4,
@@ -2198,7 +2198,7 @@
   {
     "id": "1fa6c131-8885-55e1-b4be-c797cfc7b319",
     "date": "2024-04-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.204235,
     "netReturnPct": 0.204235,
     "tradeCount": 3,
@@ -2210,7 +2210,7 @@
   {
     "id": "47d1f6a3-f9eb-60c8-c1d0-ffcf2375170a",
     "date": "2024-04-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.517929,
     "netReturnPct": 0.517929,
     "tradeCount": 5,
@@ -2222,7 +2222,7 @@
   {
     "id": "d54e4fd6-763c-d3a5-5638-f39705238131",
     "date": "2024-04-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.505086,
     "netReturnPct": 0.505086,
     "tradeCount": 5,
@@ -2234,7 +2234,7 @@
   {
     "id": "59143bfc-53d4-87bb-bf82-e6ce3993ffbb",
     "date": "2024-04-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.347631,
     "netReturnPct": 0.347631,
     "tradeCount": 3,
@@ -2246,7 +2246,7 @@
   {
     "id": "c8a5b7bc-6a88-081c-d215-889ce28475df",
     "date": "2024-04-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.201598,
     "netReturnPct": 0.201598,
     "tradeCount": 3,
@@ -2258,7 +2258,7 @@
   {
     "id": "d9f82de0-05c3-82ac-5a81-c8653d65668f",
     "date": "2024-04-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.631797,
     "netReturnPct": 0.631797,
     "tradeCount": 3,
@@ -2270,7 +2270,7 @@
   {
     "id": "d04edf51-2381-e096-f490-d91bca0d8b18",
     "date": "2024-04-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.313762,
     "netReturnPct": 0.313762,
     "tradeCount": 4,
@@ -2282,7 +2282,7 @@
   {
     "id": "ca7ee6eb-c930-8f2f-ce0c-c7f64fdc4407",
     "date": "2024-04-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.297846,
     "netReturnPct": 0.297846,
     "tradeCount": 3,
@@ -2294,7 +2294,7 @@
   {
     "id": "a9bc49e9-e9b5-51f2-f4fa-ab2c60eb36f5",
     "date": "2024-04-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.332898,
     "netReturnPct": 0.332898,
     "tradeCount": 4,
@@ -2306,7 +2306,7 @@
   {
     "id": "28b735a5-b013-efd7-92be-8f849a6783f0",
     "date": "2024-05-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.110375,
     "netReturnPct": -0.110375,
     "tradeCount": 4,
@@ -2318,7 +2318,7 @@
   {
     "id": "7b3e7775-236e-df4b-26d1-ddbdf84fecd3",
     "date": "2024-05-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.58814,
     "netReturnPct": 0.58814,
     "tradeCount": 2,
@@ -2330,7 +2330,7 @@
   {
     "id": "318ab040-0299-0158-2c07-cc500902390b",
     "date": "2024-05-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.043732,
     "netReturnPct": 0.043732,
     "tradeCount": 2,
@@ -2342,7 +2342,7 @@
   {
     "id": "b05fa29a-3e4d-f3e9-f71e-d8c826e73c94",
     "date": "2024-05-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.259348,
     "netReturnPct": 0.259348,
     "tradeCount": 3,
@@ -2354,7 +2354,7 @@
   {
     "id": "834cc81e-046e-feb2-46ce-0968b8f58617",
     "date": "2024-05-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.071732,
     "netReturnPct": -0.071732,
     "tradeCount": 2,
@@ -2366,7 +2366,7 @@
   {
     "id": "f5b93624-8761-6a39-0a08-0dcb9006fc76",
     "date": "2024-05-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.583607,
     "netReturnPct": 0.583607,
     "tradeCount": 4,
@@ -2378,7 +2378,7 @@
   {
     "id": "6377bd6b-dc44-5857-edd5-a55900a897f9",
     "date": "2024-05-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.612156,
     "netReturnPct": 0.612156,
     "tradeCount": 5,
@@ -2390,7 +2390,7 @@
   {
     "id": "cef38ae7-6531-3f76-4b6b-4ae1dc1ec3eb",
     "date": "2024-05-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.218866,
     "netReturnPct": -0.218866,
     "tradeCount": 2,
@@ -2402,7 +2402,7 @@
   {
     "id": "c3b1fb08-17cc-f195-6643-c79f0d67ad27",
     "date": "2024-05-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.311289,
     "netReturnPct": -0.311289,
     "tradeCount": 5,
@@ -2414,7 +2414,7 @@
   {
     "id": "a9800eea-ef13-411e-5003-82056f6f1efe",
     "date": "2024-05-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.238113,
     "netReturnPct": 0.238113,
     "tradeCount": 5,
@@ -2426,7 +2426,7 @@
   {
     "id": "b7e7a0ce-74a5-974a-21b8-90a633555297",
     "date": "2024-05-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.15247,
     "netReturnPct": 0.15247,
     "tradeCount": 5,
@@ -2438,7 +2438,7 @@
   {
     "id": "98fd0369-dc89-8518-28b6-fb4397528671",
     "date": "2024-05-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.537466,
     "netReturnPct": 0.537466,
     "tradeCount": 3,
@@ -2450,7 +2450,7 @@
   {
     "id": "12ab2cc3-cf6c-f0a0-85e7-39d34771b3e0",
     "date": "2024-05-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.604209,
     "netReturnPct": 0.604209,
     "tradeCount": 2,
@@ -2462,7 +2462,7 @@
   {
     "id": "7a281c8e-0a69-35b6-cbb7-5f5a3233e6b5",
     "date": "2024-05-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.480328,
     "netReturnPct": 0.480328,
     "tradeCount": 3,
@@ -2474,7 +2474,7 @@
   {
     "id": "31b5f250-05d0-1384-202a-d4ff79bd4e7f",
     "date": "2024-05-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.357998,
     "netReturnPct": 0.357998,
     "tradeCount": 4,
@@ -2486,7 +2486,7 @@
   {
     "id": "18af5906-45e8-40b1-c17f-4704fd91b379",
     "date": "2024-05-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.421315,
     "netReturnPct": 0.421315,
     "tradeCount": 4,
@@ -2498,7 +2498,7 @@
   {
     "id": "6e2e2ebb-0d95-e4c7-fba9-545e5bd6bb90",
     "date": "2024-05-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.294177,
     "netReturnPct": 0.294177,
     "tradeCount": 3,
@@ -2510,7 +2510,7 @@
   {
     "id": "c5d0c4c7-ccbf-aced-4b76-994e8acdc689",
     "date": "2024-05-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.296247,
     "netReturnPct": 0.296247,
     "tradeCount": 2,
@@ -2522,7 +2522,7 @@
   {
     "id": "0769210d-87d3-8e04-81f2-f52e6d72a508",
     "date": "2024-05-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.087826,
     "netReturnPct": 0.087826,
     "tradeCount": 3,
@@ -2534,7 +2534,7 @@
   {
     "id": "554eaf76-1dd3-ec5f-84cb-615a9da5e377",
     "date": "2024-05-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.364084,
     "netReturnPct": -0.364084,
     "tradeCount": 5,
@@ -2546,7 +2546,7 @@
   {
     "id": "8488a779-88e0-43e5-ba3c-141e745c74a5",
     "date": "2024-05-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.634429,
     "netReturnPct": 0.634429,
     "tradeCount": 3,
@@ -2558,7 +2558,7 @@
   {
     "id": "2c9b3b15-50d1-2d63-b0e7-e6ef5bc5baf6",
     "date": "2024-05-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.514036,
     "netReturnPct": 0.514036,
     "tradeCount": 2,
@@ -2570,7 +2570,7 @@
   {
     "id": "a8c34724-8d00-d5f8-3231-d1226c433891",
     "date": "2024-05-31",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.347899,
     "netReturnPct": 0.347899,
     "tradeCount": 5,
@@ -2582,7 +2582,7 @@
   {
     "id": "b8e76c49-d7b6-f9d8-43e6-4237357e0ff7",
     "date": "2024-06-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.01,
     "netReturnPct": 1.01,
     "tradeCount": 4,
@@ -2594,7 +2594,7 @@
   {
     "id": "f1ff852b-c14d-e884-eb44-51ee88bee428",
     "date": "2024-06-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.37104,
     "netReturnPct": 0.37104,
     "tradeCount": 5,
@@ -2606,7 +2606,7 @@
   {
     "id": "0ca3313b-1822-2a22-5ed9-e1dae83f53f9",
     "date": "2024-06-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.204259,
     "netReturnPct": 1.204259,
     "tradeCount": 5,
@@ -2618,7 +2618,7 @@
   {
     "id": "43c9e7ca-2404-8bd3-15ec-7fc6906bf3d8",
     "date": "2024-06-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.824732,
     "netReturnPct": 0.824732,
     "tradeCount": 3,
@@ -2630,7 +2630,7 @@
   {
     "id": "87ef3f2b-992f-2e09-8564-5319cb0bed60",
     "date": "2024-06-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.151566,
     "netReturnPct": 1.151566,
     "tradeCount": 4,
@@ -2642,7 +2642,7 @@
   {
     "id": "6f390811-6d1e-8413-5512-7c7bbaba9956",
     "date": "2024-06-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.401658,
     "netReturnPct": 0.401658,
     "tradeCount": 4,
@@ -2654,7 +2654,7 @@
   {
     "id": "0967d2f5-5195-4734-fbe0-47b1138ca67c",
     "date": "2024-06-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.347643,
     "netReturnPct": 0.347643,
     "tradeCount": 5,
@@ -2666,7 +2666,7 @@
   {
     "id": "445c2b00-a083-8bb0-6198-61cbaf08e6e7",
     "date": "2024-06-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.362521,
     "netReturnPct": -0.362521,
     "tradeCount": 2,
@@ -2678,7 +2678,7 @@
   {
     "id": "6cd39a3a-3f65-9606-2708-b263e153f697",
     "date": "2024-06-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.854537,
     "netReturnPct": 0.854537,
     "tradeCount": 4,
@@ -2690,7 +2690,7 @@
   {
     "id": "fa8562a7-260c-625d-61f3-f5f72b9ec303",
     "date": "2024-06-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.964261,
     "netReturnPct": 0.964261,
     "tradeCount": 3,
@@ -2702,7 +2702,7 @@
   {
     "id": "67edd682-40ad-86a1-546b-2b546daabeb3",
     "date": "2024-06-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.239166,
     "netReturnPct": 1.239166,
     "tradeCount": 3,
@@ -2714,7 +2714,7 @@
   {
     "id": "823a6ebd-6cab-b52a-8da5-603fffc7d7d4",
     "date": "2024-06-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.28613,
     "netReturnPct": 0.28613,
     "tradeCount": 2,
@@ -2726,7 +2726,7 @@
   {
     "id": "a2ca9475-c910-2000-fb48-d7d30c45781a",
     "date": "2024-06-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.651948,
     "netReturnPct": 0.651948,
     "tradeCount": 4,
@@ -2738,7 +2738,7 @@
   {
     "id": "8172788c-0e22-3c8e-2477-f989a856b7f3",
     "date": "2024-06-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.343411,
     "netReturnPct": -0.343411,
     "tradeCount": 3,
@@ -2750,7 +2750,7 @@
   {
     "id": "de79ebfc-818e-71fe-f8ba-6389feb5ad2a",
     "date": "2024-06-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.435592,
     "netReturnPct": 0.435592,
     "tradeCount": 5,
@@ -2762,7 +2762,7 @@
   {
     "id": "66fb1779-534d-293b-10b3-dd2e3ec5bd3e",
     "date": "2024-06-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.409752,
     "netReturnPct": 0.409752,
     "tradeCount": 4,
@@ -2774,7 +2774,7 @@
   {
     "id": "6c13f953-779a-561b-4160-6777828bf3b4",
     "date": "2024-06-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.703707,
     "netReturnPct": 0.703707,
     "tradeCount": 2,
@@ -2786,7 +2786,7 @@
   {
     "id": "e9e9876b-ff68-b961-33a6-afbbe237d3f8",
     "date": "2024-06-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.471014,
     "netReturnPct": -0.471014,
     "tradeCount": 3,
@@ -2798,7 +2798,7 @@
   {
     "id": "ebff6e5d-2522-c39a-eb4b-c2456a6c214b",
     "date": "2024-06-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.553139,
     "netReturnPct": -0.553139,
     "tradeCount": 5,
@@ -2810,7 +2810,7 @@
   {
     "id": "935543d6-0200-880c-00e6-ec98ab552828",
     "date": "2024-06-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.60236,
     "netReturnPct": -0.60236,
     "tradeCount": 3,
@@ -2822,7 +2822,7 @@
   {
     "id": "a0b128da-7868-8ba3-cf44-6cb4a3c27f14",
     "date": "2024-07-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.412008,
     "netReturnPct": -0.412008,
     "tradeCount": 5,
@@ -2834,7 +2834,7 @@
   {
     "id": "3b961f35-ae2a-c5ba-57c6-fdbfcba89596",
     "date": "2024-07-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.546387,
     "netReturnPct": 0.546387,
     "tradeCount": 3,
@@ -2846,7 +2846,7 @@
   {
     "id": "4c72f86e-5cd6-44dc-2abb-37871d16f5ff",
     "date": "2024-07-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.705091,
     "netReturnPct": 0.705091,
     "tradeCount": 5,
@@ -2858,7 +2858,7 @@
   {
     "id": "3efff803-3164-c14c-304a-6768587564ed",
     "date": "2024-07-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.664816,
     "netReturnPct": 0.664816,
     "tradeCount": 5,
@@ -2870,7 +2870,7 @@
   {
     "id": "fb612048-2045-6e79-6e50-08bdf450f082",
     "date": "2024-07-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.414817,
     "netReturnPct": -0.414817,
     "tradeCount": 5,
@@ -2882,7 +2882,7 @@
   {
     "id": "aae0f230-17da-6039-a1b1-410e7b34debc",
     "date": "2024-07-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.494526,
     "netReturnPct": 0.494526,
     "tradeCount": 4,
@@ -2894,7 +2894,7 @@
   {
     "id": "b1956161-d949-3320-57b7-92c34dcf36a8",
     "date": "2024-07-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.588314,
     "netReturnPct": 0.588314,
     "tradeCount": 3,
@@ -2906,7 +2906,7 @@
   {
     "id": "c5cba832-fd24-88c6-ca90-a1ff876fcbfd",
     "date": "2024-07-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.553502,
     "netReturnPct": 0.553502,
     "tradeCount": 2,
@@ -2918,7 +2918,7 @@
   {
     "id": "0378e04e-2403-a635-7741-cdf4dac2c71e",
     "date": "2024-07-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.213252,
     "netReturnPct": 0.213252,
     "tradeCount": 5,
@@ -2930,7 +2930,7 @@
   {
     "id": "4bc5bf34-7317-fb8f-889a-4080078e5c1f",
     "date": "2024-07-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.058888,
     "netReturnPct": 0.058888,
     "tradeCount": 4,
@@ -2942,7 +2942,7 @@
   {
     "id": "01c32e51-8608-dc26-5b6c-50da9b76f502",
     "date": "2024-07-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.259397,
     "netReturnPct": 0.259397,
     "tradeCount": 5,
@@ -2954,7 +2954,7 @@
   {
     "id": "04ced87d-b9d8-c1ab-4e36-279d03f6595c",
     "date": "2024-07-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.61869,
     "netReturnPct": 0.61869,
     "tradeCount": 4,
@@ -2966,7 +2966,7 @@
   {
     "id": "b8a26465-1364-0ad8-048f-6155e80f5494",
     "date": "2024-07-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.316471,
     "netReturnPct": 0.316471,
     "tradeCount": 4,
@@ -2978,7 +2978,7 @@
   {
     "id": "ecc16861-2ad3-6a8d-6087-317208e15342",
     "date": "2024-07-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.703748,
     "netReturnPct": 0.703748,
     "tradeCount": 3,
@@ -2990,7 +2990,7 @@
   {
     "id": "9b29e96c-490e-795d-6074-1a874e19b55f",
     "date": "2024-07-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.164534,
     "netReturnPct": -0.164534,
     "tradeCount": 4,
@@ -3002,7 +3002,7 @@
   {
     "id": "60838dff-cf53-b8ce-98ea-5f65406d7780",
     "date": "2024-07-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.686885,
     "netReturnPct": 0.686885,
     "tradeCount": 3,
@@ -3014,7 +3014,7 @@
   {
     "id": "337666ac-b0e0-85f3-c31a-7bb4edb4dc3a",
     "date": "2024-07-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.377581,
     "netReturnPct": -0.377581,
     "tradeCount": 4,
@@ -3026,7 +3026,7 @@
   {
     "id": "8d7bda19-a73d-ed80-f65d-f91e942ad7fe",
     "date": "2024-07-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.379882,
     "netReturnPct": 0.379882,
     "tradeCount": 4,
@@ -3038,7 +3038,7 @@
   {
     "id": "56961834-7272-ba28-7e7b-ad8af6a4f1f5",
     "date": "2024-07-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.63308,
     "netReturnPct": 0.63308,
     "tradeCount": 5,
@@ -3050,7 +3050,7 @@
   {
     "id": "07ed8d61-064b-3dc6-514c-08683967ba2d",
     "date": "2024-07-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.452693,
     "netReturnPct": 0.452693,
     "tradeCount": 3,
@@ -3062,7 +3062,7 @@
   {
     "id": "457eada0-3535-1fd6-9c9a-9489b88d972a",
     "date": "2024-07-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.528638,
     "netReturnPct": 0.528638,
     "tradeCount": 3,
@@ -3074,7 +3074,7 @@
   {
     "id": "c9d561b9-544a-10d8-714f-afc29beb37a4",
     "date": "2024-07-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.385722,
     "netReturnPct": 0.385722,
     "tradeCount": 2,
@@ -3086,7 +3086,7 @@
   {
     "id": "03841c62-9b76-b642-0f62-8942aef61199",
     "date": "2024-07-31",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.469555,
     "netReturnPct": 0.469555,
     "tradeCount": 2,
@@ -3098,7 +3098,7 @@
   {
     "id": "8b65a694-882f-77d9-ee84-35b4105ce9d0",
     "date": "2024-08-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.764253,
     "netReturnPct": 0.764253,
     "tradeCount": 3,
@@ -3110,7 +3110,7 @@
   {
     "id": "c0778410-f890-9ed4-c442-9c47fd8c1037",
     "date": "2024-08-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.642148,
     "netReturnPct": 0.642148,
     "tradeCount": 5,
@@ -3122,7 +3122,7 @@
   {
     "id": "c1be94b9-57db-d808-af78-436dfba9ea17",
     "date": "2024-08-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.242498,
     "netReturnPct": 0.242498,
     "tradeCount": 2,
@@ -3134,7 +3134,7 @@
   {
     "id": "d0fd35c7-fb1b-27e2-59d3-805aa673f739",
     "date": "2024-08-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.126897,
     "netReturnPct": 0.126897,
     "tradeCount": 4,
@@ -3146,7 +3146,7 @@
   {
     "id": "b6e801d7-1c6f-505a-9915-52b477b6154e",
     "date": "2024-08-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.559557,
     "netReturnPct": 0.559557,
     "tradeCount": 5,
@@ -3158,7 +3158,7 @@
   {
     "id": "ad0d5323-02c8-d485-ce01-e7a367da280b",
     "date": "2024-08-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.493477,
     "netReturnPct": 0.493477,
     "tradeCount": 3,
@@ -3170,7 +3170,7 @@
   {
     "id": "f6d24d49-3a82-51f6-eacd-c2c299ca3c7e",
     "date": "2024-08-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.349835,
     "netReturnPct": 0.349835,
     "tradeCount": 2,
@@ -3182,7 +3182,7 @@
   {
     "id": "42708f39-ffa5-dadf-9941-f2c76306f60f",
     "date": "2024-08-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.047663,
     "netReturnPct": 0.047663,
     "tradeCount": 4,
@@ -3194,7 +3194,7 @@
   {
     "id": "c0593932-0ec1-b5fd-7fa8-ba184c9d2d08",
     "date": "2024-08-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.406491,
     "netReturnPct": 0.406491,
     "tradeCount": 2,
@@ -3206,7 +3206,7 @@
   {
     "id": "d513baaf-3e04-e811-bdd0-8b1e8ff4eb14",
     "date": "2024-08-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.218653,
     "netReturnPct": 0.218653,
     "tradeCount": 3,
@@ -3218,7 +3218,7 @@
   {
     "id": "2a5fe74c-d8a6-d118-97c2-0f21772d5ba9",
     "date": "2024-08-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.362285,
     "netReturnPct": 0.362285,
     "tradeCount": 4,
@@ -3230,7 +3230,7 @@
   {
     "id": "5b29c978-7324-76ab-220b-460b1ddd8eb8",
     "date": "2024-08-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.616757,
     "netReturnPct": 0.616757,
     "tradeCount": 4,
@@ -3242,7 +3242,7 @@
   {
     "id": "752831a0-24eb-15f3-4e79-14e2f5de4624",
     "date": "2024-08-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.376802,
     "netReturnPct": 0.376802,
     "tradeCount": 2,
@@ -3254,7 +3254,7 @@
   {
     "id": "e1922097-ef39-44fd-1922-b5336aa8d598",
     "date": "2024-08-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.340207,
     "netReturnPct": 0.340207,
     "tradeCount": 3,
@@ -3266,7 +3266,7 @@
   {
     "id": "f1cdd75a-825a-b744-9bf5-fee2cd3464b8",
     "date": "2024-08-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.052591,
     "netReturnPct": 0.052591,
     "tradeCount": 3,
@@ -3278,7 +3278,7 @@
   {
     "id": "856a2812-a834-7c05-47a0-a41e8eaf0ae2",
     "date": "2024-08-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.825179,
     "netReturnPct": 0.825179,
     "tradeCount": 5,
@@ -3290,7 +3290,7 @@
   {
     "id": "045bfd95-a167-8036-1ec6-b151dd094b09",
     "date": "2024-08-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.10661,
     "netReturnPct": -0.10661,
     "tradeCount": 4,
@@ -3302,7 +3302,7 @@
   {
     "id": "a3d79135-1a48-c1a0-fa37-d7340db5898b",
     "date": "2024-08-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.840014,
     "netReturnPct": 0.840014,
     "tradeCount": 5,
@@ -3314,7 +3314,7 @@
   {
     "id": "103d1bc0-5c89-5652-2b5b-a09d02e633ba",
     "date": "2024-08-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.137149,
     "netReturnPct": -0.137149,
     "tradeCount": 5,
@@ -3326,7 +3326,7 @@
   {
     "id": "8fd51652-f631-9134-7661-9d6e29ec420b",
     "date": "2024-08-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.474699,
     "netReturnPct": 0.474699,
     "tradeCount": 2,
@@ -3338,7 +3338,7 @@
   {
     "id": "ed4c74be-6086-abce-06b1-81141b4a8a4c",
     "date": "2024-08-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.104987,
     "netReturnPct": 0.104987,
     "tradeCount": 4,
@@ -3350,7 +3350,7 @@
   {
     "id": "34b37c7e-f797-73b4-c697-23aa1147e2ca",
     "date": "2024-08-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.431983,
     "netReturnPct": 0.431983,
     "tradeCount": 5,
@@ -3362,7 +3362,7 @@
   {
     "id": "25c2f4a1-2107-a03a-fe5b-d0e37b1fec8c",
     "date": "2024-09-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.614655,
     "netReturnPct": 0.614655,
     "tradeCount": 4,
@@ -3374,7 +3374,7 @@
   {
     "id": "cd8497c2-2f0f-6931-1875-81b886454e66",
     "date": "2024-09-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.420053,
     "netReturnPct": 0.420053,
     "tradeCount": 2,
@@ -3386,7 +3386,7 @@
   {
     "id": "0f62bbff-54e9-2f18-173d-dcfa812beee6",
     "date": "2024-09-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.143486,
     "netReturnPct": -0.143486,
     "tradeCount": 5,
@@ -3398,7 +3398,7 @@
   {
     "id": "b6e5c663-98ec-b5fe-37ce-dab69ccdffe4",
     "date": "2024-09-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.08911,
     "netReturnPct": 0.08911,
     "tradeCount": 2,
@@ -3410,7 +3410,7 @@
   {
     "id": "1a176bb2-2618-ee4f-210b-da5fbbe025c8",
     "date": "2024-09-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.332593,
     "netReturnPct": -0.332593,
     "tradeCount": 3,
@@ -3422,7 +3422,7 @@
   {
     "id": "7aa13b86-8f06-f20f-046f-330883da553d",
     "date": "2024-09-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.431605,
     "netReturnPct": 0.431605,
     "tradeCount": 2,
@@ -3434,7 +3434,7 @@
   {
     "id": "a5653bd4-dc08-9670-1c86-553b9bfd2484",
     "date": "2024-09-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.715787,
     "netReturnPct": 0.715787,
     "tradeCount": 5,
@@ -3446,7 +3446,7 @@
   {
     "id": "dab41e1e-05f1-093f-49d5-0672deefb608",
     "date": "2024-09-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.354114,
     "netReturnPct": 0.354114,
     "tradeCount": 4,
@@ -3458,7 +3458,7 @@
   {
     "id": "a3518fec-4443-513c-6dd3-3801eca23d2a",
     "date": "2024-09-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.57694,
     "netReturnPct": -0.57694,
     "tradeCount": 2,
@@ -3470,7 +3470,7 @@
   {
     "id": "0e29bc90-9923-6a1b-0ebf-e6e1dbc7b8b4",
     "date": "2024-09-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.419591,
     "netReturnPct": -0.419591,
     "tradeCount": 5,
@@ -3482,7 +3482,7 @@
   {
     "id": "06029de0-c918-104c-b90e-d12d8523b41b",
     "date": "2024-09-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.480669,
     "netReturnPct": -0.480669,
     "tradeCount": 4,
@@ -3494,7 +3494,7 @@
   {
     "id": "8198943f-be9d-08a1-24c5-3f84f4803236",
     "date": "2024-09-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.110387,
     "netReturnPct": 1.110387,
     "tradeCount": 4,
@@ -3506,7 +3506,7 @@
   {
     "id": "f0031996-0b31-2aaa-e7dd-24fceaf01a98",
     "date": "2024-09-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.738721,
     "netReturnPct": 0.738721,
     "tradeCount": 4,
@@ -3518,7 +3518,7 @@
   {
     "id": "78a296bf-db03-c343-464c-7205ccd9538e",
     "date": "2024-09-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.037047,
     "netReturnPct": 1.037047,
     "tradeCount": 4,
@@ -3530,7 +3530,7 @@
   {
     "id": "42b37c03-a1b9-9b1d-5a3f-37eeb45e3188",
     "date": "2024-09-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.420433,
     "netReturnPct": 0.420433,
     "tradeCount": 3,
@@ -3542,7 +3542,7 @@
   {
     "id": "b6dd4c01-24c1-7259-9134-f4fc41e124fe",
     "date": "2024-09-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.857629,
     "netReturnPct": 0.857629,
     "tradeCount": 2,
@@ -3554,7 +3554,7 @@
   {
     "id": "367adedf-d535-16f6-a9b3-ad119871f589",
     "date": "2024-09-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.982209,
     "netReturnPct": 0.982209,
     "tradeCount": 4,
@@ -3566,7 +3566,7 @@
   {
     "id": "a864c00d-dac0-d130-670d-568deadb2d84",
     "date": "2024-09-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.06424,
     "netReturnPct": 0.06424,
     "tradeCount": 5,
@@ -3578,7 +3578,7 @@
   {
     "id": "77858288-3717-202b-f7c0-dfba0c647bfc",
     "date": "2024-09-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.438571,
     "netReturnPct": -0.438571,
     "tradeCount": 4,
@@ -3590,7 +3590,7 @@
   {
     "id": "73b7f91c-f5e6-2506-6893-adc9b0d9d490",
     "date": "2024-09-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.530127,
     "netReturnPct": 0.530127,
     "tradeCount": 5,
@@ -3602,7 +3602,7 @@
   {
     "id": "dcaba737-314e-fe05-74f2-04c0e1d01754",
     "date": "2024-09-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.587193,
     "netReturnPct": 0.587193,
     "tradeCount": 5,
@@ -3614,7 +3614,7 @@
   {
     "id": "9624e648-77bd-c495-c0b6-52328255f2c9",
     "date": "2024-10-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.289439,
     "netReturnPct": 0.289439,
     "tradeCount": 5,
@@ -3626,7 +3626,7 @@
   {
     "id": "e6ba5dee-f6dd-332f-5f96-6e3e1c9388db",
     "date": "2024-10-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.40965,
     "netReturnPct": 0.40965,
     "tradeCount": 3,
@@ -3638,7 +3638,7 @@
   {
     "id": "0177da43-9f4e-c166-fa8a-87c06920d96a",
     "date": "2024-10-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.199069,
     "netReturnPct": 0.199069,
     "tradeCount": 5,
@@ -3650,7 +3650,7 @@
   {
     "id": "454dd5bb-f6d1-73fb-935e-37e5553ff44f",
     "date": "2024-10-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.406657,
     "netReturnPct": 0.406657,
     "tradeCount": 5,
@@ -3662,7 +3662,7 @@
   {
     "id": "2da4c952-96eb-e22c-4bb5-0e79170f37a7",
     "date": "2024-10-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.290335,
     "netReturnPct": 0.290335,
     "tradeCount": 5,
@@ -3674,7 +3674,7 @@
   {
     "id": "bc536c62-e344-3778-1993-c944c62b8bc8",
     "date": "2024-10-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.399551,
     "netReturnPct": 0.399551,
     "tradeCount": 5,
@@ -3686,7 +3686,7 @@
   {
     "id": "5f5f358d-986d-cffb-ac11-e1d9f291b3a7",
     "date": "2024-10-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.070147,
     "netReturnPct": -0.070147,
     "tradeCount": 2,
@@ -3698,7 +3698,7 @@
   {
     "id": "9ff89089-8d6b-6853-1a80-96a76a4229e2",
     "date": "2024-10-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.25463,
     "netReturnPct": 0.25463,
     "tradeCount": 3,
@@ -3710,7 +3710,7 @@
   {
     "id": "03abcda2-b6ff-fda2-d05c-9c886d8046ba",
     "date": "2024-10-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.254627,
     "netReturnPct": 0.254627,
     "tradeCount": 2,
@@ -3722,7 +3722,7 @@
   {
     "id": "92ae80ee-ff22-bcf8-4c3f-f8b53e377e01",
     "date": "2024-10-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.508879,
     "netReturnPct": 0.508879,
     "tradeCount": 3,
@@ -3734,7 +3734,7 @@
   {
     "id": "4c6928d3-9c7e-7241-4510-4936d8fca0df",
     "date": "2024-10-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.511978,
     "netReturnPct": 0.511978,
     "tradeCount": 5,
@@ -3746,7 +3746,7 @@
   {
     "id": "1e2dfb45-43de-3541-d639-dcb9a97e3f90",
     "date": "2024-10-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.244482,
     "netReturnPct": 0.244482,
     "tradeCount": 4,
@@ -3758,7 +3758,7 @@
   {
     "id": "66c5f06d-37c7-d86b-1ec2-27951978d174",
     "date": "2024-10-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.559827,
     "netReturnPct": 0.559827,
     "tradeCount": 2,
@@ -3770,7 +3770,7 @@
   {
     "id": "5f918382-e4ce-005d-59b5-b937098cbd53",
     "date": "2024-10-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.062329,
     "netReturnPct": 0.062329,
     "tradeCount": 5,
@@ -3782,7 +3782,7 @@
   {
     "id": "6f68ede4-a7fc-fa78-d45e-409d4b3a07a5",
     "date": "2024-10-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.051829,
     "netReturnPct": 0.051829,
     "tradeCount": 5,
@@ -3794,7 +3794,7 @@
   {
     "id": "806c30d3-66d7-2415-56ef-a355f1c2ab8d",
     "date": "2024-10-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.314926,
     "netReturnPct": -0.314926,
     "tradeCount": 3,
@@ -3806,7 +3806,7 @@
   {
     "id": "20742318-b71c-8e08-b0ee-27178eadf56b",
     "date": "2024-10-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.529571,
     "netReturnPct": 0.529571,
     "tradeCount": 3,
@@ -3818,7 +3818,7 @@
   {
     "id": "29e65bed-0023-63f7-2bd7-5061bae98d10",
     "date": "2024-10-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.474894,
     "netReturnPct": 0.474894,
     "tradeCount": 4,
@@ -3830,7 +3830,7 @@
   {
     "id": "d1ea4fe4-7965-672f-e1ae-f7a784dcdf84",
     "date": "2024-10-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.475376,
     "netReturnPct": 0.475376,
     "tradeCount": 3,
@@ -3842,7 +3842,7 @@
   {
     "id": "a1c38b93-2748-40ba-f983-4113fed8780d",
     "date": "2024-10-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.516566,
     "netReturnPct": 0.516566,
     "tradeCount": 2,
@@ -3854,7 +3854,7 @@
   {
     "id": "69f0a13f-ac43-af98-df82-0bc4f4a66a0a",
     "date": "2024-10-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.06788,
     "netReturnPct": 0.06788,
     "tradeCount": 2,
@@ -3866,7 +3866,7 @@
   {
     "id": "fd81c60d-440a-2bf0-87c0-0b0ff04c6c4a",
     "date": "2024-10-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.408972,
     "netReturnPct": 0.408972,
     "tradeCount": 4,
@@ -3878,7 +3878,7 @@
   {
     "id": "e0b01fb2-7d5c-6dec-84be-d180f8a4eee1",
     "date": "2024-10-31",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.090419,
     "netReturnPct": 0.090419,
     "tradeCount": 5,
@@ -3890,7 +3890,7 @@
   {
     "id": "dfb6f7cc-ec0f-f6e1-a419-82100a15f436",
     "date": "2024-11-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.249239,
     "netReturnPct": 0.249239,
     "tradeCount": 4,
@@ -3902,7 +3902,7 @@
   {
     "id": "51edd4b9-b440-1b97-9a1a-cf9a3f158f42",
     "date": "2024-11-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.533227,
     "netReturnPct": 0.533227,
     "tradeCount": 3,
@@ -3914,7 +3914,7 @@
   {
     "id": "dcc1d1dc-ecaa-4975-f23b-5a2542566fc4",
     "date": "2024-11-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.166805,
     "netReturnPct": 0.166805,
     "tradeCount": 4,
@@ -3926,7 +3926,7 @@
   {
     "id": "f66f00fa-048b-d1d2-4c4a-a54360a98a0b",
     "date": "2024-11-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.512574,
     "netReturnPct": 0.512574,
     "tradeCount": 5,
@@ -3938,7 +3938,7 @@
   {
     "id": "1315ef8c-42fa-5a0e-5cf9-29989bad409f",
     "date": "2024-11-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.401598,
     "netReturnPct": -0.401598,
     "tradeCount": 4,
@@ -3950,7 +3950,7 @@
   {
     "id": "6143caa1-a58a-34e9-3780-761a5032e240",
     "date": "2024-11-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.502403,
     "netReturnPct": 0.502403,
     "tradeCount": 4,
@@ -3962,7 +3962,7 @@
   {
     "id": "02adbab8-5bc5-17ba-7890-326c1410b2f7",
     "date": "2024-11-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.171876,
     "netReturnPct": -0.171876,
     "tradeCount": 2,
@@ -3974,7 +3974,7 @@
   {
     "id": "f8d9e0bd-6edf-4a4d-d053-f7da10f08b88",
     "date": "2024-11-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.404519,
     "netReturnPct": -0.404519,
     "tradeCount": 3,
@@ -3986,7 +3986,7 @@
   {
     "id": "d4e5405e-da7b-3208-a416-93d59336c25b",
     "date": "2024-11-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.578224,
     "netReturnPct": 0.578224,
     "tradeCount": 4,
@@ -3998,7 +3998,7 @@
   {
     "id": "4c44365d-385f-bccc-32b7-2c64d4d4775d",
     "date": "2024-11-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.366309,
     "netReturnPct": 0.366309,
     "tradeCount": 4,
@@ -4010,7 +4010,7 @@
   {
     "id": "020eedb1-cea2-cfc4-9e5a-914fc3350536",
     "date": "2024-11-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.352119,
     "netReturnPct": -0.352119,
     "tradeCount": 3,
@@ -4022,7 +4022,7 @@
   {
     "id": "f7ff5ade-cd86-911e-dfd6-82f59ce03d5c",
     "date": "2024-11-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.413425,
     "netReturnPct": 0.413425,
     "tradeCount": 4,
@@ -4034,7 +4034,7 @@
   {
     "id": "3d3f79f9-c398-da7b-cb92-6cc3a18a5f6f",
     "date": "2024-11-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.706064,
     "netReturnPct": 0.706064,
     "tradeCount": 2,
@@ -4046,7 +4046,7 @@
   {
     "id": "1c90fcc6-5027-59eb-6c08-866de2d023e8",
     "date": "2024-11-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.101688,
     "netReturnPct": 0.101688,
     "tradeCount": 5,
@@ -4058,7 +4058,7 @@
   {
     "id": "9f72abd2-53ac-ef47-e577-4b3b7b3cc930",
     "date": "2024-11-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.432003,
     "netReturnPct": 0.432003,
     "tradeCount": 4,
@@ -4070,7 +4070,7 @@
   {
     "id": "063002ef-76a6-d645-5a4a-513dc600990b",
     "date": "2024-11-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.201772,
     "netReturnPct": 0.201772,
     "tradeCount": 5,
@@ -4082,7 +4082,7 @@
   {
     "id": "9d7668d3-302f-6d3e-659d-63690d1d6acd",
     "date": "2024-11-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.412225,
     "netReturnPct": 0.412225,
     "tradeCount": 3,
@@ -4094,7 +4094,7 @@
   {
     "id": "f83152a3-41e1-0269-55b1-814a8dbc9264",
     "date": "2024-11-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.509754,
     "netReturnPct": 0.509754,
     "tradeCount": 3,
@@ -4106,7 +4106,7 @@
   {
     "id": "5f26bae6-684d-e785-c75b-5c9389c7a11e",
     "date": "2024-11-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.355213,
     "netReturnPct": 0.355213,
     "tradeCount": 2,
@@ -4118,7 +4118,7 @@
   {
     "id": "0f0961c4-c56e-757a-e948-80b11b18dd3d",
     "date": "2024-11-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.182617,
     "netReturnPct": 0.182617,
     "tradeCount": 4,
@@ -4130,7 +4130,7 @@
   {
     "id": "b5f4664f-0860-5324-954b-a10d1a9212ac",
     "date": "2024-11-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.592699,
     "netReturnPct": 0.592699,
     "tradeCount": 3,
@@ -4142,7 +4142,7 @@
   {
     "id": "4ba26bea-1419-1cd7-22fc-6c513d090d12",
     "date": "2024-12-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.06749,
     "netReturnPct": 0.06749,
     "tradeCount": 5,
@@ -4154,7 +4154,7 @@
   {
     "id": "47a83936-e4c0-e20e-590b-ed4cd06f73fd",
     "date": "2024-12-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.238399,
     "netReturnPct": -0.238399,
     "tradeCount": 5,
@@ -4166,7 +4166,7 @@
   {
     "id": "3f2ee3f1-927a-37a5-7cc5-48167e69fb02",
     "date": "2024-12-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.643854,
     "netReturnPct": 0.643854,
     "tradeCount": 2,
@@ -4178,7 +4178,7 @@
   {
     "id": "cdd87804-43f9-c541-5011-2b30f3d444a5",
     "date": "2024-12-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.585416,
     "netReturnPct": 0.585416,
     "tradeCount": 3,
@@ -4190,7 +4190,7 @@
   {
     "id": "96750d9d-43a1-00b7-6843-9bda60b82945",
     "date": "2024-12-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.440709,
     "netReturnPct": 0.440709,
     "tradeCount": 4,
@@ -4202,7 +4202,7 @@
   {
     "id": "c3f88721-19d3-5bbc-688d-8358c35e260b",
     "date": "2024-12-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.197184,
     "netReturnPct": 0.197184,
     "tradeCount": 3,
@@ -4214,7 +4214,7 @@
   {
     "id": "3f81b2a7-256d-5b15-4030-4c37d461b22f",
     "date": "2024-12-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.195969,
     "netReturnPct": 0.195969,
     "tradeCount": 2,
@@ -4226,7 +4226,7 @@
   {
     "id": "c7e87919-c4ab-78e8-4eff-72957d74cf87",
     "date": "2024-12-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.411152,
     "netReturnPct": 0.411152,
     "tradeCount": 2,
@@ -4238,7 +4238,7 @@
   {
     "id": "d398cbfa-0f77-a997-2d4d-0f8db9e2716c",
     "date": "2024-12-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.034008,
     "netReturnPct": 0.034008,
     "tradeCount": 4,
@@ -4250,7 +4250,7 @@
   {
     "id": "ab7ab450-c58d-2518-686a-924c3604748d",
     "date": "2024-12-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.523453,
     "netReturnPct": 0.523453,
     "tradeCount": 5,
@@ -4262,7 +4262,7 @@
   {
     "id": "d29cc459-b7c3-bacf-5a06-4edc091beb02",
     "date": "2024-12-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.231756,
     "netReturnPct": 0.231756,
     "tradeCount": 4,
@@ -4274,7 +4274,7 @@
   {
     "id": "87f8a38c-b506-a5c2-304d-6b939015cf15",
     "date": "2024-12-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.377058,
     "netReturnPct": -0.377058,
     "tradeCount": 5,
@@ -4286,7 +4286,7 @@
   {
     "id": "a14f9c0b-5c10-6f8e-23a6-def5173362df",
     "date": "2024-12-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.136921,
     "netReturnPct": -0.136921,
     "tradeCount": 2,
@@ -4298,7 +4298,7 @@
   {
     "id": "c7672c84-d53d-6672-2f3a-3cabd0658340",
     "date": "2024-12-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.229394,
     "netReturnPct": 0.229394,
     "tradeCount": 2,
@@ -4310,7 +4310,7 @@
   {
     "id": "6d1c1f7c-e084-2af4-e571-9a63a6e5a631",
     "date": "2024-12-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.273242,
     "netReturnPct": 0.273242,
     "tradeCount": 5,
@@ -4322,7 +4322,7 @@
   {
     "id": "d26f41d0-ecdb-4feb-1ed0-1e3a8536c0fa",
     "date": "2024-12-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.361998,
     "netReturnPct": 0.361998,
     "tradeCount": 5,
@@ -4334,7 +4334,7 @@
   {
     "id": "123164dc-563a-94ef-d768-432d0f945b4d",
     "date": "2024-12-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.21477,
     "netReturnPct": 0.21477,
     "tradeCount": 4,
@@ -4346,7 +4346,7 @@
   {
     "id": "5ec08f4c-9812-9a51-55ae-30c57f56e971",
     "date": "2024-12-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.165291,
     "netReturnPct": -0.165291,
     "tradeCount": 4,
@@ -4358,7 +4358,7 @@
   {
     "id": "47653ccc-3045-5e24-fb1d-e3f3ab10c2ba",
     "date": "2024-12-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.431719,
     "netReturnPct": 0.431719,
     "tradeCount": 2,
@@ -4370,7 +4370,7 @@
   {
     "id": "3b96d636-33d4-4d24-33b3-4863314323ba",
     "date": "2024-12-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.529162,
     "netReturnPct": 0.529162,
     "tradeCount": 3,
@@ -4382,7 +4382,7 @@
   {
     "id": "408b3363-8bf5-256f-7c39-03c2b94971f6",
     "date": "2024-12-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.275672,
     "netReturnPct": 0.275672,
     "tradeCount": 4,
@@ -4394,7 +4394,7 @@
   {
     "id": "d4b54bf0-1c6c-d24b-50e9-ab7e7724d63d",
     "date": "2024-12-31",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.210646,
     "netReturnPct": 0.210646,
     "tradeCount": 4,
@@ -4406,7 +4406,7 @@
   {
     "id": "32cce475-0606-fbec-2f7d-952748db5296",
     "date": "2025-01-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.486531,
     "netReturnPct": 0.486531,
     "tradeCount": 5,
@@ -4418,7 +4418,7 @@
   {
     "id": "5f74ef28-44f0-7506-5e94-5a461c0997e3",
     "date": "2025-01-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.398263,
     "netReturnPct": 0.398263,
     "tradeCount": 2,
@@ -4430,7 +4430,7 @@
   {
     "id": "01ce2a01-713e-ee06-a21d-cf43798bc1a6",
     "date": "2025-01-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.441644,
     "netReturnPct": 0.441644,
     "tradeCount": 3,
@@ -4442,7 +4442,7 @@
   {
     "id": "76621535-3eb7-98a8-5ecd-ac56b00cb7e0",
     "date": "2025-01-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.304856,
     "netReturnPct": 0.304856,
     "tradeCount": 5,
@@ -4454,7 +4454,7 @@
   {
     "id": "a76e7fb6-2bfe-e8b8-79a1-34d863716d67",
     "date": "2025-01-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.423393,
     "netReturnPct": 0.423393,
     "tradeCount": 3,
@@ -4466,7 +4466,7 @@
   {
     "id": "10257782-2005-f6de-0449-200ea8b59831",
     "date": "2025-01-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.11307,
     "netReturnPct": 0.11307,
     "tradeCount": 2,
@@ -4478,7 +4478,7 @@
   {
     "id": "0eeac227-b8d9-da4a-52a6-8ecb11a9c3c5",
     "date": "2025-01-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.354498,
     "netReturnPct": 0.354498,
     "tradeCount": 4,
@@ -4490,7 +4490,7 @@
   {
     "id": "96252b28-c27f-d334-083a-04d94424f1bb",
     "date": "2025-01-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.318564,
     "netReturnPct": 0.318564,
     "tradeCount": 3,
@@ -4502,7 +4502,7 @@
   {
     "id": "33dd3861-df01-dbf7-703a-978fafaf05e2",
     "date": "2025-01-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.210528,
     "netReturnPct": 0.210528,
     "tradeCount": 4,
@@ -4514,7 +4514,7 @@
   {
     "id": "347a1088-4628-ff28-bb68-587c352690b8",
     "date": "2025-01-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.390814,
     "netReturnPct": 0.390814,
     "tradeCount": 5,
@@ -4526,7 +4526,7 @@
   {
     "id": "506e270e-d876-48a6-fe42-094d888ddd0e",
     "date": "2025-01-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.276072,
     "netReturnPct": 0.276072,
     "tradeCount": 5,
@@ -4538,7 +4538,7 @@
   {
     "id": "640557c0-a62c-b25f-2403-dbec1ae4a131",
     "date": "2025-01-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.470323,
     "netReturnPct": 0.470323,
     "tradeCount": 2,
@@ -4550,7 +4550,7 @@
   {
     "id": "612ae7c2-a698-ea74-dc45-a8c162875073",
     "date": "2025-01-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.235908,
     "netReturnPct": 0.235908,
     "tradeCount": 5,
@@ -4562,7 +4562,7 @@
   {
     "id": "06cc3296-e01d-483f-2bf0-bd84ce1d39b5",
     "date": "2025-01-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.076823,
     "netReturnPct": -0.076823,
     "tradeCount": 4,
@@ -4574,7 +4574,7 @@
   {
     "id": "6bf217a6-1307-9681-6298-84e52cb5d0c4",
     "date": "2025-01-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.144877,
     "netReturnPct": -0.144877,
     "tradeCount": 4,
@@ -4586,7 +4586,7 @@
   {
     "id": "48a11a75-7a2f-59c7-2b5e-d17f1010c5b3",
     "date": "2025-01-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.243804,
     "netReturnPct": 0.243804,
     "tradeCount": 2,
@@ -4598,7 +4598,7 @@
   {
     "id": "516bc639-a07e-e39c-a3a8-cf2fa8adf40d",
     "date": "2025-01-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.192338,
     "netReturnPct": 0.192338,
     "tradeCount": 5,
@@ -4610,7 +4610,7 @@
   {
     "id": "08133f03-27c8-e8c7-89a0-03572d5e32b2",
     "date": "2025-01-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.471899,
     "netReturnPct": 0.471899,
     "tradeCount": 4,
@@ -4622,7 +4622,7 @@
   {
     "id": "1994c5c6-aaff-2478-bf0c-0b92c20a17c4",
     "date": "2025-01-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.110283,
     "netReturnPct": 0.110283,
     "tradeCount": 5,
@@ -4634,7 +4634,7 @@
   {
     "id": "f985058d-718f-a411-f590-657c47256109",
     "date": "2025-01-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.239297,
     "netReturnPct": -0.239297,
     "tradeCount": 3,
@@ -4646,7 +4646,7 @@
   {
     "id": "25f32cf5-1028-67b0-0756-8f2ac1578f7b",
     "date": "2025-01-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.247593,
     "netReturnPct": 0.247593,
     "tradeCount": 5,
@@ -4658,7 +4658,7 @@
   {
     "id": "302a840d-70c4-643a-003e-844369e16657",
     "date": "2025-01-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.278993,
     "netReturnPct": 0.278993,
     "tradeCount": 4,
@@ -4670,7 +4670,7 @@
   {
     "id": "fb8e66c4-e1b2-4470-531b-a3fd0681f7b2",
     "date": "2025-01-31",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.22595,
     "netReturnPct": 0.22595,
     "tradeCount": 2,
@@ -4682,7 +4682,7 @@
   {
     "id": "261a8fdd-afa2-bcba-754c-54875873ce96",
     "date": "2025-02-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.335794,
     "netReturnPct": 0.335794,
     "tradeCount": 4,
@@ -4694,7 +4694,7 @@
   {
     "id": "27f9b61e-8232-2cab-11cf-f01d6cbd6e2e",
     "date": "2025-02-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.077656,
     "netReturnPct": -0.077656,
     "tradeCount": 2,
@@ -4706,7 +4706,7 @@
   {
     "id": "4de09aa0-b645-ad60-53e3-5b72bf3a83ec",
     "date": "2025-02-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.054941,
     "netReturnPct": 0.054941,
     "tradeCount": 3,
@@ -4718,7 +4718,7 @@
   {
     "id": "de213825-c5ce-ca51-5f9a-9062139084a0",
     "date": "2025-02-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.107045,
     "netReturnPct": -0.107045,
     "tradeCount": 5,
@@ -4730,7 +4730,7 @@
   {
     "id": "0617499d-0a83-798e-f5fb-f282fa873b31",
     "date": "2025-02-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.535901,
     "netReturnPct": 0.535901,
     "tradeCount": 2,
@@ -4742,7 +4742,7 @@
   {
     "id": "6f0d8a40-4ec8-9519-6d03-f4440f092e9f",
     "date": "2025-02-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.596062,
     "netReturnPct": 0.596062,
     "tradeCount": 4,
@@ -4754,7 +4754,7 @@
   {
     "id": "6c3c4a7e-2751-4e0a-3458-8e5ed3dd4aac",
     "date": "2025-02-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.201769,
     "netReturnPct": 0.201769,
     "tradeCount": 5,
@@ -4766,7 +4766,7 @@
   {
     "id": "fc5587c3-9e50-19a9-ebb5-de67a428d6c1",
     "date": "2025-02-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.504922,
     "netReturnPct": 0.504922,
     "tradeCount": 4,
@@ -4778,7 +4778,7 @@
   {
     "id": "ecc3591e-a9ce-caa6-3054-f8d24f9685ed",
     "date": "2025-02-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.576988,
     "netReturnPct": 0.576988,
     "tradeCount": 2,
@@ -4790,7 +4790,7 @@
   {
     "id": "db9097c8-1a64-4a8e-c8b9-ed0173419fc6",
     "date": "2025-02-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.619212,
     "netReturnPct": 0.619212,
     "tradeCount": 4,
@@ -4802,7 +4802,7 @@
   {
     "id": "790a721d-41b1-3982-6933-f50fcc00867a",
     "date": "2025-02-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.185115,
     "netReturnPct": 0.185115,
     "tradeCount": 4,
@@ -4814,7 +4814,7 @@
   {
     "id": "938388fe-c843-9da2-49f6-92e998f7d86b",
     "date": "2025-02-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.147147,
     "netReturnPct": -0.147147,
     "tradeCount": 3,
@@ -4826,7 +4826,7 @@
   {
     "id": "b2d16129-47a0-a92f-13ee-6c4f529b8d27",
     "date": "2025-02-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.700821,
     "netReturnPct": 0.700821,
     "tradeCount": 2,
@@ -4838,7 +4838,7 @@
   {
     "id": "d9993a89-bfbf-749c-9e74-9fd700da51e8",
     "date": "2025-02-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.167834,
     "netReturnPct": -0.167834,
     "tradeCount": 5,
@@ -4850,7 +4850,7 @@
   {
     "id": "5a75dfb4-6c50-3e79-00e3-c45d9ec45f8b",
     "date": "2025-02-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.216429,
     "netReturnPct": 0.216429,
     "tradeCount": 3,
@@ -4862,7 +4862,7 @@
   {
     "id": "47c1dc20-b039-f704-409b-6f9fc1bb5ca9",
     "date": "2025-02-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.033102,
     "netReturnPct": 0.033102,
     "tradeCount": 2,
@@ -4874,7 +4874,7 @@
   {
     "id": "7c26d66d-43e9-20ed-009d-06cc1ddb1ef5",
     "date": "2025-02-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.219024,
     "netReturnPct": 0.219024,
     "tradeCount": 2,
@@ -4886,7 +4886,7 @@
   {
     "id": "5e518157-10e9-82ea-2c7b-13f96edab506",
     "date": "2025-02-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.239731,
     "netReturnPct": 0.239731,
     "tradeCount": 2,
@@ -4898,7 +4898,7 @@
   {
     "id": "52dbce71-d5ae-8466-1403-2f5ce462d933",
     "date": "2025-02-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.460435,
     "netReturnPct": 0.460435,
     "tradeCount": 5,
@@ -4910,7 +4910,7 @@
   {
     "id": "36c77ee8-43ff-7435-be57-123d31b3f835",
     "date": "2025-02-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.454465,
     "netReturnPct": 0.454465,
     "tradeCount": 2,
@@ -4922,7 +4922,7 @@
   {
     "id": "a3c4d75e-2d05-a25a-ca15-3839cf487cdc",
     "date": "2025-03-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.587595,
     "netReturnPct": 1.587595,
     "tradeCount": 2,
@@ -4934,7 +4934,7 @@
   {
     "id": "0fe4201a-80f3-2bfd-984f-e90bf41a13f9",
     "date": "2025-03-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.697986,
     "netReturnPct": 0.697986,
     "tradeCount": 5,
@@ -4946,7 +4946,7 @@
   {
     "id": "8e61515e-a0e4-a6f1-6a7d-92db5f193530",
     "date": "2025-03-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.973301,
     "netReturnPct": 0.973301,
     "tradeCount": 3,
@@ -4958,7 +4958,7 @@
   {
     "id": "8593bb20-5fec-aed3-a439-241f21fda88f",
     "date": "2025-03-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.63552,
     "netReturnPct": 0.63552,
     "tradeCount": 2,
@@ -4970,7 +4970,7 @@
   {
     "id": "8450b668-f19a-4251-b2fb-10b9de0e8e0a",
     "date": "2025-03-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.332703,
     "netReturnPct": 1.332703,
     "tradeCount": 2,
@@ -4982,7 +4982,7 @@
   {
     "id": "ef3490e9-003d-e200-314e-15c922272b19",
     "date": "2025-03-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.757295,
     "netReturnPct": -0.757295,
     "tradeCount": 5,
@@ -4994,7 +4994,7 @@
   {
     "id": "1b458b86-ded6-41cb-d2ca-7397d3a1ac40",
     "date": "2025-03-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -1.060203,
     "netReturnPct": -1.060203,
     "tradeCount": 2,
@@ -5006,7 +5006,7 @@
   {
     "id": "e6ae30ad-adb0-30ef-80bd-52fd4601de3b",
     "date": "2025-03-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.827244,
     "netReturnPct": 0.827244,
     "tradeCount": 4,
@@ -5018,7 +5018,7 @@
   {
     "id": "aa0bc7ab-c0ff-3f0f-735b-6da37592dd00",
     "date": "2025-03-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.249834,
     "netReturnPct": 0.249834,
     "tradeCount": 4,
@@ -5030,7 +5030,7 @@
   {
     "id": "6e57e13e-b47b-f336-b761-b025c059a54c",
     "date": "2025-03-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.694351,
     "netReturnPct": -0.694351,
     "tradeCount": 3,
@@ -5042,7 +5042,7 @@
   {
     "id": "17d9aa6f-f04d-0607-8ec8-08245abde267",
     "date": "2025-03-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.296873,
     "netReturnPct": -0.296873,
     "tradeCount": 3,
@@ -5054,7 +5054,7 @@
   {
     "id": "d1cc1fda-78f3-b499-1c8c-1b207618b718",
     "date": "2025-03-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.443296,
     "netReturnPct": 1.443296,
     "tradeCount": 3,
@@ -5066,7 +5066,7 @@
   {
     "id": "de476e77-70d8-25d2-e98f-6def1db3e18d",
     "date": "2025-03-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -1.10457,
     "netReturnPct": -1.10457,
     "tradeCount": 2,
@@ -5078,7 +5078,7 @@
   {
     "id": "cfeecb98-9193-9690-d933-09c70942404a",
     "date": "2025-03-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.611235,
     "netReturnPct": -0.611235,
     "tradeCount": 3,
@@ -5090,7 +5090,7 @@
   {
     "id": "1699060b-9c36-89cc-57f6-ac4f8cf01f0e",
     "date": "2025-03-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.557691,
     "netReturnPct": 0.557691,
     "tradeCount": 2,
@@ -5102,7 +5102,7 @@
   {
     "id": "973443b1-64bc-15b3-8bba-390b48901625",
     "date": "2025-03-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.270678,
     "netReturnPct": 1.270678,
     "tradeCount": 5,
@@ -5114,7 +5114,7 @@
   {
     "id": "58be8677-9541-8a19-c484-cec328a94a2f",
     "date": "2025-03-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.518436,
     "netReturnPct": 1.518436,
     "tradeCount": 3,
@@ -5126,7 +5126,7 @@
   {
     "id": "22e55a47-e6f2-9cb1-6bb7-41f7bdfe880b",
     "date": "2025-03-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.688886,
     "netReturnPct": 0.688886,
     "tradeCount": 3,
@@ -5138,7 +5138,7 @@
   {
     "id": "833bd240-8cc0-2314-56d2-e1f7ccfd3940",
     "date": "2025-03-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.702965,
     "netReturnPct": -0.702965,
     "tradeCount": 3,
@@ -5150,7 +5150,7 @@
   {
     "id": "7c383940-ab2c-7778-1787-95a239207a00",
     "date": "2025-03-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.145005,
     "netReturnPct": 1.145005,
     "tradeCount": 5,
@@ -5162,7 +5162,7 @@
   {
     "id": "1ab86830-91a1-fd4e-af08-961a39cb8771",
     "date": "2025-03-31",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.092568,
     "netReturnPct": 1.092568,
     "tradeCount": 5,
@@ -5174,7 +5174,7 @@
   {
     "id": "652a4135-4352-90be-3150-ed10076795d1",
     "date": "2025-04-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.07387,
     "netReturnPct": 0.07387,
     "tradeCount": 3,
@@ -5186,7 +5186,7 @@
   {
     "id": "9d8f4b6e-aecd-929e-0b38-34e2bfb3d011",
     "date": "2025-04-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.789288,
     "netReturnPct": 0.789288,
     "tradeCount": 2,
@@ -5198,7 +5198,7 @@
   {
     "id": "8db19d30-af03-92e9-a19d-719dc9138083",
     "date": "2025-04-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.589594,
     "netReturnPct": -0.589594,
     "tradeCount": 5,
@@ -5210,7 +5210,7 @@
   {
     "id": "636f516f-52db-54b3-f134-8009822410d1",
     "date": "2025-04-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.104854,
     "netReturnPct": 0.104854,
     "tradeCount": 5,
@@ -5222,7 +5222,7 @@
   {
     "id": "4a8e84a3-05b2-d5fd-aed0-55fa5db15ce1",
     "date": "2025-04-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.461923,
     "netReturnPct": -0.461923,
     "tradeCount": 5,
@@ -5234,7 +5234,7 @@
   {
     "id": "16f3ce3c-5562-65ef-c264-859162939d07",
     "date": "2025-04-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.151101,
     "netReturnPct": 1.151101,
     "tradeCount": 2,
@@ -5246,7 +5246,7 @@
   {
     "id": "5925763c-9ee2-47da-2f21-7c67513cd782",
     "date": "2025-04-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.959772,
     "netReturnPct": 0.959772,
     "tradeCount": 3,
@@ -5258,7 +5258,7 @@
   {
     "id": "ea6663e6-4714-37e9-4fc2-34f7ce38be29",
     "date": "2025-04-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.879284,
     "netReturnPct": 0.879284,
     "tradeCount": 2,
@@ -5270,7 +5270,7 @@
   {
     "id": "4d1bcac7-3075-b0b2-b913-ccd6de60ca74",
     "date": "2025-04-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.350427,
     "netReturnPct": -0.350427,
     "tradeCount": 3,
@@ -5282,7 +5282,7 @@
   {
     "id": "9d1f5dd5-bef9-857f-6cee-f2558f0c6d91",
     "date": "2025-04-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.136956,
     "netReturnPct": 1.136956,
     "tradeCount": 2,
@@ -5294,7 +5294,7 @@
   {
     "id": "a51b740f-fba5-a63d-ad26-8115a57bd158",
     "date": "2025-04-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.670347,
     "netReturnPct": 0.670347,
     "tradeCount": 3,
@@ -5306,7 +5306,7 @@
   {
     "id": "4b2f639b-7f9b-fdd8-9bf9-58fc9a28cbc2",
     "date": "2025-04-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.220578,
     "netReturnPct": 1.220578,
     "tradeCount": 5,
@@ -5318,7 +5318,7 @@
   {
     "id": "abdfdc33-5e08-bdfe-56e0-b764128cb1e5",
     "date": "2025-04-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.093292,
     "netReturnPct": 1.093292,
     "tradeCount": 3,
@@ -5330,7 +5330,7 @@
   {
     "id": "e6d9ab6e-3a32-01ed-03b3-15c84af63836",
     "date": "2025-04-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.949111,
     "netReturnPct": 0.949111,
     "tradeCount": 3,
@@ -5342,7 +5342,7 @@
   {
     "id": "8c40f439-b18d-9710-9b87-348f665009a8",
     "date": "2025-04-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.123267,
     "netReturnPct": 0.123267,
     "tradeCount": 5,
@@ -5354,7 +5354,7 @@
   {
     "id": "edfc7eb0-5ec5-2e2d-5986-acc1645b28b1",
     "date": "2025-04-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.104432,
     "netReturnPct": -0.104432,
     "tradeCount": 2,
@@ -5366,7 +5366,7 @@
   {
     "id": "f0ffcd6a-0aa4-5c14-8719-25970bbeb0aa",
     "date": "2025-04-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.880175,
     "netReturnPct": 0.880175,
     "tradeCount": 2,
@@ -5378,7 +5378,7 @@
   {
     "id": "34701b2f-2104-5f9b-c03a-53c729271504",
     "date": "2025-04-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.930222,
     "netReturnPct": 0.930222,
     "tradeCount": 2,
@@ -5390,7 +5390,7 @@
   {
     "id": "fd396ab8-cec4-5e4c-cfe0-030af87a610f",
     "date": "2025-04-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.088891,
     "netReturnPct": 0.088891,
     "tradeCount": 3,
@@ -5402,7 +5402,7 @@
   {
     "id": "f75df781-612c-ce50-3c83-e6d3428509b8",
     "date": "2025-04-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.316647,
     "netReturnPct": -0.316647,
     "tradeCount": 4,
@@ -5414,7 +5414,7 @@
   {
     "id": "cfe0caee-bf59-dc0e-1ed5-d40c04fac2a1",
     "date": "2025-04-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.515296,
     "netReturnPct": -0.515296,
     "tradeCount": 2,
@@ -5426,7 +5426,7 @@
   {
     "id": "187c4ce3-457b-eceb-d4ed-c5bac5ab3bbf",
     "date": "2025-04-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.531933,
     "netReturnPct": -0.531933,
     "tradeCount": 5,
@@ -5438,7 +5438,7 @@
   {
     "id": "b928225c-8231-23c3-f763-95b13a832fa4",
     "date": "2025-05-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.400133,
     "netReturnPct": 0.400133,
     "tradeCount": 2,
@@ -5450,7 +5450,7 @@
   {
     "id": "03c514c4-4409-8593-ad00-40d0775f6020",
     "date": "2025-05-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.119536,
     "netReturnPct": -0.119536,
     "tradeCount": 2,
@@ -5462,7 +5462,7 @@
   {
     "id": "838124e4-a571-b2a5-5e4b-0ff26c91cdcc",
     "date": "2025-05-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.532756,
     "netReturnPct": 0.532756,
     "tradeCount": 2,
@@ -5474,7 +5474,7 @@
   {
     "id": "1b6a52dd-ad88-63fe-cf6e-a53328aabca9",
     "date": "2025-05-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.421132,
     "netReturnPct": 0.421132,
     "tradeCount": 5,
@@ -5486,7 +5486,7 @@
   {
     "id": "bdfe46e2-cd28-384f-9d6a-673d855159a4",
     "date": "2025-05-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.326836,
     "netReturnPct": 0.326836,
     "tradeCount": 3,
@@ -5498,7 +5498,7 @@
   {
     "id": "17c59985-02fc-a8bb-c6ea-9fc91e835500",
     "date": "2025-05-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.663352,
     "netReturnPct": 0.663352,
     "tradeCount": 3,
@@ -5510,7 +5510,7 @@
   {
     "id": "44295c81-0f14-28d3-f48f-17795e8e20b1",
     "date": "2025-05-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.472172,
     "netReturnPct": 0.472172,
     "tradeCount": 3,
@@ -5522,7 +5522,7 @@
   {
     "id": "09344ab2-876f-a95b-0214-d615bb3d6d2b",
     "date": "2025-05-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.70304,
     "netReturnPct": 0.70304,
     "tradeCount": 3,
@@ -5534,7 +5534,7 @@
   {
     "id": "7de018f9-790f-def1-7050-ca8e11460b74",
     "date": "2025-05-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.51765,
     "netReturnPct": 0.51765,
     "tradeCount": 5,
@@ -5546,7 +5546,7 @@
   {
     "id": "bd02c30b-9107-924d-65c3-72b6b9f02df7",
     "date": "2025-05-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.20144,
     "netReturnPct": 0.20144,
     "tradeCount": 5,
@@ -5558,7 +5558,7 @@
   {
     "id": "6dff9c81-2db3-167d-cfe9-02e14fc2ee8d",
     "date": "2025-05-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.399766,
     "netReturnPct": 0.399766,
     "tradeCount": 2,
@@ -5570,7 +5570,7 @@
   {
     "id": "9390ad1c-6e5c-eeb2-f07c-75cfe824f538",
     "date": "2025-05-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.19219,
     "netReturnPct": 0.19219,
     "tradeCount": 5,
@@ -5582,7 +5582,7 @@
   {
     "id": "a2af6fbd-5b94-6c92-943a-c2cb5b885863",
     "date": "2025-05-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.077163,
     "netReturnPct": 0.077163,
     "tradeCount": 4,
@@ -5594,7 +5594,7 @@
   {
     "id": "01452f6c-361c-06f0-8c68-f36a882dcbb8",
     "date": "2025-05-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.470393,
     "netReturnPct": 0.470393,
     "tradeCount": 3,
@@ -5606,7 +5606,7 @@
   {
     "id": "be2622c2-2116-a9dc-149b-6cffa7006175",
     "date": "2025-05-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.643092,
     "netReturnPct": 0.643092,
     "tradeCount": 5,
@@ -5618,7 +5618,7 @@
   {
     "id": "75a84c7a-8ab9-8fe3-2b29-e94916770bf2",
     "date": "2025-05-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.243541,
     "netReturnPct": 0.243541,
     "tradeCount": 5,
@@ -5630,7 +5630,7 @@
   {
     "id": "6633b0bc-d90e-fb2e-cdf7-ad2000ba8d51",
     "date": "2025-05-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.257686,
     "netReturnPct": 0.257686,
     "tradeCount": 2,
@@ -5642,7 +5642,7 @@
   {
     "id": "38c103af-b185-c50c-1f76-5f12c8a6075f",
     "date": "2025-05-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.465921,
     "netReturnPct": 0.465921,
     "tradeCount": 4,
@@ -5654,7 +5654,7 @@
   {
     "id": "fe098ec0-fa64-8bf9-a674-f5d330de6ee6",
     "date": "2025-05-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.567248,
     "netReturnPct": 0.567248,
     "tradeCount": 4,
@@ -5666,7 +5666,7 @@
   {
     "id": "3745be39-b8b9-16b1-5c76-deadee1f05de",
     "date": "2025-05-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.346464,
     "netReturnPct": -0.346464,
     "tradeCount": 2,
@@ -5678,7 +5678,7 @@
   {
     "id": "fbd30144-b647-aac5-c962-6657c00be28e",
     "date": "2025-05-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.054923,
     "netReturnPct": 0.054923,
     "tradeCount": 5,
@@ -5690,7 +5690,7 @@
   {
     "id": "16bb144a-7e52-17c0-70e1-93c0fe3b7290",
     "date": "2025-05-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.535155,
     "netReturnPct": 0.535155,
     "tradeCount": 4,
@@ -5702,7 +5702,7 @@
   {
     "id": "dabf37ae-797a-1646-4306-94ba4bece801",
     "date": "2025-06-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.857132,
     "netReturnPct": 0.857132,
     "tradeCount": 3,
@@ -5714,7 +5714,7 @@
   {
     "id": "ce5ff4e3-70d9-5013-8357-7f07a9a91968",
     "date": "2025-06-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.790592,
     "netReturnPct": 0.790592,
     "tradeCount": 3,
@@ -5726,7 +5726,7 @@
   {
     "id": "f0f6614c-3004-aaf6-cb07-c903c6bcff77",
     "date": "2025-06-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.191402,
     "netReturnPct": 0.191402,
     "tradeCount": 2,
@@ -5738,7 +5738,7 @@
   {
     "id": "0c27b2b1-ec96-b43f-c508-9c2a15b669c3",
     "date": "2025-06-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.166117,
     "netReturnPct": -0.166117,
     "tradeCount": 5,
@@ -5750,7 +5750,7 @@
   {
     "id": "a1438af7-3c23-b2b6-1160-2b4ab07bb0bb",
     "date": "2025-06-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.409289,
     "netReturnPct": 0.409289,
     "tradeCount": 5,
@@ -5762,7 +5762,7 @@
   {
     "id": "16f63d1f-65a9-38d8-5d23-88243386d426",
     "date": "2025-06-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.480393,
     "netReturnPct": 0.480393,
     "tradeCount": 2,
@@ -5774,7 +5774,7 @@
   {
     "id": "9f5ce5f0-0a6a-5dbc-51c1-bc31cb377222",
     "date": "2025-06-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.39072,
     "netReturnPct": 0.39072,
     "tradeCount": 4,
@@ -5786,7 +5786,7 @@
   {
     "id": "f5ce5cdb-9a64-2d94-f4f8-724414d8ca08",
     "date": "2025-06-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.110665,
     "netReturnPct": 0.110665,
     "tradeCount": 4,
@@ -5798,7 +5798,7 @@
   {
     "id": "22db63af-b528-6762-43ad-89f1d170577d",
     "date": "2025-06-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.094618,
     "netReturnPct": -0.094618,
     "tradeCount": 2,
@@ -5810,7 +5810,7 @@
   {
     "id": "57c39988-d71e-b979-af4c-fc3c3c708bd2",
     "date": "2025-06-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.223744,
     "netReturnPct": 0.223744,
     "tradeCount": 4,
@@ -5822,7 +5822,7 @@
   {
     "id": "35ea6b7b-70f2-d40f-b955-f19eea97b0e6",
     "date": "2025-06-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.366232,
     "netReturnPct": -0.366232,
     "tradeCount": 4,
@@ -5834,7 +5834,7 @@
   {
     "id": "c9fb62b4-00eb-77aa-666a-bc93da5acd14",
     "date": "2025-06-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.199665,
     "netReturnPct": 0.199665,
     "tradeCount": 3,
@@ -5846,7 +5846,7 @@
   {
     "id": "84d68b90-58bc-8157-2800-ffa327b5f3e8",
     "date": "2025-06-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.391779,
     "netReturnPct": 0.391779,
     "tradeCount": 3,
@@ -5858,7 +5858,7 @@
   {
     "id": "7fc1e16e-1e73-74ca-5b0a-c209da0531b1",
     "date": "2025-06-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.661952,
     "netReturnPct": 0.661952,
     "tradeCount": 3,
@@ -5870,7 +5870,7 @@
   {
     "id": "2f58061c-56e9-412c-6253-9737b9e3b1d5",
     "date": "2025-06-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.256327,
     "netReturnPct": 0.256327,
     "tradeCount": 2,
@@ -5882,7 +5882,7 @@
   {
     "id": "5a688102-5f23-722d-5693-5a205c4066c5",
     "date": "2025-06-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.082182,
     "netReturnPct": 0.082182,
     "tradeCount": 2,
@@ -5894,7 +5894,7 @@
   {
     "id": "4cd3ea31-fe3a-4944-0a13-cbe26db9fb36",
     "date": "2025-06-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.757706,
     "netReturnPct": 0.757706,
     "tradeCount": 3,
@@ -5906,7 +5906,7 @@
   {
     "id": "126ac9a9-4835-930d-a96c-729ea90d1aeb",
     "date": "2025-06-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.837949,
     "netReturnPct": 0.837949,
     "tradeCount": 2,
@@ -5918,7 +5918,7 @@
   {
     "id": "802547d7-64d8-271e-82ee-9f65f39a57a1",
     "date": "2025-06-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.59539,
     "netReturnPct": 0.59539,
     "tradeCount": 4,
@@ -5930,7 +5930,7 @@
   {
     "id": "fa1edb87-6f4a-8c96-c4ef-fcf2e6b472c7",
     "date": "2025-06-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.092893,
     "netReturnPct": 0.092893,
     "tradeCount": 3,
@@ -5942,7 +5942,7 @@
   {
     "id": "b162eb9b-57dc-6c5f-f5b0-f756c5266197",
     "date": "2025-06-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.110818,
     "netReturnPct": -0.110818,
     "tradeCount": 3,
@@ -5954,7 +5954,7 @@
   {
     "id": "76487a19-7378-8abd-2340-e31129ae701b",
     "date": "2025-07-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.163448,
     "netReturnPct": -0.163448,
     "tradeCount": 3,
@@ -5966,7 +5966,7 @@
   {
     "id": "d02f5419-3829-259a-083d-314378550a88",
     "date": "2025-07-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.250761,
     "netReturnPct": 0.250761,
     "tradeCount": 5,
@@ -5978,7 +5978,7 @@
   {
     "id": "519831de-d026-9016-569d-7935bc3d4de1",
     "date": "2025-07-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.38711,
     "netReturnPct": 0.38711,
     "tradeCount": 4,
@@ -5990,7 +5990,7 @@
   {
     "id": "226c6758-fc39-2abc-aab6-3a30895ce4ef",
     "date": "2025-07-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.416358,
     "netReturnPct": 0.416358,
     "tradeCount": 4,
@@ -6002,7 +6002,7 @@
   {
     "id": "45f4d853-93e4-e209-1e91-6979d0a46c20",
     "date": "2025-07-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.498109,
     "netReturnPct": 0.498109,
     "tradeCount": 2,
@@ -6014,7 +6014,7 @@
   {
     "id": "8063b902-046e-3511-ae2c-4c4ce20e327d",
     "date": "2025-07-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.082851,
     "netReturnPct": 0.082851,
     "tradeCount": 4,
@@ -6026,7 +6026,7 @@
   {
     "id": "24e7f2cb-5b0e-9812-2ae4-7275920440fb",
     "date": "2025-07-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.272089,
     "netReturnPct": 0.272089,
     "tradeCount": 2,
@@ -6038,7 +6038,7 @@
   {
     "id": "59315af8-c76b-f68f-077d-5202d90cb06d",
     "date": "2025-07-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.512189,
     "netReturnPct": 0.512189,
     "tradeCount": 4,
@@ -6050,7 +6050,7 @@
   {
     "id": "e8f4a94f-21ec-8d2a-5804-72052c902822",
     "date": "2025-07-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.237905,
     "netReturnPct": 0.237905,
     "tradeCount": 5,
@@ -6062,7 +6062,7 @@
   {
     "id": "40acad03-8785-425c-c262-5c10ebbdc5af",
     "date": "2025-07-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.446003,
     "netReturnPct": 0.446003,
     "tradeCount": 3,
@@ -6074,7 +6074,7 @@
   {
     "id": "065af9ed-055f-6784-1f4d-ebd2e0b42743",
     "date": "2025-07-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.103974,
     "netReturnPct": -0.103974,
     "tradeCount": 4,
@@ -6086,7 +6086,7 @@
   {
     "id": "2ac72a56-6f09-e308-964f-ebe58da0bc27",
     "date": "2025-07-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.41416,
     "netReturnPct": 0.41416,
     "tradeCount": 3,
@@ -6098,7 +6098,7 @@
   {
     "id": "1575e12d-4dfa-7df9-6c69-28def110a02e",
     "date": "2025-07-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.360195,
     "netReturnPct": 0.360195,
     "tradeCount": 4,
@@ -6110,7 +6110,7 @@
   {
     "id": "653a16bf-e1f4-19c4-9e12-8b0aaa878ef9",
     "date": "2025-07-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.437106,
     "netReturnPct": 0.437106,
     "tradeCount": 3,
@@ -6122,7 +6122,7 @@
   {
     "id": "40828d66-8bd2-930d-c8e5-57229d0097ad",
     "date": "2025-07-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.152011,
     "netReturnPct": 0.152011,
     "tradeCount": 4,
@@ -6134,7 +6134,7 @@
   {
     "id": "f39130db-d17c-5e1c-118e-04e58cc3fb87",
     "date": "2025-07-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.490378,
     "netReturnPct": 0.490378,
     "tradeCount": 5,
@@ -6146,7 +6146,7 @@
   {
     "id": "f2fdddd7-c054-408d-4dc5-0f4ca345928a",
     "date": "2025-07-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.297502,
     "netReturnPct": 0.297502,
     "tradeCount": 3,
@@ -6158,7 +6158,7 @@
   {
     "id": "7cda51cd-c8a6-b85a-2ff1-a602b50bcbb1",
     "date": "2025-07-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.539706,
     "netReturnPct": 0.539706,
     "tradeCount": 4,
@@ -6170,7 +6170,7 @@
   {
     "id": "495b5566-a340-fc41-b693-acf4ad0ed82c",
     "date": "2025-07-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.338133,
     "netReturnPct": -0.338133,
     "tradeCount": 4,
@@ -6182,7 +6182,7 @@
   {
     "id": "71cae450-2d65-b31f-ce22-f04d8ed1050e",
     "date": "2025-07-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.522115,
     "netReturnPct": 0.522115,
     "tradeCount": 2,
@@ -6194,7 +6194,7 @@
   {
     "id": "0252ed24-2580-483a-eddf-083fb4ed4fc8",
     "date": "2025-07-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.554243,
     "netReturnPct": 0.554243,
     "tradeCount": 4,
@@ -6206,7 +6206,7 @@
   {
     "id": "b0f0367b-1e5a-8411-64ca-d642d6304763",
     "date": "2025-07-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.279933,
     "netReturnPct": 0.279933,
     "tradeCount": 4,
@@ -6218,7 +6218,7 @@
   {
     "id": "a49f513b-3619-314c-9173-e755687bef95",
     "date": "2025-07-31",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.227458,
     "netReturnPct": 0.227458,
     "tradeCount": 4,
@@ -6230,7 +6230,7 @@
   {
     "id": "1c26f16d-7d13-c1b8-c114-8329a3de3d02",
     "date": "2025-08-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.378437,
     "netReturnPct": 0.378437,
     "tradeCount": 5,
@@ -6242,7 +6242,7 @@
   {
     "id": "f954882c-e579-1901-ceee-99878b39ac0d",
     "date": "2025-08-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.206793,
     "netReturnPct": 0.206793,
     "tradeCount": 4,
@@ -6254,7 +6254,7 @@
   {
     "id": "f08b7c8d-c10c-f250-6b23-7d21f8764689",
     "date": "2025-08-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.463775,
     "netReturnPct": 0.463775,
     "tradeCount": 2,
@@ -6266,7 +6266,7 @@
   {
     "id": "e9153d3c-4ca3-c793-2d31-3341a23f3e55",
     "date": "2025-08-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.435151,
     "netReturnPct": 0.435151,
     "tradeCount": 4,
@@ -6278,7 +6278,7 @@
   {
     "id": "adfea991-c38c-988d-afee-4c361068c79e",
     "date": "2025-08-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.152071,
     "netReturnPct": -0.152071,
     "tradeCount": 5,
@@ -6290,7 +6290,7 @@
   {
     "id": "0003907d-e564-e116-6314-2fecad0ebb7f",
     "date": "2025-08-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.162386,
     "netReturnPct": 0.162386,
     "tradeCount": 3,
@@ -6302,7 +6302,7 @@
   {
     "id": "61eb3df5-eca5-fc5d-b9d4-7645f30645d5",
     "date": "2025-08-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.506225,
     "netReturnPct": 0.506225,
     "tradeCount": 5,
@@ -6314,7 +6314,7 @@
   {
     "id": "5310f227-2859-529b-f13b-19099c914ff4",
     "date": "2025-08-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.486162,
     "netReturnPct": 0.486162,
     "tradeCount": 4,
@@ -6326,7 +6326,7 @@
   {
     "id": "17b79225-0557-f171-cc03-2e3265ef8157",
     "date": "2025-08-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.260969,
     "netReturnPct": 0.260969,
     "tradeCount": 5,
@@ -6338,7 +6338,7 @@
   {
     "id": "9dd677a9-5b6e-a4fe-8bb0-91a7b2929e54",
     "date": "2025-08-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.327539,
     "netReturnPct": 0.327539,
     "tradeCount": 5,
@@ -6350,7 +6350,7 @@
   {
     "id": "80fb0024-5686-4e88-3bac-e41740992164",
     "date": "2025-08-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.258785,
     "netReturnPct": 0.258785,
     "tradeCount": 2,
@@ -6362,7 +6362,7 @@
   {
     "id": "6823eb9d-3b42-d253-7163-8a59c4f04d77",
     "date": "2025-08-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.020097,
     "netReturnPct": 0.020097,
     "tradeCount": 5,
@@ -6374,7 +6374,7 @@
   {
     "id": "5823230f-e00b-fd65-91bc-7ac7b6d74b60",
     "date": "2025-08-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.358393,
     "netReturnPct": 0.358393,
     "tradeCount": 5,
@@ -6386,7 +6386,7 @@
   {
     "id": "6a23b7d6-11a4-5142-4d1f-70d805f4e2f4",
     "date": "2025-08-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.017853,
     "netReturnPct": 0.017853,
     "tradeCount": 5,
@@ -6398,7 +6398,7 @@
   {
     "id": "2ee21089-daf3-dade-ec8e-05e3f1a22834",
     "date": "2025-08-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.4038,
     "netReturnPct": 0.4038,
     "tradeCount": 2,
@@ -6410,7 +6410,7 @@
   {
     "id": "7012d31f-d374-5a82-d93b-d392679e66a8",
     "date": "2025-08-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.276838,
     "netReturnPct": 0.276838,
     "tradeCount": 3,
@@ -6422,7 +6422,7 @@
   {
     "id": "a7d1021c-1d6c-2238-0d28-07a95c99f369",
     "date": "2025-08-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.340045,
     "netReturnPct": 0.340045,
     "tradeCount": 5,
@@ -6434,7 +6434,7 @@
   {
     "id": "9b729a46-e44d-b143-cecc-959ec9c0b8c9",
     "date": "2025-08-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.190248,
     "netReturnPct": 0.190248,
     "tradeCount": 3,
@@ -6446,7 +6446,7 @@
   {
     "id": "fb3ff327-8394-0b74-df20-84c495bc06a4",
     "date": "2025-08-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.519857,
     "netReturnPct": 0.519857,
     "tradeCount": 3,
@@ -6458,7 +6458,7 @@
   {
     "id": "7226ce78-0d8a-776c-0765-ca47609b8a80",
     "date": "2025-08-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.300023,
     "netReturnPct": 0.300023,
     "tradeCount": 4,
@@ -6470,7 +6470,7 @@
   {
     "id": "b2e64a8a-4913-46cb-1e5e-c01dba776769",
     "date": "2025-08-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.102521,
     "netReturnPct": -0.102521,
     "tradeCount": 4,
@@ -6482,7 +6482,7 @@
   {
     "id": "789e7f60-caad-cfb1-92ab-a96cbc135ad3",
     "date": "2025-09-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.502212,
     "netReturnPct": -0.502212,
     "tradeCount": 5,
@@ -6494,7 +6494,7 @@
   {
     "id": "d2ba6820-450b-4196-cb02-3dea1ed84e10",
     "date": "2025-09-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.268299,
     "netReturnPct": 0.268299,
     "tradeCount": 5,
@@ -6506,7 +6506,7 @@
   {
     "id": "04dd4f22-312d-5255-6830-167ac7d22d17",
     "date": "2025-09-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.30394,
     "netReturnPct": 0.30394,
     "tradeCount": 5,
@@ -6518,7 +6518,7 @@
   {
     "id": "284bd10a-634c-a0ca-a117-277b7505ef32",
     "date": "2025-09-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.623873,
     "netReturnPct": 0.623873,
     "tradeCount": 3,
@@ -6530,7 +6530,7 @@
   {
     "id": "c8e7e596-659b-c812-8b55-7712ecca7dff",
     "date": "2025-09-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.500895,
     "netReturnPct": 0.500895,
     "tradeCount": 2,
@@ -6542,7 +6542,7 @@
   {
     "id": "8555ec14-f495-3106-5912-65f5cdd0df1e",
     "date": "2025-09-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.56385,
     "netReturnPct": 0.56385,
     "tradeCount": 5,
@@ -6554,7 +6554,7 @@
   {
     "id": "5f38ab1a-ef76-6f25-7517-3ed709d49286",
     "date": "2025-09-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.876012,
     "netReturnPct": 0.876012,
     "tradeCount": 5,
@@ -6566,7 +6566,7 @@
   {
     "id": "f11b413d-9c5c-fa83-cc49-583810e58469",
     "date": "2025-09-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.330305,
     "netReturnPct": 0.330305,
     "tradeCount": 2,
@@ -6578,7 +6578,7 @@
   {
     "id": "55a4676e-f77e-7632-5484-9209f83f2188",
     "date": "2025-09-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.279058,
     "netReturnPct": 0.279058,
     "tradeCount": 5,
@@ -6590,7 +6590,7 @@
   {
     "id": "beb8911e-103a-65e8-42b6-00de5a0e4157",
     "date": "2025-09-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.267767,
     "netReturnPct": 0.267767,
     "tradeCount": 3,
@@ -6602,7 +6602,7 @@
   {
     "id": "ae0f5b2a-bed7-654f-7a0f-4a1fd9324f19",
     "date": "2025-09-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.143769,
     "netReturnPct": -0.143769,
     "tradeCount": 3,
@@ -6614,7 +6614,7 @@
   {
     "id": "78ebabcb-ec4b-ceda-f08d-e0fac32a94d6",
     "date": "2025-09-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.038718,
     "netReturnPct": 0.038718,
     "tradeCount": 4,
@@ -6626,7 +6626,7 @@
   {
     "id": "7309cbb5-6e7f-0ef7-008e-891a32caacfe",
     "date": "2025-09-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.877137,
     "netReturnPct": 0.877137,
     "tradeCount": 2,
@@ -6638,7 +6638,7 @@
   {
     "id": "8af12d43-7589-8069-0cc3-bef526ab90f3",
     "date": "2025-09-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.547235,
     "netReturnPct": -0.547235,
     "tradeCount": 5,
@@ -6650,7 +6650,7 @@
   {
     "id": "3e786eab-15dc-2262-ed3a-76e8b96ac403",
     "date": "2025-09-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.264321,
     "netReturnPct": 0.264321,
     "tradeCount": 5,
@@ -6662,7 +6662,7 @@
   {
     "id": "3abfd70c-2fb8-4f88-e09f-3df73cf4e56e",
     "date": "2025-09-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.807851,
     "netReturnPct": 0.807851,
     "tradeCount": 3,
@@ -6674,7 +6674,7 @@
   {
     "id": "301a3e46-c8b0-9ab4-b405-ee0a2861b7ca",
     "date": "2025-09-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.572817,
     "netReturnPct": 0.572817,
     "tradeCount": 3,
@@ -6686,7 +6686,7 @@
   {
     "id": "268d399f-b684-1099-036e-4dbb00b0f684",
     "date": "2025-09-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.314381,
     "netReturnPct": 0.314381,
     "tradeCount": 4,
@@ -6698,7 +6698,7 @@
   {
     "id": "ca6f2966-9dc0-9f9d-fe27-f9e4f378ed12",
     "date": "2025-09-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.336457,
     "netReturnPct": 0.336457,
     "tradeCount": 4,
@@ -6710,7 +6710,7 @@
   {
     "id": "a62a96f8-bc04-b3b1-d875-c787c9cd12ed",
     "date": "2025-09-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.403042,
     "netReturnPct": 0.403042,
     "tradeCount": 2,
@@ -6722,7 +6722,7 @@
   {
     "id": "c6b56a00-3963-1e5a-2149-0ddddc49932f",
     "date": "2025-09-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.830897,
     "netReturnPct": 0.830897,
     "tradeCount": 5,
@@ -6734,7 +6734,7 @@
   {
     "id": "4c036c03-d061-4f7f-caf9-e8c3a68e7690",
     "date": "2025-09-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.756334,
     "netReturnPct": 0.756334,
     "tradeCount": 2,
@@ -6746,7 +6746,7 @@
   {
     "id": "46e77b34-02ec-f831-dba9-e61166a78b29",
     "date": "2025-10-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.628257,
     "netReturnPct": 0.628257,
     "tradeCount": 5,
@@ -6758,7 +6758,7 @@
   {
     "id": "451d22bc-cec0-854d-f650-0309efdf2f59",
     "date": "2025-10-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.6202,
     "netReturnPct": 0.6202,
     "tradeCount": 5,
@@ -6770,7 +6770,7 @@
   {
     "id": "2dc0905f-6b8b-21e8-0ad0-25f039fd8f53",
     "date": "2025-10-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.972925,
     "netReturnPct": 0.972925,
     "tradeCount": 2,
@@ -6782,7 +6782,7 @@
   {
     "id": "353918cb-7d3c-fa7a-7903-c077c0632076",
     "date": "2025-10-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.396882,
     "netReturnPct": -0.396882,
     "tradeCount": 5,
@@ -6794,7 +6794,7 @@
   {
     "id": "8262534d-1a15-fbd6-0e44-0a9309da990b",
     "date": "2025-10-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.755359,
     "netReturnPct": 0.755359,
     "tradeCount": 2,
@@ -6806,7 +6806,7 @@
   {
     "id": "44997dee-de63-95c6-26bd-631a04768cda",
     "date": "2025-10-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.792075,
     "netReturnPct": 0.792075,
     "tradeCount": 4,
@@ -6818,7 +6818,7 @@
   {
     "id": "2510f115-a45d-979a-746a-1a7c726da1b9",
     "date": "2025-10-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.944364,
     "netReturnPct": 0.944364,
     "tradeCount": 5,
@@ -6830,7 +6830,7 @@
   {
     "id": "08dab53e-1baa-a38b-a969-0e8de55b3d4f",
     "date": "2025-10-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.38808,
     "netReturnPct": 0.38808,
     "tradeCount": 4,
@@ -6842,7 +6842,7 @@
   {
     "id": "498a0ea7-a267-27b3-0a1b-add257e132ca",
     "date": "2025-10-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.640854,
     "netReturnPct": 0.640854,
     "tradeCount": 2,
@@ -6854,7 +6854,7 @@
   {
     "id": "b9ac44c1-ffba-3ee6-ee87-f29a8dcc46ff",
     "date": "2025-10-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.946135,
     "netReturnPct": 0.946135,
     "tradeCount": 4,
@@ -6866,7 +6866,7 @@
   {
     "id": "6a066689-1866-e7f1-2452-c7ca01d8b904",
     "date": "2025-10-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.3503,
     "netReturnPct": -0.3503,
     "tradeCount": 2,
@@ -6878,7 +6878,7 @@
   {
     "id": "e6943369-ee41-f800-b6fe-3a2e6e07d78f",
     "date": "2025-10-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.97941,
     "netReturnPct": 0.97941,
     "tradeCount": 5,
@@ -6890,7 +6890,7 @@
   {
     "id": "9377d985-1771-de55-d3e8-a0df7dc91dfa",
     "date": "2025-10-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.895231,
     "netReturnPct": 0.895231,
     "tradeCount": 3,
@@ -6902,7 +6902,7 @@
   {
     "id": "e15fdd69-ad47-d1e4-ba84-4d23c971baee",
     "date": "2025-10-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.567238,
     "netReturnPct": -0.567238,
     "tradeCount": 3,
@@ -6914,7 +6914,7 @@
   {
     "id": "d309be0b-8d15-7755-ea76-1e904c418996",
     "date": "2025-10-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.387124,
     "netReturnPct": -0.387124,
     "tradeCount": 4,
@@ -6926,7 +6926,7 @@
   {
     "id": "ead5fc53-2d6e-2fff-9182-f7e4db22f07a",
     "date": "2025-10-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.355177,
     "netReturnPct": -0.355177,
     "tradeCount": 3,
@@ -6938,7 +6938,7 @@
   {
     "id": "0ebdc34c-dc3d-005a-8051-f2b48755e4f3",
     "date": "2025-10-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.22978,
     "netReturnPct": 0.22978,
     "tradeCount": 3,
@@ -6950,7 +6950,7 @@
   {
     "id": "a04a5281-1180-3ad9-acb2-b83b72943d17",
     "date": "2025-10-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.450126,
     "netReturnPct": -0.450126,
     "tradeCount": 5,
@@ -6962,7 +6962,7 @@
   {
     "id": "7ddbd0ae-72c2-4da4-8b75-1d1cca651570",
     "date": "2025-10-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.515117,
     "netReturnPct": 0.515117,
     "tradeCount": 5,
@@ -6974,7 +6974,7 @@
   {
     "id": "fcb987eb-27a6-d2ab-ed4f-3d27854e5826",
     "date": "2025-10-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.075007,
     "netReturnPct": -0.075007,
     "tradeCount": 3,
@@ -6986,7 +6986,7 @@
   {
     "id": "1ce4286c-821d-4d1b-4328-d8f29bdff922",
     "date": "2025-10-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.261614,
     "netReturnPct": -0.261614,
     "tradeCount": 2,
@@ -6998,7 +6998,7 @@
   {
     "id": "596ee459-767d-0de9-b2c7-b92ddee0df3a",
     "date": "2025-10-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.92526,
     "netReturnPct": 0.92526,
     "tradeCount": 3,
@@ -7010,7 +7010,7 @@
   {
     "id": "8725ea8a-be78-676f-c0be-2c4cfc76b4ad",
     "date": "2025-10-31",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.706841,
     "netReturnPct": 0.706841,
     "tradeCount": 5,
@@ -7022,7 +7022,7 @@
   {
     "id": "c7a7c50f-bb98-afc2-3415-6dd3682b7397",
     "date": "2025-11-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.166877,
     "netReturnPct": 1.166877,
     "tradeCount": 5,
@@ -7034,7 +7034,7 @@
   {
     "id": "b2686210-758b-f363-2b89-74cbf4104d87",
     "date": "2025-11-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.62668,
     "netReturnPct": -0.62668,
     "tradeCount": 3,
@@ -7046,7 +7046,7 @@
   {
     "id": "f59bc1c9-5c30-252b-723b-4dac0e1f81c0",
     "date": "2025-11-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.685869,
     "netReturnPct": 0.685869,
     "tradeCount": 3,
@@ -7058,7 +7058,7 @@
   {
     "id": "65e3253b-43bd-25b7-3892-04a7ce527382",
     "date": "2025-11-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.836129,
     "netReturnPct": 0.836129,
     "tradeCount": 4,
@@ -7070,7 +7070,7 @@
   {
     "id": "d3de1128-fa1d-52be-6cb2-ddbd24f26539",
     "date": "2025-11-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.275942,
     "netReturnPct": 0.275942,
     "tradeCount": 3,
@@ -7082,7 +7082,7 @@
   {
     "id": "427ea45f-5641-bbe0-7720-416b6c77ab1b",
     "date": "2025-11-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.194329,
     "netReturnPct": -0.194329,
     "tradeCount": 4,
@@ -7094,7 +7094,7 @@
   {
     "id": "79ffb02b-d64e-2bff-c24a-a59c90a75572",
     "date": "2025-11-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.433564,
     "netReturnPct": 0.433564,
     "tradeCount": 3,
@@ -7106,7 +7106,7 @@
   {
     "id": "4a327d3b-65da-4777-174b-944ca181076f",
     "date": "2025-11-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.508778,
     "netReturnPct": 0.508778,
     "tradeCount": 4,
@@ -7118,7 +7118,7 @@
   {
     "id": "d5b5d4bd-40ba-c605-ef4a-76aa0f1f28ba",
     "date": "2025-11-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.886341,
     "netReturnPct": 0.886341,
     "tradeCount": 2,
@@ -7130,7 +7130,7 @@
   {
     "id": "39ca3280-a437-f23a-d1f3-2177f71aeb6e",
     "date": "2025-11-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.07693,
     "netReturnPct": 0.07693,
     "tradeCount": 5,
@@ -7142,7 +7142,7 @@
   {
     "id": "aa2e6b40-dd67-5f1d-01d4-caee0223bc65",
     "date": "2025-11-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.7254,
     "netReturnPct": 0.7254,
     "tradeCount": 4,
@@ -7154,7 +7154,7 @@
   {
     "id": "59d46e87-f3fa-14b7-8088-e909e575b4cc",
     "date": "2025-11-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.584552,
     "netReturnPct": -0.584552,
     "tradeCount": 3,
@@ -7166,7 +7166,7 @@
   {
     "id": "ed3984ee-a30c-3a96-9f7b-39929038ef16",
     "date": "2025-11-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.036085,
     "netReturnPct": 1.036085,
     "tradeCount": 4,
@@ -7178,7 +7178,7 @@
   {
     "id": "c7793814-e42a-c496-5bc2-b2b5601423e6",
     "date": "2025-11-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.536364,
     "netReturnPct": -0.536364,
     "tradeCount": 5,
@@ -7190,7 +7190,7 @@
   {
     "id": "5198d1d7-a130-4602-5523-a1e821da57c6",
     "date": "2025-11-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.900513,
     "netReturnPct": 0.900513,
     "tradeCount": 4,
@@ -7202,7 +7202,7 @@
   {
     "id": "3241aaf7-d1eb-8946-800d-b5a35abbee31",
     "date": "2025-11-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.056372,
     "netReturnPct": 0.056372,
     "tradeCount": 4,
@@ -7214,7 +7214,7 @@
   {
     "id": "9fd702ad-edc0-a7a2-e19e-b06badd9b903",
     "date": "2025-11-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.681387,
     "netReturnPct": 0.681387,
     "tradeCount": 4,
@@ -7226,7 +7226,7 @@
   {
     "id": "cf0330a6-a536-1f3f-a14b-7a48dfd1c5bc",
     "date": "2025-11-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.060789,
     "netReturnPct": 0.060789,
     "tradeCount": 4,
@@ -7238,7 +7238,7 @@
   {
     "id": "f2733b2a-778a-4b0e-4404-298a0edfe0f9",
     "date": "2025-11-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.396036,
     "netReturnPct": 0.396036,
     "tradeCount": 4,
@@ -7250,7 +7250,7 @@
   {
     "id": "c8b5b4c6-ec64-0e3c-b9eb-e2ab969be2ac",
     "date": "2025-11-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.132698,
     "netReturnPct": 1.132698,
     "tradeCount": 5,
@@ -7262,7 +7262,7 @@
   {
     "id": "43621435-ff64-e373-a451-17a3f913aea7",
     "date": "2025-12-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.487817,
     "netReturnPct": -0.487817,
     "tradeCount": 5,
@@ -7274,7 +7274,7 @@
   {
     "id": "7e4ac070-5723-dc2a-f4ad-ed7bd750c845",
     "date": "2025-12-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.435217,
     "netReturnPct": -0.435217,
     "tradeCount": 3,
@@ -7286,7 +7286,7 @@
   {
     "id": "0d52985a-8a07-c133-9b09-cf03f6298950",
     "date": "2025-12-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.375127,
     "netReturnPct": 0.375127,
     "tradeCount": 3,
@@ -7298,7 +7298,7 @@
   {
     "id": "7c8fea06-53ed-8b22-1dac-cfa6aea2d8bd",
     "date": "2025-12-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.286691,
     "netReturnPct": 0.286691,
     "tradeCount": 5,
@@ -7310,7 +7310,7 @@
   {
     "id": "5ee11231-3af5-3bd9-7a40-352d669f003f",
     "date": "2025-12-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.170219,
     "netReturnPct": 1.170219,
     "tradeCount": 2,
@@ -7322,7 +7322,7 @@
   {
     "id": "7ad53e50-e5e4-8d3c-d91b-d2718905c4a6",
     "date": "2025-12-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.166209,
     "netReturnPct": 0.166209,
     "tradeCount": 5,
@@ -7334,7 +7334,7 @@
   {
     "id": "0f70ae00-3029-d88d-86c0-14578589a727",
     "date": "2025-12-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.074424,
     "netReturnPct": 0.074424,
     "tradeCount": 3,
@@ -7346,7 +7346,7 @@
   {
     "id": "79befa2c-c32e-2752-825b-6f721c5c7a70",
     "date": "2025-12-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.405371,
     "netReturnPct": -0.405371,
     "tradeCount": 3,
@@ -7358,7 +7358,7 @@
   {
     "id": "55439fc5-8be0-2ec3-9228-d66925395121",
     "date": "2025-12-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.832011,
     "netReturnPct": 0.832011,
     "tradeCount": 2,
@@ -7370,7 +7370,7 @@
   {
     "id": "9bb983fd-a00e-2c0c-0807-fbc22a718fd9",
     "date": "2025-12-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.436578,
     "netReturnPct": 0.436578,
     "tradeCount": 4,
@@ -7382,7 +7382,7 @@
   {
     "id": "b844859d-03aa-d610-a211-701935be68bc",
     "date": "2025-12-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.176731,
     "netReturnPct": 1.176731,
     "tradeCount": 4,
@@ -7394,7 +7394,7 @@
   {
     "id": "28f2d7b5-0e82-0b75-d4ed-179168ab3bea",
     "date": "2025-12-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.204986,
     "netReturnPct": -0.204986,
     "tradeCount": 2,
@@ -7406,7 +7406,7 @@
   {
     "id": "4fcac087-472c-e867-b9ea-3056694cf9de",
     "date": "2025-12-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.055776,
     "netReturnPct": 1.055776,
     "tradeCount": 4,
@@ -7418,7 +7418,7 @@
   {
     "id": "e00619fe-16b6-0dda-690e-7c414b1e2385",
     "date": "2025-12-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.382026,
     "netReturnPct": 0.382026,
     "tradeCount": 2,
@@ -7430,7 +7430,7 @@
   {
     "id": "5255fd16-8d73-0e67-ddb3-61f1e76bd170",
     "date": "2025-12-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.125554,
     "netReturnPct": 0.125554,
     "tradeCount": 2,
@@ -7442,7 +7442,7 @@
   {
     "id": "26355a49-cb09-b736-78bb-619e1986a297",
     "date": "2025-12-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.514604,
     "netReturnPct": 0.514604,
     "tradeCount": 2,
@@ -7454,7 +7454,7 @@
   {
     "id": "4900c41d-5525-c50a-8190-6a361a91d71f",
     "date": "2025-12-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.921003,
     "netReturnPct": 0.921003,
     "tradeCount": 4,
@@ -7466,7 +7466,7 @@
   {
     "id": "4462e94f-f164-6dd0-064f-087649a6534d",
     "date": "2025-12-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.123079,
     "netReturnPct": -0.123079,
     "tradeCount": 4,
@@ -7478,7 +7478,7 @@
   {
     "id": "18ca5be1-93d5-0888-04ff-ef453108c2e0",
     "date": "2025-12-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.047973,
     "netReturnPct": 0.047973,
     "tradeCount": 2,
@@ -7490,7 +7490,7 @@
   {
     "id": "c82c5df0-9456-d10a-d473-76bcc253d743",
     "date": "2025-12-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.123707,
     "netReturnPct": -0.123707,
     "tradeCount": 3,
@@ -7502,7 +7502,7 @@
   {
     "id": "279672aa-2cd8-7225-fbdc-f07b79ff963b",
     "date": "2025-12-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.02104,
     "netReturnPct": 1.02104,
     "tradeCount": 4,
@@ -7514,7 +7514,7 @@
   {
     "id": "6f36dd0b-2d89-7a10-1798-29d4231a0371",
     "date": "2025-12-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.299113,
     "netReturnPct": 0.299113,
     "tradeCount": 2,
@@ -7526,7 +7526,7 @@
   {
     "id": "3c672710-953b-d7f9-0726-0b2b5ce3fbd2",
     "date": "2025-12-31",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.279293,
     "netReturnPct": 0.279293,
     "tradeCount": 2,
@@ -7538,7 +7538,7 @@
   {
     "id": "70645912-cfb7-f395-2f58-08c51de4fc7a",
     "date": "2026-01-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.633127,
     "netReturnPct": 0.633127,
     "tradeCount": 4,
@@ -7550,7 +7550,7 @@
   {
     "id": "42d45e3d-728a-9e4f-82eb-eb31175e9e4e",
     "date": "2026-01-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.167048,
     "netReturnPct": -0.167048,
     "tradeCount": 3,
@@ -7562,7 +7562,7 @@
   {
     "id": "48d4bad5-b621-1c5c-4573-3b23664c0354",
     "date": "2026-01-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.445781,
     "netReturnPct": 0.445781,
     "tradeCount": 3,
@@ -7574,7 +7574,7 @@
   {
     "id": "21834286-b07e-57e5-2155-b6893e8b14b8",
     "date": "2026-01-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.084484,
     "netReturnPct": 1.084484,
     "tradeCount": 2,
@@ -7586,7 +7586,7 @@
   {
     "id": "41434273-f434-a7e5-2504-5de0f1e8c184",
     "date": "2026-01-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.082722,
     "netReturnPct": -0.082722,
     "tradeCount": 3,
@@ -7598,7 +7598,7 @@
   {
     "id": "7803cd98-1b5e-6e12-a288-b1e45cdca39f",
     "date": "2026-01-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.762688,
     "netReturnPct": 0.762688,
     "tradeCount": 3,
@@ -7610,7 +7610,7 @@
   {
     "id": "d2862c18-963a-dc3c-60cc-665b813df95a",
     "date": "2026-01-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.389053,
     "netReturnPct": -0.389053,
     "tradeCount": 2,
@@ -7622,7 +7622,7 @@
   {
     "id": "3aef96c7-cca1-5a35-f483-13381a7d9d23",
     "date": "2026-01-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.936996,
     "netReturnPct": 0.936996,
     "tradeCount": 4,
@@ -7634,7 +7634,7 @@
   {
     "id": "0060e8a5-6f78-58f5-1186-de937c2a9c50",
     "date": "2026-01-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.499186,
     "netReturnPct": -0.499186,
     "tradeCount": 4,
@@ -7646,7 +7646,7 @@
   {
     "id": "96975fd0-554e-370d-daaa-81eb41c28a63",
     "date": "2026-01-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.754665,
     "netReturnPct": 0.754665,
     "tradeCount": 3,
@@ -7658,7 +7658,7 @@
   {
     "id": "f35da2bc-5eb0-6878-2b9f-4a8c48e6d207",
     "date": "2026-01-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.057822,
     "netReturnPct": 1.057822,
     "tradeCount": 2,
@@ -7670,7 +7670,7 @@
   {
     "id": "60f938c2-24f6-9e15-3e27-9f4c177c8245",
     "date": "2026-01-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.079732,
     "netReturnPct": 0.079732,
     "tradeCount": 5,
@@ -7682,7 +7682,7 @@
   {
     "id": "0fa3f951-df18-899c-499a-2e675aba1aa7",
     "date": "2026-01-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.182495,
     "netReturnPct": -0.182495,
     "tradeCount": 5,
@@ -7694,7 +7694,7 @@
   {
     "id": "0a0dfaed-e07b-2484-a280-f9d031318fed",
     "date": "2026-01-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.047599,
     "netReturnPct": 0.047599,
     "tradeCount": 4,
@@ -7706,7 +7706,7 @@
   {
     "id": "ba927d46-731b-51b4-2132-231488a24a99",
     "date": "2026-01-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.215017,
     "netReturnPct": -0.215017,
     "tradeCount": 3,
@@ -7718,7 +7718,7 @@
   {
     "id": "f334fe94-0f0d-35ec-f9bc-4d9c485359ab",
     "date": "2026-01-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.689651,
     "netReturnPct": 0.689651,
     "tradeCount": 3,
@@ -7730,7 +7730,7 @@
   {
     "id": "3425d814-501b-a80d-f2d6-7caa336a5bbd",
     "date": "2026-01-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.912705,
     "netReturnPct": 0.912705,
     "tradeCount": 4,
@@ -7742,7 +7742,7 @@
   {
     "id": "272e8b23-2801-6e8c-543f-89f1d2a6b6f8",
     "date": "2026-01-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.698437,
     "netReturnPct": 0.698437,
     "tradeCount": 5,
@@ -7754,7 +7754,7 @@
   {
     "id": "7bf9b6fb-ff2a-97e2-3ad1-9fcc76444cfc",
     "date": "2026-01-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.461057,
     "netReturnPct": -0.461057,
     "tradeCount": 4,
@@ -7766,7 +7766,7 @@
   {
     "id": "2c757c1d-157a-39a2-d414-37a0393e6ce0",
     "date": "2026-01-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.288112,
     "netReturnPct": 0.288112,
     "tradeCount": 5,
@@ -7778,7 +7778,7 @@
   {
     "id": "e2d9cebe-7091-6956-dc64-e052e7d8b930",
     "date": "2026-01-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.673969,
     "netReturnPct": 0.673969,
     "tradeCount": 2,
@@ -7790,7 +7790,7 @@
   {
     "id": "c3553bc6-6d7e-8bad-8d1d-055a5f2e1edd",
     "date": "2026-01-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.96719,
     "netReturnPct": 0.96719,
     "tradeCount": 5,
@@ -7802,7 +7802,7 @@
   {
     "id": "f661d399-4317-a8e8-573b-114fa84ba11a",
     "date": "2026-02-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.564479,
     "netReturnPct": 0.564479,
     "tradeCount": 3,
@@ -7814,7 +7814,7 @@
   {
     "id": "319b36ba-f7fb-0866-8080-5c9fa6e83035",
     "date": "2026-02-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.127592,
     "netReturnPct": -0.127592,
     "tradeCount": 5,
@@ -7826,7 +7826,7 @@
   {
     "id": "682c9e81-676a-9086-e242-fdb6617e1a5c",
     "date": "2026-02-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.755516,
     "netReturnPct": 0.755516,
     "tradeCount": 5,
@@ -7838,7 +7838,7 @@
   {
     "id": "ccbaaba2-5e81-6e9e-d608-df17beaf66e6",
     "date": "2026-02-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.52023,
     "netReturnPct": 0.52023,
     "tradeCount": 2,
@@ -7850,7 +7850,7 @@
   {
     "id": "ae7d732c-7e9b-a464-1ff2-e44a5446e5c1",
     "date": "2026-02-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.826439,
     "netReturnPct": 0.826439,
     "tradeCount": 5,
@@ -7862,7 +7862,7 @@
   {
     "id": "22ab92a1-0461-ff37-7f84-8bda9d031934",
     "date": "2026-02-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.552936,
     "netReturnPct": 0.552936,
     "tradeCount": 4,
@@ -7874,7 +7874,7 @@
   {
     "id": "7793f833-d7ba-ac0e-e3f4-1c39f6cc30f4",
     "date": "2026-02-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.379024,
     "netReturnPct": 0.379024,
     "tradeCount": 3,
@@ -7886,7 +7886,7 @@
   {
     "id": "cd4b4a34-1ce3-a2ea-7887-6fc3f58c97e9",
     "date": "2026-02-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.688462,
     "netReturnPct": 0.688462,
     "tradeCount": 2,
@@ -7898,7 +7898,7 @@
   {
     "id": "adaf96b2-bd62-9ebb-0770-b8527389ac3f",
     "date": "2026-02-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.055609,
     "netReturnPct": 0.055609,
     "tradeCount": 2,
@@ -7910,7 +7910,7 @@
   {
     "id": "1fe2b063-61be-97d9-776b-9b2d725a54d8",
     "date": "2026-02-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.209414,
     "netReturnPct": 0.209414,
     "tradeCount": 4,
@@ -7922,7 +7922,7 @@
   {
     "id": "ce855bf3-a26f-aa40-584e-d27ec57e949e",
     "date": "2026-02-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.871253,
     "netReturnPct": 0.871253,
     "tradeCount": 5,
@@ -7934,7 +7934,7 @@
   {
     "id": "125d3e76-e262-25be-31d3-bcc28af7ee56",
     "date": "2026-02-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.268663,
     "netReturnPct": -0.268663,
     "tradeCount": 3,
@@ -7946,7 +7946,7 @@
   {
     "id": "736b00e3-b437-5f80-e439-d52efb8a798b",
     "date": "2026-02-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.425022,
     "netReturnPct": 0.425022,
     "tradeCount": 2,
@@ -7958,7 +7958,7 @@
   {
     "id": "37fe66c4-4e08-b38c-afb0-810843c36444",
     "date": "2026-02-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.292476,
     "netReturnPct": 0.292476,
     "tradeCount": 4,
@@ -7970,7 +7970,7 @@
   {
     "id": "e392ed9c-4105-4b10-7c8c-33516ddf85e1",
     "date": "2026-02-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.815492,
     "netReturnPct": 0.815492,
     "tradeCount": 2,
@@ -7982,7 +7982,7 @@
   {
     "id": "4d9b4527-2690-34c8-3ecd-1164eb445125",
     "date": "2026-02-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.104916,
     "netReturnPct": 0.104916,
     "tradeCount": 4,
@@ -7994,7 +7994,7 @@
   {
     "id": "32c124b2-ac62-fb96-e42b-324c7018c621",
     "date": "2026-02-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.341109,
     "netReturnPct": -0.341109,
     "tradeCount": 3,
@@ -8006,7 +8006,7 @@
   {
     "id": "a46fcf7c-513b-3e26-35cf-e5d279776947",
     "date": "2026-02-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.686648,
     "netReturnPct": 0.686648,
     "tradeCount": 3,
@@ -8018,7 +8018,7 @@
   {
     "id": "5bb67b2d-2911-6ef7-16a8-3d3b04ca1195",
     "date": "2026-02-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.103403,
     "netReturnPct": 0.103403,
     "tradeCount": 3,
@@ -8030,7 +8030,7 @@
   {
     "id": "681db88b-5623-2552-9306-9973ff5fe448",
     "date": "2026-02-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.265782,
     "netReturnPct": -0.265782,
     "tradeCount": 2,
@@ -8042,7 +8042,7 @@
   {
     "id": "f93971c6-c30b-6e74-242d-d97b5b2f886a",
     "date": "2026-03-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.227007,
     "netReturnPct": 0.227007,
     "tradeCount": 5,
@@ -8054,7 +8054,7 @@
   {
     "id": "5eb28d61-5db0-1891-6327-5e5b8ece1662",
     "date": "2026-03-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.146922,
     "netReturnPct": -0.146922,
     "tradeCount": 4,
@@ -8066,7 +8066,7 @@
   {
     "id": "127ab667-1e24-b608-8993-261d2d09ac8b",
     "date": "2026-03-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.464821,
     "netReturnPct": 0.464821,
     "tradeCount": 2,
@@ -8078,7 +8078,7 @@
   {
     "id": "63e762ab-14e4-50fe-d246-fd067db4fb39",
     "date": "2026-03-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.340349,
     "netReturnPct": 0.340349,
     "tradeCount": 4,
@@ -8090,7 +8090,7 @@
   {
     "id": "35e63544-a7e3-cfdb-2f2e-e44228a092fa",
     "date": "2026-03-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.179325,
     "netReturnPct": 0.179325,
     "tradeCount": 4,
@@ -8102,7 +8102,7 @@
   {
     "id": "fa3081a4-11a0-389f-20a9-43a151f9d99d",
     "date": "2026-03-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.226088,
     "netReturnPct": 0.226088,
     "tradeCount": 3,
@@ -8114,7 +8114,7 @@
   {
     "id": "2e532f5f-dd61-5026-e7ab-3228f6ca6051",
     "date": "2026-03-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.488076,
     "netReturnPct": 0.488076,
     "tradeCount": 2,
@@ -8126,7 +8126,7 @@
   {
     "id": "a75cb256-72bc-b7c7-8711-bb40000f57e5",
     "date": "2026-03-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.347688,
     "netReturnPct": 0.347688,
     "tradeCount": 2,
@@ -8138,7 +8138,7 @@
   {
     "id": "dba8d510-f356-555e-9dce-27799b88780f",
     "date": "2026-03-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.457114,
     "netReturnPct": 0.457114,
     "tradeCount": 2,
@@ -8150,7 +8150,7 @@
   {
     "id": "ae7fd336-1f2b-a628-0125-cf00a1c08052",
     "date": "2026-03-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.357273,
     "netReturnPct": 0.357273,
     "tradeCount": 5,
@@ -8162,7 +8162,7 @@
   {
     "id": "c4a45f5b-7b8d-31d1-1368-5c8b77074088",
     "date": "2026-03-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.284904,
     "netReturnPct": 0.284904,
     "tradeCount": 3,
@@ -8174,7 +8174,7 @@
   {
     "id": "cd3bc2cd-569a-8d8d-8c56-58b3a1478fe7",
     "date": "2026-03-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.347048,
     "netReturnPct": 0.347048,
     "tradeCount": 3,
@@ -8186,7 +8186,7 @@
   {
     "id": "d48076e1-932d-61d7-97cc-ed0fdfac388b",
     "date": "2026-03-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.261283,
     "netReturnPct": 0.261283,
     "tradeCount": 5,
@@ -8198,7 +8198,7 @@
   {
     "id": "089eaeb2-b189-9284-a1c9-add940b77cb5",
     "date": "2026-03-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.340086,
     "netReturnPct": 0.340086,
     "tradeCount": 4,
@@ -8210,7 +8210,7 @@
   {
     "id": "7d7c1d4f-e97b-3ac1-d060-03a9a1fed6fa",
     "date": "2026-03-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.070715,
     "netReturnPct": -0.070715,
     "tradeCount": 5,
@@ -8222,7 +8222,7 @@
   {
     "id": "f18981b5-0482-064a-f152-4400be223ef5",
     "date": "2026-03-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.309155,
     "netReturnPct": 0.309155,
     "tradeCount": 5,
@@ -8234,7 +8234,7 @@
   {
     "id": "00fa22d3-3fee-9f22-2e51-cb2588369347",
     "date": "2026-03-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.368629,
     "netReturnPct": 0.368629,
     "tradeCount": 3,
@@ -8246,7 +8246,7 @@
   {
     "id": "3604b0cc-1113-abf5-6ae0-a604782cbbad",
     "date": "2026-03-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.549555,
     "netReturnPct": 0.549555,
     "tradeCount": 2,
@@ -8258,7 +8258,7 @@
   {
     "id": "0b775809-0aa5-7cf1-c6e1-c173a5fbe192",
     "date": "2026-03-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.472095,
     "netReturnPct": 0.472095,
     "tradeCount": 5,
@@ -8270,7 +8270,7 @@
   {
     "id": "28a84fa8-565a-1420-ee87-f9b79523c64e",
     "date": "2026-03-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.419178,
     "netReturnPct": 0.419178,
     "tradeCount": 4,
@@ -8282,7 +8282,7 @@
   {
     "id": "cbb44228-5997-739e-dc1c-31e37fb50266",
     "date": "2026-03-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.184258,
     "netReturnPct": -0.184258,
     "tradeCount": 3,
@@ -8294,7 +8294,7 @@
   {
     "id": "b5416e3b-127f-9379-9a7a-be07d83aa713",
     "date": "2026-03-31",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.253912,
     "netReturnPct": 0.253912,
     "tradeCount": 3,
@@ -8306,7 +8306,7 @@
   {
     "id": "fa9c4c52-3619-f498-a4c8-70d23aa4334c",
     "date": "2026-04-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.234942,
     "netReturnPct": 0.234942,
     "tradeCount": 3,
@@ -8318,7 +8318,7 @@
   {
     "id": "52c0d288-697d-a96a-007d-609bb063d647",
     "date": "2026-04-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.83716,
     "netReturnPct": 0.83716,
     "tradeCount": 3,
@@ -8330,7 +8330,7 @@
   {
     "id": "61298cc1-a955-b6c2-83c5-e62402b14720",
     "date": "2026-04-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.517305,
     "netReturnPct": 0.517305,
     "tradeCount": 4,
@@ -8342,7 +8342,7 @@
   {
     "id": "769034c6-0b67-6e31-901f-7dc096164934",
     "date": "2026-04-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.759781,
     "netReturnPct": 0.759781,
     "tradeCount": 4,
@@ -8354,7 +8354,7 @@
   {
     "id": "5c6675e2-af59-3eea-a977-eb4e26e68d33",
     "date": "2026-04-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.431019,
     "netReturnPct": 0.431019,
     "tradeCount": 2,
@@ -8366,7 +8366,7 @@
   {
     "id": "a2072db2-914e-c49c-25ba-53f8b7a821a7",
     "date": "2026-04-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.628559,
     "netReturnPct": 0.628559,
     "tradeCount": 5,
@@ -8378,7 +8378,7 @@
   {
     "id": "9a3a0592-6d34-5921-bd88-bc4a6b39a01c",
     "date": "2026-04-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.2952,
     "netReturnPct": -0.2952,
     "tradeCount": 4,
@@ -8390,7 +8390,7 @@
   {
     "id": "fac027d2-5407-837c-7e6a-e32bb157c13f",
     "date": "2026-04-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.101611,
     "netReturnPct": -0.101611,
     "tradeCount": 3,
@@ -8402,7 +8402,7 @@
   {
     "id": "8782a5c7-46ef-8e89-2906-d4e838d38d91",
     "date": "2026-04-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.278502,
     "netReturnPct": 0.278502,
     "tradeCount": 3,
@@ -8414,7 +8414,7 @@
   {
     "id": "5fac30a9-a7f7-a2ce-5f10-f2aab586d571",
     "date": "2026-04-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.260745,
     "netReturnPct": 0.260745,
     "tradeCount": 3,
@@ -8426,7 +8426,7 @@
   {
     "id": "7286a50b-2d1c-ef90-18f8-c5b301b698de",
     "date": "2026-04-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.674318,
     "netReturnPct": 0.674318,
     "tradeCount": 3,
@@ -8438,7 +8438,7 @@
   {
     "id": "50d5021f-cb9d-a38a-63c0-a891d7f18b95",
     "date": "2026-04-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.461477,
     "netReturnPct": -0.461477,
     "tradeCount": 2,
@@ -8450,7 +8450,7 @@
   {
     "id": "12f7d2de-4451-9a11-13cb-ae83746a9140",
     "date": "2026-04-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.341577,
     "netReturnPct": 0.341577,
     "tradeCount": 5,
@@ -8462,7 +8462,7 @@
   {
     "id": "660ec76b-1891-002c-60c7-d774a9966ae9",
     "date": "2026-04-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.326636,
     "netReturnPct": -0.326636,
     "tradeCount": 4,
@@ -8474,7 +8474,7 @@
   {
     "id": "094dd46f-3492-c5e8-eedc-691539286379",
     "date": "2026-04-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.128658,
     "netReturnPct": -0.128658,
     "tradeCount": 3,
@@ -8486,7 +8486,7 @@
   {
     "id": "5608f0ee-acad-fd8c-2a8a-18b3bb2e1061",
     "date": "2026-04-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.241706,
     "netReturnPct": -0.241706,
     "tradeCount": 3,
@@ -8498,7 +8498,7 @@
   {
     "id": "a90ed526-3ea8-bdb3-3d81-0cbb803d3d7f",
     "date": "2026-04-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.764615,
     "netReturnPct": 0.764615,
     "tradeCount": 4,
@@ -8510,7 +8510,7 @@
   {
     "id": "7faa4c78-5580-302a-3065-00e33dd8ec7b",
     "date": "2026-04-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.927687,
     "netReturnPct": 0.927687,
     "tradeCount": 5,
@@ -8522,7 +8522,7 @@
   {
     "id": "4df544bb-b13b-a01c-f80b-f50752fcf9fe",
     "date": "2026-04-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.31719,
     "netReturnPct": -0.31719,
     "tradeCount": 4,
@@ -8534,7 +8534,7 @@
   {
     "id": "c44f0702-b163-d6e0-335a-6cd18a6f1629",
     "date": "2026-04-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.314472,
     "netReturnPct": -0.314472,
     "tradeCount": 3,
@@ -8546,7 +8546,7 @@
   {
     "id": "d23b029f-141a-a5bb-c57a-c291edb6e580",
     "date": "2026-04-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.847389,
     "netReturnPct": 0.847389,
     "tradeCount": 5,
@@ -8558,7 +8558,7 @@
   {
     "id": "dd3c3b5a-0175-ce48-be94-39290c47bc38",
     "date": "2026-04-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.625714,
     "netReturnPct": 0.625714,
     "tradeCount": 4,
@@ -8570,7 +8570,7 @@
   {
     "id": "9c4d66ae-f615-4e92-e433-06153ff69c6c",
     "date": "2026-05-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.341196,
     "netReturnPct": 0.341196,
     "tradeCount": 4,
@@ -8582,7 +8582,7 @@
   {
     "id": "956f3a96-8d2e-c96a-f885-1ac17b0159f1",
     "date": "2026-05-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.281027,
     "netReturnPct": 0.281027,
     "tradeCount": 5,
@@ -8594,7 +8594,7 @@
   {
     "id": "5a7db577-9473-fc6c-3e71-2abde007c40d",
     "date": "2026-05-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.213803,
     "netReturnPct": 0.213803,
     "tradeCount": 3,
@@ -8606,7 +8606,7 @@
   {
     "id": "3abb3a73-ddae-fc28-267f-9da79178bed5",
     "date": "2026-05-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.855571,
     "netReturnPct": 0.855571,
     "tradeCount": 5,
@@ -8618,7 +8618,7 @@
   {
     "id": "7ab2a681-2cdc-4810-0b42-d2575b40d1ec",
     "date": "2026-05-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.119655,
     "netReturnPct": 0.119655,
     "tradeCount": 2,
@@ -8630,7 +8630,7 @@
   {
     "id": "9d8420a3-8804-4b8d-ddd4-c9bbd78e0a89",
     "date": "2026-05-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.216928,
     "netReturnPct": -0.216928,
     "tradeCount": 2,
@@ -8642,7 +8642,7 @@
   {
     "id": "98841962-9846-3a04-9bd3-ce75a451f382",
     "date": "2026-05-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.153601,
     "netReturnPct": -0.153601,
     "tradeCount": 3,
@@ -8654,7 +8654,7 @@
   {
     "id": "2be6dda5-7b5b-e90e-02ff-bcba7ed7914f",
     "date": "2026-05-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.224475,
     "netReturnPct": 0.224475,
     "tradeCount": 4,
@@ -8666,7 +8666,7 @@
   {
     "id": "358aaf50-093b-d561-266b-0ba72287d259",
     "date": "2026-05-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.867878,
     "netReturnPct": 0.867878,
     "tradeCount": 2,
@@ -8678,7 +8678,7 @@
   {
     "id": "209cb8c8-9536-5b91-fd2d-76265db76123",
     "date": "2026-05-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.393035,
     "netReturnPct": -0.393035,
     "tradeCount": 2,
@@ -8690,7 +8690,7 @@
   {
     "id": "7ac9ba01-3a83-1313-6078-eb41bbcf92cd",
     "date": "2026-05-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.309555,
     "netReturnPct": 0.309555,
     "tradeCount": 2,
@@ -8702,7 +8702,7 @@
   {
     "id": "8dae5487-2b5d-178f-8763-e507130d79b1",
     "date": "2026-05-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.087676,
     "netReturnPct": -0.087676,
     "tradeCount": 2,
@@ -8714,7 +8714,7 @@
   {
     "id": "79313dd5-a391-828e-2182-7b5faaa9143f",
     "date": "2026-05-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.738008,
     "netReturnPct": 0.738008,
     "tradeCount": 5,
@@ -8726,7 +8726,7 @@
   {
     "id": "7986dc6b-f46c-2dbf-7dd2-b1fbc25f03a1",
     "date": "2026-05-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.334987,
     "netReturnPct": 0.334987,
     "tradeCount": 3,
@@ -8738,7 +8738,7 @@
   {
     "id": "05a1e813-55a2-3077-2d89-c9184a41394f",
     "date": "2026-05-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.451544,
     "netReturnPct": 0.451544,
     "tradeCount": 2,
@@ -8750,7 +8750,7 @@
   {
     "id": "a1f5f565-95fa-076a-2dc4-e0c0fef6aef2",
     "date": "2026-05-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.03606,
     "netReturnPct": 0.03606,
     "tradeCount": 4,
@@ -8762,7 +8762,7 @@
   {
     "id": "e879adbc-d966-66c0-362c-ad3a80a39a8c",
     "date": "2026-05-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.601689,
     "netReturnPct": 0.601689,
     "tradeCount": 2,
@@ -8774,7 +8774,7 @@
   {
     "id": "1f0c44f8-8fbc-f28d-6481-160f5ff2db0d",
     "date": "2026-05-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.762412,
     "netReturnPct": 0.762412,
     "tradeCount": 2,
@@ -8786,7 +8786,7 @@
   {
     "id": "bd608c46-2b50-091a-dfd3-a36192997ca7",
     "date": "2026-05-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.07758,
     "netReturnPct": -0.07758,
     "tradeCount": 5,
@@ -8798,7 +8798,7 @@
   {
     "id": "b9eda853-f501-bc6d-7423-70b926324d5d",
     "date": "2026-05-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.112772,
     "netReturnPct": 0.112772,
     "tradeCount": 5,
@@ -8810,7 +8810,7 @@
   {
     "id": "bd207684-79e0-ea4f-cafe-97ee9274fc8c",
     "date": "2026-05-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.35539,
     "netReturnPct": 0.35539,
     "tradeCount": 4,
@@ -8822,7 +8822,7 @@
   {
     "id": "f5ab18df-bc43-475b-7882-7c8c559cb7a2",
     "date": "2026-06-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.079172,
     "netReturnPct": 0.079172,
     "tradeCount": 4,
@@ -8834,7 +8834,7 @@
   {
     "id": "b125e570-760d-460b-fca9-efdc48b8eeea",
     "date": "2026-06-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.281404,
     "netReturnPct": 0.281404,
     "tradeCount": 5,
@@ -8846,7 +8846,7 @@
   {
     "id": "9c980e05-b381-51c0-b8a4-25536d312016",
     "date": "2026-06-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.062788,
     "netReturnPct": 0.062788,
     "tradeCount": 3,
@@ -8858,7 +8858,7 @@
   {
     "id": "dbd9f697-b67c-2426-58d6-c60c78f0caad",
     "date": "2026-06-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.344549,
     "netReturnPct": 0.344549,
     "tradeCount": 5,
@@ -8870,7 +8870,7 @@
   {
     "id": "7505fbae-725f-16c0-759b-a87725a671df",
     "date": "2026-06-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.525767,
     "netReturnPct": 0.525767,
     "tradeCount": 3,
@@ -8882,7 +8882,7 @@
   {
     "id": "1e9292b4-a6b9-3840-b8ba-044670cdddbb",
     "date": "2026-06-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.583798,
     "netReturnPct": 0.583798,
     "tradeCount": 3,
@@ -8894,7 +8894,7 @@
   {
     "id": "22a9ddd9-6818-f3bf-28a5-e90dd91ca2c8",
     "date": "2026-06-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.14008,
     "netReturnPct": -0.14008,
     "tradeCount": 5,
@@ -8906,7 +8906,7 @@
   {
     "id": "9cff1f41-bb07-83be-735d-6042a0029780",
     "date": "2026-06-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.186261,
     "netReturnPct": 0.186261,
     "tradeCount": 4,
@@ -8918,7 +8918,7 @@
   {
     "id": "db91000b-54c8-2c2b-2e94-aad90c910646",
     "date": "2026-06-11",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.211258,
     "netReturnPct": 0.211258,
     "tradeCount": 3,
@@ -8930,7 +8930,7 @@
   {
     "id": "40d7eb23-2ad1-c17f-1e74-530ed2a262e7",
     "date": "2026-06-12",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.58113,
     "netReturnPct": 0.58113,
     "tradeCount": 2,
@@ -8942,7 +8942,7 @@
   {
     "id": "aefc25be-c312-c73d-07f3-fac318d0ccfb",
     "date": "2026-06-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.635914,
     "netReturnPct": 0.635914,
     "tradeCount": 3,
@@ -8954,7 +8954,7 @@
   {
     "id": "b780881a-d431-9dd8-a57f-1696444c224a",
     "date": "2026-06-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.530724,
     "netReturnPct": 0.530724,
     "tradeCount": 2,
@@ -8966,7 +8966,7 @@
   {
     "id": "7cb67b87-0e24-a66f-eb2d-b7a6ec715be5",
     "date": "2026-06-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.529161,
     "netReturnPct": 0.529161,
     "tradeCount": 4,
@@ -8978,7 +8978,7 @@
   {
     "id": "bb6a46a8-9c74-c798-6711-7c831f0b6f0c",
     "date": "2026-06-18",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.651586,
     "netReturnPct": 0.651586,
     "tradeCount": 5,
@@ -8990,7 +8990,7 @@
   {
     "id": "0cbb00f0-5136-8e58-c344-e9f8f177729d",
     "date": "2026-06-19",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.573428,
     "netReturnPct": 0.573428,
     "tradeCount": 2,
@@ -9002,7 +9002,7 @@
   {
     "id": "92356d10-2441-185e-df6d-bf39eeb03df7",
     "date": "2026-06-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.430194,
     "netReturnPct": 0.430194,
     "tradeCount": 5,
@@ -9014,7 +9014,7 @@
   {
     "id": "b0f317c0-71f5-ef7e-4494-d545cc010baf",
     "date": "2026-06-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.645629,
     "netReturnPct": 0.645629,
     "tradeCount": 5,
@@ -9026,7 +9026,7 @@
   {
     "id": "b0059998-6772-69b1-a691-6e3fe1e8d4b1",
     "date": "2026-06-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.693048,
     "netReturnPct": 0.693048,
     "tradeCount": 4,
@@ -9038,7 +9038,7 @@
   {
     "id": "8b00f59e-738a-4e7d-72e7-4bcb117550f4",
     "date": "2026-06-25",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.198578,
     "netReturnPct": 0.198578,
     "tradeCount": 3,
@@ -9050,7 +9050,7 @@
   {
     "id": "eaea047f-c214-88f6-5f8c-0a81ccf7d10e",
     "date": "2026-06-26",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.311129,
     "netReturnPct": 0.311129,
     "tradeCount": 5,
@@ -9062,7 +9062,7 @@
   {
     "id": "c2b2257f-e585-0971-905e-dd660d692156",
     "date": "2026-06-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.413192,
     "netReturnPct": 0.413192,
     "tradeCount": 2,
@@ -9074,7 +9074,7 @@
   {
     "id": "ae4e811a-33ce-8018-ebf9-ad5c8aa950e6",
     "date": "2026-06-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.056718,
     "netReturnPct": -0.056718,
     "tradeCount": 5,
@@ -9086,7 +9086,7 @@
   {
     "id": "8930ee7c-84f8-f921-d94a-ffa1c8904487",
     "date": "2026-07-01",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.099639,
     "netReturnPct": -0.099639,
     "tradeCount": 4,
@@ -9098,7 +9098,7 @@
   {
     "id": "fc8e7056-923d-5537-19f6-8afeed1a06ab",
     "date": "2026-07-02",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.069095,
     "netReturnPct": 0.069095,
     "tradeCount": 3,
@@ -9110,7 +9110,7 @@
   {
     "id": "4c19a2c9-b1f6-069b-dfdd-0cd02b3e36f6",
     "date": "2026-07-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.142666,
     "netReturnPct": 0.142666,
     "tradeCount": 5,
@@ -9122,7 +9122,7 @@
   {
     "id": "de59561f-04df-4ac6-46ad-c248d0a1ce7e",
     "date": "2026-07-06",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.749421,
     "netReturnPct": 0.749421,
     "tradeCount": 2,
@@ -9134,7 +9134,7 @@
   {
     "id": "b2f0b731-dfea-ed02-8c69-4f13fbfe0c8d",
     "date": "2026-07-07",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.403329,
     "netReturnPct": 0.403329,
     "tradeCount": 5,
@@ -9146,7 +9146,7 @@
   {
     "id": "fea5adad-ff6b-fd19-00c9-317326aa27af",
     "date": "2026-07-08",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.510316,
     "netReturnPct": 0.510316,
     "tradeCount": 3,
@@ -9158,7 +9158,7 @@
   {
     "id": "d5b202db-566a-b451-f8ba-dc8d34820e09",
     "date": "2026-07-09",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.505848,
     "netReturnPct": 0.505848,
     "tradeCount": 2,
@@ -9170,7 +9170,7 @@
   {
     "id": "884fda27-8905-135a-ab0b-72f812ea1e7a",
     "date": "2026-07-10",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.545165,
     "netReturnPct": 0.545165,
     "tradeCount": 5,
@@ -9182,7 +9182,7 @@
   {
     "id": "d22e51b2-0e22-6336-2c55-d1f80ef77f57",
     "date": "2026-07-13",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.331533,
     "netReturnPct": 0.331533,
     "tradeCount": 3,
@@ -9194,7 +9194,7 @@
   {
     "id": "5e53b2e4-a6d6-3624-73b2-8ba48effa713",
     "date": "2026-07-14",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.785803,
     "netReturnPct": 0.785803,
     "tradeCount": 5,
@@ -9206,7 +9206,7 @@
   {
     "id": "d67c371b-c74d-e5d1-9bf3-b906c7c25a1c",
     "date": "2026-07-15",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.122281,
     "netReturnPct": 0.122281,
     "tradeCount": 3,
@@ -9218,7 +9218,7 @@
   {
     "id": "9258c24f-1734-d46c-28f4-18bff6d4262f",
     "date": "2026-07-16",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.332374,
     "netReturnPct": -0.332374,
     "tradeCount": 3,
@@ -9230,7 +9230,7 @@
   {
     "id": "dea6a133-df38-d2c1-0f00-693be7e6da8c",
     "date": "2026-07-17",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.312596,
     "netReturnPct": 0.312596,
     "tradeCount": 2,
@@ -9242,7 +9242,7 @@
   {
     "id": "f625a568-856d-3445-8164-7414511bdf9d",
     "date": "2026-07-20",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.418272,
     "netReturnPct": 0.418272,
     "tradeCount": 5,
@@ -9254,7 +9254,7 @@
   {
     "id": "20a0c9ae-986d-4dc5-0e4c-eca56d4fbe49",
     "date": "2026-07-21",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": -0.381485,
     "netReturnPct": -0.381485,
     "tradeCount": 4,
@@ -9266,7 +9266,7 @@
   {
     "id": "91d6b1b9-acc3-7bbf-5d95-fb3d556c137d",
     "date": "2026-07-22",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.090141,
     "netReturnPct": 0.090141,
     "tradeCount": 5,
@@ -9278,7 +9278,7 @@
   {
     "id": "ff0a1df2-f23c-f48e-daeb-118b9caf9068",
     "date": "2026-07-23",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.781382,
     "netReturnPct": 0.781382,
     "tradeCount": 5,
@@ -9290,7 +9290,7 @@
   {
     "id": "5f8b4d59-73a3-5e84-4a67-1505ea0126ee",
     "date": "2026-07-24",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.115238,
     "netReturnPct": 0.115238,
     "tradeCount": 4,
@@ -9302,7 +9302,7 @@
   {
     "id": "455f56a8-1f76-3099-ba84-5714e15f6872",
     "date": "2026-07-27",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.414771,
     "netReturnPct": 0.414771,
     "tradeCount": 4,
@@ -9314,7 +9314,7 @@
   {
     "id": "8cd2cf24-d97c-aa01-3694-4fe4e36feea0",
     "date": "2026-07-28",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.057206,
     "netReturnPct": 0.057206,
     "tradeCount": 5,
@@ -9326,7 +9326,7 @@
   {
     "id": "6693195b-fee7-42d6-f2ac-6184c2634ba3",
     "date": "2026-07-29",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 1.011892,
     "netReturnPct": 1.011892,
     "tradeCount": 2,
@@ -9338,7 +9338,7 @@
   {
     "id": "af4696c9-37dd-4365-f762-ecd70677f328",
     "date": "2026-07-30",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.856804,
     "netReturnPct": 0.856804,
     "tradeCount": 5,
@@ -9350,7 +9350,7 @@
   {
     "id": "b56a6cdd-aba8-842d-c574-34098606c6f8",
     "date": "2026-07-31",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.29468,
     "netReturnPct": 0.29468,
     "tradeCount": 4,
@@ -9362,7 +9362,7 @@
   {
     "id": "9091816c-8db0-4ce5-6595-78f72eec7aad",
     "date": "2026-08-03",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 3.746697,
     "netReturnPct": 3.746697,
     "tradeCount": 5,
@@ -9374,7 +9374,7 @@
   {
     "id": "bd250653-0146-e747-d099-79eeb488c2cc",
     "date": "2026-08-04",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 0.303085,
     "netReturnPct": 0.303085,
     "tradeCount": 2,
@@ -9386,7 +9386,7 @@
   {
     "id": "d0365ca0-b1cf-fef6-d54d-c4e98262fbaf",
     "date": "2026-08-05",
-    "status": "DISTRIBUTED",
+    "status": "PUBLISHED",
     "computedReturnPct": 3.275827,
     "netReturnPct": 3.275827,
     "tradeCount": 2,
