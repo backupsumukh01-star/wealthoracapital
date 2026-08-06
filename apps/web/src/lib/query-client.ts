@@ -7,7 +7,8 @@ const defaultOptions: DefaultOptions = {
   queries: {
     staleTime: QUERY_STALE_TIME.normal,
     gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: true,
+    // Focus/visibility refetches stacked with admin page mounts caused 429 storms.
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
     refetchOnMount: true,
     networkMode: 'online',

@@ -50,7 +50,7 @@ export function SessionProvider({
   session?: Session | null
 }) {
   const queryClient = useQueryClient()
-  const { data, isLoading, refetch } = useAuthSession()
+  const { data, isLoading, isFetching, isError, refetch, failureReason } = useAuthSession()
 
   const setSession = useCallback(
     (next: Session | null) => {
@@ -65,51 +65,71 @@ export function SessionProvider({
     void refetch()
   }, [refetch])
 
-  // Re-fetch permissions when the tab regains focus so role changes take effect
-  // without a full page reload (target sessions are already revoked server-side).
+  // Soft re-check when tab becomes visible — do not clear session on transient failures.
   useEffect(() => {
+    let last = 0
     function onVisible() {
-      if (document.visibilityState === 'visible') {
-        void refetch()
-      }
+      if (document.visibilityState !== 'visible') return
+      const now = Date.now()
+      if (now - last < 60_000) return
+      last = now
+      void refetch()
     }
     document.addEventListener('visibilitychange', onVisible)
-    window.addEventListener('focus', onVisible)
-    return () => {
-      document.removeEventListener('visibilitychange', onVisible)
-      window.removeEventListener('focus', onVisible)
-    }
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [refetch])
 
   const value = useMemo<SessionContextValue>(() => {
-    const session = data === undefined ? seedSession : data
+    const session = (data === undefined ? seedSession : data) as Session | null
     const role = session?.user.role ?? null
     const staffRole = (session?.user.staffRole ?? null) as StaffRole | null
     const permissions = session?.user.permissions ?? []
     const granted = new Set(permissions)
+    // Only treat as logged-out when we have a definitive null session (401), not while
+    // refetching or after a transient 429/5xx with placeholder data.
+    const bootstrapping = isLoading && data === undefined && !seedSession
+    const unauthorized =
+      data === null ||
+      (isError &&
+        failureReason instanceof Error &&
+        'status' in failureReason &&
+        (failureReason as { status?: number }).status === 401)
+    // First-load 429/5xx with no prior session — keep gate in loading, never bounce to login.
+    const authUnknown =
+      !unauthorized &&
+      !session &&
+      isError &&
+      !(
+        failureReason instanceof Error &&
+        'status' in failureReason &&
+        (failureReason as { status?: number }).status === 401
+      )
 
     return {
-      session,
-      isAuthenticated: session !== null,
-      role,
-      staffRole,
-      permissions,
-      isAdmin: role === 'ADMIN' || role === 'SUPER_ADMIN',
-      isStaff: isStaffUser(role, staffRole),
-      isLoading,
+      session: unauthorized ? null : session,
+      isAuthenticated: Boolean(unauthorized ? null : session),
+      role: unauthorized ? null : role,
+      staffRole: unauthorized ? null : staffRole,
+      permissions: unauthorized ? [] : permissions,
+      isAdmin: !unauthorized && (role === 'ADMIN' || role === 'SUPER_ADMIN'),
+      isStaff: !unauthorized && isStaffUser(role, staffRole),
+      isLoading:
+        bootstrapping ||
+        authUnknown ||
+        (isFetching && !session && !unauthorized),
       can: (permission) => {
-        if (!permission) return false
+        if (unauthorized || !permission) return false
         if (isPermission(permission) || typeof permission === 'string') {
           return granted.has(permission)
         }
         return false
       },
-      canAny: (list) => list.some((p) => granted.has(p)),
+      canAny: (list) => (!unauthorized ? list.some((p) => granted.has(p)) : false),
       refresh,
       setSession,
       clearSession,
     }
-  }, [data, seedSession, isLoading, refresh, setSession, clearSession])
+  }, [data, seedSession, isLoading, isFetching, isError, failureReason, refresh, setSession, clearSession])
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
 }

@@ -88,16 +88,20 @@ export function AdminTopbar() {
 /** Soft gate — UI only. The API enforces roles on every request. */
 export function AdminSessionGate({ children }: { children: ReactNode }) {
   const router = useRouter()
-  const { isAuthenticated, isStaff, isLoading } = useSession()
+  const { isAuthenticated, isStaff, isLoading, session } = useSession()
 
   useEffect(() => {
+    // Never bounce while bootstrapping or while a prior session is still held after a
+    // transient API error (rate limit). Only redirect when auth resolved without staff.
     if (isLoading) return
-    if (!isAuthenticated || !isStaff) {
+    if (session && isStaff) return
+    if (!session || !isAuthenticated || !isStaff) {
       router.replace(ROUTES.admin.login)
     }
-  }, [isLoading, isAuthenticated, isStaff, router])
+  }, [isLoading, isAuthenticated, isStaff, session, router])
 
-  if (isLoading || !isAuthenticated || !isStaff) {
+  if (isLoading || (session && isStaff)) {
+    if (session && isStaff) return <>{children}</>
     return (
       <div className="grid min-h-dvh place-items-center bg-base text-caption text-fg-muted">
         Checking operator session…
@@ -105,5 +109,10 @@ export function AdminSessionGate({ children }: { children: ReactNode }) {
     )
   }
 
-  return <>{children}</>
+  // Definitive non-staff / logged-out — brief placeholder while replace(login) runs.
+  return (
+    <div className="grid min-h-dvh place-items-center bg-base text-caption text-fg-muted">
+      Checking operator session…
+    </div>
+  )
 }

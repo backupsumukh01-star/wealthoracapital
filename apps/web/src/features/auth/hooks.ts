@@ -8,6 +8,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { ApiError } from '@/lib/api-client'
 import { clearRememberedCsrfToken } from '@/lib/csrf'
 import {
   authService,
@@ -29,13 +30,30 @@ function toLoginEmail(identifier: string) {
 
 export type LoginFormInput = { identifier: string; password: string; otp?: string }
 
+/**
+ * Session probe. 401 → logged out (null). Transient errors (429/5xx) keep prior session
+ * so AdminSessionGate does not bounce operators to login during rate-limit storms.
+ */
 export function useAuthSession() {
   return useQuery({
     queryKey: authQueryKeys.session(),
-    queryFn: authService.me,
+    queryFn: async (): Promise<AuthSessionPayload | null> => {
+      try {
+        return await authService.me()
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          return null
+        }
+        throw error
+      }
+    },
     retry: false,
-    staleTime: 30_000,
-    refetchOnMount: true,
+    staleTime: 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+    placeholderData: (previous) => previous,
   })
 }
 

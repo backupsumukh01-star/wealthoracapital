@@ -1,6 +1,7 @@
 import rateLimit from 'express-rate-limit'
 import { ERROR_CODES } from '@meridian/shared'
 
+import { COOKIE_NAMES } from '../config/cookies.js'
 import { env } from '../config/env.js'
 import { getRedis } from '../services/redis/client.js'
 import { createMeta } from '../utils/response.js'
@@ -27,9 +28,11 @@ export const globalRateLimiter = rateLimit({
   validate,
   ...(optionalRedisStore() ? { store: optionalRedisStore() } : {}),
   skip: (req) => {
-    const path = req.path || ''
+    const path = (req.originalUrl ?? req.url ?? req.path ?? '').split('?')[0] ?? ''
+    const method = (req.method ?? 'GET').toUpperCase()
+
     // Health / version / metrics must never 429 — Render probes + ops dashboards.
-    return (
+    if (
       path === '/api/health' ||
       path === '/api/health/live' ||
       path === '/api/health/ready' ||
@@ -39,7 +42,34 @@ export const globalRateLimiter = rateLimit({
       path.startsWith('/api/docs') ||
       path === '/api/openapi.json' ||
       path === '/api/redoc'
-    )
+    ) {
+      return true
+    }
+
+    // CORS preflight must never burn rate-limit budget.
+    if (method === 'OPTIONS') return true
+
+    const cookie = req.headers.cookie ?? ''
+    const accessCookie = `${COOKIE_NAMES.accessToken}=`
+    const hasSession = cookie.includes(accessCookie)
+
+    // Authenticated console/page-init GETs — admin KYC alone fires me + user + kyc + N document blobs.
+    // Aggressive global limits were returning 429 and cascading into login redirects / hung previews.
+    if (hasSession && (method === 'GET' || method === 'HEAD')) {
+      if (
+        path === '/api/v1/auth/me' ||
+        path === '/api/v1/csrf' ||
+        path.startsWith('/api/v1/admin') ||
+        path.startsWith('/api/v1/notifications') ||
+        path.startsWith('/api/v1/kyc') ||
+        path.startsWith('/api/v1/wallet') ||
+        path.startsWith('/api/v1/activity')
+      ) {
+        return true
+      }
+    }
+
+    return false
   },
   handler: (req, res) => {
     res.status(429).json({

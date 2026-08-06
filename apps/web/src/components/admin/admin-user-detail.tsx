@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { ROUTES, type MoneyString, type UserStatus } from '@meridian/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ban, CheckCircle2 } from 'lucide-react'
@@ -42,6 +42,7 @@ import {
   useAdminWithdrawals,
 } from '@/features/admin/hooks'
 import { PermissionGate } from '@/features/auth/guards'
+import { peekAdminListLocation } from '@/lib/admin-nav'
 import { formatDateTime } from '@/lib/format'
 import { useSession } from '@/providers/session-provider'
 import { adminService } from '@/services/admin.service'
@@ -50,6 +51,7 @@ import { kycService } from '@/services/kyc.service'
 export function AdminUserDetailWorkspace() {
   const params = useParams<{ userId: string }>()
   const userId = decodeURIComponent(params.userId)
+  const router = useRouter()
   const queryClient = useQueryClient()
   const { refresh, session } = useSession()
   const { data: user, isLoading, isError } = useAdminUser(userId)
@@ -85,7 +87,22 @@ export function AdminUserDetailWorkspace() {
     queryKey: ['admin', 'kyc', userId],
     queryFn: () => kycService.adminGet(userId),
     enabled: Boolean(userId),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   })
+
+  function goBackToUsers() {
+    const remembered = peekAdminListLocation()
+    if (remembered?.startsWith('/admin/users') || remembered?.startsWith('/admin/kyc')) {
+      router.push(remembered)
+      return
+    }
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+      return
+    }
+    router.push(ROUTES.admin.users)
+  }
 
   const suspend = useMutation({
     mutationFn: () => adminService.suspendUser(userId, 'Suspended by operator'),
@@ -220,8 +237,8 @@ export function AdminUserDetailWorkspace() {
     return (
       <div className="space-y-4">
         <PageHeader title="User not found" description={`No investor matches ${userId}.`} />
-        <Button asChild variant="secondary">
-          <Link href={ROUTES.admin.users}>Back to users</Link>
+        <Button type="button" variant="secondary" onClick={goBackToUsers}>
+          Back to users
         </Button>
       </div>
     )
@@ -245,7 +262,7 @@ export function AdminUserDetailWorkspace() {
     absolutePath?: string | null
     status?: string
   }>
-  const kycOwnerId = kycDetail?.id ?? userId
+  const kycOwnerId = userId
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -253,9 +270,9 @@ export function AdminUserDetailWorkspace() {
         title={`${user.firstName} ${user.lastName}`}
         description="Full investor profile — KYC, wallet, ledger activity, and operator controls."
         eyebrow={
-          <Link href={ROUTES.admin.users} className="hover:text-fg">
+          <button type="button" onClick={goBackToUsers} className="hover:text-fg">
             ← Users
-          </Link>
+          </button>
         }
         actions={
           <div className="flex flex-wrap items-center gap-2">

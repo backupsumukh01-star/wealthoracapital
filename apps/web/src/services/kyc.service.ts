@@ -10,7 +10,15 @@ export type KycProfile = {
   reviewedAt: string | null
   rejectionReason: string | null
   infoRequestMessage?: string | null
-  documents: Array<{ id: string; kind: string; status: string; side?: string; downloadUrl?: string }>
+  documents: Array<{
+    id: string
+    kind: string
+    status: string
+    side?: string
+    downloadUrl?: string
+    mimeType?: string
+    originalName?: string
+  }>
   submission?: unknown
 }
 
@@ -133,13 +141,18 @@ export const kycService = {
     }>(`${API_ROUTES.admin.kyc}/${id}`),
 
   /** Authenticated binary fetch for admin document previews (session cookies). */
-  adminDocumentBlob: async (submissionOrUserId: string, documentId: string): Promise<Blob> => {
+  adminDocumentBlob: async (
+    submissionOrUserId: string,
+    documentId: string,
+    signal?: AbortSignal,
+  ): Promise<Blob> => {
     const response = await fetch(
       `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.admin.kyc}/${submissionOrUserId}/documents/${documentId}`,
       {
         method: 'GET',
         credentials: 'include',
         headers: { Accept: '*/*' },
+        signal,
       },
     )
     if (!response.ok) {
@@ -149,6 +162,9 @@ export const kycService = {
           error?: { message?: string; code?: string }
         }
         if (payload?.error?.message) message = payload.error.message
+        if (payload?.error?.code === 'RATE_LIMITED' || response.status === 429) {
+          message = 'Too many requests while loading documents. Retry in a moment.'
+        }
       } catch {
         // binary or empty error body
       }
@@ -158,7 +174,11 @@ export const kycService = {
         status: response.status,
         message,
       })
-      throw new ApiError(ERROR_CODES.INTERNAL_ERROR, message, response.status)
+      throw new ApiError(
+        response.status === 429 ? ERROR_CODES.RATE_LIMITED : ERROR_CODES.INTERNAL_ERROR,
+        message,
+        response.status,
+      )
     }
     return response.blob()
   },

@@ -18,6 +18,12 @@ import { PageHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { AdminAccountStatus, AdminKycStatus } from '@/lib/admin-demo-data'
+import {
+  loadAdminViewState,
+  rememberAdminListLocation,
+  restoreAdminScroll,
+  saveAdminViewState,
+} from '@/lib/admin-nav'
 import { cn } from '@/lib/cn'
 import { formatDateTime } from '@/lib/format'
 import { useAdminUsers } from '@/features/admin/hooks'
@@ -97,16 +103,36 @@ function Avatar({ initials }: { initials: string }) {
   )
 }
 
+const VIEW_KEY = 'admin:users:view'
+
 export function AdminUsersWorkspace() {
   const searchParams = useSearchParams()
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<FilterChip>('all')
+  const [hydrated, setHydrated] = useState(false)
   const { data, isLoading } = useAdminUsers(q.trim() ? { q: q.trim() } : undefined)
 
   useEffect(() => {
-    const initial = searchParams.get('q')
-    if (initial) setQ(initial)
+    rememberAdminListLocation()
+    const saved = loadAdminViewState<{ q?: string; filter?: FilterChip }>(VIEW_KEY)
+    const fromUrl = searchParams.get('q')
+    if (fromUrl) setQ(fromUrl)
+    else if (saved?.q) setQ(saved.q)
+    if (saved?.filter) setFilter(saved.filter)
+    if (saved?.scrollY != null) restoreAdminScroll(saved.scrollY)
+    setHydrated(true)
   }, [searchParams])
+
+  useEffect(() => {
+    if (!hydrated) return
+    const persist = () => saveAdminViewState(VIEW_KEY, { q, filter })
+    persist()
+    window.addEventListener('pagehide', persist)
+    return () => {
+      persist()
+      window.removeEventListener('pagehide', persist)
+    }
+  }, [q, filter, hydrated])
 
   const rows = useMemo(() => (data?.items ?? []).map(mapUser), [data?.items])
 
@@ -252,7 +278,15 @@ export function AdminUsersWorkspace() {
                     </td>
                     <td className="px-4 py-3">
                       <Button asChild size="sm" variant="ghost">
-                        <Link href={ROUTES.admin.user(u.userId)}>Open</Link>
+                        <Link
+                          href={ROUTES.admin.user(u.userId)}
+                          onClick={() => {
+                            rememberAdminListLocation()
+                            saveAdminViewState(VIEW_KEY, { q, filter })
+                          }}
+                        >
+                          Open
+                        </Link>
                       </Button>
                     </td>
                   </tr>

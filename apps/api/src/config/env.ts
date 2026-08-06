@@ -30,7 +30,8 @@ const envSchema = z.object({
 
   BCRYPT_ROUNDS: z.coerce.number().int().min(10).max(15).default(12),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900_000),
-  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
+  /** Global write-heavy budget. Authenticated admin GETs are skipped in middleware. */
+  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(600),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
 
   EMAIL_TRANSPORT: z

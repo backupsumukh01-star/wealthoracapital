@@ -56,6 +56,8 @@ export function useAdminUsers(query?: { q?: string; cursor?: string }, options?:
     queryFn: () => adminApi.users(query),
     enabled: options?.enabled,
     refetchInterval: options?.refetchInterval,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   })
 }
 
@@ -64,6 +66,8 @@ export function useAdminUser(id: string, options?: QueryHookOptions) {
     queryKey: adminQueryKeys.user(id),
     queryFn: () => adminApi.user(id),
     enabled: (options?.enabled ?? true) && Boolean(id),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   })
 }
 

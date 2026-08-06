@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { ROUTES } from '@meridian/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -8,7 +7,6 @@ import {
   Download,
   ExternalLink,
   FileText,
-  Loader2,
   Maximize2,
   X,
   ZoomIn,
@@ -27,6 +25,7 @@ import { PageHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useAdminUser } from '@/features/admin/hooks'
+import { peekAdminListLocation } from '@/lib/admin-nav'
 import { cn } from '@/lib/cn'
 import { kycService } from '@/services/kyc.service'
 
@@ -77,57 +76,53 @@ function useAdminDocPreview(ownerId: string | undefined, doc: KycDoc | undefined
     if (doc.fileExists === false) {
       setBlobUrl(null)
       setLoading(false)
-      setError(
-        [
-          'File missing on storage disk.',
-          doc.storageKey ? `storageKey=${doc.storageKey}` : null,
-          doc.absolutePath ? `path=${doc.absolutePath}` : null,
-        ]
-          .filter(Boolean)
-          .join(' '),
-      )
+      setError('File missing on storage disk. Ask the investor to re-upload.')
       return
     }
 
     let objectUrl: string | null = null
     let cancelled = false
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 45_000)
+
     setLoading(true)
     setError(null)
     setBlobUrl(null)
 
     void kycService
-      .adminDocumentBlob(ownerId, doc.id)
+      .adminDocumentBlob(ownerId, doc.id, controller.signal)
       .then((blob) => {
         if (cancelled) return
+        if (!blob || blob.size === 0) {
+          setError('Empty document response from API.')
+          return
+        }
         objectUrl = URL.createObjectURL(blob)
         setBlobUrl(objectUrl)
       })
       .catch((err: Error) => {
-        if (cancelled) return
-        const detail = [
-          err.message || 'Preview unavailable',
-          doc.storageKey ? `storageKey=${doc.storageKey}` : null,
-          doc.absolutePath ? `path=${doc.absolutePath}` : null,
-        ]
-          .filter(Boolean)
-          .join(' · ')
+        if (cancelled || err.name === 'AbortError') return
+        const detail = err.message || 'Preview unavailable'
         console.error('[admin-kyc] document preview failed', {
           documentId: doc.id,
+          ownerId,
           storageKey: doc.storageKey,
-          absolutePath: doc.absolutePath,
           error: err,
         })
         setError(detail)
       })
       .finally(() => {
+        window.clearTimeout(timeout)
         if (!cancelled) setLoading(false)
       })
 
     return () => {
       cancelled = true
+      controller.abort()
+      window.clearTimeout(timeout)
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  }, [ownerId, doc?.id, doc?.fileExists, doc?.storageKey, doc?.absolutePath])
+  }, [ownerId, doc?.id, doc?.fileExists, doc?.storageKey])
 
   return { blobUrl, error, loading }
 }
@@ -281,10 +276,11 @@ function KycDocCard({
         </div>
         <div className="relative aspect-[4/3] bg-gradient-to-br from-accent-500/10 via-inset to-info/10">
           {loading ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-fg-muted">
-              <Loader2 className="size-6 animate-spin" aria-hidden />
-              <p className="text-caption">Loading preview…</p>
-            </div>
+            <div
+              className="absolute inset-0 animate-pulse bg-white/[0.06]"
+              aria-busy="true"
+              aria-label={`Loading ${label}`}
+            />
           ) : error ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
               <FileText className="size-8 text-warning" aria-hidden />
@@ -347,15 +343,37 @@ function KycDocCard({
   )
 }
 
-function pickDoc(docs: KycDoc[], side: string, kinds?: string[]): KycDoc | undefined {
-  return docs.find((d) => {
-    const type = (d.documentType ?? d.kind ?? '').toUpperCase()
-    const docSide = (d.side ?? 'SINGLE').toUpperCase()
-    const sideOk = docSide === side.toUpperCase()
-    if (!sideOk) return false
-    if (!kinds?.length) return true
-    return kinds.some((k) => k.toUpperCase() === type)
+function resolveIdDocs(documents: KycDoc[]) {
+  const typeOf = (d: KycDoc) => (d.documentType ?? d.kind ?? '').toUpperCase()
+  const sideOf = (d: KycDoc) => (d.side ?? 'SINGLE').toUpperCase()
+
+  const selfie =
+    documents.find((d) => typeOf(d).includes('SELFIE')) ?? undefined
+  const addressProof =
+    documents.find((d) => typeOf(d).includes('ADDRESS')) ?? undefined
+
+  const idKinds = ['NATIONAL_ID', 'DRIVING_LICENSE', 'RESIDENCE_PERMIT', 'PASSPORT', 'ID_CARD', 'GOVERNMENT_ID']
+  const idDocs = documents.filter((d) => {
+    const t = typeOf(d)
+    if (d.id === selfie?.id || d.id === addressProof?.id) return false
+    return (
+      idKinds.some((k) => t === k) ||
+      t.includes('PASSPORT') ||
+      t.includes('LICENSE') ||
+      t.includes('ID')
+    )
   })
+
+  const front =
+    documents.find((d) => sideOf(d) === 'FRONT') ??
+    idDocs.find((d) => sideOf(d) === 'SINGLE') ??
+    idDocs[0]
+
+  const back =
+    documents.find((d) => sideOf(d) === 'BACK' && d.id !== front?.id) ??
+    idDocs.find((d) => d.id !== front?.id)
+
+  return { front, back, selfie, addressProof }
 }
 
 /** Shared document grid for KYC review + admin user detail. */
@@ -368,21 +386,7 @@ export function AdminKycDocumentsGrid({
   documents: KycDoc[]
   loading?: boolean
 }) {
-  const idKinds = ['NATIONAL_ID', 'DRIVING_LICENSE', 'RESIDENCE_PERMIT', 'PASSPORT']
-  const front =
-    pickDoc(documents, 'FRONT', idKinds) ??
-    pickDoc(documents, 'FRONT') ??
-    documents.find((d) => (d.side ?? '').toUpperCase() === 'FRONT')
-  const back =
-    pickDoc(documents, 'BACK', idKinds) ??
-    pickDoc(documents, 'BACK') ??
-    documents.find((d) => (d.side ?? '').toUpperCase() === 'BACK')
-  const selfie =
-    pickDoc(documents, 'SINGLE', ['SELFIE']) ??
-    documents.find((d) => (d.documentType ?? d.kind ?? '').toUpperCase() === 'SELFIE')
-  const addressProof =
-    pickDoc(documents, 'SINGLE', ['PROOF_OF_ADDRESS']) ??
-    documents.find((d) => (d.documentType ?? d.kind ?? '').toUpperCase() === 'PROOF_OF_ADDRESS')
+  const { front, back, selfie, addressProof } = resolveIdDocs(documents)
   const extras = documents.filter(
     (d) =>
       d.id !== front?.id &&
@@ -392,7 +396,25 @@ export function AdminKycDocumentsGrid({
   )
 
   if (loading) {
-    return <p className="text-body-sm text-fg-muted">Loading documents…</p>
+    return (
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {['Front ID', 'Back ID', 'Selfie', 'Address proof'].map((label) => (
+          <div
+            key={label}
+            className="overflow-hidden rounded-xl border border-white/[0.08] bg-inset/40"
+          >
+            <div className="border-b border-white/[0.06] px-3 py-2">
+              <p className="text-body-sm font-medium text-fg">{label}</p>
+            </div>
+            <div
+              className="relative aspect-[4/3] animate-pulse bg-white/[0.06]"
+              aria-busy="true"
+              aria-label={`Loading ${label}`}
+            />
+          </div>
+        ))}
+      </div>
+    )
   }
   if (documents.length === 0) {
     return (
@@ -421,10 +443,18 @@ export function AdminKycReviewWorkspace() {
   const queryClient = useQueryClient()
   const userId = decodeURIComponent(params.userId)
   const { data: account, isLoading, isError } = useAdminUser(userId)
-  const { data: kycDetail, isLoading: kycLoading } = useQuery({
+  const { data: kycDetail, isLoading: kycLoading, isError: kycError } = useQuery({
     queryKey: ['admin', 'kyc', userId],
     queryFn: () => kycService.adminGet(userId),
     enabled: Boolean(userId),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    retry: (count, err) => {
+      if (err instanceof Error && 'status' in err && (err as { status?: number }).status === 429) {
+        return count < 1
+      }
+      return count < 1
+    },
   })
   const [reason, setReason] = useState('')
   const [reasonPreset, setReasonPreset] = useState('')
@@ -436,6 +466,19 @@ export function AdminKycReviewWorkspace() {
     'Name mismatch',
     'Other',
   ] as const
+
+  function goBackToQueue() {
+    const remembered = peekAdminListLocation()
+    if (remembered && (remembered.startsWith('/admin/kyc') || remembered.startsWith('/admin/users'))) {
+      router.push(remembered)
+      return
+    }
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+      return
+    }
+    router.push(ROUTES.admin.kyc)
+  }
 
   const applyPreset = (preset: string) => {
     setReasonPreset(preset)
@@ -483,6 +526,7 @@ export function AdminKycReviewWorkspace() {
     return (
       <div className="space-y-4">
         <PageHeader title="KYC review" description="Loading investor…" />
+        <AdminKycDocumentsGrid ownerId={userId} documents={[]} loading />
       </div>
     )
   }
@@ -491,15 +535,16 @@ export function AdminKycReviewWorkspace() {
     return (
       <div className="space-y-4">
         <PageHeader title="KYC review" description={`No investor matches ${userId}.`} />
-        <Button asChild variant="secondary">
-          <Link href={ROUTES.admin.kyc}>Back to queue</Link>
+        <Button type="button" variant="secondary" onClick={goBackToQueue}>
+          Back to queue
         </Button>
       </div>
     )
   }
 
   const submission = kycDetail
-  const ownerId = submission?.id ?? userId
+  // Prefer the user id from the route — resolveSubmission accepts user or submission id.
+  const ownerId = userId
   const documents = (submission?.documents ?? []) as KycDoc[]
   const country = submission?.country ?? account.country ?? '—'
   const busy = approve.isPending || reject.isPending || resubmit.isPending
@@ -508,11 +553,11 @@ export function AdminKycReviewWorkspace() {
     <div className="space-y-6">
       <PageHeader
         title={`KYC · ${account.firstName} ${account.lastName}`}
-        description="Premium document review — approve, reject, or request resubmission."
+        description="Profile, personal details, and uploaded documents — all on this page."
         eyebrow={
-          <Link href={ROUTES.admin.kyc} className="hover:text-fg">
+          <button type="button" onClick={goBackToQueue} className="hover:text-fg">
             ← KYC queue
-          </Link>
+          </button>
         }
         actions={
           <div className="flex flex-wrap gap-2">
@@ -524,13 +569,31 @@ export function AdminKycReviewWorkspace() {
 
       <div className="grid gap-5 lg:grid-cols-2">
         <AdminPanel className="space-y-4 p-4 sm:p-5">
-          <AdminPanelHeader title="Personal details" className="border-0 px-0 py-0" />
+          <AdminPanelHeader title="User profile" className="border-0 px-0 py-0" />
           <dl className="grid gap-3 text-body-sm sm:grid-cols-2">
             {[
               ['User ID', account.id],
-              ['Username', `@${account.email.split('@')[0] ?? account.id}`],
+              ['Name', `${account.firstName} ${account.lastName}`],
               ['Email', account.email],
               ['Phone', account.phone ?? '—'],
+              ['Account status', account.status],
+              ['KYC status', account.kycStatus],
+            ].map(([k, v]) => (
+              <div key={k}>
+                <dt className="text-caption text-fg-subtle">{k}</dt>
+                <dd className="break-all text-fg">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </AdminPanel>
+
+        <AdminPanel className="space-y-4 p-4 sm:p-5">
+          <AdminPanelHeader title="Personal details" className="border-0 px-0 py-0" />
+          {kycError && !submission ? (
+            <p className="text-body-sm text-warning">Could not load KYC submission details.</p>
+          ) : null}
+          <dl className="grid gap-3 text-body-sm sm:grid-cols-2">
+            {[
               ['Country', country],
               ['City', submission?.city ?? '—'],
               ['Address', submission?.addressLine1 ?? '—'],
@@ -538,79 +601,89 @@ export function AdminKycReviewWorkspace() {
               ['Occupation', submission?.occupation ?? '—'],
               ['ID type', submission?.primaryDocumentType?.replaceAll('_', ' ') ?? '—'],
               ['Documents', String(documents.length)],
+              ['Submission', submission?.id ?? '—'],
             ].map(([k, v]) => (
               <div key={k}>
                 <dt className="text-caption text-fg-subtle">{k}</dt>
-                <dd className="text-fg">{v}</dd>
+                <dd className="break-all text-fg">{v}</dd>
               </div>
             ))}
           </dl>
         </AdminPanel>
-
-        <AdminPanel className="space-y-4 p-4 sm:p-5">
-          <AdminPanelHeader title="Decision" className="border-0 px-0 py-0" />
-          <div className="flex flex-wrap gap-2">
-            {REJECTION_PRESETS.map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => applyPreset(preset)}
-                className={cn(
-                  'rounded-lg border px-2.5 py-1 text-caption transition',
-                  reasonPreset === preset
-                    ? 'border-accent/40 bg-accent/10 text-fg'
-                    : 'border-white/[0.08] text-fg-muted hover:border-white/20 hover:text-fg',
-                )}
-              >
-                {preset}
-              </button>
-            ))}
-          </div>
-          <Textarea
-            value={reason}
-            onChange={(e) => {
-              setReason(e.target.value)
-              if (reasonPreset && reasonPreset !== 'Other' && e.target.value !== reasonPreset) {
-                setReasonPreset('Other')
-              }
-            }}
-            placeholder="Rejection reason is required to reject…"
-            rows={4}
-          />
-          <div className="flex flex-wrap gap-2">
-            <Button disabled={busy} onClick={() => approve.mutate()}>
-              Approve
-            </Button>
-            <Button
-              variant="secondary"
-              className="text-danger"
-              disabled={busy}
-              onClick={() => {
-                if (!reason.trim()) {
-                  toast.error('Rejection reason is required')
-                  return
-                }
-                reject.mutate(reason.trim())
-              }}
-            >
-              Reject
-            </Button>
-            <Button
-              variant="ghost"
-              disabled={busy}
-              onClick={() => {
-                if (!reason.trim()) {
-                  toast.error('Add a resubmission note')
-                  return
-                }
-                resubmit.mutate(reason.trim())
-              }}
-            >
-              Request resubmission
-            </Button>
-          </div>
-        </AdminPanel>
       </div>
+
+      <div>
+        <h2 className="mb-3 text-heading-sm text-fg">Uploaded documents</h2>
+        <AdminKycDocumentsGrid
+          ownerId={ownerId}
+          documents={documents}
+          loading={kycLoading}
+        />
+      </div>
+
+      <AdminPanel className="space-y-4 p-4 sm:p-5">
+        <AdminPanelHeader title="Decision" className="border-0 px-0 py-0" />
+        <div className="flex flex-wrap gap-2">
+          {REJECTION_PRESETS.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => applyPreset(preset)}
+              className={cn(
+                'rounded-lg border px-2.5 py-1 text-caption transition',
+                reasonPreset === preset
+                  ? 'border-accent/40 bg-accent/10 text-fg'
+                  : 'border-white/[0.08] text-fg-muted hover:border-white/20 hover:text-fg',
+              )}
+            >
+              {preset}
+            </button>
+          ))}
+        </div>
+        <Textarea
+          value={reason}
+          onChange={(e) => {
+            setReason(e.target.value)
+            if (reasonPreset && reasonPreset !== 'Other' && e.target.value !== reasonPreset) {
+              setReasonPreset('Other')
+            }
+          }}
+          placeholder="Rejection reason is required to reject…"
+          rows={4}
+        />
+        <div className="flex flex-wrap gap-2">
+          <Button disabled={busy} onClick={() => approve.mutate()}>
+            Approve
+          </Button>
+          <Button
+            variant="secondary"
+            className="text-danger"
+            disabled={busy}
+            onClick={() => {
+              if (!reason.trim()) {
+                toast.error('Rejection reason is required')
+                return
+              }
+              reject.mutate(reason.trim())
+            }}
+          >
+            Reject
+          </Button>
+          <Button
+            variant="ghost"
+            disabled={busy}
+            onClick={() => {
+              if (!reason.trim()) {
+                toast.error('Add a resubmission note')
+                return
+              }
+              resubmit.mutate(reason.trim())
+            }}
+          >
+            Request resubmission
+          </Button>
+        </div>
+      </AdminPanel>
 
       <AdminPanel className="space-y-3 p-4 sm:p-5">
         <AdminPanelHeader
@@ -660,15 +733,6 @@ export function AdminKycReviewWorkspace() {
           </ul>
         )}
       </AdminPanel>
-
-      <div>
-        <h2 className="mb-3 text-heading-sm text-fg">Submitted documents</h2>
-        <AdminKycDocumentsGrid
-          ownerId={ownerId}
-          documents={documents}
-          loading={kycLoading}
-        />
-      </div>
     </div>
   )
 }

@@ -3,20 +3,27 @@
 import Link from 'next/link'
 import { ROUTES, type User } from '@meridian/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, FileImage, RotateCcw, X } from 'lucide-react'
-import { useState } from 'react'
+import { Check, RotateCcw, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import {
   mapAccountStatus,
   mapKycStatus,
 } from '@/components/admin/admin-api-adapters'
+import { AdminKycDocumentsGrid } from '@/components/admin/admin-kyc-review'
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import { AdminAccountPill, AdminKycPill } from '@/components/admin/admin-status-pills'
 import { PageHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  loadAdminViewState,
+  rememberAdminListLocation,
+  restoreAdminScroll,
+  saveAdminViewState,
+} from '@/lib/admin-nav'
 import { formatDateTime } from '@/lib/format'
 import { kycService, type KycProfile } from '@/services/kyc.service'
 
@@ -26,32 +33,7 @@ const kycAdminKeys = {
   queue: ['admin', 'kyc', 'queue'] as const,
 }
 
-function DocPreview({
-  label,
-  accent,
-}: {
-  label: string
-  accent: 'front' | 'back' | 'selfie'
-}) {
-  const gradients = {
-    front: 'from-accent-500/35 via-info/20 to-transparent',
-    back: 'from-info/30 via-accent-500/15 to-transparent',
-    selfie: 'from-warning/25 via-accent-500/20 to-transparent',
-  } as const
-
-  return (
-    <div
-      className={`relative flex aspect-[4/3] flex-col justify-between overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br ${gradients[accent]} p-3`}
-    >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgb(255_255_255/0.08),transparent_55%)]" />
-      <div className="relative flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-fg-muted">
-        <FileImage className="size-3.5 text-accent-300" aria-hidden />
-        {label}
-      </div>
-      <p className="relative text-caption text-fg-subtle">Preview placeholder · demo asset</p>
-    </div>
-  )
-}
+const VIEW_KEY = 'admin:kyc-queue:view'
 
 function KycReviewCard({
   account,
@@ -71,6 +53,21 @@ function KycReviewCard({
   const submission = account.kyc.submission as
     | { city?: string; addressLine1?: string; occupation?: string; dateOfBirth?: string; primaryDocumentType?: string }
     | undefined
+  const docs = (account.kyc.documents ?? []).map((d) => ({
+    id: d.id,
+    kind: d.kind,
+    documentType: d.kind,
+    side: d.side,
+    status: d.status,
+    mimeType: d.mimeType,
+    originalName: d.originalName,
+    downloadUrl: d.downloadUrl,
+  }))
+
+  function rememberAndOpen() {
+    rememberAdminListLocation()
+    saveAdminViewState(VIEW_KEY, {})
+  }
 
   return (
     <AdminPanel className="overflow-hidden" glow>
@@ -88,6 +85,7 @@ function KycReviewCard({
       <div className="space-y-5 px-4 py-5 sm:px-5">
         <dl className="grid gap-3 text-caption sm:grid-cols-2 lg:grid-cols-3">
           {[
+            ['User ID', account.id],
             ['Email', account.email],
             ['Phone', account.phone ?? '—'],
             ['Country', country],
@@ -100,15 +98,14 @@ function KycReviewCard({
           ].map(([k, v]) => (
             <div key={k}>
               <dt className="text-fg-subtle">{k}</dt>
-              <dd className="mt-0.5 text-fg">{v}</dd>
+              <dd className="mt-0.5 break-all text-fg">{v}</dd>
             </div>
           ))}
         </dl>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <DocPreview label="Front ID" accent="front" />
-          <DocPreview label="Back ID" accent="back" />
-          <DocPreview label="Selfie" accent="selfie" />
+        <div>
+          <p className="mb-3 text-caption font-medium text-fg">Uploaded documents</p>
+          <AdminKycDocumentsGrid ownerId={account.id} documents={docs} />
         </div>
 
         <FormField label="Decision reason" hint="Required for reject / resubmission.">
@@ -165,10 +162,14 @@ function KycReviewCard({
             Request resubmission
           </Button>
           <Button asChild size="sm" variant="secondary">
-            <Link href={ROUTES.admin.kycReview(account.id)}>Open review</Link>
+            <Link href={ROUTES.admin.kycReview(account.id)} onClick={rememberAndOpen}>
+              Full review
+            </Link>
           </Button>
           <Button asChild size="sm" variant="ghost">
-            <Link href={ROUTES.admin.user(account.id)}>Full profile</Link>
+            <Link href={ROUTES.admin.user(account.id)} onClick={rememberAndOpen}>
+              Full profile
+            </Link>
           </Button>
         </div>
       </div>
@@ -181,7 +182,21 @@ export function AdminKycQueue() {
   const { data, isLoading } = useQuery({
     queryKey: kycAdminKeys.queue,
     queryFn: () => kycService.adminList({ status: 'UNDER_REVIEW' }),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   })
+
+  useEffect(() => {
+    rememberAdminListLocation()
+    const saved = loadAdminViewState(VIEW_KEY)
+    if (saved?.scrollY != null) restoreAdminScroll(saved.scrollY)
+    const persist = () => saveAdminViewState(VIEW_KEY, {})
+    window.addEventListener('pagehide', persist)
+    return () => {
+      persist()
+      window.removeEventListener('pagehide', persist)
+    }
+  }, [])
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: kycAdminKeys.queue })
@@ -221,7 +236,7 @@ export function AdminKycQueue() {
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="KYC queue"
-        description="Premium review cards for identity verification. Approve, reject, or request resubmission."
+        description="Review identity submissions. Open a request to see profile details and live document previews."
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
