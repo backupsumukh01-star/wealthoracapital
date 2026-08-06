@@ -38,6 +38,12 @@ adminRouter.get(
 )
 
 adminRouter.get(
+  '/dashboard/ops',
+  requirePermission(PERMISSIONS['dashboard.view']),
+  adminDashboardController.ops,
+)
+
+adminRouter.get(
   '/health',
   requirePermission(PERMISSIONS['dashboard.view']),
   adminHealthController.snapshot,

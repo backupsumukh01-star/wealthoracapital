@@ -15,6 +15,10 @@ export const adminDashboardController = {
     sendSuccess(res, data)
   }),
 
+  ops: asyncHandler(async (_req, res) => {
+    sendSuccess(res, await dashboardService.getOpsSnapshot())
+  }),
+
   activity: asyncHandler(async (req, res) => {
     const query = req.query as unknown as ActivityQuery
     const data = await activityService.list({

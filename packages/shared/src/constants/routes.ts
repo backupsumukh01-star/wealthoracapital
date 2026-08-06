@@ -225,6 +225,7 @@ export const API_ROUTES = {
     search: '/admin/search',
     activity: '/admin/activity',
     dashboard: '/admin/dashboard',
+    dashboardOps: '/admin/dashboard/ops',
     users: '/admin/users',
     kyc: '/admin/kyc',
     deposits: '/admin/deposits',

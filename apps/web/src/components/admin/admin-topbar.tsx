@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useState, type ReactNode } from 'react'
+import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { ROUTES } from '@meridian/shared'
 import { LogOut, Menu, Search } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { AdminOpsNotificationBell } from '@/components/admin/admin-ops-notification-bell'
 import { ThemeToggle } from '@/components/common/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -56,21 +58,27 @@ export function AdminTopbar() {
         </SheetContent>
       </Sheet>
 
-      <form onSubmit={onSearch} className="hidden max-w-sm flex-1 md:block">
+      <form onSubmit={onSearch} className="hidden max-w-md flex-1 md:block">
         <Input
           type="search"
-          placeholder="Search everything · or press Ctrl+K"
+          placeholder="User, email, phone, deposit, withdrawal, KYC, wallet, hash…"
           prefix={<Search className="size-4" />}
-          aria-label="Search the console"
+          aria-label="Global search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
       </form>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+        <Button asChild variant="ghost" size="icon-sm" className="md:hidden" aria-label="Search">
+          <Link href={ROUTES.admin.search}>
+            <Search className="size-4" aria-hidden />
+          </Link>
+        </Button>
         <kbd className="hidden rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-fg-subtle lg:inline">
           Ctrl K
         </kbd>
+        <AdminOpsNotificationBell />
         <ThemeToggle />
         <div className="hidden items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-caption text-fg-muted sm:flex">
           <span className="size-1.5 rounded-full bg-profit" aria-hidden />

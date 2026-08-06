@@ -19,6 +19,7 @@ export const adminQueryKeys = {
   all: ['admin'] as const,
   health: () => [...adminQueryKeys.all, 'health'] as const,
   overview: () => [...adminQueryKeys.all, 'overview'] as const,
+  ops: () => [...adminQueryKeys.all, 'ops'] as const,
   search: (q: string) => [...adminQueryKeys.all, 'search', q] as const,
   activity: (filters?: Record<string, unknown>) => [...adminQueryKeys.all, 'activity', filters ?? {}] as const,
   users: (filters?: Record<string, unknown>) => [...adminQueryKeys.all, 'users', filters ?? {}] as const,
@@ -47,6 +48,18 @@ export function useAdminHealth(options?: QueryHookOptions) {
     enabled: options?.enabled,
     staleTime: 15 * 1000,
     refetchInterval: 30 * 1000,
+  })
+}
+
+/** Live operations snapshot — cards, pending queues, charts, activity. */
+export function useAdminOpsDashboard(options?: QueryHookOptions) {
+  return useQuery({
+    queryKey: adminQueryKeys.ops(),
+    queryFn: () => adminApi.dashboardOps(),
+    enabled: options?.enabled,
+    staleTime: 10_000,
+    refetchInterval: options?.refetchInterval ?? 15_000,
+    refetchOnWindowFocus: true,
   })
 }
 
@@ -115,7 +128,9 @@ export function useAdminAudit(query?: { q?: string; cursor?: string }, options?:
 }
 
 export function useAdminActivity(query?: { kind?: string; cursor?: string }, options?: QueryHookOptions) {
-  return useQuery<{ items: Array<{ id: string; kind: string; title: string; at: string }> }>({
+  return useQuery<{
+    items: Array<{ id: string; kind: string; title: string; description?: string | null; at: string }>
+  }>({
     queryKey: adminQueryKeys.activity(query),
     queryFn: () => adminApi.activity(query),
     enabled: options?.enabled,
@@ -166,6 +181,7 @@ export function useReviewDeposit() {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.deposits() })
       queryClient.setQueryData(adminQueryKeys.deposit(deposit.id), deposit)
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.activity() })
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.ops() })
     },
   })
 }
@@ -183,6 +199,7 @@ export function useReviewWithdrawal() {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.withdrawals() })
       queryClient.setQueryData(adminQueryKeys.withdrawal(withdrawal.id), withdrawal)
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.activity() })
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.ops() })
     },
   })
 }

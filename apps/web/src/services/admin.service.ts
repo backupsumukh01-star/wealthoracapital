@@ -14,6 +14,112 @@ import type { AdminHealthSnapshot, PlatformCmsDocument, SearchHit } from '@/type
 export const adminService = {
   health: () => apiClient<AdminHealthSnapshot>(API_ROUTES.admin.health),
 
+  dashboard: () => apiClient<Record<string, unknown>>(API_ROUTES.admin.dashboard),
+
+  dashboardOps: () =>
+    apiClient<{
+      generatedAt: string
+      liveCards: Array<{
+        id: string
+        label: string
+        count: number
+        amount: string | null
+        changePct: number
+        href: string
+      }>
+      periods: Record<
+        string,
+        {
+          period: string
+          deposits: string
+          depositsCount: number
+          withdrawals: string
+          withdrawalsCount: number
+          profitDistributed: string
+          platformBalance: string
+          activeInvestments: string
+          pendingDeposits: number
+          pendingWithdrawals: number
+        }
+      >
+      charts: {
+        depositsPerDay: Array<{ day: string; value: number }>
+        withdrawalsPerDay: Array<{ day: string; value: number }>
+        newUsers: Array<{ day: string; value: number }>
+        profitDistributed: Array<{ day: string; value: number }>
+        kycApprovals: Array<{ day: string; value: number }>
+      }
+      totals: {
+        users: {
+          total: number
+          verified: number
+          active: number
+          suspended: number
+          deleted: number
+        }
+        deposits: {
+          total: number
+          approved: number
+          rejected: number
+          pending: number
+          amount: string
+          approvedAmount: string
+        }
+        withdrawals: {
+          total: number
+          approved: number
+          rejected: number
+          pending: number
+          paid: number
+          amount: string
+          paidAmount: string
+        }
+        kyc: { total: number; approved: number; rejected: number; pending: number }
+        profit: { daily: string; monthly: string; lifetime: string }
+        wallets: {
+          available: string
+          locked: string
+          invested: string
+          platformBalance: string
+        }
+      }
+      pending: {
+        deposits: Array<{
+          id: string
+          reference: string
+          amount: string
+          coin: string | null
+          network: string | null
+          method: string
+          createdAt: string
+          user: { id: string; name: string; email: string }
+        }>
+        withdrawals: Array<{
+          id: string
+          reference: string
+          amount: string
+          method: string
+          createdAt: string
+          user: { id: string; name: string; email: string }
+        }>
+        kyc: Array<{
+          id: string
+          userId: string
+          country: string
+          submittedAt: string
+          status: string
+          user: { id: string; name: string; email: string }
+        }>
+      }
+      activity: Array<{
+        id: string
+        kind: string
+        title: string
+        description: string | null
+        at: string
+      }>
+    }>(API_ROUTES.admin.dashboardOps),
+
   search: (q: string) =>
     apiClient<{ hits: SearchHit[] }>(
       `${API_ROUTES.admin.search}?q=${encodeURIComponent(q)}`,
@@ -24,10 +130,28 @@ export const adminService = {
     if (query?.kind) params.set('kind', query.kind)
     if (query?.cursor) params.set('cursor', query.cursor)
     const qs = params.toString()
-    return apiClient<{ items: Array<{ id: string; kind: string; title: string; at: string }> }>(
-      `${API_ROUTES.admin.activity}${qs ? `?${qs}` : ''}`,
-    )
+    return apiClient<{
+      items: Array<{
+        id: string
+        kind: string
+        title: string
+        description?: string | null
+        at: string
+      }>
+    }>(`${API_ROUTES.admin.activity}${qs ? `?${qs}` : ''}`)
   },
+
+  generateReport: (body: {
+    type: string
+    from?: string
+    to?: string
+    format: 'CSV' | 'XLSX' | 'PDF' | 'JSON'
+    filters?: Record<string, string>
+  }) =>
+    apiClient<{ jobId: string; downloadUrl?: string | null; reference?: string }>(
+      API_ROUTES.admin.reports,
+      { method: 'POST', body },
+    ),
 
   users: (query?: { q?: string; cursor?: string }) => {
     const params = new URLSearchParams()

@@ -8,28 +8,113 @@ export interface ReportDataResult {
   title: string
 }
 
+export type ReportFilters = {
+  from?: string
+  to?: string
+  userId?: string
+  status?: string
+  user?: string
+  email?: string
+  phone?: string
+  country?: string
+  coin?: string
+  network?: string
+  amount?: string
+  admin?: string
+}
+
 function dateRange(params: { from?: string; to?: string }) {
   const from = params.from ? new Date(params.from) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
   const to = params.to ? new Date(params.to) : new Date()
   return { gte: from, lte: to }
 }
 
+async function resolveUserIds(params: ReportFilters): Promise<string[] | undefined> {
+  if (params.userId) return [params.userId]
+
+  const or: Array<Record<string, unknown>> = []
+
+  if (params.email) {
+    or.push({ email: { contains: params.email, mode: 'insensitive' } })
+  }
+  if (params.phone) {
+    or.push({ phone: { contains: params.phone } })
+  }
+  if (params.user) {
+    const q = params.user.trim()
+    or.push(
+      { id: q },
+      { email: { contains: q, mode: 'insensitive' } },
+      { firstName: { contains: q, mode: 'insensitive' } },
+      { lastName: { contains: q, mode: 'insensitive' } },
+    )
+  }
+
+  if (!or.length && !params.country) return undefined
+
+  const users = await prisma.user.findMany({
+    where: {
+      role: 'USER',
+      AND: [
+        ...(or.length ? [{ OR: or }] : []),
+        ...(params.country
+          ? [
+              {
+                OR: [
+                  { country: { equals: params.country, mode: 'insensitive' as const } },
+                  {
+                    kycSubmissions: {
+                      some: { country: { equals: params.country, mode: 'insensitive' as const } },
+                    },
+                  },
+                ],
+              },
+            ]
+          : []),
+      ],
+    },
+    select: { id: true },
+    take: 500,
+  })
+  return users.map((u) => u.id)
+}
+
+function detailsMatch(
+  details: unknown,
+  coin?: string,
+  network?: string,
+): boolean {
+  if (!coin && !network) return true
+  if (!details || typeof details !== 'object') return false
+  const d = details as Record<string, unknown>
+  if (coin && String(d.coin ?? '').toUpperCase() !== coin.toUpperCase()) return false
+  if (network && String(d.network ?? '').toUpperCase() !== network.toUpperCase()) return false
+  return true
+}
+
 /** Fetches and flattens the rows for a report type — every field here is a JSON/CSV/PDF-safe primitive. */
 export async function fetchReportRows(
   type: ReportType,
-  params: { from?: string; to?: string; userId?: string; status?: string },
+  params: ReportFilters,
 ): Promise<ReportDataResult> {
   const range = dateRange(params)
+  const userIds = await resolveUserIds(params)
   const scopedUserId = params.userId
+  const userFilter = scopedUserId
+    ? { userId: scopedUserId }
+    : userIds
+      ? { userId: { in: userIds } }
+      : {}
 
   switch (type) {
     case 'DAILY':
     case 'WEEKLY':
     case 'MONTHLY':
     case 'YEARLY': {
-      if (scopedUserId) {
+      if (scopedUserId || userIds?.length === 1) {
+        const uid = scopedUserId ?? userIds![0]!
         const distributions = await prisma.profitDistribution.findMany({
-          where: { userId: scopedUserId, date: range },
+          where: { userId: uid, date: range },
           orderBy: { date: 'asc' },
         })
         return {
@@ -65,15 +150,18 @@ export async function fetchReportRows(
         where: {
           role: 'USER',
           createdAt: range,
-          ...(scopedUserId ? { id: scopedUserId } : {}),
+          ...(userIds ? { id: { in: userIds } } : scopedUserId ? { id: scopedUserId } : {}),
+          ...(params.status ? { status: params.status as never } : {}),
         },
         select: {
           id: true,
           email: true,
+          phone: true,
           firstName: true,
           lastName: true,
           status: true,
           kycStatus: true,
+          country: true,
           createdAt: true,
         },
         orderBy: { createdAt: 'desc' },
@@ -84,6 +172,8 @@ export async function fetchReportRows(
           id: u.id,
           name: `${u.firstName} ${u.lastName}`,
           email: u.email,
+          phone: u.phone,
+          country: u.country,
           status: u.status,
           kycStatus: u.kycStatus,
           joinedAt: u.createdAt.toISOString(),
@@ -92,9 +182,10 @@ export async function fetchReportRows(
     }
     case 'PORTFOLIO':
     case 'PERFORMANCE': {
-      if (scopedUserId) {
+      if (scopedUserId || userIds) {
+        const ids = scopedUserId ? [scopedUserId] : userIds!
         const allocations = await prisma.tradeAllocation.findMany({
-          where: { userId: scopedUserId, trade: { tradeDate: range } },
+          where: { userId: { in: ids }, trade: { tradeDate: range } },
           include: {
             trade: {
               select: {
@@ -152,44 +243,89 @@ export async function fetchReportRows(
     case 'FINANCE': {
       const [deposits, withdrawals] = await Promise.all([
         prisma.deposit.findMany({
-          where: { createdAt: range, ...(scopedUserId ? { userId: scopedUserId } : {}) },
+          where: {
+            createdAt: range,
+            ...userFilter,
+            ...(params.status ? { status: params.status as never } : {}),
+            ...(params.amount ? { amount: params.amount } : {}),
+            ...(params.admin ? { reviewedById: params.admin } : {}),
+          },
+          include: {
+            user: { select: { email: true, firstName: true, lastName: true } },
+            paymentMethod: { select: { name: true, type: true } },
+          },
           orderBy: { createdAt: 'desc' },
           take: 2000,
         }),
         prisma.withdrawal.findMany({
-          where: { createdAt: range, ...(scopedUserId ? { userId: scopedUserId } : {}) },
+          where: {
+            createdAt: range,
+            ...userFilter,
+            ...(params.status ? { status: params.status as never } : {}),
+            ...(params.amount ? { amount: params.amount } : {}),
+            ...(params.admin ? { reviewedById: params.admin } : {}),
+          },
+          include: {
+            user: { select: { email: true, firstName: true, lastName: true } },
+            payoutMethod: { select: { label: true, type: true } },
+          },
           orderBy: { createdAt: 'desc' },
           take: 2000,
         }),
       ])
-      return {
-        title: 'Finance Report',
-        rows: [
-          ...deposits.map((d) => ({
+      const depRows = deposits
+        .filter((d) => detailsMatch(d.submissionDetails, params.coin, params.network))
+        .map((d) => {
+          const details =
+            d.submissionDetails && typeof d.submissionDetails === 'object'
+              ? (d.submissionDetails as Record<string, unknown>)
+              : {}
+          return {
             kind: 'DEPOSIT',
             reference: d.reference,
+            user: `${d.user.firstName} ${d.user.lastName}`,
+            email: d.user.email,
             amount: moneyDisplay(d.amount),
             fee: moneyDisplay(d.fee),
             currency: d.currency,
+            coin: typeof details.coin === 'string' ? details.coin : '',
+            network: typeof details.network === 'string' ? details.network : '',
+            method: d.paymentMethod?.name ?? d.paymentMethod?.type ?? '',
             status: d.status,
             createdAt: d.createdAt.toISOString(),
-          })),
-          ...withdrawals.map((w) => ({
-            kind: 'WITHDRAWAL',
-            reference: w.reference,
-            amount: moneyDisplay(w.amount),
-            fee: moneyDisplay(w.fee),
-            currency: w.currency,
-            status: w.status,
-            createdAt: w.createdAt.toISOString(),
-          })),
-        ],
+          }
+        })
+      const wdrRows = withdrawals.map((w) => ({
+        kind: 'WITHDRAWAL',
+        reference: w.reference,
+        user: `${w.user.firstName} ${w.user.lastName}`,
+        email: w.user.email,
+        amount: moneyDisplay(w.amount),
+        fee: moneyDisplay(w.fee),
+        currency: w.currency,
+        coin: '',
+        network: '',
+        method: w.payoutMethod?.label ?? w.payoutMethod?.type ?? '',
+        status: w.status,
+        createdAt: w.createdAt.toISOString(),
+      }))
+      return {
+        title: 'Finance Report',
+        rows: [...depRows, ...wdrRows],
       }
     }
     case 'KYC': {
       const submissions = await prisma.kycSubmission.findMany({
-        where: { createdAt: range, ...(scopedUserId ? { userId: scopedUserId } : {}) },
-        include: { user: { select: { email: true, firstName: true, lastName: true } } },
+        where: {
+          createdAt: range,
+          ...userFilter,
+          ...(params.status ? { status: params.status as never } : {}),
+          ...(params.country
+            ? { country: { equals: params.country, mode: 'insensitive' } }
+            : {}),
+          ...(params.admin ? { assignedReviewerId: params.admin } : {}),
+        },
+        include: { user: { select: { email: true, firstName: true, lastName: true, phone: true } } },
         orderBy: { createdAt: 'desc' },
         take: 2000,
       })
@@ -199,6 +335,7 @@ export async function fetchReportRows(
           reference: s.referenceId,
           user: `${s.user.firstName} ${s.user.lastName}`,
           email: s.user.email,
+          phone: s.user.phone,
           status: s.status,
           riskLevel: s.riskLevel,
           country: s.country,
@@ -212,6 +349,16 @@ export async function fetchReportRows(
           createdAt: range,
           ...(scopedUserId
             ? { OR: [{ actorId: scopedUserId }, { targetUserId: scopedUserId }] }
+            : userIds
+              ? { OR: [{ actorId: { in: userIds } }, { targetUserId: { in: userIds } }] }
+              : {}),
+          ...(params.admin
+            ? {
+                OR: [
+                  { actorId: params.admin },
+                  { actor: { email: { contains: params.admin, mode: 'insensitive' } } },
+                ],
+              }
             : {}),
         },
         orderBy: { createdAt: 'desc' },

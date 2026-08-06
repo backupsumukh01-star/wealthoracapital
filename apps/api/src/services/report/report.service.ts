@@ -99,6 +99,14 @@ export const reportService = {
         status: input.filters?.status,
         // Investor-scoped exports must never pull platform-wide rows.
         userId: input.scope === 'INVESTOR' ? requestedById : input.filters?.userId,
+        user: input.filters?.user,
+        email: input.filters?.email,
+        phone: input.filters?.phone,
+        country: input.filters?.country,
+        coin: input.filters?.coin,
+        network: input.filters?.network,
+        amount: input.filters?.amount,
+        admin: input.filters?.admin,
       })
 
       let buffer: Buffer
