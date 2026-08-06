@@ -20,10 +20,15 @@ import {
 import { toast } from '@/components/ui/toast'
 import { ApiError } from '@/lib/api-client'
 import { useWallet } from '@/features/wallet/hooks'
-import { useCreateWithdrawal, usePayoutMethods } from '@/features/withdrawals/hooks'
+import {
+  useCreatePayoutMethod,
+  useCreateWithdrawal,
+  usePayoutMethods,
+  useRequestWithdrawalOtp,
+} from '@/features/withdrawals/hooks'
 
 type Rail = 'INR' | 'CRYPTO' | null
-type Step = 'rail' | 'inr' | 'crypto' | 'add-bank' | 'add-wallet'
+type Step = 'rail' | 'inr' | 'crypto' | 'add-bank' | 'add-wallet' | 'otp'
 
 type BankAccount = {
   id: string
@@ -127,6 +132,8 @@ export function WithdrawModal({
   initialWallets?: CryptoWallet[]
 }) {
   const createWithdrawal = useCreateWithdrawal()
+  const createPayoutMethod = useCreatePayoutMethod()
+  const requestOtp = useRequestWithdrawalOtp()
   const { data: payoutMethods } = usePayoutMethods({ enabled: open })
   const { data: wallet } = useWallet({ enabled: open })
   const availableBalance = wallet?.availableBalance ?? '0.00'
@@ -141,6 +148,8 @@ export function WithdrawModal({
     initialWallets.find((w) => w.primary)?.id ?? initialWallets[0]?.id,
   )
   const [amount, setAmount] = useState('100')
+  const [otp, setOtp] = useState('')
+  const [pendingMethodId, setPendingMethodId] = useState<string | null>(null)
   const [successOpen, setSuccessOpen] = useState(false)
   const [reference, setReference] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -196,6 +205,8 @@ export function WithdrawModal({
     setStep('rail')
     setRail(null)
     setAmount('100')
+    setOtp('')
+    setPendingMethodId(null)
     setNewBankName('')
     setNewAccountName('')
     setNewAccountNumber('')
@@ -212,7 +223,8 @@ export function WithdrawModal({
   }
 
   function goBack() {
-    if (step === 'add-bank') setStep('inr')
+    if (step === 'otp') setStep(rail === 'CRYPTO' ? 'crypto' : 'inr')
+    else if (step === 'add-bank') setStep('inr')
     else if (step === 'add-wallet') setStep('crypto')
     else if (step === 'inr' || step === 'crypto') setStep('rail')
   }
@@ -226,15 +238,44 @@ export function WithdrawModal({
       payoutMethods?.[0]?.id
 
     if (!methodId) {
-      toast.error('Add a verified payout method before withdrawing.')
+      toast.error('Add a payout method before withdrawing.')
+      return
+    }
+    if (Number(amount) > Number(availableBalance)) {
+      toast.error('Amount cannot exceed available balance.')
       return
     }
 
     setSubmitting(true)
     try {
+      await requestOtp.mutateAsync({ amount, payoutMethodId: methodId })
+      setPendingMethodId(methodId)
+      setStep('otp')
+      toast.success('OTP sent', 'Check your email for the withdrawal code.')
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : 'Could not send OTP',
+      )
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function confirmOtpAndCreate() {
+    if (!pendingMethodId || !otp.trim()) {
+      toast.error('Enter the OTP from your email.')
+      return
+    }
+    setSubmitting(true)
+    try {
       const withdrawal = await createWithdrawal.mutateAsync({
         amount,
-        payoutMethodId: methodId,
+        payoutMethodId: pendingMethodId,
+        otp: otp.trim(),
       })
       setReference(withdrawal.reference || withdrawal.id)
       handleOpenChange(false)
@@ -253,37 +294,81 @@ export function WithdrawModal({
     }
   }
 
-  function saveBank() {
-    const id = `bank_${Date.now()}`
-    const created: BankAccount = {
-      id,
-      label: newBankName || 'Bank account',
-      bankName: newBankName,
-      accountName: newAccountName,
-      accountNumberMasked: `•••• ${newAccountNumber.slice(-4)}`,
-      ifsc: newIfsc.toUpperCase(),
-      primary: banks.length === 0,
+  async function saveBank() {
+    if (!newBankName.trim() || !newAccountNumber.trim() || !newIfsc.trim()) {
+      toast.error('Bank name, account number, and IFSC are required.')
+      return
     }
-    setBanks((prev) => [...prev, created])
-    setBankId(id)
-    setStep('inr')
-    toast.success('Bank account added')
+    setSubmitting(true)
+    try {
+      const created = await createPayoutMethod.mutateAsync({
+        label: newBankName.trim(),
+        type: 'BANK_TRANSFER',
+        details: {
+          accountHolderName: newAccountName.trim() || newBankName.trim(),
+          bankName: newBankName.trim(),
+          accountNumber: newAccountNumber.trim(),
+          ifscCode: newIfsc.trim().toUpperCase(),
+        },
+        isDefault: banks.length === 0,
+      })
+      setBankId(created.id)
+      setPayoutMethodId(created.id)
+      setStep('inr')
+      toast.success('Bank account saved')
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : 'Could not save bank account',
+      )
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  function saveWallet() {
-    const id = `cw_${Date.now()}`
-    const created: CryptoWallet = {
-      id,
-      label: newLabel || `${newCoin} wallet`,
-      coin: newCoin,
-      network: newNetwork,
-      address: newAddress,
-      primary: wallets.length === 0,
+  async function saveWallet() {
+    if (!newAddress.trim()) {
+      toast.error('Wallet address is required.')
+      return
     }
-    setWallets((prev) => [...prev, created])
-    setWalletId(id)
-    setStep('crypto')
-    toast.success('Wallet added')
+    const type =
+      newCoin === 'BTC'
+        ? 'BTC'
+        : newCoin === 'ETH'
+          ? 'ETH'
+          : newNetwork === 'BEP20'
+            ? 'USDT_BEP20'
+            : 'USDT_TRC20'
+    setSubmitting(true)
+    try {
+      const created = await createPayoutMethod.mutateAsync({
+        label: newLabel.trim() || `${newCoin} ${newNetwork}`,
+        type,
+        details: {
+          coin: newCoin,
+          network: newNetwork,
+          address: newAddress.trim(),
+        },
+        isDefault: wallets.length === 0,
+      })
+      setWalletId(created.id)
+      setPayoutMethodId(created.id)
+      setStep('crypto')
+      toast.success('Wallet saved')
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : 'Could not save wallet',
+      )
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const titles: Record<Step, { title: string; description: string; stepLabel?: string }> = {
@@ -311,6 +396,11 @@ export function WithdrawModal({
       title: 'Add crypto wallet',
       description: 'Double-check network and address — transfers are irreversible.',
       stepLabel: 'New wallet',
+    },
+    otp: {
+      title: 'Confirm with OTP',
+      description: 'Enter the code emailed to you. Withdrawals are not created until OTP is verified.',
+      stepLabel: 'Security',
     },
   }
 
@@ -439,7 +529,8 @@ export function WithdrawModal({
             <Button
               className="w-full"
               disabled={!newBankName || !newAccountName || !newAccountNumber || !newIfsc}
-              onClick={saveBank}
+              onClick={() => void saveBank()}
+              loading={submitting}
             >
               Save bank account
             </Button>
@@ -553,9 +644,42 @@ export function WithdrawModal({
             <Button
               className="w-full"
               disabled={!newLabel || !newAddress}
-              onClick={saveWallet}
+              onClick={() => void saveWallet()}
+              loading={submitting}
             >
               Save wallet
+            </Button>
+          </div>
+        ) : null}
+
+        {step === 'otp' ? (
+          <div className="space-y-4">
+            <FormField label="Email OTP" required hint="Code expires in 10 minutes.">
+              <Input
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="Enter code"
+              />
+            </FormField>
+            <Button
+              className="w-full"
+              disabled={!otp.trim()}
+              onClick={() => void confirmOtpAndCreate()}
+              loading={submitting}
+              loadingText="Verifying…"
+            >
+              Verify & submit withdrawal
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              disabled={submitting || !pendingMethodId}
+              onClick={() => void submitWithdrawalRequest()}
+            >
+              Resend OTP
             </Button>
           </div>
         ) : null}

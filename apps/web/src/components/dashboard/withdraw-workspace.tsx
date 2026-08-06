@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import type { MoneyString, Withdrawal } from '@meridian/shared'
-import { Bitcoin, Building2, Wallet } from 'lucide-react'
+import type { MoneyString, PaymentMethodType, PayoutMethod, Withdrawal } from '@meridian/shared'
+import { Building2, ShieldCheck, Wallet } from 'lucide-react'
 
 import { Money } from '@/components/common/money'
 import { PageHeader, SectionHeader } from '@/components/common/page-header'
@@ -19,55 +19,124 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/toast'
 import {
+  useCreatePayoutMethod,
   useCreateWithdrawal,
   usePayoutMethods,
+  useRequestWithdrawalOtp,
+  useWithdrawalLimits,
   useWithdrawals,
 } from '@/features/withdrawals/hooks'
 import { ApiError } from '@/lib/api-client'
-import {
-  CRYPTO_DEPOSIT_OPTIONS,
-  SAVED_CRYPTO_WALLETS,
-  SAVED_INR_ACCOUNTS,
-} from '@/lib/investor-demo-data'
 import { formatDateTime } from '@/lib/format'
 import { useSession } from '@/providers/session-provider'
 
-function isCryptoWithdrawal(w: Withdrawal) {
-  return /crypto|usdt|usdc|btc|eth/i.test(w.destinationLabel)
+type WithdrawalMethod = Extract<
+  PaymentMethodType,
+  'BANK_TRANSFER' | 'UPI' | 'USDT_TRC20' | 'USDT_BEP20' | 'BTC' | 'ETH'
+>
+
+const METHOD_OPTIONS: Array<{ value: WithdrawalMethod; label: string }> = [
+  { value: 'BANK_TRANSFER', label: 'Bank' },
+  { value: 'UPI', label: 'UPI' },
+  { value: 'USDT_TRC20', label: 'USDT TRC20' },
+  { value: 'USDT_BEP20', label: 'USDT BEP20' },
+  { value: 'BTC', label: 'BTC' },
+  { value: 'ETH', label: 'ETH' },
+]
+
+const PENDING_STATUSES = new Set(['PENDING', 'UNDER_REVIEW', 'APPROVED', 'PROCESSING'])
+
+function money(value: number): MoneyString {
+  return value.toFixed(2) as MoneyString
 }
 
-const NETWORK_FEE: Record<string, string> = {
-  TRC20: '1.00',
-  ERC20: '4.50',
-  BEP20: '0.80',
-  Bitcoin: '8.00',
+function toNumber(value: string | undefined) {
+  const parsed = Number(value ?? 0)
+  return Number.isFinite(parsed) ? parsed : 0
 }
 
-function WithdrawalHistory({ rail }: { rail?: 'INR' | 'CRYPTO' }) {
-  const { session } = useSession()
-  const { data, isLoading } = useWithdrawals(undefined, { enabled: Boolean(session) })
-  const rows = (data?.items ?? []).filter((w) => {
-    if (!rail) return true
-    return rail === 'CRYPTO' ? isCryptoWithdrawal(w) : !isCryptoWithdrawal(w)
-  })
+function methodLabel(method: WithdrawalMethod) {
+  return METHOD_OPTIONS.find((option) => option.value === method)?.label ?? method
+}
+
+function cryptoDefaults(method: WithdrawalMethod) {
+  if (method === 'USDT_TRC20') return { coin: 'USDT', network: 'TRC20' }
+  if (method === 'USDT_BEP20') return { coin: 'USDT', network: 'BEP20' }
+  if (method === 'BTC') return { coin: 'BTC', network: 'BTC' }
+  if (method === 'ETH') return { coin: 'ETH', network: 'ETH' }
+  return { coin: '', network: '' }
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof ApiError
+    ? error.message
+    : error instanceof Error
+      ? error.message
+      : 'Something went wrong. Please try again.'
+}
+
+function PayoutMethodList({
+  methods,
+  isLoading,
+}: {
+  methods: PayoutMethod[]
+  isLoading: boolean
+}) {
   return (
     <Card variant="glass" className="p-5 sm:p-6">
-      <SectionHeader title="Withdrawal history" as="h3" description="Paid and open requests." />
+      <SectionHeader title="Wallets and payout methods" as="h3" />
       {isLoading ? (
-        <p className="mt-4 text-body-sm text-fg-subtle">Loading withdrawals…</p>
+        <p className="mt-4 text-body-sm text-fg-subtle">Loading payout methods...</p>
+      ) : methods.length === 0 ? (
+        <p className="mt-4 text-body-sm text-fg-subtle">No payout methods saved yet.</p>
+      ) : (
+        <ul className="mt-4 divide-y divide-line/70">
+          {methods.map((method) => (
+            <li key={method.id} className="flex items-center justify-between gap-3 py-3 first:pt-0">
+              <div className="min-w-0">
+                <p className="text-body-sm font-medium text-fg">{method.label}</p>
+                <p className="text-caption text-fg-subtle">
+                  {methodLabel(method.type as WithdrawalMethod)} - {method.maskedDetails}
+                </p>
+              </div>
+              <p className="text-caption text-fg-muted">
+                {method.isDefault ? 'Default' : method.isVerified ? 'Verified' : 'Saved'}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  )
+}
+
+function WithdrawalHistory({
+  rows,
+  isLoading,
+}: {
+  rows: Withdrawal[]
+  isLoading: boolean
+}) {
+  return (
+    <Card variant="glass" className="p-5 sm:p-6">
+      <SectionHeader title="Withdrawal history" as="h3" description="API-backed payout requests." />
+      {isLoading ? (
+        <p className="mt-4 text-body-sm text-fg-subtle">Loading withdrawals...</p>
       ) : rows.length === 0 ? (
         <p className="mt-4 text-body-sm text-fg-subtle">No withdrawals yet.</p>
       ) : (
         <ul className="mt-4 divide-y divide-line/70">
           {rows.map((row) => (
-            <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 py-3.5 first:pt-0">
+            <li
+              key={row.id}
+              className="flex flex-wrap items-center justify-between gap-3 py-3.5 first:pt-0"
+            >
               <div className="min-w-0">
                 <p className="text-body-sm font-medium text-fg">{row.reference || row.id}</p>
                 <p className="text-caption text-fg-subtle">
-                  {row.destinationLabel} · {formatDateTime(row.createdAt)}
+                  {row.destinationLabel} - {formatDateTime(row.createdAt)}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -82,304 +151,357 @@ function WithdrawalHistory({ rail }: { rail?: 'INR' | 'CRYPTO' }) {
   )
 }
 
-function InrWithdrawPanel() {
+export function WithdrawWorkspace() {
   const { session } = useSession()
-  const { data: payoutMethods } = usePayoutMethods({ enabled: Boolean(session) })
-  const { data: withdrawalsData } = useWithdrawals(undefined, { enabled: Boolean(session) })
+  const enabled = Boolean(session)
+  const { data: limits } = useWithdrawalLimits({ enabled })
+  const { data: payoutMethods, isLoading: methodsLoading } = usePayoutMethods({ enabled })
+  const { data: withdrawalsData, isLoading: withdrawalsLoading } = useWithdrawals(undefined, {
+    enabled,
+  })
+  const createPayoutMethod = useCreatePayoutMethod()
+  const requestOtp = useRequestWithdrawalOtp()
   const createWithdrawal = useCreateWithdrawal()
-  const [bankId, setBankId] = useState(SAVED_INR_ACCOUNTS.find((b) => b.primary)?.id ?? 'bank_1')
-  const [amount, setAmount] = useState('100')
-  const [submitting, setSubmitting] = useState(false)
-  const sessionWithdrawals = withdrawalsData?.items ?? []
-  const pending = sessionWithdrawals.find(
-    (w) =>
-      (w.status === 'PENDING' || w.status === 'APPROVED' || w.status === 'PROCESSING') &&
-      !isCryptoWithdrawal(w),
+
+  const methods = payoutMethods ?? []
+  const withdrawals = withdrawalsData?.items ?? []
+  const available = toNumber(limits?.availableBalance)
+  const pendingWithdrawal = useMemo(
+    () =>
+      withdrawals
+        .filter((withdrawal) => PENDING_STATUSES.has(withdrawal.status))
+        .reduce((sum, withdrawal) => sum + toNumber(withdrawal.amount), 0),
+    [withdrawals],
   )
 
-  async function onSubmit(e: React.FormEvent) {
+  const [amount, setAmount] = useState('')
+  const [methodSource, setMethodSource] = useState<'existing' | 'new'>('new')
+  const [selectedMethodId, setSelectedMethodId] = useState('')
+  const [methodType, setMethodType] = useState<WithdrawalMethod>('BANK_TRANSFER')
+  const [accountHolderName, setAccountHolderName] = useState('')
+  const [bankName, setBankName] = useState('')
+  const [accountNumber, setAccountNumber] = useState('')
+  const [confirmAccountNumber, setConfirmAccountNumber] = useState('')
+  const [ifscCode, setIfscCode] = useState('')
+  const [upiId, setUpiId] = useState('')
+  const [walletAddress, setWalletAddress] = useState('')
+  const [otp, setOtp] = useState('')
+  const [otpMethodId, setOtpMethodId] = useState('')
+  const [otpRequested, setOtpRequested] = useState(false)
+
+  const crypto = cryptoDefaults(methodType)
+  const isCrypto = Boolean(crypto.coin)
+  const isSubmitting =
+    createPayoutMethod.isPending || requestOtp.isPending || createWithdrawal.isPending
+
+  async function ensurePayoutMethod() {
+    if (methodSource === 'existing') {
+      if (!selectedMethodId) throw new Error('Select a payout method.')
+      return selectedMethodId
+    }
+
+    if (methodType === 'BANK_TRANSFER') {
+      if (!accountHolderName || !bankName || !accountNumber || !ifscCode) {
+        throw new Error('Complete all bank account fields.')
+      }
+      if (accountNumber !== confirmAccountNumber) {
+        throw new Error('Account numbers do not match.')
+      }
+      const created = await createPayoutMethod.mutateAsync({
+        label: `${bankName} ${accountNumber.slice(-4)}`,
+        type: methodType,
+        details: { accountHolderName, bankName, accountNumber, ifscCode },
+        isDefault: methods.length === 0,
+      })
+      return created.id
+    }
+
+    if (methodType === 'UPI') {
+      if (!upiId) throw new Error('Enter a UPI ID.')
+      const created = await createPayoutMethod.mutateAsync({
+        label: `UPI ${upiId}`,
+        type: methodType,
+        details: { upiId },
+        isDefault: methods.length === 0,
+      })
+      return created.id
+    }
+
+    if (!walletAddress) throw new Error('Enter a wallet address.')
+    const created = await createPayoutMethod.mutateAsync({
+      label: `${crypto.coin} ${crypto.network}`,
+      type: methodType,
+      details: { coin: crypto.coin, network: crypto.network, address: walletAddress },
+      isDefault: methods.length === 0,
+    })
+    return created.id
+  }
+
+  async function requestWithdrawalOtp(e: React.FormEvent) {
     e.preventDefault()
-    const methodId =
-      payoutMethods?.find((m) => m.isDefault)?.id ?? payoutMethods?.[0]?.id
-    if (!methodId) {
-      toast.error('Add a verified payout method before withdrawing.')
+    const amountNumber = toNumber(amount)
+    if (amountNumber <= 0) {
+      toast.error('Enter a valid withdrawal amount.')
       return
     }
-    setSubmitting(true)
+    if (amountNumber > available) {
+      toast.error('Amount exceeds available balance.')
+      return
+    }
+    if (limits && amountNumber > toNumber(limits.dailyRemaining)) {
+      toast.error('Amount exceeds your remaining daily withdrawal limit.')
+      return
+    }
+
     try {
-      await createWithdrawal.mutateAsync({ amount, payoutMethodId: methodId })
-      toast.success('Withdrawal requested', 'Pending desk review.')
+      const payoutMethodId = await ensurePayoutMethod()
+      await requestOtp.mutateAsync({ amount, payoutMethodId })
+      setOtpMethodId(payoutMethodId)
+      setOtpRequested(true)
+      toast.success('OTP sent', 'Check your registered email before submitting.')
     } catch (error) {
-      toast.error(
-        error instanceof ApiError
-          ? error.message
-          : error instanceof Error
-            ? error.message
-            : 'Could not submit withdrawal.',
-      )
-    } finally {
-      setSubmitting(false)
+      toast.error(errorMessage(error))
+    }
+  }
+
+  async function submitWithdrawal(e: React.FormEvent) {
+    e.preventDefault()
+    if (!otpMethodId) {
+      toast.error('Request OTP before creating the withdrawal.')
+      return
+    }
+    try {
+      await createWithdrawal.mutateAsync({ amount, payoutMethodId: otpMethodId, otp })
+      toast.success('Withdrawal requested', 'Status is Pending Review.')
+      setAmount('')
+      setOtp('')
+      setOtpMethodId('')
+      setOtpRequested(false)
+    } catch (error) {
+      toast.error(errorMessage(error))
     }
   }
 
   return (
-    <div className="space-y-5">
-      <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
+    <div className="space-y-6 lg:space-y-8">
+      <PageHeader
+        title="Withdraw"
+        description="Create a payout method, verify by email OTP, and submit for finance review."
+      />
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Available Balance"
+          icon={Wallet}
+          value={<Money value={limits?.availableBalance ?? ('0.00' as MoneyString)} />}
+          hint="Maximum amount available for a new request."
+        />
+        <StatCard
+          label="Locked Balance"
+          icon={ShieldCheck}
+          value={<Money value={limits?.lockedBalance ?? ('0.00' as MoneyString)} />}
+        />
+        <StatCard
+          label="Pending Withdrawal"
+          icon={Building2}
+          value={<Money value={money(pendingWithdrawal)} />}
+        />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
         <Card variant="glass" className="p-5 sm:p-6">
           <SectionHeader
-            title="INR withdrawal"
-            description="Funds lock immediately on submit until paid or rejected."
+            title="Withdrawal request"
+            description={`Min $${limits?.min ?? '0.00'} - Daily remaining $${limits?.dailyRemaining ?? '0.00'}`}
           />
-          <form className="mt-5 space-y-4" onSubmit={(e) => void onSubmit(e)}>
-            <FormField label="Bank account" required>
-              <Select value={bankId} onValueChange={setBankId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select bank" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SAVED_INR_ACCOUNTS.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.bankName} · {b.accountNumberMasked}
-                      {b.primary ? ' (primary)' : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
+          <form
+            className="mt-5 grid gap-4 sm:grid-cols-2"
+            onSubmit={(e) => void (otpRequested ? submitWithdrawal(e) : requestWithdrawalOtp(e))}
+          >
             <FormField
               label="Amount (USD)"
               required
-              hint={`Available $${session?.wallet?.availableBalance ?? '0.00'}`}
+              hint={`Available $${limits?.availableBalance ?? '0.00'}`}
+              className="sm:col-span-2"
             >
               <Input
                 numeric
                 prefix="$"
                 inputMode="decimal"
                 value={amount}
+                max={limits?.availableBalance}
+                disabled={otpRequested}
                 onChange={(e) => setAmount(e.target.value)}
               />
             </FormField>
-            <Button type="submit" className="w-full sm:w-auto" loading={submitting}>
-              Withdraw
-            </Button>
+
+            <FormField label="Payout method source" required>
+              <Select
+                value={methodSource}
+                disabled={otpRequested}
+                onValueChange={(value) => setMethodSource(value as 'existing' | 'new')}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">Create from form</SelectItem>
+                  <SelectItem value="existing">Use saved method</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormField>
+
+            {methodSource === 'existing' ? (
+              <FormField label="Saved payout method" required>
+                <Select
+                  value={selectedMethodId}
+                  disabled={otpRequested}
+                  onValueChange={setSelectedMethodId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {methods.map((method) => (
+                      <SelectItem key={method.id} value={method.id}>
+                        {method.label} - {method.maskedDetails}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+            ) : (
+              <FormField label="Method" required>
+                <Select
+                  value={methodType}
+                  disabled={otpRequested}
+                  onValueChange={(value) => setMethodType(value as WithdrawalMethod)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {METHOD_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+            )}
+
+            {methodSource === 'new' && methodType === 'BANK_TRANSFER' ? (
+              <>
+                <FormField label="Account holder name" required>
+                  <Input
+                    value={accountHolderName}
+                    disabled={otpRequested}
+                    onChange={(e) => setAccountHolderName(e.target.value)}
+                  />
+                </FormField>
+                <FormField label="Bank name" required>
+                  <Input
+                    value={bankName}
+                    disabled={otpRequested}
+                    onChange={(e) => setBankName(e.target.value)}
+                  />
+                </FormField>
+                <FormField label="Account #" required>
+                  <Input
+                    value={accountNumber}
+                    disabled={otpRequested}
+                    onChange={(e) => setAccountNumber(e.target.value)}
+                  />
+                </FormField>
+                <FormField label="Confirm account #" required>
+                  <Input
+                    value={confirmAccountNumber}
+                    disabled={otpRequested}
+                    onChange={(e) => setConfirmAccountNumber(e.target.value)}
+                  />
+                </FormField>
+                <FormField label="IFSC" required>
+                  <Input
+                    value={ifscCode}
+                    disabled={otpRequested}
+                    onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
+                  />
+                </FormField>
+              </>
+            ) : null}
+
+            {methodSource === 'new' && methodType === 'UPI' ? (
+              <FormField label="UPI ID" required>
+                <Input
+                  value={upiId}
+                  disabled={otpRequested}
+                  onChange={(e) => setUpiId(e.target.value)}
+                />
+              </FormField>
+            ) : null}
+
+            {methodSource === 'new' && isCrypto ? (
+              <>
+                <FormField label="Coin" required>
+                  <Input value={crypto.coin} disabled readOnly />
+                </FormField>
+                <FormField label="Network" required>
+                  <Input value={crypto.network} disabled readOnly />
+                </FormField>
+                <FormField label="Wallet address" required className="sm:col-span-2">
+                  <Input
+                    value={walletAddress}
+                    disabled={otpRequested}
+                    onChange={(e) => setWalletAddress(e.target.value)}
+                    placeholder="Paste destination wallet address"
+                    className="font-mono text-sm"
+                  />
+                </FormField>
+              </>
+            ) : null}
+
+            {otpRequested ? (
+              <FormField
+                label="Email OTP"
+                required
+                hint="Enter the code sent to your registered email."
+                className="sm:col-span-2"
+              >
+                <Input
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                />
+              </FormField>
+            ) : null}
+
+            <div className="flex flex-wrap gap-3 sm:col-span-2">
+              <Button type="submit" loading={isSubmitting}>
+                {otpRequested ? 'Create withdrawal' : 'Request OTP'}
+              </Button>
+              {otpRequested ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setOtp('')
+                    setOtpMethodId('')
+                    setOtpRequested(false)
+                  }}
+                >
+                  Edit details
+                </Button>
+              ) : null}
+            </div>
           </form>
         </Card>
 
-        <Card variant="glass" className="p-5 sm:p-6">
-          <SectionHeader title="Pending status" as="h3" />
-          {pending ? (
-            <div className="mt-4 rounded-xl border border-warning/30 bg-warning/10 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-body-sm font-medium text-fg">{pending.reference || pending.id}</p>
-                <StatusPill status={pending.status} />
-              </div>
-              <p className="mt-2 text-caption text-fg-muted">
-                <Money value={pending.amount} /> · {pending.destinationLabel}
-              </p>
-              <p className="mt-1 text-caption text-fg-subtle">
-                Submitted {formatDateTime(pending.createdAt)}
-              </p>
-            </div>
-          ) : (
-            <p className="mt-4 text-body-sm text-fg-subtle">No open INR withdrawals.</p>
-          )}
-        </Card>
-      </div>
-      <WithdrawalHistory rail="INR" />
-    </div>
-  )
-}
-
-function CryptoWithdrawPanel() {
-  const { session } = useSession()
-  const { data: payoutMethods } = usePayoutMethods({ enabled: Boolean(session) })
-  const createWithdrawal = useCreateWithdrawal()
-  const [coin, setCoin] = useState('USDT')
-  const [network, setNetwork] = useState('TRC20')
-  const [walletId, setWalletId] = useState(SAVED_CRYPTO_WALLETS[0]?.id ?? '')
-  const [customAddress, setCustomAddress] = useState('')
-  const [amount, setAmount] = useState('250')
-  const [submitting, setSubmitting] = useState(false)
-
-  const coinMeta = CRYPTO_DEPOSIT_OPTIONS.coins.find((c) => c.id === coin)!
-  const fee = NETWORK_FEE[network] ?? '1.00'
-  const net = Math.max(0, Number(amount || 0) - Number(fee)).toFixed(2)
-
-  const walletsForCoin = useMemo(
-    () => SAVED_CRYPTO_WALLETS.filter((w) => w.coin === coin),
-    [coin],
-  )
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    const methodId =
-      payoutMethods?.find((m) => m.isDefault)?.id ?? payoutMethods?.[0]?.id
-    if (!methodId) {
-      toast.error('Add a verified payout method before withdrawing.')
-      return
-    }
-    setSubmitting(true)
-    try {
-      await createWithdrawal.mutateAsync({ amount, payoutMethodId: methodId })
-      toast.success('Crypto withdrawal submitted')
-    } catch (error) {
-      toast.error(
-        error instanceof ApiError
-          ? error.message
-          : error instanceof Error
-            ? error.message
-            : 'Could not submit withdrawal.',
-      )
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <div className="space-y-5">
-      <Card variant="glass" className="p-5 sm:p-6">
-        <SectionHeader
-          title="Crypto withdrawal"
-          description="Double-check network and address. Irreversible once broadcast."
-        />
-        <form className="mt-5 grid gap-4 sm:grid-cols-2" onSubmit={(e) => void onSubmit(e)}>
-          <FormField label="Coin" required>
-            <Select
-              value={coin}
-              onValueChange={(v) => {
-                setCoin(v)
-                const next = CRYPTO_DEPOSIT_OPTIONS.coins.find((c) => c.id === v)
-                setNetwork(next?.networks[0] ?? 'TRC20')
-                const match = SAVED_CRYPTO_WALLETS.find((w) => w.coin === v)
-                setWalletId(match?.id ?? '')
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CRYPTO_DEPOSIT_OPTIONS.coins.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-          <FormField label="Network" required>
-            <Select value={network} onValueChange={setNetwork}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {coinMeta.networks.map((n) => (
-                  <SelectItem key={n} value={n}>
-                    {n}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-          <FormField label="Saved wallet" className="sm:col-span-2">
-            <Select
-              value={walletId || 'custom'}
-              onValueChange={(v) => {
-                setWalletId(v === 'custom' ? '' : v)
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select wallet" />
-              </SelectTrigger>
-              <SelectContent>
-                {walletsForCoin.map((w) => (
-                  <SelectItem key={w.id} value={w.id}>
-                    {w.label} · {w.network}
-                  </SelectItem>
-                ))}
-                <SelectItem value="custom">Enter address manually</SelectItem>
-              </SelectContent>
-            </Select>
-          </FormField>
-          {!walletId ? (
-            <FormField label="Wallet address" required className="sm:col-span-2">
-              <Input
-                value={customAddress}
-                onChange={(e) => setCustomAddress(e.target.value)}
-                placeholder="Paste destination address"
-                className="font-mono text-sm"
-              />
-            </FormField>
-          ) : null}
-          <FormField label="Amount (USD)" required>
-            <Input
-              numeric
-              prefix="$"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </FormField>
-          <div className="rounded-xl border border-line bg-inset/40 p-4 sm:col-span-1">
-            <p className="text-caption text-fg-subtle">Estimated network fee</p>
-            <p className="mt-1 text-body font-medium tabular-nums text-fg">${fee}</p>
-            <p className="mt-2 text-caption text-fg-muted">
-              You receive ~ <span className="tabular-nums text-fg">${net}</span>
-            </p>
-          </div>
-          <div className="sm:col-span-2">
-            <Button type="submit" loading={submitting}>
-              Withdraw
-            </Button>
-          </div>
-        </form>
-      </Card>
-      <WithdrawalHistory rail="CRYPTO" />
-    </div>
-  )
-}
-
-export function WithdrawWorkspace() {
-  const { session } = useSession()
-  const wallet = session?.wallet
-
-  return (
-    <div className="space-y-6 lg:space-y-8">
-      <PageHeader
-        title="Withdraw"
-        description="Request a payout to a saved bank account or crypto wallet."
-      />
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard
-          label="Available to withdraw"
-          icon={Wallet}
-          value={<Money value={wallet?.availableBalance ?? ('0.00' as MoneyString)} />}
-          hint="Balance less amounts locked in pending requests."
-        />
-        <StatCard
-          label="Locked in pending"
-          value={<Money value={wallet?.lockedBalance ?? ('0.00' as MoneyString)} />}
-        />
-        <StatCard label="Minimum withdrawal" value={<Money value={'50.00' as MoneyString} />} />
+        <PayoutMethodList methods={methods} isLoading={methodsLoading} />
       </div>
 
-      <Tabs defaultValue="inr">
-        <TabsList className="w-full sm:w-auto">
-          <TabsTrigger value="inr">
-            <Building2 aria-hidden />
-            INR Withdrawal
-          </TabsTrigger>
-          <TabsTrigger value="crypto">
-            <Bitcoin aria-hidden />
-            Crypto Withdrawal
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="inr">
-          <InrWithdrawPanel />
-        </TabsContent>
-        <TabsContent value="crypto">
-          <CryptoWithdrawPanel />
-        </TabsContent>
-      </Tabs>
+      <WithdrawalHistory rows={withdrawals} isLoading={withdrawalsLoading} />
     </div>
   )
 }

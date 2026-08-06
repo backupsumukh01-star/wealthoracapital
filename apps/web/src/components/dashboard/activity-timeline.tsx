@@ -3,27 +3,57 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 
-import { Money } from '@/components/common/money'
 import { PremiumEmptyState } from '@/components/dashboard/premium-empty-state'
-import { useDeposits } from '@/features/deposits/hooks'
-import { useWithdrawals } from '@/features/withdrawals/hooks'
+import { useActivity, type ActivityCategory } from '@/features/activity/hooks'
 import { formatDateTime } from '@/lib/format'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
 
-type LedgerFilter = 'ALL' | 'DEPOSIT' | 'WITHDRAWAL'
+type ActivityFilter = 'all' | ActivityCategory
 
-const FILTERS: { id: LedgerFilter; label: string }[] = [
-  { id: 'ALL', label: 'All' },
-  { id: 'DEPOSIT', label: 'Deposit' },
-  { id: 'WITHDRAWAL', label: 'Withdrawal' },
+const FILTERS: { id: ActivityFilter; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'deposits', label: 'Deposits' },
+  { id: 'withdrawals', label: 'Withdrawals' },
+  { id: 'kyc', label: 'KYC' },
+  { id: 'profit', label: 'Profit' },
+  { id: 'security', label: 'Security' },
 ]
 
 const DOT: Record<string, string> = {
-  DEPOSIT: 'bg-info',
-  WITHDRAWAL: 'bg-warning',
-  ALL: 'bg-fg-subtle',
+  deposits: 'bg-info',
+  withdrawals: 'bg-warning',
+  kyc: 'bg-accent',
+  profit: 'bg-success',
+  security: 'bg-danger',
+  all: 'bg-fg-subtle',
+}
+
+function categoryForKind(kind: string): ActivityFilter {
+  if (kind.startsWith('DEPOSIT_')) return 'deposits'
+  if (kind.startsWith('WITHDRAWAL_')) return 'withdrawals'
+  if (kind.startsWith('KYC_')) return 'kyc'
+  if (
+    kind === 'DAILY_RETURN_APPLIED' ||
+    kind === 'DISTRIBUTION_COMPLETE' ||
+    kind.startsWith('TRADE_')
+  ) {
+    return 'profit'
+  }
+  if (
+    [
+      'LOGIN',
+      'LOGOUT',
+      'PASSWORD_CHANGE',
+      'EMAIL_CHANGE',
+      'SESSION_TERMINATED',
+      'REGISTRATION',
+    ].includes(kind)
+  ) {
+    return 'security'
+  }
+  return 'all'
 }
 
 /** Premium activity timeline — not a spreadsheet. */
@@ -37,43 +67,29 @@ export function ActivityTimeline({
 }) {
   const prefersReducedMotion = usePrefersReducedMotion()
   const { session } = useSession()
-  const { data: depositsData } = useDeposits(undefined, { enabled: Boolean(session) })
-  const { data: withdrawalsData } = useWithdrawals(undefined, { enabled: Boolean(session) })
-  const [filter, setFilter] = useState<LedgerFilter>('ALL')
+  const [filter, setFilter] = useState<ActivityFilter>('all')
   const [query, setQuery] = useState('')
-
-  const ledger = useMemo(() => {
-    const deposits = (depositsData?.items ?? []).map((d) => ({
-      id: d.id,
-      filter: 'DEPOSIT' as LedgerFilter,
-      label: `Deposit ${d.status.toLowerCase()}`,
-      reference: d.reference,
-      amount: d.amount,
-      date: d.createdAt,
-    }))
-    const withdrawals = (withdrawalsData?.items ?? []).map((w) => ({
-      id: w.id,
-      filter: 'WITHDRAWAL' as LedgerFilter,
-      label: `Withdrawal ${w.status.toLowerCase()}`,
-      reference: w.reference,
-      amount: `-${w.amount}`,
-      date: w.createdAt,
-    }))
-    return [...deposits, ...withdrawals].sort((a, b) => (a.date < b.date ? 1 : -1))
-  }, [depositsData?.items, withdrawalsData?.items])
+  const { data, isLoading } = useActivity(
+    {
+      category: filter === 'all' ? undefined : filter,
+      limit,
+    },
+    { enabled: Boolean(session) },
+  )
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase()
-    let list = ledger.filter((r) => (filter === 'ALL' ? true : r.filter === filter))
+    let list = data?.items ?? []
     if (q) {
       list = list.filter(
         (r) =>
-          r.label.toLowerCase().includes(q) ||
-          r.reference.toLowerCase().includes(q),
+          r.title.toLowerCase().includes(q) ||
+          r.kind.toLowerCase().includes(q) ||
+          (r.description ?? '').toLowerCase().includes(q),
       )
     }
-    return typeof limit === 'number' ? list.slice(0, limit) : list
-  }, [filter, query, limit, ledger])
+    return list
+  }, [query, data?.items])
 
   return (
     <div className="glass glass-edge card-lift noise-overlay relative overflow-hidden rounded-3xl p-5 shadow-e2 sm:p-6">
@@ -105,16 +121,18 @@ export function ActivityTimeline({
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search reference…"
+          placeholder="Search activity..."
           className="mt-4 h-10 w-full rounded-xl border border-line bg-inset/60 px-3 text-body-sm text-fg"
         />
       ) : null}
 
-      {rows.length === 0 ? (
+      {isLoading ? (
+        <p className="mt-6 text-body-sm text-fg-subtle">Loading activity...</p>
+      ) : rows.length === 0 ? (
         <PremiumEmptyState
           className="mt-6 py-8"
           title="No activity yet"
-          description="Deposits and withdrawals will appear here."
+          description="Deposits, withdrawals, KYC, profit and security events will appear here."
         />
       ) : (
         <ul className="mt-5 space-y-3">
@@ -126,14 +144,21 @@ export function ActivityTimeline({
               transition={{ delay: i * 0.03 }}
               className="flex items-start gap-3 rounded-2xl border border-line/70 bg-inset/30 px-3.5 py-3"
             >
-              <span className={cn('mt-1.5 size-2 shrink-0 rounded-full', DOT[row.filter])} />
+              <span
+                className={cn(
+                  'mt-1.5 size-2 shrink-0 rounded-full',
+                  DOT[categoryForKind(row.kind)],
+                )}
+              />
               <div className="min-w-0 flex-1">
-                <p className="text-body-sm font-medium text-fg">{row.label}</p>
-                <p className="text-caption text-fg-subtle">
-                  {formatDateTime(row.date)} · {row.reference}
+                <p className="text-body-sm font-medium text-fg">{row.title}</p>
+                {row.description ? (
+                  <p className="mt-1 text-caption text-fg-muted">{row.description}</p>
+                ) : null}
+                <p className="mt-1 text-caption text-fg-subtle">
+                  {formatDateTime(row.at)} - {row.kind}
                 </p>
               </div>
-              <Money value={row.amount} signed className="text-body-sm font-medium" />
             </motion.li>
           ))}
         </ul>

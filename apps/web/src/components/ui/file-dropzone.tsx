@@ -11,6 +11,7 @@ import { Button } from './button'
 
 export interface FileDropzoneProps {
   onFileSelect?: (file: File) => void
+  onFileClear?: () => void
   accept?: string[]
   maxBytes?: number
   disabled?: boolean
@@ -27,6 +28,7 @@ export interface FileDropzoneProps {
  */
 export function FileDropzone({
   onFileSelect,
+  onFileClear,
   accept = [...LIMITS.upload.accept],
   maxBytes = LIMITS.upload.maxBytes,
   disabled,
@@ -45,7 +47,9 @@ export function FileDropzone({
         return
       }
       if (candidate.size > maxBytes) {
-        setError(`That file is ${formatBytes(candidate.size)}. The limit is ${formatBytes(maxBytes)}.`)
+        setError(
+          `That file is ${formatBytes(candidate.size)}. The limit is ${formatBytes(maxBytes)}.`,
+        )
         return
       }
       setError(null)
@@ -64,12 +68,17 @@ export function FileDropzone({
 
   if (file) {
     return (
-      <div className={cn('flex items-center gap-3 rounded-lg border border-line bg-inset p-4', className)}>
-        <span className="grid size-10 shrink-0 place-items-center rounded-md bg-hover text-fg-subtle">
+      <div
+        className={cn(
+          'border-line bg-inset flex items-center gap-3 rounded-lg border p-4',
+          className,
+        )}
+      >
+        <span className="bg-hover text-fg-subtle grid size-10 shrink-0 place-items-center rounded-md">
           <ImageIcon className="size-4" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-body-sm text-fg">{file.name}</p>
+          <p className="text-body-sm text-fg truncate">{file.name}</p>
           <p className="text-caption text-fg-subtle" data-numeric>
             {formatBytes(file.size)}
           </p>
@@ -78,7 +87,10 @@ export function FileDropzone({
           type="button"
           variant="ghost"
           size="icon-sm"
-          onClick={() => setFile(null)}
+          onClick={() => {
+            setFile(null)
+            onFileClear?.()
+          }}
           aria-label="Remove file"
         >
           <X aria-hidden />
@@ -98,12 +110,12 @@ export function FileDropzone({
         onDrop={onDrop}
         className={cn(
           'flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-8',
-          'text-center transition-colors duration-[160ms] ease-out-soft',
+          'ease-out-soft text-center transition-colors duration-[160ms]',
           isDragging ? 'border-accent bg-accent-900/20' : 'border-line-default bg-inset/50',
           disabled && 'pointer-events-none opacity-50',
         )}
       >
-        <span className="grid size-11 place-items-center rounded-full bg-hover text-fg-subtle">
+        <span className="bg-hover text-fg-subtle grid size-11 place-items-center rounded-full">
           <FileUp className="size-5" aria-hidden />
         </span>
 
@@ -114,7 +126,12 @@ export function FileDropzone({
           </p>
         </div>
 
-        <Button type="button" variant="secondary" size="sm" onClick={() => inputRef.current?.click()}>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => inputRef.current?.click()}
+        >
           Choose a file
         </Button>
 

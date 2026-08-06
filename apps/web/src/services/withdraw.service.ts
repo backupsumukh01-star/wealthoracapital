@@ -1,11 +1,39 @@
-import { API_ROUTES, type PayoutMethod, type Withdrawal } from '@meridian/shared'
+import {
+  API_ROUTES,
+  type MoneyString,
+  type PaymentMethodType,
+  type PayoutMethod,
+  type Withdrawal,
+} from '@meridian/shared'
 
 import { apiClient } from './http'
 
 export type CreateWithdrawalBody = {
   amount: string
   payoutMethodId: string
+  otp: string
   idempotencyKey: string
+}
+
+export type WithdrawalLimits = {
+  min: MoneyString
+  max: MoneyString
+  dailyRemaining: MoneyString
+  feePct: MoneyString
+  availableBalance: MoneyString
+  lockedBalance: MoneyString
+}
+
+export type CreatePayoutMethodBody = {
+  label: string
+  type: Extract<PaymentMethodType, 'UPI' | 'BANK_TRANSFER' | 'USDT_TRC20' | 'USDT_BEP20' | 'BTC' | 'ETH'>
+  details: Record<string, string>
+  isDefault?: boolean
+}
+
+export type RequestWithdrawalOtpBody = {
+  amount: string
+  payoutMethodId: string
 }
 
 export const withdrawService = {
@@ -21,13 +49,25 @@ export const withdrawService = {
 
   get: (id: string) => apiClient<Withdrawal>(`${API_ROUTES.withdrawals.root}/${id}`),
 
-  limits: () =>
-    apiClient<{ min: string; max: string; dailyRemaining: string; feePct: string }>(
-      API_ROUTES.withdrawals.limits,
-    ),
+  limits: () => apiClient<WithdrawalLimits>(API_ROUTES.withdrawals.limits),
 
   payoutMethods: () =>
-    apiClient<PayoutMethod[]>(`${API_ROUTES.withdrawals.root}/methods`),
+    apiClient<PayoutMethod[]>(API_ROUTES.withdrawals.methods),
+
+  createPayoutMethod: (body: CreatePayoutMethodBody) =>
+    apiClient<PayoutMethod>(API_ROUTES.withdrawals.methods, {
+      method: 'POST',
+      body,
+    }),
+
+  requestOtp: (body: RequestWithdrawalOtpBody) =>
+    apiClient<{ expiresAt?: string; maskedEmail?: string; message?: string }>(
+      API_ROUTES.withdrawals.otp,
+      {
+        method: 'POST',
+        body,
+      },
+    ),
 
   create: (body: CreateWithdrawalBody) =>
     apiClient<Withdrawal>(API_ROUTES.withdrawals.root, {

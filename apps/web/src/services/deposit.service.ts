@@ -8,6 +8,9 @@ export type CreateDepositBody = {
   amount: string
   methodId: string
   userReference?: string
+  txHash?: string
+  notes?: string
+  submissionDetails?: Record<string, string>
   idempotencyKey: string
 }
 
@@ -22,10 +25,12 @@ async function apiFormData<T>(path: string, form: FormData): Promise<T> {
       },
       body: form,
     })
-    const payload = (await response.json()) as { success: true; data: T } | {
-      success: false
-      error: { code: string; message: string }
-    }
+    const payload = (await response.json()) as
+      | { success: true; data: T }
+      | {
+          success: false
+          error: { code: string; message: string }
+        }
     return { response, payload }
   }
 
@@ -69,6 +74,5 @@ export const depositService = {
     return apiFormData<Deposit>(API_ROUTES.deposits.proof(id), form)
   },
 
-  cancel: (id: string) =>
-    apiClient<Deposit>(API_ROUTES.deposits.cancel(id), { method: 'POST' }),
+  cancel: (id: string) => apiClient<Deposit>(API_ROUTES.deposits.cancel(id), { method: 'POST' }),
 }

@@ -11,7 +11,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { PayoutMethod, Withdrawal } from '@meridian/shared'
 
-import { withdrawalsApi, type CreateWithdrawalBody } from './api'
+import {
+  withdrawalsApi,
+  type CreatePayoutMethodBody,
+  type CreateWithdrawalBody,
+  type RequestWithdrawalOtpBody,
+  type WithdrawalLimits,
+} from './api'
 import { walletQueryKeys } from '@/features/wallet/hooks'
 import type { QueryHookOptions } from '@/lib/query-client'
 
@@ -44,7 +50,7 @@ export function useWithdrawal(id: string, options?: QueryHookOptions) {
 }
 
 export function useWithdrawalLimits(options?: QueryHookOptions) {
-  return useQuery<{ min: string; max: string; dailyRemaining: string; feePct: string }>({
+  return useQuery<WithdrawalLimits>({
     queryKey: withdrawalQueryKeys.limits(),
     queryFn: () => withdrawalsApi.limits(),
     enabled: options?.enabled,
@@ -56,6 +62,27 @@ export function usePayoutMethods(options?: QueryHookOptions) {
     queryKey: withdrawalQueryKeys.payoutMethods(),
     queryFn: () => withdrawalsApi.payoutMethods(),
     enabled: options?.enabled,
+  })
+}
+
+export function useCreatePayoutMethod() {
+  const queryClient = useQueryClient()
+
+  return useMutation<PayoutMethod, Error, CreatePayoutMethodBody>({
+    mutationFn: (input) => withdrawalsApi.createPayoutMethod(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: withdrawalQueryKeys.payoutMethods() })
+    },
+  })
+}
+
+export function useRequestWithdrawalOtp() {
+  return useMutation<
+    { expiresAt?: string; maskedEmail?: string; message?: string },
+    Error,
+    RequestWithdrawalOtpBody
+  >({
+    mutationFn: (input) => withdrawalsApi.requestOtp(input),
   })
 }
 
