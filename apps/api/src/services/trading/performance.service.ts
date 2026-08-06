@@ -7,6 +7,15 @@ function dayKey(date: Date): string {
   return date.toISOString().slice(0, 10)
 }
 
+/** Compound percentage returns: (Π(1 + r/100) − 1) × 100. */
+function compoundReturnPct(pcts: Array<string | number | ReturnType<typeof d>>) {
+  let factor = d(1)
+  for (const pct of pcts) {
+    factor = factor.mul(d(1).plus(d(pct).div(100)))
+  }
+  return factor.minus(1).mul(100)
+}
+
 export const performanceService = {
   async summary(userId?: string) {
     const distWhere = userId
@@ -157,35 +166,82 @@ export const performanceService = {
   },
 
   async monthly(userId?: string) {
-    const dists = await prisma.profitDistribution.findMany({
-      where: { ...(userId ? { userId } : {}), isReversed: false },
-    })
-    const map = new Map<string, ReturnType<typeof d>>()
-    for (const row of dists) {
-      const key = dayKey(row.date).slice(0, 7)
-      map.set(key, (map.get(key) ?? d(0)).plus(d(row.amount)))
+    const profitByMonth = new Map<string, ReturnType<typeof d>>()
+    const pctsByMonth = new Map<string, Array<string | number>>()
+
+    if (userId) {
+      const dists = await prisma.profitDistribution.findMany({
+        where: { userId, isReversed: false },
+        orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
+      })
+      for (const row of dists) {
+        const key = dayKey(row.date).slice(0, 7)
+        profitByMonth.set(key, (profitByMonth.get(key) ?? d(0)).plus(d(row.amount)))
+        const list = pctsByMonth.get(key) ?? []
+        list.push(row.returnPct.toString())
+        pctsByMonth.set(key, list)
+      }
+    } else {
+      const dists = await prisma.profitDistribution.findMany({
+        where: { isReversed: false },
+      })
+      for (const row of dists) {
+        const key = dayKey(row.date).slice(0, 7)
+        profitByMonth.set(key, (profitByMonth.get(key) ?? d(0)).plus(d(row.amount)))
+      }
+
+      // Programme return: compound completed settlement runs (not summed wallet profits).
+      const runs = await prisma.dailyReturnRun.findMany({
+        where: { status: 'COMPLETED' },
+        orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
+        select: { date: true, returnPct: true },
+      })
+      for (const run of runs) {
+        const key = dayKey(run.date).slice(0, 7)
+        const list = pctsByMonth.get(key) ?? []
+        list.push(run.returnPct.toString())
+        pctsByMonth.set(key, list)
+      }
     }
-    return [...map.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([month, profit]) => ({
-        month,
-        returnPct: '0.000000',
-        profit: moneyDisplay(profit),
-      }))
+
+    const months = new Set([...profitByMonth.keys(), ...pctsByMonth.keys()])
+    return [...months]
+      .sort((a, b) => a.localeCompare(b))
+      .map((month) => {
+        const profit = profitByMonth.get(month) ?? d(0)
+        const pcts = pctsByMonth.get(month) ?? []
+        const returnPct = pcts.length > 0 ? compoundReturnPct(pcts) : d(0)
+        return {
+          month,
+          returnPct: returnPct.toFixed(6),
+          profit: moneyDisplay(profit),
+        }
+      })
   },
 
   async yearly(userId?: string) {
     const monthly = await this.monthly(userId)
-    const map = new Map<string, ReturnType<typeof d>>()
+    const profitByYear = new Map<string, ReturnType<typeof d>>()
+    const pctsByYear = new Map<string, string[]>()
     for (const row of monthly) {
       const year = row.month.slice(0, 4)
-      map.set(year, (map.get(year) ?? d(0)).plus(d(row.profit)))
+      profitByYear.set(year, (profitByYear.get(year) ?? d(0)).plus(d(row.profit)))
+      const list = pctsByYear.get(year) ?? []
+      list.push(row.returnPct)
+      pctsByYear.set(year, list)
     }
-    return [...map.entries()].map(([year, profit]) => ({
-      year,
-      returnPct: '0.000000',
-      profit: moneyDisplay(profit),
-    }))
+    return [...profitByYear.keys()]
+      .sort((a, b) => a.localeCompare(b))
+      .map((year) => {
+        const profit = profitByYear.get(year) ?? d(0)
+        const pcts = pctsByYear.get(year) ?? []
+        const returnPct = pcts.length > 0 ? compoundReturnPct(pcts) : d(0)
+        return {
+          year,
+          returnPct: returnPct.toFixed(6),
+          profit: moneyDisplay(profit),
+        }
+      })
   },
 
   async portfolio(userId: string) {

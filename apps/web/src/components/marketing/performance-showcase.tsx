@@ -25,14 +25,29 @@ export function PerformanceShowcase({
   const { landing } = usePublishedLanding()
   const { data: pub } = usePublicPerformance()
   const { data: monthly = [] } = usePublicPerformanceMonthly()
-  const yearly: Array<{ year: string; returnPct: number; profitLabel: string }> =
-    YEARLY_RETURNS.map((y) => ({ year: y.year, returnPct: y.returnPct, profitLabel: y.profitLabel }))
+  const liveYearly = pub?.yearly ?? []
+  const liveYearlyUsable =
+    liveYearly.length > 0 &&
+    liveYearly.some((y) => (Number.parseFloat(String(y.returnPct)) || 0) !== 0)
+  const yearly: Array<{ year: string; returnPct: number; profitLabel: string }> = liveYearlyUsable
+    ? liveYearly.map((y) => ({
+        year: y.year,
+        returnPct: Number.parseFloat(String(y.returnPct)) || 0,
+        profitLabel: `$${Number(y.profit).toLocaleString('en-US', { maximumFractionDigits: 0 })} distributed`,
+      }))
+    : YEARLY_RETURNS.map((y) => ({
+        year: y.year,
+        returnPct: y.returnPct,
+        profitLabel: y.profitLabel,
+      }))
   const winRate = landing.winRate || pub?.analytics.winRate || '78.6'
+  const liveMonthlyUsable =
+    monthly.length > 0 &&
+    monthly.some((m) => (Number.parseFloat(String(m.returnPct)) || 0) !== 0)
   const demoMax = Math.max(...MONTHLY_RETURNS.map((m) => m.returnPct))
-  const bestMonth =
-    monthly.length > 0
-      ? Math.max(...monthly.map((m) => Number.parseFloat(String(m.returnPct)) || 0)).toFixed(1)
-      : demoMax.toFixed(1)
+  const bestMonth = liveMonthlyUsable
+    ? Math.max(...monthly.map((m) => Number.parseFloat(String(m.returnPct)) || 0)).toFixed(1)
+    : demoMax.toFixed(1)
 
   return (
     <Section

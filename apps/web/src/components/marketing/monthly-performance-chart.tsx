@@ -10,6 +10,32 @@ import { cn } from '@/lib/cn'
 
 type Point = { month: string; value: number }
 
+const MONTH_SHORT = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const
+
+/** Format `YYYY-MM` or pass through demo labels like `Jan`. */
+function formatMonthLabel(month: string): string {
+  const match = /^(\d{4})-(\d{2})$/.exec(month)
+  if (match) {
+    const idx = Number(match[2]) - 1
+    const short = MONTH_SHORT[idx]
+    return short ?? month
+  }
+  return month
+}
+
 /** Cumulative growth path from monthly returns starting at 100. */
 function buildGrowth(points: Point[]) {
   let bal = 100
@@ -21,16 +47,19 @@ function buildGrowth(points: Point[]) {
 
 function useMonthlySeries(): Point[] {
   const { data: monthly } = usePublicPerformanceMonthly()
-  return useMemo(
-    () => {
-      const source = monthly && monthly.length > 0 ? monthly : MONTHLY_RETURNS
-      return source.map((m) => ({
-        month: m.month,
+  return useMemo(() => {
+    const live: Point[] =
+      monthly?.map((m) => ({
+        month: formatMonthLabel(m.month),
         value: Number.parseFloat(String(m.returnPct)) || 0,
-      }))
-    },
-    [monthly],
-  )
+      })) ?? []
+    const allZero = live.length > 0 && live.every((p) => p.value === 0)
+    if (live.length > 0 && !allZero) return live
+    return MONTHLY_RETURNS.map((m) => ({
+      month: formatMonthLabel(m.month),
+      value: m.returnPct,
+    }))
+  }, [monthly])
 }
 
 /**
