@@ -15,6 +15,7 @@ import { Section } from '@/components/common/section'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { StaggerGroup, StaggerItem } from '@/components/motion/stagger-group'
 import { Button } from '@/components/ui/button'
+import { usePublishedFrontend } from '@/features/cms/frontend-hooks'
 import { HOW_IT_WORKS } from '@/lib/landing-data'
 import { cn } from '@/lib/cn'
 
@@ -29,15 +30,29 @@ const STEP_ICONS: LucideIcon[] = [UserPlus, Wallet, CandlestickChart, BadgeCheck
 
 /** Premium step panels — Register → Deposit → Trading → Returns. */
 export function HowItWorks() {
+  const { getSection } = usePublishedFrontend()
+  const section = getSection('how_it_works')
+  const steps =
+    section?.items && section.items.length > 0
+      ? section.items.map((item, index) => ({
+          step: String(index + 1).padStart(2, '0'),
+          title: String(item.title ?? `Step ${index + 1}`),
+          description: String(item.description ?? ''),
+        }))
+      : HOW_IT_WORKS.map((s) => ({ step: s.step, title: s.title, description: s.description }))
+
   return (
     <Section
       id="how-it-works"
-      eyebrow="How it works"
-      title="Four steps from register to published returns"
-      description="Simple path. No lock-up. The desk publishes the work; eligible wallets receive the verified result."
+      eyebrow={section?.eyebrow || 'How it works'}
+      title={section?.title || 'Four steps from register to published returns'}
+      description={
+        section?.description ||
+        'Simple path. No lock-up. The desk publishes the work; eligible wallets receive the verified result.'
+      }
     >
       <StaggerGroup className="grid gap-3 sm:gap-4 md:gap-5">
-        {HOW_IT_WORKS.map((step, index) => {
+        {steps.map((step, index) => {
           const Icon = STEP_ICONS[index] ?? BadgeCheck
           return (
             <StaggerItem key={step.step}>

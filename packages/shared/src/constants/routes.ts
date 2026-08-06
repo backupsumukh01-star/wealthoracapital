@@ -89,6 +89,10 @@ export const ROUTES = {
     auditLog: '/admin/audit-log',
     reports: '/admin/reports',
     reportLibrary: '/admin/report-library',
+    /** Admin Frontend Management — section map for the marketing site */
+    frontendManagement: '/admin/frontend-management',
+    /** CMS downloads / reports manager */
+    downloads: '/admin/downloads',
     /** Admin OS — CMS & marketing control */
     cms: {
       landing: '/admin/cms/landing',
@@ -217,6 +221,9 @@ export const API_ROUTES = {
     public: '/cms/public',
     landing: '/cms/landing',
     platform: '/cms/platform',
+    frontend: '/cms/frontend',
+    downloads: '/cms/downloads',
+    downloadsPublic: '/cms/downloads/public',
     rollback: (revisionId: string) => `/cms/public/revisions/${revisionId}/rollback`,
   },
   admin: {

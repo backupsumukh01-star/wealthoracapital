@@ -14,9 +14,20 @@ import { Section } from '@/components/common/section'
 import { CountUp } from '@/components/motion/count-up'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { StaggerGroup, StaggerItem } from '@/components/motion/stagger-group'
+import { usePublishedFrontend } from '@/features/cms/frontend-hooks'
 import { cn } from '@/lib/cn'
 
-const STATS: {
+const ICONS: LucideIcon[] = [Users, Globe2, PiggyBank, ChartNoAxesCombined, TrendingUp, Target]
+const ACCENTS = [
+  'text-hl-emerald bg-hl-emerald/10 border-hl-emerald/30',
+  'text-hl-cyan bg-hl-cyan/10 border-hl-cyan/30',
+  'text-hl-amber bg-hl-amber/10 border-hl-amber/30',
+  'text-hl-blue bg-hl-blue/10 border-hl-blue/30',
+  'text-hl-violet bg-hl-violet/10 border-hl-violet/30',
+  'text-accent-300 bg-accent-500/10 border-accent-700/40',
+]
+
+const FALLBACK_STATS: {
   label: string
   value: string
   prefix?: string
@@ -30,19 +41,19 @@ const STATS: {
     value: '4820',
     suffix: '+',
     icon: Users,
-    accent: 'text-hl-emerald bg-hl-emerald/10 border-hl-emerald/30',
+    accent: ACCENTS[0]!,
   },
   {
     label: 'Countries',
     value: '42',
     icon: Globe2,
-    accent: 'text-hl-cyan bg-hl-cyan/10 border-hl-cyan/30',
+    accent: ACCENTS[1]!,
   },
   {
     label: 'Daily withdrawals',
     value: '146',
     icon: PiggyBank,
-    accent: 'text-hl-amber bg-hl-amber/10 border-hl-amber/30',
+    accent: ACCENTS[2]!,
   },
   {
     label: 'Assets under management',
@@ -51,7 +62,7 @@ const STATS: {
     suffix: 'M',
     decimals: 1,
     icon: ChartNoAxesCombined,
-    accent: 'text-hl-blue bg-hl-blue/10 border-hl-blue/30',
+    accent: ACCENTS[3]!,
   },
   {
     label: "Today's published return",
@@ -59,7 +70,7 @@ const STATS: {
     suffix: '%',
     decimals: 2,
     icon: TrendingUp,
-    accent: 'text-hl-violet bg-hl-violet/10 border-hl-violet/30',
+    accent: ACCENTS[4]!,
   },
   {
     label: 'Win rate',
@@ -67,22 +78,37 @@ const STATS: {
     suffix: '%',
     decimals: 1,
     icon: Target,
-    accent: 'text-accent-300 bg-accent-500/10 border-accent-700/40',
+    accent: ACCENTS[5]!,
   },
 ]
 
 /** Investor stats with viewport-triggered animated counters. */
 export function StatsBand() {
+  const { getSection } = usePublishedFrontend()
+  const section = getSection('statistics')
+  const stats =
+    section?.items && section.items.length > 0
+      ? section.items.map((item, i) => ({
+          label: String(item.label ?? item.title ?? 'Stat'),
+          value: String(item.value ?? '0'),
+          prefix: item.prefix ? String(item.prefix) : '',
+          suffix: item.suffix ? String(item.suffix) : '',
+          decimals: String(item.value ?? '').includes('.') ? 1 : 0,
+          icon: ICONS[i % ICONS.length]!,
+          accent: ACCENTS[i % ACCENTS.length]!,
+        }))
+      : FALLBACK_STATS
+
   return (
     <Section id="stats" className="!pt-8 lg:!pt-12" backdrop="glow">
       <RevealOnScroll>
         <p className="text-center text-heading-xl text-fg sm:text-display-md">
-          Built for investors who read the tape
+          {section?.title || 'Built for investors who read the tape'}
         </p>
       </RevealOnScroll>
 
       <StaggerGroup className="mt-10 grid gap-3 sm:mt-12 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
-        {STATS.map((stat) => {
+        {stats.map((stat) => {
           const Icon = stat.icon
           return (
             <StaggerItem key={stat.label}>

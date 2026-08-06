@@ -131,6 +131,20 @@ export const cmsService = {
   platformRevisions: () =>
     apiClient<{ items: CmsRevision[] }>(`${API_ROUTES.cms.platform}/revisions`),
 
+  getFrontend: () => apiClient<CmsDocumentEnvelope>(API_ROUTES.cms.frontend),
+
+  updateFrontendDraft: (body: Record<string, unknown>) =>
+    apiClient<CmsDocumentEnvelope>(API_ROUTES.cms.frontend, { method: 'PUT', body }),
+
+  publishFrontend: (content?: Record<string, unknown>) =>
+    apiClient<CmsDocumentEnvelope>(`${API_ROUTES.cms.frontend}/publish`, {
+      method: 'POST',
+      body: content ? { content } : {},
+    }),
+
+  frontendRevisions: () =>
+    apiClient<{ items: CmsRevision[] }>(`${API_ROUTES.cms.frontend}/revisions`),
+
   rollbackRevision: (revisionId: string) =>
     apiClient<unknown>(API_ROUTES.cms.rollback(revisionId), { method: 'POST' }),
 

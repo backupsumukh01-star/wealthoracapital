@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { usePublicPerformanceMonthly } from '@/features/performance/hooks'
+import { MONTHLY_RETURNS } from '@/lib/landing-data'
 import { cn } from '@/lib/cn'
 
 type Point = { month: string; value: number }
@@ -19,13 +20,15 @@ function buildGrowth(points: Point[]) {
 }
 
 function useMonthlySeries(): Point[] {
-  const { data: monthly = [] } = usePublicPerformanceMonthly()
+  const { data: monthly } = usePublicPerformanceMonthly()
   return useMemo(
-    () =>
-      monthly.map((m) => ({
+    () => {
+      const source = monthly && monthly.length > 0 ? monthly : MONTHLY_RETURNS
+      return source.map((m) => ({
         month: m.month,
         value: Number.parseFloat(String(m.returnPct)) || 0,
-      })),
+      }))
+    },
     [monthly],
   )
 }
@@ -231,12 +234,10 @@ export function MonthlyPerformanceChart() {
   )
 }
 
-/** Expandable monthly performance timeline. Renders nothing without published data. */
+/** Expandable monthly performance timeline. Falls back to demo data when no live data. */
 export function MonthlyPerformanceTimeline() {
   const [open, setOpen] = useState<string | null>(null)
   const series = useMonthlySeries()
-
-  if (series.length === 0) return null
 
   return (
     <div className="min-w-0 rounded-2xl border border-white/[0.07] bg-raised/50 p-3 sm:p-5">

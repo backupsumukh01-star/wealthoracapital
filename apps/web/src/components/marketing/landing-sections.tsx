@@ -1,0 +1,178 @@
+'use client'
+
+/**
+ * Landing sections gated by Frontend CMS `section.visible` flags.
+ * Does not redesign the page — only wraps existing marketing components.
+ */
+
+import dynamic from 'next/dynamic'
+import type { ReactNode } from 'react'
+
+import { CtaBand } from '@/components/marketing/cta-band'
+import { DistributionsStrip } from '@/components/marketing/distributions-strip'
+import { FeatureMosaic } from '@/components/marketing/feature-mosaic'
+import { Hero } from '@/components/marketing/hero'
+import { HomeFaq } from '@/components/marketing/home-faq'
+import { HowItWorks } from '@/components/marketing/how-it-works'
+import { InvestmentTimeline } from '@/components/marketing/investment-timeline'
+import { OperatingModel } from '@/components/marketing/operating-model'
+import { PerformanceHighlights } from '@/components/marketing/performance-highlights'
+import { RiskBanner } from '@/components/marketing/risk-banner'
+import { StatsBand } from '@/components/marketing/stats-band'
+import { TrustStrip } from '@/components/marketing/trust-strip'
+import { WhyChooseUs } from '@/components/marketing/why-choose-us'
+import { CmsReportDownloads } from '@/components/marketing/cms-report-downloads'
+import { usePublishedFrontend } from '@/features/cms/frontend-hooks'
+
+function DownloadsBand() {
+  const { getSection } = usePublishedFrontend()
+  const section = getSection('downloads')
+  return (
+    <div className="container-page section-y">
+      <div className="mx-auto max-w-3xl text-center">
+        <p className="text-caption uppercase tracking-wider text-accent-300">
+          {section?.eyebrow || 'Resources'}
+        </p>
+        <h2 className="mt-2 text-heading-md text-fg">
+          {section?.title || 'Reports & downloads'}
+        </h2>
+        {section?.description ? (
+          <p className="mt-2 text-body-sm text-fg-muted">{section.description}</p>
+        ) : null}
+      </div>
+      <div className="mx-auto mt-8 max-w-4xl">
+        <CmsReportDownloads />
+      </div>
+    </div>
+  )
+}
+
+const PerformanceShowcase = dynamic(
+  () =>
+    import('@/components/marketing/performance-showcase').then((m) => m.PerformanceShowcase),
+  { loading: () => <div className="section-y min-h-[28rem]" aria-hidden /> },
+)
+const StrategyEngine = dynamic(
+  () =>
+    import('@/components/marketing/trading-system/strategies').then((m) => m.StrategyEngine),
+  { loading: () => <div className="section-y min-h-[24rem]" aria-hidden /> },
+)
+const RiskManagementPanel = dynamic(
+  () =>
+    import('@/components/marketing/trading-system/risk-management').then(
+      (m) => m.RiskManagementPanel,
+    ),
+  { loading: () => <div className="section-y min-h-[20rem]" aria-hidden /> },
+)
+const TodaysMarkets = dynamic(
+  () => import('@/components/marketing/todays-markets').then((m) => m.TodaysMarkets),
+  { loading: () => <div className="section-y min-h-[20rem]" aria-hidden /> },
+)
+const TodaysTradingActivity = dynamic(
+  () =>
+    import('@/components/marketing/todays-trading-activity').then((m) => m.TodaysTradingActivity),
+  { loading: () => <div className="section-y min-h-[24rem]" aria-hidden /> },
+)
+const PerformanceProof = dynamic(
+  () => import('@/components/marketing/performance-proof').then((m) => m.PerformanceProof),
+  { loading: () => <div className="section-y min-h-[22rem]" aria-hidden /> },
+)
+const Testimonials = dynamic(
+  () => import('@/components/marketing/testimonials').then((m) => m.Testimonials),
+  { loading: () => <div className="section-y min-h-[20rem]" aria-hidden /> },
+)
+const GlobalFootprintLazy = dynamic(
+  () =>
+    import('@/components/marketing/global-footprint-section').then(
+      (m) => m.GlobalFootprintSection,
+    ),
+  { loading: () => <div className="section-y min-h-[28rem]" aria-hidden /> },
+)
+
+function Gate({
+  sectionKey,
+  visible,
+  children,
+}: {
+  sectionKey: string
+  visible: (key: string) => boolean
+  children: ReactNode
+}) {
+  if (!visible(sectionKey)) return null
+  return <>{children}</>
+}
+
+export function LandingSections() {
+  const { isSectionVisible } = usePublishedFrontend()
+
+  return (
+    <>
+      <Gate sectionKey="hero" visible={isSectionVisible}>
+        <Hero />
+      </Gate>
+      <TrustStrip />
+      <Gate sectionKey="statistics" visible={isSectionVisible}>
+        <StatsBand />
+      </Gate>
+      <Gate sectionKey="performance" visible={isSectionVisible}>
+        <PerformanceHighlights />
+        <PerformanceShowcase />
+      </Gate>
+      <Gate sectionKey="why_choose_us" visible={isSectionVisible}>
+        <WhyChooseUs />
+      </Gate>
+      <Gate sectionKey="features" visible={isSectionVisible}>
+        <FeatureMosaic />
+      </Gate>
+
+      <Gate sectionKey="trading_strategy" visible={isSectionVisible}>
+        <div className="container-page pb-6 sm:pb-10">
+          <OperatingModel />
+        </div>
+        <div className="container-page space-y-16 pb-6 sm:space-y-20">
+          <StrategyEngine />
+        </div>
+      </Gate>
+
+      <Gate sectionKey="how_it_works" visible={isSectionVisible}>
+        <HowItWorks />
+      </Gate>
+      <Gate sectionKey="timeline" visible={isSectionVisible}>
+        <InvestmentTimeline />
+      </Gate>
+
+      <Gate sectionKey="security" visible={isSectionVisible}>
+        <div className="container-page space-y-16 pb-8 sm:space-y-20">
+          <RiskManagementPanel />
+        </div>
+      </Gate>
+
+      <Gate sectionKey="markets" visible={isSectionVisible}>
+        <TodaysMarkets />
+        <TodaysTradingActivity />
+      </Gate>
+
+      <Gate sectionKey="performance" visible={isSectionVisible}>
+        <PerformanceProof />
+      </Gate>
+
+      <Gate sectionKey="testimonials" visible={isSectionVisible}>
+        <Testimonials />
+      </Gate>
+      <DistributionsStrip />
+      <GlobalFootprintLazy />
+      <Gate sectionKey="faq" visible={isSectionVisible}>
+        <HomeFaq />
+      </Gate>
+
+      <Gate sectionKey="downloads" visible={isSectionVisible}>
+        <DownloadsBand />
+      </Gate>
+
+      <RiskBanner />
+      <Gate sectionKey="cta" visible={isSectionVisible}>
+        <CtaBand />
+      </Gate>
+    </>
+  )
+}

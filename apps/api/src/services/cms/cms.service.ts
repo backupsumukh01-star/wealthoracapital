@@ -7,13 +7,19 @@ import { activityService } from '../activity.service.js'
 import { auditService } from '../audit.service.js'
 import { settingsService } from '../settings.service.js'
 import { defaultFaqs, defaultLandingContent, defaultPlatformContent, defaultTestimonials } from './cms-defaults.js'
+import { defaultFrontendContent } from './cms-frontend-defaults.js'
 
 type Ctx = { ip?: string | null; userAgent?: string | null }
 
 async function getOrInitDocument(key: CmsDocumentKey) {
   const existing = await prisma.cmsDocument.findUnique({ where: { key } })
   if (existing) return existing
-  const seed = key === 'LANDING' ? defaultLandingContent() : defaultPlatformContent()
+  const seed =
+    key === 'LANDING'
+      ? defaultLandingContent()
+      : key === 'PLATFORM'
+        ? defaultPlatformContent()
+        : defaultFrontendContent()
   return prisma.cmsDocument.create({
     data: {
       key,
@@ -80,21 +86,127 @@ async function ensureTestimonialsSeeded() {
   await prisma.cmsTestimonial.createMany({ data: defaultTestimonials() })
 }
 
+/** Map Frontend Management publish → LANDING document fields consumed by Hero/Footer. */
+async function syncLandingFromFrontend(frontend: Record<string, unknown>, actorId: string) {
+  const sections = Array.isArray(frontend.sections) ? frontend.sections : []
+  const byKey = (key: string) =>
+    sections.find((s) => s && typeof s === 'object' && (s as { key?: string }).key === key) as
+      | Record<string, unknown>
+      | undefined
+
+  const hero = byKey('hero')
+  const footer = byKey('footer')
+  const performance = byKey('performance')
+  const social = (frontend.social ?? {}) as Record<string, string>
+  const contact = (frontend.contact ?? {}) as Record<string, string>
+  const seo = (frontend.seo ?? {}) as Record<string, string>
+  const heroMeta = (hero?.meta ?? {}) as Record<string, unknown>
+  const perfItems = Array.isArray(performance?.items) ? performance!.items : []
+
+  const pickPerf = (label: string) => {
+    const row = perfItems.find(
+      (i) =>
+        i &&
+        typeof i === 'object' &&
+        String((i as { label?: string }).label ?? '')
+          .toLowerCase()
+          .includes(label.toLowerCase()),
+    ) as { value?: string } | undefined
+    return row?.value
+  }
+
+  const landing = await getOrInitDocument('LANDING')
+  const prev = (landing.publishedContent ?? landing.draftContent ?? {}) as Record<string, unknown>
+  const prevSocial = (prev.social ?? {}) as Record<string, string>
+  const prevMotion = (prev.heroMotion ?? {}) as Record<string, unknown>
+
+  const next = {
+    ...prev,
+    companyName: String(heroMeta.companyName ?? prev.companyName ?? 'Growzy'),
+    logoUrl: String(hero?.logoUrl ?? prev.logoUrl ?? ''),
+    heroTitle: String(hero?.title ?? prev.heroTitle ?? ''),
+    heroSubtitle: String(hero?.description ?? prev.heroSubtitle ?? ''),
+    heroPrimaryCta: String(hero?.primaryCta ?? prev.heroPrimaryCta ?? ''),
+    heroSecondaryCta: String(hero?.secondaryCta ?? prev.heroSecondaryCta ?? ''),
+    heroBannerUrl: String(hero?.imageUrl || hero?.backgroundUrl || prev.heroBannerUrl || ''),
+    avgMonthlyReturn: String(pickPerf('monthly') ?? prev.avgMonthlyReturn ?? ''),
+    winRate: String(pickPerf('win') ?? prev.winRate ?? ''),
+    aum: String(pickPerf('aum') ?? prev.aum ?? ''),
+    bestDay: String(pickPerf('best') ?? prev.bestDay ?? ''),
+    footerTagline: String(footer?.description ?? prev.footerTagline ?? ''),
+    supportEmail: String(contact.supportEmail ?? prev.supportEmail ?? ''),
+    whatsapp: String(social.whatsapp ?? prev.whatsapp ?? ''),
+    telegram: String(social.telegram ?? prev.telegram ?? ''),
+    social: {
+      ...prevSocial,
+      twitter: social.twitter ?? prevSocial.twitter ?? '',
+      linkedin: social.linkedin ?? prevSocial.linkedin ?? '',
+      facebook: social.facebook ?? prevSocial.facebook ?? '',
+      instagram: social.instagram ?? prevSocial.instagram ?? '',
+      discord: social.discord ?? prevSocial.discord ?? '',
+    },
+    heroMotion: {
+      ...prevMotion,
+      particlesEnabled:
+        heroMeta.particlesEnabled !== undefined
+          ? Boolean(heroMeta.particlesEnabled)
+          : prevMotion.particlesEnabled !== false,
+      glowEnabled:
+        heroMeta.glowEnabled !== undefined
+          ? Boolean(heroMeta.glowEnabled)
+          : prevMotion.glowEnabled !== false,
+      intensity:
+        typeof heroMeta.intensity === 'number'
+          ? heroMeta.intensity
+          : typeof prevMotion.intensity === 'number'
+            ? prevMotion.intensity
+            : 1,
+    },
+    metaTitle: seo.metaTitle ?? (prev as { metaTitle?: string }).metaTitle,
+    metaDescription: seo.metaDescription ?? (prev as { metaDescription?: string }).metaDescription,
+    status: 'PUBLISHED',
+    updatedAt: new Date().toISOString(),
+  }
+
+  const nextVersion = landing.version + 1
+  await prisma.cmsDocument.update({
+    where: { key: 'LANDING' },
+    data: {
+      draftContent: next as Prisma.InputJsonValue,
+      publishedContent: next as Prisma.InputJsonValue,
+      status: 'PUBLISHED',
+      version: nextVersion,
+      publishedAt: new Date(),
+      updatedById: actorId,
+    },
+  })
+  await pushRevision('LANDING', 'PUBLISH', nextVersion, next, actorId, 'Synced from Frontend Management')
+}
+
 export const cmsService = {
   async publicBootstrap() {
-    const [landing, platform] = await Promise.all([getOrInitDocument('LANDING'), getOrInitDocument('PLATFORM')])
+    const [landing, platform, frontend] = await Promise.all([
+      getOrInitDocument('LANDING'),
+      getOrInitDocument('PLATFORM'),
+      getOrInitDocument('FRONTEND'),
+    ])
     await Promise.all([ensureFaqsSeeded(), ensureTestimonialsSeeded()])
 
-    const [faqs, testimonials, flags, settings] = await Promise.all([
+    const [faqs, testimonials, flags, settings, downloads] = await Promise.all([
       prisma.cmsFaq.findMany({ where: { status: 'PUBLISHED', deletedAt: null }, orderBy: { order: 'asc' } }),
       prisma.cmsTestimonial.findMany({ where: { enabled: true, deletedAt: null }, orderBy: { order: 'asc' } }),
       prisma.featureFlag.findMany(),
       settingsService.getOrInitPlatformSettings(),
+      prisma.cmsDownload.findMany({
+        where: { status: 'PUBLISHED', deletedAt: null, archivedAt: null, visibility: 'PUBLIC' },
+        orderBy: [{ sortOrder: 'asc' }, { publishDate: 'desc' }],
+      }),
     ])
 
     return {
       landing: landing.publishedContent ?? landing.draftContent,
       platform: platform.publishedContent ?? platform.draftContent,
+      frontend: frontend.publishedContent ?? frontend.draftContent,
       faqs: faqs.map((f) => ({ id: f.id, question: f.question, answer: f.answer })),
       testimonials: testimonials.map((t) => ({
         id: t.id,
@@ -103,6 +215,22 @@ export const cmsService = {
         quote: t.quote,
         rating: t.rating,
         platform: t.platform,
+        photoUrl: t.photoUrl,
+      })),
+      downloads: downloads.map((d) => ({
+        id: d.id,
+        title: d.title,
+        description: d.description,
+        category: d.category,
+        thumbnailUrl: d.thumbnailUrl,
+        buttonLabel: d.buttonLabel,
+        version: d.version,
+        publishDate: d.publishDate?.toISOString() ?? null,
+        fileName: d.fileName,
+        mimeType: d.mimeType,
+        sizeBytes: d.sizeBytes,
+        url: d.url,
+        sortOrder: d.sortOrder,
       })),
       siteSeo: {
         websiteName: settings.companyName,
@@ -159,6 +287,12 @@ export const cmsService = {
       },
     })
     await pushRevision(key, 'PUBLISH', nextVersion, nextContent, actorId, `Published v${nextVersion}`)
+
+    // Keep classic Landing CMS in sync so Hero / footer / social update without code.
+    if (key === 'FRONTEND') {
+      await syncLandingFromFrontend(nextContent as Record<string, unknown>, actorId)
+    }
+
     await activityService.record({
       userId: actorId,
       actorId,

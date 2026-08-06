@@ -3,6 +3,7 @@ import { Router } from 'express'
 import { env } from '../config/env.js'
 import { adminRouter } from './admin.routes.js'
 import { authRouter } from './auth.routes.js'
+import { cmsDownloadRouter } from './cms-download.routes.js'
 import { cmsRouter } from './cms.routes.js'
 import { csrfRouter } from './csrf.routes.js'
 import { depositRouter } from './deposit.routes.js'
@@ -63,6 +64,7 @@ export function createApiRouter(): Router {
   router.use('/v1/settings', settingsRouter)
   router.use('/v1/reports', reportRouter)
   router.use('/v1/cms', cmsRouter)
+  router.use('/v1/cms/downloads', cmsDownloadRouter)
   router.use('/v1/files', filesRouter)
   router.use('/v1/emails', emailTrackingRouter)
   router.use('/v1/admin', adminRouter)

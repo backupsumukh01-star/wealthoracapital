@@ -66,6 +66,21 @@ staff.post(
 )
 staff.get('/platform/revisions', requirePermission(PERMISSIONS['cms.view']), cmsController.revisionHistory)
 
+staff.get('/frontend', requirePermission(PERMISSIONS['cms.view']), cmsController.getFrontend)
+staff.put(
+  '/frontend',
+  requirePermission(PERMISSIONS['cms.manage']),
+  validate(cmsContentSchema),
+  cmsController.updateFrontend,
+)
+staff.post(
+  '/frontend/publish',
+  requirePermission(PERMISSIONS['cms.manage']),
+  validate(cmsPublishBodySchema),
+  cmsController.publishFrontend,
+)
+staff.get('/frontend/revisions', requirePermission(PERMISSIONS['cms.view']), cmsController.frontendRevisions)
+
 staff.get('/publish-logs', requirePermission(PERMISSIONS['cms.view']), cmsController.publishLogs)
 
 staff.get('/faqs', requirePermission(PERMISSIONS['cms.view']), cmsController.listFaqs)

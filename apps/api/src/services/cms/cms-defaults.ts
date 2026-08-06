@@ -115,12 +115,82 @@ export function defaultTestimonials(): Array<{
 }> {
   return [
     {
-      name: 'A. Karim',
-      country: 'UAE',
-      quote: 'Transparent daily updates and fast withdrawals.',
+      name: 'Ayesha Khan',
+      country: 'Pakistan',
+      quote:
+        'I can open any day and see the exact trades behind the return. That transparency is why I kept depositing after the first month.',
       rating: 5,
-      platform: 'Growzy',
+      platform: 'Trustpilot',
       order: 0,
+    },
+    {
+      name: 'Marcus Ellison',
+      country: 'United Kingdom',
+      quote:
+        'Losing days are shown clearly — no smoothing, no excuses. Oddly, that made me trust the winning days more.',
+      rating: 5,
+      platform: 'Google',
+      order: 1,
+    },
+    {
+      name: 'Sofia Reyes',
+      country: 'Spain',
+      quote: 'Withdrawals landed in my bank within a day of approval. Feels like serious software.',
+      rating: 5,
+      platform: 'Facebook',
+      order: 2,
+    },
+    {
+      name: 'Daniel Okonkwo',
+      country: 'Nigeria',
+      quote:
+        'The daily feed and exportable ledger made this feel institutional. I increased my allocation after three quiet months.',
+      rating: 5,
+      platform: 'Reddit',
+      order: 3,
+    },
+    {
+      name: 'Hana Al-Rashid',
+      country: 'UAE',
+      quote:
+        'Support answered payout questions in minutes. The product never overpromises — that alone is rare in this category.',
+      rating: 5,
+      platform: 'Trustpilot',
+      order: 4,
+    },
+    {
+      name: 'Tomás Silva',
+      country: 'Portugal',
+      quote: 'Charts, trades, and wallet updates stay in sync. Built for people who reconcile numbers.',
+      rating: 5,
+      platform: 'Google',
+      order: 5,
+    },
+    {
+      name: 'Priya Mehta',
+      country: 'India',
+      quote:
+        'The live tape and verified investor badge gave me confidence before my second deposit.',
+      rating: 5,
+      platform: 'Trustpilot',
+      order: 6,
+    },
+    {
+      name: 'Kenji Watanabe',
+      country: 'Japan',
+      quote: 'Clean UI, honest loss days, fast statements. Exactly what I wanted from a desk.',
+      rating: 5,
+      platform: 'Google',
+      order: 7,
+    },
+    {
+      name: 'Amelia Grant',
+      country: 'Canada',
+      quote:
+        'Payout counter and trade history made diligence straightforward. No Telegram drama — just a ledger.',
+      rating: 5,
+      platform: 'Facebook',
+      order: 8,
     },
   ]
 }

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 
 import { Section } from '@/components/common/section'
+import { usePublishedFrontend } from '@/features/cms/frontend-hooks'
 import { WHY_CHOOSE_US } from '@/lib/landing-data'
 
 const ICONS: Record<string, LucideIcon> = {
@@ -21,20 +22,38 @@ const ICONS: Record<string, LucideIcon> = {
   trending: TrendingUp,
   shield: Shield,
 }
+const FALLBACK_ICONS = [Cpu, BadgeCheck, CandlestickChart, Wallet, TrendingUp, Shield]
 
 /** Compact feature grid — icon + title + 2-line copy, ~120–140px tall. */
 export function WhyChooseUs() {
+  const { getSection } = usePublishedFrontend()
+  const section = getSection('why_choose_us')
+  const items =
+    section?.items && section.items.length > 0
+      ? section.items.map((item, i) => ({
+          title: String(item.title ?? 'Feature'),
+          description: String(item.description ?? ''),
+          icon: ICONS[String(item.icon ?? '')] ?? FALLBACK_ICONS[i % FALLBACK_ICONS.length]!,
+        }))
+      : WHY_CHOOSE_US.map((item) => ({
+          title: item.title,
+          description: item.description,
+          icon: ICONS[item.icon]!,
+        }))
+
   return (
     <Section
       id="why"
-      eyebrow="Why Growzy"
-      title="Built for verification"
-      description="Compact reasons to inspect the platform — not marketing promises."
+      eyebrow={section?.eyebrow || 'Why Growzy'}
+      title={section?.title || 'Built for verification'}
+      description={
+        section?.description || 'Compact reasons to inspect the platform — not marketing promises.'
+      }
       className="!py-10 sm:!py-14"
     >
       <ul className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-3">
-        {WHY_CHOOSE_US.map((item) => {
-          const Icon = ICONS[item.icon] ?? Shield
+        {items.map((item) => {
+          const Icon = item.icon
           return (
             <li key={item.title}>
               <article className="flex h-[120px] flex-col rounded-xl border border-white/[0.07] bg-raised/60 p-2.5 sm:h-[132px] sm:p-3.5">

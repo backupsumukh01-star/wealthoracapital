@@ -1234,6 +1234,12 @@ model InvestorPerformance {
 enum CmsDocumentKey {
   LANDING
   PLATFORM
+  FRONTEND
+}
+
+enum DownloadVisibility {
+  PUBLIC
+  AUTHENTICATED
 }
 
 enum CmsStatus {
@@ -1477,6 +1483,39 @@ model CmsPage {
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   @@map("cms_pages")
+}
+
+/// Public / investor downloadable reports & documents managed from Admin Downloads.
+model CmsDownload {
+  id            String             @id @default(uuid()) @db.Uuid
+  title         String             @db.VarChar(200)
+  description   String?            @db.VarChar(2000)
+  category      String             @default("General") @db.VarChar(80)
+  thumbnailUrl  String?            @map("thumbnail_url") @db.VarChar(500)
+  buttonLabel   String             @default("Download") @map("button_label") @db.VarChar(80)
+  version       String             @default("1.0") @db.VarChar(40)
+  publishDate   DateTime?          @map("publish_date")
+  visibility    DownloadVisibility @default(PUBLIC)
+  sortOrder     Int                @default(0) @map("sort_order")
+  status        CmsStatus          @default(DRAFT)
+  fileName      String             @map("file_name") @db.VarChar(260)
+  mimeType      String             @map("mime_type") @db.VarChar(120)
+  sizeBytes     Int                @map("size_bytes")
+  storageKey    String             @map("storage_key") @db.VarChar(400)
+  url           String             @db.VarChar(600)
+  mediaAssetId  String?            @map("media_asset_id") @db.Uuid
+  createdById   String?            @map("created_by_id") @db.Uuid
+  createdByName String?            @map("created_by_name") @db.VarChar(160)
+  downloadCount Int                @default(0) @map("download_count")
+  archivedAt    DateTime?          @map("archived_at")
+  deletedAt     DateTime?          @map("deleted_at")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+
+  @@index([status, visibility, sortOrder])
+  @@index([category, status])
+  @@index([deletedAt])
+  @@map("cms_downloads")
 }
 
 model MediaAsset {

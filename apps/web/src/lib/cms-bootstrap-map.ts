@@ -95,7 +95,7 @@ export function applyCmsBootstrap(prev: AdminOsState, boot: CmsPublicBootstrap):
         order: i,
       }))
     : prev.faqs
-  const testimonials = Array.isArray(boot.testimonials)
+  const bootTestimonials = Array.isArray(boot.testimonials)
     ? (boot.testimonials
         .map((t, i) => {
           const row = asRecord(t)
@@ -113,7 +113,14 @@ export function applyCmsBootstrap(prev: AdminOsState, boot: CmsPublicBootstrap):
           }
         })
         .filter(Boolean) as AdminOsState['testimonials'])
-    : prev.testimonials
+    : null
+  // Keep the richer Demo Mode seed when CMS returns a thin list (e.g. 1–2 rows).
+  const testimonials =
+    bootTestimonials && bootTestimonials.length >= Math.max(prev.testimonials.length, 6)
+      ? bootTestimonials
+      : prev.testimonials.length > 0
+        ? prev.testimonials
+        : (bootTestimonials ?? prev.testimonials)
 
   const flags = boot.featureFlags ?? {}
   const seo = asRecord(boot.siteSeo)

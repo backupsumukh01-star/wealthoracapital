@@ -6,6 +6,7 @@ import { ArrowRight, BadgeCheck, Lock, Shield } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 import { LogoMark } from '@/components/common/logo'
+import { CountUp } from '@/components/motion/count-up'
 import { FadeIn } from '@/components/motion/fade-in'
 import { Magnetic } from '@/components/motion/magnetic'
 import { Button } from '@/components/ui/button'
@@ -23,14 +24,68 @@ const TRUST = [
   { label: 'Withdraw anytime', icon: Lock },
 ] as const
 
+const DEMO = {
+  companyName: 'Growzy',
+  heroTitle: 'Forex investing with every trade on record',
+  heroSubtitle:
+    'AI-assisted strategies, human-verified results and transparent historical performance.',
+  heroPrimaryCta: 'Start Investing',
+  heroSecondaryCta: 'View Historical Performance',
+  avgMonthlyReturn: '6.8',
+  winRate: '78.6',
+  aum: '18.4',
+  investorCount: '4820',
+} as const
+
 /** Premium centered hero — Growzy brand, CTAs, trust, markets, equity visual. */
 export function Hero() {
   const prefersReducedMotion = usePrefersReducedMotion()
   const { landing: cms } = usePublishedLanding()
-  const heroMotion = cms.heroMotion
-  const intensity = heroMotion?.intensity ?? 1
-  const showGlow = !prefersReducedMotion && (heroMotion?.glowEnabled ?? true)
-  const showParticles = !prefersReducedMotion && (heroMotion?.particlesEnabled ?? true)
+
+  const companyName = cms.companyName?.trim() || DEMO.companyName
+  const heroTitle = cms.heroTitle?.trim() || DEMO.heroTitle
+  const heroSubtitle = cms.heroSubtitle?.trim() || DEMO.heroSubtitle
+  const heroPrimaryCta = cms.heroPrimaryCta?.trim() || DEMO.heroPrimaryCta
+  const heroSecondaryCta = cms.heroSecondaryCta?.trim() || DEMO.heroSecondaryCta
+
+  // Demo Mode atmosphere — never let thin CMS meta extinguish the premium look.
+  const intensity = Math.max(0.85, cms.heroMotion?.intensity ?? 1)
+  const showGlow = !prefersReducedMotion && cms.heroMotion?.glowEnabled !== false
+  const showParticles = !prefersReducedMotion && cms.heroMotion?.particlesEnabled !== false
+
+  const stats: {
+    label: string
+    value: string
+    prefix?: string
+    suffix?: string
+    decimals?: number
+  }[] = [
+    {
+      label: 'Investors',
+      value: cms.investorCount?.trim() || DEMO.investorCount,
+      suffix: '+',
+      decimals: 0,
+    },
+    {
+      label: 'AUM',
+      value: cms.aum?.trim() || DEMO.aum,
+      prefix: '$',
+      suffix: 'M',
+      decimals: 1,
+    },
+    {
+      label: 'Avg monthly',
+      value: cms.avgMonthlyReturn?.trim() || DEMO.avgMonthlyReturn,
+      suffix: '%',
+      decimals: 1,
+    },
+    {
+      label: 'Win rate',
+      value: cms.winRate?.trim() || DEMO.winRate,
+      suffix: '%',
+      decimals: 1,
+    },
+  ]
 
   return (
     <section className="relative isolate overflow-x-clip overflow-y-hidden pb-14 pt-10 sm:pb-20 sm:pt-14 lg:pb-28 lg:pt-16">
@@ -43,28 +98,67 @@ export function Hero() {
         }}
       />
       {showGlow ? (
-        <motion.div
-          className="pointer-events-none absolute left-1/2 top-20 -z-10 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-accent-500/15 blur-3xl"
-          animate={{ scale: [1, 1.12, 1], opacity: [0.35 * intensity, 0.55 * intensity, 0.35 * intensity] }}
-          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-        />
+        <>
+          <motion.div
+            className="pointer-events-none absolute left-1/2 top-20 -z-10 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-accent-500/15 blur-3xl"
+            animate={{
+              scale: [1, 1.12, 1],
+              opacity: [0.35 * intensity, 0.55 * intensity, 0.35 * intensity],
+            }}
+            transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className="pointer-events-none absolute -left-16 top-[40%] -z-10 h-64 w-64 rounded-full bg-hl-cyan/10 blur-3xl"
+            animate={{ x: [0, 18, 0], opacity: [0.25 * intensity, 0.45 * intensity, 0.25 * intensity] }}
+            transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className="pointer-events-none absolute -right-20 top-32 -z-10 h-72 w-72 rounded-full bg-hl-violet/10 blur-3xl"
+            animate={{ y: [0, 22, 0], opacity: [0.2 * intensity, 0.4 * intensity, 0.2 * intensity] }}
+            transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        </>
       ) : null}
 
       {showParticles
-        ? Array.from({ length: Math.round(10 * intensity) }).map((_, i) => (
+        ? Array.from({ length: Math.round(12 * intensity) }).map((_, i) => (
             <motion.span
               key={i}
               aria-hidden
               className="pointer-events-none absolute -z-10 size-1 rounded-full bg-accent-300/35"
               style={{
-                left: `${10 + ((i * 19) % 80)}%`,
-                top: `${18 + ((i * 27) % 55)}%`,
+                left: `${8 + ((i * 17) % 84)}%`,
+                top: `${14 + ((i * 23) % 60)}%`,
               }}
-              animate={{ y: [0, -14, 0], opacity: [0.15, 0.5, 0.15] }}
-              transition={{ duration: 5 + (i % 3), delay: i * 0.3, repeat: Infinity }}
+              animate={{ y: [0, -16, 0], opacity: [0.15, 0.55, 0.15] }}
+              transition={{ duration: 5 + (i % 3), delay: i * 0.28, repeat: Infinity }}
             />
           ))
         : null}
+
+      {/* Floating accent orbs — Demo Mode atmosphere */}
+      {!prefersReducedMotion ? (
+        <>
+          <motion.div
+            aria-hidden
+            className="pointer-events-none absolute left-[8%] top-[28%] -z-10 size-2 rounded-full bg-accent-300/50 shadow-[0_0_18px_rgb(18_214_160_/_0.45)]"
+            animate={{ y: [0, -20, 0], x: [0, 8, 0] }}
+            transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            aria-hidden
+            className="pointer-events-none absolute right-[12%] top-[36%] -z-10 size-1.5 rounded-full bg-hl-cyan/60 shadow-[0_0_14px_rgb(42_232_255_/_0.4)]"
+            animate={{ y: [0, 14, 0], x: [0, -10, 0] }}
+            transition={{ duration: 8.5, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
+          />
+          <motion.div
+            aria-hidden
+            className="pointer-events-none absolute left-[18%] top-[62%] -z-10 size-1.5 rounded-full bg-accent-200/40"
+            animate={{ y: [0, -12, 0] }}
+            transition={{ duration: 6.2, repeat: Infinity, ease: 'easeInOut', delay: 1.1 }}
+          />
+        </>
+      ) : null}
 
       <div className="container-page flex min-w-0 flex-col items-center text-center">
         <FadeIn>
@@ -78,7 +172,7 @@ export function Hero() {
             </div>
             <p className="text-[1.75rem] font-semibold tracking-tight sm:text-[2rem]">
               <span className="bg-gradient-to-r from-[#5EF2C4] via-[#12D6A0] to-[#2AE8FF] bg-clip-text text-transparent">
-                {cms.companyName || SITE.wordmark.primary}
+                {companyName || SITE.wordmark.primary}
               </span>
             </p>
           </div>
@@ -86,20 +180,20 @@ export function Hero() {
 
         <FadeIn delay={0.06}>
           <h1 className="text-display-xl max-w-4xl break-words text-fg">
-            {cms.heroTitle.includes('every trade') ? (
+            {heroTitle.includes('every trade') ? (
               <>
                 Forex investing with
                 <span className="text-gradient block">every trade on record</span>
               </>
             ) : (
-              cms.heroTitle
+              heroTitle
             )}
           </h1>
         </FadeIn>
 
         <FadeIn delay={0.12}>
           <p className="prose-measure mx-auto mt-5 max-w-[40ch] text-body-md text-fg-muted sm:mt-6 sm:max-w-none sm:text-body-lg">
-            {cms.heroSubtitle}
+            {heroSubtitle}
           </p>
         </FadeIn>
 
@@ -108,13 +202,13 @@ export function Hero() {
             <Magnetic>
               <Button asChild size="lg" className="w-full sm:w-auto">
                 <Link href={ROUTES.auth.register}>
-                  {cms.heroPrimaryCta}
+                  {heroPrimaryCta}
                   <ArrowRight aria-hidden />
                 </Link>
               </Button>
             </Magnetic>
             <Button asChild size="lg" variant="glass" className="w-full sm:w-auto">
-              <Link href={ROUTES.marketing.performance}>{cms.heroSecondaryCta}</Link>
+              <Link href={ROUTES.marketing.performance}>{heroSecondaryCta}</Link>
             </Button>
           </div>
         </FadeIn>
@@ -131,6 +225,27 @@ export function Hero() {
               </li>
             ))}
           </ul>
+        </FadeIn>
+
+        <FadeIn delay={0.22} className="mt-8 w-full max-w-3xl sm:mt-9">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+            {stats.map((stat) => (
+              <div
+                key={stat.label}
+                className="card-fill px-3 py-3 text-left sm:px-4 sm:py-3.5"
+              >
+                <p className="text-[11px] text-fg-subtle sm:text-caption">{stat.label}</p>
+                <p className="mt-1 text-stat-md text-fg sm:text-stat-lg">
+                  <CountUp
+                    value={stat.value}
+                    prefix={stat.prefix ?? ''}
+                    suffix={stat.suffix ?? ''}
+                    decimals={stat.decimals ?? 0}
+                  />
+                </p>
+              </div>
+            ))}
+          </div>
         </FadeIn>
 
         <FadeIn delay={0.24} className="mt-8 w-full max-w-3xl sm:mt-10">

@@ -1,12 +1,16 @@
 /**
  * Growzy Admin Operating System — CMS + ops draft state.
- * Defaults are empty; live content should come from CMS / admin APIs.
- * In-memory compatibility shape while remaining admin screens migrate to APIs.
+ * Defaults seed Demo Mode marketing fixtures (ticker, testimonials, FAQs);
+ * live CMS/admin APIs override when they provide a full set.
  */
 
 import {
+  FOREX_TICKER,
   HOME_FAQS,
   LANDING_FAQS,
+  MONTHLY_RETURNS,
+  TESTIMONIALS,
+  YEARLY_RETURNS,
 } from '@/lib/landing-data'
 import { buildPremiumEmailTemplateSeed } from '@/lib/premium-email-templates'
 import {
@@ -233,6 +237,8 @@ export type TestimonialItem = {
   enabled: boolean
   photoUrl: string
   publishedAt: string
+  investmentAmount?: string
+  profitPct?: string
 }
 
 export type SupportTicket = {
@@ -371,12 +377,12 @@ function seedLanding(): LandingCms {
     heroPrimaryCta: 'Start Investing',
     heroSecondaryCta: 'View Historical Performance',
     heroBannerUrl: '',
-    avgMonthlyReturn: '0',
-    winRate: '0',
-    aum: '0',
-    bestDay: '0',
-    investorCount: '0',
-    countries: '0',
+    avgMonthlyReturn: '6.8',
+    winRate: '78.6',
+    aum: '18.4',
+    bestDay: '2.4',
+    investorCount: '4820',
+    countries: '42',
     riskDisclosure:
       'Forex trading involves substantial risk of loss. Past performance does not guarantee future results. Only invest capital you can afford to lose.',
     footerTagline: 'Transparent forex investing with every trade on record.',
@@ -418,18 +424,34 @@ export function createDefaultAdminOs(): AdminOsState {
     ...extras,
     landing: { ...landing, heroMotion: extras.heroMotion },
     landingDraft: { ...landing, heroMotion: extras.heroMotion, status: 'DRAFT' },
-    ticker: [],
+    ticker: FOREX_TICKER.map((t, i) => ({
+      id: `TK_${i + 1}`,
+      pair: t.pair,
+      price: t.price,
+      change: t.change,
+      enabled: true,
+      featured: i < 3,
+      order: i,
+      tone: 'auto' as const,
+    })),
     performance: {
-      dailyReturn: '0',
-      weeklyReturn: '0',
-      monthlyReturn: '0',
-      yearlyReturn: '0',
-      bestDay: '0',
-      worstDay: '0',
-      winningPct: '0',
-      monthly: [],
-      yearly: [],
-      publishedAt: null,
+      dailyReturn: '0.70',
+      weeklyReturn: '2.4',
+      monthlyReturn: '6.8',
+      yearlyReturn: '54.8',
+      bestDay: '2.4',
+      worstDay: '-1.2',
+      winningPct: '78.6',
+      monthly: MONTHLY_RETURNS.map((m) => ({
+        month: m.month,
+        returnPct: String(m.returnPct),
+      })),
+      yearly: YEARLY_RETURNS.map((y) => ({
+        year: y.year,
+        returnPct: String(y.returnPct),
+        profitLabel: y.profitLabel,
+      })),
+      publishedAt: now(),
     },
     trades: seedTrades(),
     inrMethods: [],
@@ -546,7 +568,17 @@ export function createDefaultAdminOs(): AdminOsState {
       answer: f.answer,
       order: i,
     })),
-    testimonials: [],
+    testimonials: TESTIMONIALS.map((t, i) => ({
+      id: `TM_${i + 1}`,
+      name: t.name,
+      country: t.country,
+      quote: t.quote,
+      rating: t.rating,
+      platform: t.platform,
+      enabled: true,
+      photoUrl: '',
+      publishedAt: t.date,
+    })),
     tickets: [],
     roles: [
       {

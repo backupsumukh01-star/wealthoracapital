@@ -1,39 +1,54 @@
 'use client'
 
-import { useEffect, useMemo, useRef } from 'react'
-import type { Trade } from '@meridian/shared'
+import { useEffect, useRef, useState } from 'react'
 
-import { usePublicTrades } from '@/features/trades/hooks'
+import { FOREX_TICKER } from '@/lib/landing-data'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { cn } from '@/lib/cn'
 
 type Card = { pair: string; price: string; change: string }
 
-function latestPerPair(trades: Trade[]): Card[] {
-  const seen = new Map<string, Trade>()
-  for (const t of trades) {
-    if (!seen.has(t.pair)) seen.set(t.pair, t)
+function formatPrice(pair: string, value: number) {
+  if (pair.startsWith('BTC') || pair.startsWith('ETH') || value >= 1000) {
+    return value.toLocaleString('en-US', { maximumFractionDigits: 1 })
   }
-  return Array.from(seen.values())
-    .slice(0, 3)
-    .map((t) => ({
-      pair: t.pair,
-      price: t.exitPrice,
-      change: String(t.returnPct).replace(/^\+/, ''),
-    }))
+  if (value >= 100) return value.toFixed(2)
+  return value.toFixed(4)
 }
 
-/** Glass market cards from recently published trades — horizontal auto-scroll on mobile. */
+function drift(cards: Card[]): Card[] {
+  return cards.map((t) => {
+    const price = Number(t.price.replace(/,/g, ''))
+    if (!Number.isFinite(price) || price <= 0) return t
+    const magnitude = price >= 1000 ? price * 0.0015 : price >= 100 ? 0.28 : 0.0016
+    const delta = (Math.random() - 0.5) * magnitude
+    const next = Math.max(0.0001, price + delta)
+    const change = ((delta / price) * 100).toFixed(2)
+    return { ...t, price: formatPrice(t.pair, next), change }
+  })
+}
+
+const DEMO_CARDS: Card[] = FOREX_TICKER.slice(0, 3).map((t) => ({
+  pair: t.pair,
+  price: t.price,
+  change: t.change,
+}))
+
+/** Glass market cards — Demo Mode tape with live drift; mobile auto-scroll. */
 export function HeroMarketCards() {
   const prefersReducedMotion = usePrefersReducedMotion()
-  const { data: trades = [] } = usePublicTrades()
   const scrollerRef = useRef<HTMLDivElement>(null)
   const pausedRef = useRef(false)
-
-  const cards = useMemo(() => latestPerPair(trades), [trades])
+  const [cards, setCards] = useState<Card[]>(DEMO_CARDS)
 
   useEffect(() => {
-    if (prefersReducedMotion || cards.length === 0) return
+    if (prefersReducedMotion) return
+    const id = window.setInterval(() => setCards((prev) => drift(prev)), 2800)
+    return () => window.clearInterval(id)
+  }, [prefersReducedMotion])
+
+  useEffect(() => {
+    if (prefersReducedMotion) return
     const el = scrollerRef.current
     if (!el) return
 
@@ -56,9 +71,7 @@ export function HeroMarketCards() {
 
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [prefersReducedMotion, cards.length])
-
-  if (cards.length === 0) return null
+  }, [prefersReducedMotion])
 
   return (
     <div className="w-full min-w-0">
@@ -95,7 +108,7 @@ export function HeroMarketCards() {
                     up ? 'text-profit' : 'text-loss',
                   )}
                 >
-                  {up ? '+' : ''}
+                  {up && !t.change.startsWith('+') ? '+' : ''}
                   {t.change}%
                 </span>
               </div>
@@ -104,7 +117,7 @@ export function HeroMarketCards() {
           )
         })}
       </div>
-      <p className="mt-2 text-center text-[11px] text-fg-subtle">Recently published trades</p>
+      <p className="mt-2 text-center text-[11px] text-fg-subtle">Indicative market prices</p>
     </div>
   )
 }

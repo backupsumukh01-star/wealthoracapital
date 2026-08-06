@@ -1,6 +1,6 @@
 'use client'
 
-import { BadgeCheck, Star } from 'lucide-react'
+import { BadgeCheck, Star, TrendingUp } from 'lucide-react'
 
 import { Section } from '@/components/common/section'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
@@ -10,7 +10,6 @@ import { TESTIMONIALS, type ReviewPlatform } from '@/lib/landing-data'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { initialsOf } from '@/lib/format'
 import { cn } from '@/lib/cn'
-import { usePublishedTestimonials } from '@/features/cms/site'
 
 const PLATFORM_TONE: Record<ReviewPlatform, 'profit' | 'info' | 'accent' | 'warning'> = {
   Trustpilot: 'profit',
@@ -33,6 +32,8 @@ const FLAGS: Record<string, string> = {
   Pakistan: '🇵🇰',
   Nigeria: '🇳🇬',
   Portugal: '🇵🇹',
+  Brazil: '🇧🇷',
+  Kenya: '🇰🇪',
 }
 
 const TONE_CLASS = {
@@ -59,6 +60,8 @@ type WallItem = {
   platform: ReviewPlatform
   date: string
   photoUrl?: string
+  investmentAmount?: string
+  profitPct?: string
   size: keyof typeof SIZE_CLASS
   tone: keyof typeof TONE_CLASS
 }
@@ -111,40 +114,45 @@ function TestimonialCard({ item }: { item: WallItem }) {
         </span>
       </div>
 
-      <blockquote className="mt-3 flex-1 text-body-sm text-fg-muted">“{item.quote}”</blockquote>
+      {(item.investmentAmount || item.profitPct) ? (
+        <div className="mt-2.5 flex items-center gap-3">
+          {item.investmentAmount ? (
+            <span className="text-[11px] text-fg-subtle">
+              Invested <span className="font-medium text-fg-muted">{item.investmentAmount}</span>
+            </span>
+          ) : null}
+          {item.profitPct ? (
+            <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-profit tabular-nums">
+              <TrendingUp className="size-3" aria-hidden />
+              {item.profitPct}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
+      <blockquote className="mt-3 flex-1 text-body-sm text-fg-muted">"{item.quote}"</blockquote>
       <p className="mt-3 text-caption text-fg-subtle">{item.date}</p>
     </figure>
   )
 }
 
-/** Auto-scrolling masonry testimonial wall — CMS public bootstrap only. */
+/** Auto-scrolling masonry testimonial wall — Demo Mode fixtures (display only). */
 export function Testimonials() {
   const prefersReducedMotion = usePrefersReducedMotion()
-  const { testimonials, isSuccess } = usePublishedTestimonials()
 
-  const source: WallItem[] = (isSuccess ? testimonials : [])
-    .map((raw, i) => {
-      const t = raw as Record<string, unknown>
-      if (!t || typeof t !== 'object') return null
-      if (t.enabled === false) return null
-      const quote = String(t.quote ?? t.body ?? '')
-      if (!quote) return null
-      return {
-        name: String(t.name ?? 'Investor'),
-        country: String(t.country ?? '—'),
-        quote,
-        rating: typeof t.rating === 'number' ? t.rating : 5,
-        platform: (String(t.platform ?? 'Trustpilot') as ReviewPlatform) || 'Trustpilot',
-        date: String(t.publishedAt ?? '').slice(0, 10) || 'Published',
-        photoUrl: typeof t.photoUrl === 'string' ? t.photoUrl : undefined,
-        size: (['md', 'lg', 'sm'] as const)[i % 3] ?? 'md',
-        tone:
-          (['glow', 'emerald', 'cyan', 'violet', 'amber', 'default'] as const)[i % 6] ?? 'default',
-      } satisfies WallItem
-    })
-    .filter(Boolean) as WallItem[]
-
-  if (source.length === 0) return null
+  const source: WallItem[] = TESTIMONIALS.map((t) => ({
+    name: t.name,
+    country: t.country,
+    quote: t.quote,
+    rating: t.rating,
+    platform: t.platform,
+    date: t.date,
+    photoUrl: undefined,
+    investmentAmount: 'investmentAmount' in t ? t.investmentAmount : undefined,
+    profitPct: 'profitPct' in t ? t.profitPct : undefined,
+    size: t.size,
+    tone: t.tone,
+  }))
 
   const wall = [...source, ...source]
 
@@ -172,15 +180,15 @@ export function Testimonials() {
           className={cn(
             'columns-1 gap-0 px-3 pt-3 sm:columns-2 sm:px-4 lg:columns-3',
             !prefersReducedMotion &&
-            'animate-masonry-up hover:[animation-play-state:paused] focus-within:[animation-play-state:paused] active:[animation-play-state:paused]',
+              'animate-masonry-up hover:[animation-play-state:paused] focus-within:[animation-play-state:paused] active:[animation-play-state:paused]',
           )}
           onTouchStart={(e) => {
             if (prefersReducedMotion) return
-              ; (e.currentTarget as HTMLElement).style.animationPlayState = 'paused'
+            ;(e.currentTarget as HTMLElement).style.animationPlayState = 'paused'
           }}
           onTouchEnd={(e) => {
             if (prefersReducedMotion) return
-              ; (e.currentTarget as HTMLElement).style.animationPlayState = ''
+            ;(e.currentTarget as HTMLElement).style.animationPlayState = ''
           }}
         >
           {wall.map((item, i) => (

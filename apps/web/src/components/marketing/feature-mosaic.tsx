@@ -12,6 +12,7 @@ import {
 import { Section } from '@/components/common/section'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { StaggerGroup, StaggerItem } from '@/components/motion/stagger-group'
+import { usePublishedFrontend } from '@/features/cms/frontend-hooks'
 import { PLATFORM_FEATURES } from '@/lib/landing-data'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { cn } from '@/lib/cn'
@@ -23,16 +24,32 @@ const ICONS: LucideIcon[] = [CandlestickChart, Landmark, Building2, Shield]
 /** Feature panels with animated icons, glow, and pair cards instead of plain pills. */
 export function FeatureMosaic() {
   const prefersReducedMotion = usePrefersReducedMotion()
+  const { getSection } = usePublishedFrontend()
+  const section = getSection('features')
+  const features =
+    section?.items && section.items.length > 0
+      ? section.items.map((item, index) => ({
+          title: String(item.title ?? `Feature ${index + 1}`),
+          description: String(item.description ?? ''),
+          tone: index % 2 === 0 ? ('accent' as const) : ('default' as const),
+          pairs: [] as string[],
+        }))
+      : PLATFORM_FEATURES
 
   return (
     <Section
       id="platform"
-      eyebrow="Platform"
-      title="Infrastructure that feels expensive — because it is careful"
-      description="Glass surfaces, precise ledgers, and a desk that publishes its work. Built for long sessions, not launch-day demos."
+      eyebrow={section?.eyebrow || 'Platform'}
+      title={
+        section?.title || 'Infrastructure that feels expensive — because it is careful'
+      }
+      description={
+        section?.description ||
+        'Glass surfaces, precise ledgers, and a desk that publishes its work. Built for long sessions, not launch-day demos.'
+      }
     >
       <StaggerGroup className="grid gap-4 lg:grid-cols-2 lg:gap-5">
-        {PLATFORM_FEATURES.map((feature, index) => {
+        {features.map((feature, index) => {
           const Icon = ICONS[index] ?? Shield
           return (
             <StaggerItem key={feature.title}>
@@ -71,7 +88,7 @@ export function FeatureMosaic() {
 
                 {'rails' in feature && feature.rails ? (
                   <ul className="relative mt-6 grid grid-cols-3 gap-2 sm:grid-cols-5">
-                    {feature.rails.map((rail: string) => (
+                    {feature.rails.map((rail) => (
                       <li
                         key={rail}
                         className="flex h-12 items-center justify-center rounded-xl border border-line bg-inset/50 text-caption font-medium text-fg-muted transition-colors group-hover:border-accent-800"

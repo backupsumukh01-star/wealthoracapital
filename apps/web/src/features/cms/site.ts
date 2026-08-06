@@ -16,16 +16,66 @@ import { createDefaultAdminOs } from '@/lib/admin-os-store'
 import type { LandingCms } from '@/lib/admin-os-store'
 import type { PlatformCms } from '@/lib/admin-cms-extras'
 import type { QueryHookOptions } from '@/lib/query-client'
-import type { PlatformSettings, PublicSettings } from '@/types/domain'
+import type { FrontendCmsDocument, PlatformSettings, PublicSettings } from '@/types/domain'
 import type { CmsPublicAnnouncement, CmsPublicPage } from '@/services/cms.service'
+
+function mergeLandingWithFrontend(landing: LandingCms, frontend: FrontendCmsDocument | null | undefined): LandingCms {
+  if (!frontend) return landing
+  const hero = frontend.sections?.find((s) => s.key === 'hero')
+  const footer = frontend.sections?.find((s) => s.key === 'footer')
+  const performance = frontend.sections?.find((s) => s.key === 'performance')
+  const heroMeta = (hero?.meta ?? {}) as Record<string, unknown>
+  const pickPerf = (needle: string) =>
+    performance?.items?.find((i) => String(i.label ?? '').toLowerCase().includes(needle))?.value
+
+  return {
+    ...landing,
+    companyName: String(heroMeta.companyName ?? landing.companyName),
+    logoUrl: hero?.logoUrl || landing.logoUrl,
+    heroTitle: hero?.title || landing.heroTitle,
+    heroSubtitle: hero?.description || landing.heroSubtitle,
+    heroPrimaryCta: hero?.primaryCta || landing.heroPrimaryCta,
+    heroSecondaryCta: hero?.secondaryCta || landing.heroSecondaryCta,
+    heroBannerUrl: hero?.imageUrl || hero?.backgroundUrl || landing.heroBannerUrl,
+    avgMonthlyReturn: String(pickPerf('monthly') ?? landing.avgMonthlyReturn),
+    winRate: String(pickPerf('win') ?? landing.winRate),
+    aum: String(pickPerf('aum') ?? landing.aum),
+    bestDay: String(pickPerf('best') ?? landing.bestDay),
+    footerTagline: footer?.description || landing.footerTagline,
+    supportEmail: frontend.contact?.supportEmail || landing.supportEmail,
+    whatsapp: frontend.social?.whatsapp || landing.whatsapp,
+    telegram: frontend.social?.telegram || landing.telegram,
+    social: {
+      ...landing.social,
+      twitter: frontend.social?.twitter || landing.social.twitter,
+      linkedin: frontend.social?.linkedin || landing.social.linkedin,
+      facebook: frontend.social?.facebook || landing.social.facebook,
+      instagram: frontend.social?.instagram || landing.social.instagram,
+      discord: frontend.social?.discord || landing.social.discord,
+    },
+    heroMotion: {
+      ...landing.heroMotion,
+      particlesEnabled:
+        heroMeta.particlesEnabled !== undefined
+          ? Boolean(heroMeta.particlesEnabled)
+          : landing.heroMotion.particlesEnabled,
+      glowEnabled:
+        heroMeta.glowEnabled !== undefined
+          ? Boolean(heroMeta.glowEnabled)
+          : landing.heroMotion.glowEnabled,
+      intensity:
+        typeof heroMeta.intensity === 'number' ? heroMeta.intensity : landing.heroMotion.intensity,
+    },
+  }
+}
 
 export function usePublishedLanding(options?: QueryHookOptions) {
   const q = useCmsBootstrap(options)
   const defaults = useMemo(() => createDefaultAdminOs().landing, [])
-  const landing: LandingCms = useMemo(
-    () => (q.data ? mapLandingCms(q.data.landing, defaults) : defaults),
-    [q.data, defaults],
-  )
+  const landing: LandingCms = useMemo(() => {
+    const base = q.data ? mapLandingCms(q.data.landing, defaults) : defaults
+    return mergeLandingWithFrontend(base, q.data?.frontend as FrontendCmsDocument | undefined)
+  }, [q.data, defaults])
   return { ...q, landing }
 }
 

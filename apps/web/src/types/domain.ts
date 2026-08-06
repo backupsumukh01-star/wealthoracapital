@@ -102,11 +102,93 @@ export type PlatformCmsDocument = {
   contactBlurb: string
 }
 
+export type FrontendSectionItem = Record<string, unknown> & {
+  id?: string
+  title?: string
+  label?: string
+  description?: string
+  body?: string
+  value?: string
+  prefix?: string
+  suffix?: string
+  icon?: string
+  imageUrl?: string
+  enabled?: boolean
+}
+
+export type FrontendSection = {
+  id: string
+  key: string
+  label: string
+  visible: boolean
+  order: number
+  eyebrow?: string
+  title?: string
+  description?: string
+  bodyHtml?: string
+  primaryCta?: string
+  primaryCtaHref?: string
+  secondaryCta?: string
+  secondaryCtaHref?: string
+  imageUrl?: string
+  videoUrl?: string
+  backgroundUrl?: string
+  logoUrl?: string
+  items?: FrontendSectionItem[]
+  meta?: Record<string, unknown>
+}
+
+export type FrontendCmsDocument = {
+  status: 'DRAFT' | 'PUBLISHED'
+  updatedAt: string
+  publishedAt: string | null
+  sections: FrontendSection[]
+  seo: {
+    metaTitle: string
+    metaDescription: string
+    ogImageUrl: string
+    faviconUrl: string
+  }
+  social: {
+    twitter: string
+    linkedin: string
+    facebook: string
+    instagram: string
+    discord: string
+    telegram: string
+    whatsapp: string
+  }
+  contact: {
+    supportEmail: string
+    supportPhone: string
+    address: string
+    hours: string
+  }
+}
+
+export type CmsPublicDownload = {
+  id: string
+  title: string
+  description: string | null
+  category: string
+  thumbnailUrl: string | null
+  buttonLabel: string
+  version: string
+  publishDate: string | null
+  fileName: string
+  mimeType: string
+  sizeBytes: number
+  url: string
+  sortOrder: number
+}
+
 export type CmsPublicBootstrap = {
   landing: LandingCmsDocument
   platform: PlatformCmsDocument
+  frontend?: FrontendCmsDocument | null
   faqs: Array<{ id: string; question: string; answer: string }>
   testimonials: unknown[]
+  downloads?: CmsPublicDownload[]
   siteSeo: Record<string, unknown>
   featureFlags: Record<string, boolean>
 }

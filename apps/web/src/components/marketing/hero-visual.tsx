@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 
+import { CountUp } from '@/components/motion/count-up'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { cn } from '@/lib/cn'
 
@@ -23,7 +24,9 @@ export function HeroVisual({ className }: { className?: string }) {
         <div className="mb-6 flex items-end justify-between gap-4 sm:mb-8">
           <div>
             <p className="text-caption text-fg-subtle">Programme equity · 12 months</p>
-            <p className="text-stat-xl mt-1 text-profit">+89.0%</p>
+            <p className="text-stat-xl mt-1 text-profit">
+              <CountUp value="89.0" prefix="+" decimals={1} suffix="%" />
+            </p>
           </div>
           <span className="rounded-full border border-line-default bg-inset/70 px-3 py-1 text-[11px] text-fg-subtle">
             Published

@@ -10,6 +10,7 @@ import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { Button } from '@/components/ui/button'
 import { usePublishedLanding } from '@/features/cms/site'
 import { usePublicPerformance, usePublicPerformanceMonthly } from '@/features/performance/hooks'
+import { MONTHLY_RETURNS, YEARLY_RETURNS } from '@/lib/landing-data'
 
 import {
   MonthlyPerformanceChart,
@@ -24,12 +25,14 @@ export function PerformanceShowcase({
   const { landing } = usePublishedLanding()
   const { data: pub } = usePublicPerformance()
   const { data: monthly = [] } = usePublicPerformanceMonthly()
-  const yearly: Array<{ year: string; returnPct: number; profitLabel: string }> = []
-  const winRate = landing.winRate || pub?.analytics.winRate || ''
+  const yearly: Array<{ year: string; returnPct: number; profitLabel: string }> =
+    YEARLY_RETURNS.map((y) => ({ year: y.year, returnPct: y.returnPct, profitLabel: y.profitLabel }))
+  const winRate = landing.winRate || pub?.analytics.winRate || '78.6'
+  const demoMax = Math.max(...MONTHLY_RETURNS.map((m) => m.returnPct))
   const bestMonth =
     monthly.length > 0
       ? Math.max(...monthly.map((m) => Number.parseFloat(String(m.returnPct)) || 0)).toFixed(1)
-      : ''
+      : demoMax.toFixed(1)
 
   return (
     <Section

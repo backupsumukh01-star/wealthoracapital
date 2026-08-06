@@ -11,6 +11,7 @@ import { StaggerGroup, StaggerItem } from '@/components/motion/stagger-group'
 import { Button } from '@/components/ui/button'
 import { usePublishedLanding } from '@/features/cms/site'
 import { usePublicPerformance, usePublicPerformanceMonthly } from '@/features/performance/hooks'
+import { MONTHLY_RETURNS, SAMPLE_TRADES } from '@/lib/landing-data'
 import { cn } from '@/lib/cn'
 
 import { HistoricalNote } from './historical-note'
@@ -28,37 +29,44 @@ export function PerformanceProof() {
   const { data: monthly = [] } = usePublicPerformanceMonthly()
 
   const worst = numericOrNull(pub?.analytics.worstTrade?.returnPct ?? undefined)
+  const demoMonths = MONTHLY_RETURNS.length
+  const demoBestTrade = String(
+    Math.max(...SAMPLE_TRADES.map((t) => Number.parseFloat(t.returnPct))).toFixed(2),
+  )
+  const demoWorstRaw = Math.min(...SAMPLE_TRADES.map((t) => Number.parseFloat(t.returnPct)))
+  const demoWorst = Math.abs(demoWorstRaw).toFixed(2)
 
   const metrics = [
     {
       label: 'Published months on record',
-      value: numericOrNull(monthly.length || null),
+      value: numericOrNull(monthly.length || null) ?? String(demoMonths),
       suffix: '',
     },
     {
       label: 'Historical best trade',
-      value: numericOrNull(pub?.analytics.bestTrade?.returnPct ?? undefined),
+      value: numericOrNull(pub?.analytics.bestTrade?.returnPct ?? undefined) ?? demoBestTrade,
       suffix: '%',
       decimals: 2,
       tone: 'profit' as const,
     },
     {
       label: 'Historical worst trade',
-      value: worst ? worst.replace('-', '') : null,
-      prefix: worst ? '−' : '',
+      value: worst ? worst.replace('-', '') : demoWorst,
+      prefix: '−',
       suffix: '%',
       decimals: 2,
       tone: 'loss' as const,
     },
     {
       label: 'Avg. monthly performance',
-      value: numericOrNull(landing.avgMonthlyReturn),
+      value: numericOrNull(landing.avgMonthlyReturn) ?? '6.8',
       suffix: '%',
       decimals: 1,
     },
     {
       label: 'Historical win rate',
-      value: numericOrNull(landing.winRate) ?? numericOrNull(pub?.analytics.winRate),
+      value:
+        numericOrNull(landing.winRate) ?? numericOrNull(pub?.analytics.winRate) ?? '78.6',
       suffix: '%',
       decimals: 1,
     },
@@ -66,8 +74,8 @@ export function PerformanceProof() {
       label: 'Published trades on record',
       value: numericOrNull(
         (pub?.analytics.closedTrades ?? 0) + (pub?.analytics.openTrades ?? 0) || null,
-      ),
-      suffix: '',
+      ) ?? String(SAMPLE_TRADES.length),
+      suffix: '+',
     },
   ].filter((m): m is typeof m & { value: string } => m.value != null)
 

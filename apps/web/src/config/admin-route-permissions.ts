@@ -23,6 +23,8 @@ export const ADMIN_ROUTE_PERMISSIONS: Record<string, Permission | Permission[]> 
   [ROUTES.admin.reports]: 'reports.view',
   [ROUTES.admin.reportLibrary]: 'reports.view',
   [ROUTES.admin.cms.landing]: 'cms.view',
+  [ROUTES.admin.frontendManagement]: 'cms.view',
+  [ROUTES.admin.downloads]: 'cms.view',
   [ROUTES.admin.cms.platform]: 'cms.view',
   [ROUTES.admin.cms.content]: 'cms.view',
   [ROUTES.admin.cms.media]: 'media.manage',

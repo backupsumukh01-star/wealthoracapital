@@ -7,25 +7,30 @@ import { ArrowRight } from 'lucide-react'
 import { Section } from '@/components/common/section'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { Button } from '@/components/ui/button'
+import { usePublishedFrontend } from '@/features/cms/frontend-hooks'
 import { usePublishedFaqs } from '@/features/cms/site'
+import { HOME_FAQS } from '@/lib/landing-data'
 
 import { FaqAccordion } from './faq-accordion'
 
-/** Homepage FAQ — CMS faqs when available. */
+/** Homepage FAQ — published CMS faqs when available, else static seed. */
 export function HomeFaq() {
-  const { faqs, isSuccess } = usePublishedFaqs()
-  const items = isSuccess
-    ? faqs.slice(0, 5).map((f) => ({ question: f.question, answer: f.answer }))
-    : []
-
-  if (!items.length) return null
+  const { faqs } = usePublishedFaqs()
+  const { getSection } = usePublishedFrontend()
+  const section = getSection('faq')
+  const items =
+    faqs.length > 0
+      ? faqs.slice(0, 5).map((f) => ({ question: f.question, answer: f.answer }))
+      : [...HOME_FAQS]
 
   return (
     <Section
       id="faq"
-      eyebrow="FAQ"
-      title="Clear answers before you deposit"
-      description="The essentials. Full help centre lives under Resources."
+      eyebrow={section?.eyebrow || 'FAQ'}
+      title={section?.title || 'Clear answers before you deposit'}
+      description={
+        section?.description || 'The essentials. Full help centre lives under Resources.'
+      }
       centered
       className="!py-10 sm:!py-14"
     >

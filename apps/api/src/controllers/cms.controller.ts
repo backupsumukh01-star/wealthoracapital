@@ -99,6 +99,31 @@ export const cmsController = {
     sendSuccess(res, doc.content)
   }),
 
+  getFrontend: asyncHandler(async (_req, res) => {
+    sendSuccess(res, await cmsService.getDocument('FRONTEND'))
+  }),
+  updateFrontend: asyncHandler(async (req, res) => {
+    sendSuccess(
+      res,
+      await cmsService.updateDraft(
+        'FRONTEND',
+        req.user!.id,
+        req.body as ContentBody,
+        requestContext(req),
+      ),
+    )
+  }),
+  publishFrontend: asyncHandler(async (req, res) => {
+    const body = req.body as PublishBody
+    sendSuccess(
+      res,
+      await cmsService.publish('FRONTEND', req.user!.id, body.content, requestContext(req)),
+    )
+  }),
+  frontendRevisions: asyncHandler(async (_req, res) => {
+    sendSuccess(res, { items: await cmsService.listRevisions('FRONTEND') })
+  }),
+
   rollback: asyncHandler(async (req, res) => {
     sendSuccess(
       res,
@@ -107,7 +132,12 @@ export const cmsController = {
   }),
 
   revisionHistory: asyncHandler(async (req, res) => {
-    const key = req.params.key === 'platform' ? 'PLATFORM' : 'LANDING'
+    const key =
+      req.params.key === 'platform'
+        ? 'PLATFORM'
+        : req.params.key === 'frontend'
+          ? 'FRONTEND'
+          : 'LANDING'
     sendSuccess(res, { items: await cmsService.listRevisions(key) })
   }),
 

@@ -1,16 +1,17 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import type { Trade } from '@meridian/shared'
 
 import { Section } from '@/components/common/section'
-import { usePublicTrades } from '@/features/trades/hooks'
+import { FOREX_TICKER } from '@/lib/landing-data'
+import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { cn } from '@/lib/cn'
 
 import { HistoricalNote } from './historical-note'
+import { MiniSparkline } from './mini-sparkline'
 
-type Row = { pair: string; price: string; change: string; tag: string }
+type Row = { pair: string; price: string; change: string; spark: number[]; tag: string }
 
 const TAGS: Record<string, string> = {
   'EUR/USD': 'Forex',
@@ -21,32 +22,62 @@ const TAGS: Record<string, string> = {
   'ETH/USD': 'Crypto',
 }
 
-function latestPerPair(trades: Trade[]): Row[] {
-  const seen = new Map<string, Trade>()
-  for (const t of trades) {
-    if (!seen.has(t.pair)) seen.set(t.pair, t)
-  }
-  return Array.from(seen.values()).map((t) => ({
-    pair: t.pair,
-    price: t.exitPrice,
-    change: String(t.returnPct).replace(/^\+/, ''),
-    tag: TAGS[t.pair] ?? 'Market',
-  }))
+function seedSpark(i: number, up: boolean) {
+  let v = 40 + i * 3
+  return Array.from({ length: 12 }, (_, k) => {
+    v += (up ? 0.8 : -0.7) + Math.sin(i + k) * 1.2
+    return v
+  })
 }
 
-/** Published trade board for today's watched pairs — from the public trade API. */
+/** Compact live-demo market board — Forex, gold, crypto context. */
 export function TodaysMarkets() {
-  const { data: trades = [] } = usePublicTrades()
-  const rows = useMemo(() => latestPerPair(trades), [trades])
+  const prefersReducedMotion = usePrefersReducedMotion()
+  const [rows, setRows] = useState<Row[]>(() =>
+    FOREX_TICKER.map((t, i) => ({
+      pair: t.pair,
+      price: t.price,
+      change: t.change,
+      spark: seedSpark(i, !t.change.startsWith('-')),
+      tag: TAGS[t.pair] ?? 'Market',
+    })),
+  )
 
-  if (rows.length === 0) return null
+  useEffect(() => {
+    if (prefersReducedMotion) return
+    const id = window.setInterval(() => {
+      setRows((prev) =>
+        prev.map((row) => {
+          const raw = Number(row.price.replace(/,/g, ''))
+          const mag = raw >= 1000 ? raw * 0.0008 : raw >= 100 ? 0.15 : 0.001
+          const delta = (Math.random() - 0.5) * mag
+          const next = Math.max(0.0001, raw + delta)
+          const change = ((delta / raw) * 100).toFixed(2)
+          const up = !change.startsWith('-')
+          const price =
+            raw >= 1000
+              ? next.toLocaleString('en-US', { maximumFractionDigits: 1 })
+              : raw >= 100
+                ? next.toFixed(2)
+                : next.toFixed(4)
+          return {
+            ...row,
+            price,
+            change,
+            spark: [...row.spark.slice(1), row.spark.at(-1)! + (up ? 1 : -1)],
+          }
+        }),
+      )
+    }, 3400)
+    return () => window.clearInterval(id)
+  }, [prefersReducedMotion])
 
   return (
     <Section
       id="markets-today"
       eyebrow="Today's markets"
       title="Market context"
-      description="Recently published trades for the pairs the desk monitors today."
+      description="Indicative quotes for major pairs the desk monitors today."
     >
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {rows.map((row, i) => {
@@ -80,6 +111,7 @@ export function TodaysMarkets() {
                   {row.change}%
                 </span>
               </div>
+              <MiniSparkline values={row.spark} positive={up} className="mt-3 h-9" />
             </motion.article>
           )
         })}
