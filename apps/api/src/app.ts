@@ -92,12 +92,21 @@ export function createApp() {
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: [
+        'Origin',
         'Content-Type',
+        'Accept',
         'Authorization',
-        'X-Request-Id',
         'X-CSRF-Token',
+        'X-Requested-With',
+        'X-Request-Id',
         'Idempotency-Key',
+        'Cache-Control',
+        'Pragma',
+        'Expires',
       ],
+      // Echo requested headers when browser lists extras (case-insensitive match above).
+      optionsSuccessStatus: 204,
+      maxAge: 86400,
     }),
   )
   app.use(
