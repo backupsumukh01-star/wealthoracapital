@@ -17,7 +17,6 @@ import { PageHeader, SectionHeader } from '@/components/common/page-header'
 import { StatCard } from '@/components/common/stat-card'
 import { PremiumEmptyState } from '@/components/dashboard/premium-empty-state'
 import { StatusPill } from '@/components/dashboard/status-pill'
-import { DepositModal } from '@/components/wallet/deposit-modal'
 import { WithdrawModal } from '@/components/wallet/withdraw-modal'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -43,12 +42,11 @@ export function WalletCenter() {
   const withdrawals = withdrawalsData?.items ?? []
   const { data: cmsBoot, isSuccess: cmsReady } = useCmsBootstrap()
   const cms = cmsReady ? cmsBoot?.platform.wallet : null
-  const [depositOpen, setDepositOpen] = useState(false)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
 
   function tryDeposit() {
     if (!allowed) return
-    setDepositOpen(true)
+    router.push(ROUTES.dashboard.deposit)
   }
 
   function tryWithdraw() {
@@ -59,8 +57,7 @@ export function WalletCenter() {
   useEffect(() => {
     const action = searchParams.get('action')
     if (action === 'deposit') {
-      if (allowed) setDepositOpen(true)
-      router.replace(ROUTES.dashboard.wallet, { scroll: false })
+      router.replace(ROUTES.dashboard.deposit)
     } else if (action === 'withdraw') {
       if (allowed) setWithdrawOpen(true)
       router.replace(ROUTES.dashboard.wallet, { scroll: false })
@@ -295,7 +292,6 @@ export function WalletCenter() {
         </Card>
       </div>
 
-      <DepositModal open={depositOpen} onOpenChange={setDepositOpen} />
       <WithdrawModal open={withdrawOpen} onOpenChange={setWithdrawOpen} />
     </div>
   )

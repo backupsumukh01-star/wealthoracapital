@@ -40,11 +40,11 @@ export const ROUTES = {
 
   dashboard: {
     root: '/dashboard',
-    /** Wallet Center — deposit/withdraw run as modals from here. */
-    wallet: '/wallet',
-    /** @deprecated Prefer `wallet`; kept as redirect targets for old links. */
+    /** Full deposit submission flow (amount, method, proof). */
     deposit: '/deposit',
     depositHistory: '/deposit/history',
+    /** Wallet Center — withdraw modal lives here; deposit routes to `/deposit`. */
+    wallet: '/wallet',
     withdraw: '/withdraw',
     withdrawHistory: '/withdraw/history',
     trades: '/trades',

@@ -1,7 +1,5 @@
-import { redirect } from 'next/navigation'
-import { ROUTES } from '@meridian/shared'
+import { DepositWorkspace } from '@/components/dashboard/deposit-workspace'
 
-/** Legacy route — Wallet Center owns deposit via modal. */
-export default function DepositRedirectPage() {
-  redirect(`${ROUTES.dashboard.wallet}?action=deposit`)
+export default function DepositPage() {
+  return <DepositWorkspace />
 }

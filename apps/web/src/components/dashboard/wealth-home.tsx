@@ -19,7 +19,6 @@ import { TradeCards } from '@/components/dashboard/trade-cards'
 import { WalletFab } from '@/components/dashboard/wallet-fab'
 import { WealthQuickActions } from '@/components/dashboard/wealth-quick-actions'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
-import { DepositModal } from '@/components/wallet/deposit-modal'
 import { WithdrawModal } from '@/components/wallet/withdraw-modal'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { accountAccessMessage, canTransact } from '@/lib/account-access'
@@ -34,7 +33,6 @@ export function WealthHome() {
   const allowed = canTransact(session?.user.kycStatus)
   const access = accountAccessMessage(session?.user.kycStatus)
   const { data: cmsBoot, isSuccess: cmsReady } = useCmsBootstrap()
-  const [depositOpen, setDepositOpen] = useState(false)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
   const [booting, setBooting] = useState(!prefersReducedMotion)
 
@@ -53,7 +51,7 @@ export function WealthHome() {
       router.push(access.nextActionHref || ROUTES.auth.onboarding)
       return
     }
-    setDepositOpen(true)
+    router.push(ROUTES.dashboard.deposit)
   }
 
   function tryWithdraw() {
@@ -121,7 +119,6 @@ export function WealthHome() {
 
       <WalletFab onDeposit={tryDeposit} onWithdraw={tryWithdraw} />
 
-      <DepositModal open={depositOpen} onOpenChange={setDepositOpen} />
       <WithdrawModal open={withdrawOpen} onOpenChange={setWithdrawOpen} />
     </>
   )

@@ -42,7 +42,11 @@ export type AdminDepositRow = Deposit & {
   currency?: string
   notes?: string | null
   proofUrl?: string | null
+  proofKey?: string | null
   txHash?: string | null
+  userReference?: string | null
+  clientIp?: string | null
+  userAgent?: string | null
   submissionDetails?: AdminDetailRecord | null
   paymentMethod?: AdminDetailRecord | null
 }

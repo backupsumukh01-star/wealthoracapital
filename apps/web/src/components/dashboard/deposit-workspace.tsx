@@ -1,10 +1,23 @@
 'use client'
 
+/**
+ * Production deposit flow — single compact stepped page.
+ * All payment details come from GET /deposits/methods (no demo data).
+ */
+
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import type { Deposit, PaymentMethod } from '@meridian/shared'
-import { AlertTriangle, Upload } from 'lucide-react'
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  Smartphone,
+  Upload,
+  Wallet,
+} from 'lucide-react'
 
-import { DepositMethodCard } from '@/components/deposits/deposit-method-card'
 import { Money } from '@/components/common/money'
 import { PageHeader, SectionHeader } from '@/components/common/page-header'
 import { RiskDisclosure } from '@/components/common/risk-disclosure'
@@ -37,13 +50,14 @@ import { cn } from '@/lib/cn'
 import { formatDateTime } from '@/lib/format'
 import { useSession } from '@/providers/session-provider'
 
-const DEPOSIT_TIMELINE_STEPS = [
+const TIMELINE = [
   { id: 'submit', label: 'Submitted', done: false, current: true },
   { id: 'review', label: 'Under review', done: false },
   { id: 'credit', label: 'Credited', done: false },
 ]
 
-type MethodKind = 'UPI' | 'BANK_TRANSFER' | 'CRYPTO' | 'OTHER'
+type Rail = 'CRYPTO' | 'BANK' | 'UPI'
+type Step = 'method' | 'amount' | 'details' | 'summary' | 'done'
 
 type CryptoWalletOption = {
   id: string
@@ -60,61 +74,64 @@ function isCryptoType(type: string) {
   return ['CRYPTO', 'USDT_TRC20', 'USDT_BEP20', 'BTC', 'ETH'].includes(type)
 }
 
-function methodKind(method?: PaymentMethod): MethodKind {
-  if (!method) return 'OTHER'
+function railOf(method?: PaymentMethod): Rail | null {
+  if (!method) return null
   if (isCryptoType(method.type)) return 'CRYPTO'
-  if (method.type === 'UPI') return 'UPI'
-  if (method.type === 'BANK_TRANSFER') return 'BANK_TRANSFER'
-  return 'OTHER'
+  if (method.type === 'UPI' || Boolean(method.upi?.upiId)) return 'UPI'
+  if (method.type === 'BANK_TRANSFER' || Boolean(method.bank?.accountNumber)) return 'BANK'
+  return null
 }
 
-function timelineActiveIndex(status: Deposit['status'] | undefined) {
-  if (!status) return 0
-  if (status === 'APPROVED') return 2
-  if (status === 'UNDER_REVIEW' || status === 'PENDING') return 1
-  return 0
+function pickMethods(methods: PaymentMethod[], rail: Rail) {
+  return methods.filter((m) => railOf(m) === rail)
 }
 
-function cleanDetails(details: Record<string, string | undefined>) {
+function cryptoWallets(method?: PaymentMethod): CryptoWalletOption[] {
+  if (!method) return []
+  const fromApi = (method.cryptoWallets ?? [])
+    .filter((w) => w.isActive !== false)
+    .map((w) => ({
+      id: w.id,
+      label: w.label,
+      coin: w.coin,
+      network: w.network,
+      address: w.address,
+      memo: w.memo,
+      instructions: w.instructions,
+      qrCodeUrl: w.qrCodeUrl,
+    }))
+  if (fromApi.length) return fromApi
+
+  const address = method.accountDetails?.walletAddress ?? method.accountDetails?.address
+  if (!address) return []
+  return [
+    {
+      id: `${method.id}:fallback`,
+      label: method.name,
+      coin: method.accountDetails?.coin ?? (method.type.includes('USDT') ? 'USDT' : method.type),
+      network:
+        method.accountDetails?.network ??
+        method.network ??
+        (method.type.includes('TRC20') ? 'TRC20' : method.type.includes('BEP20') ? 'BEP20' : '—'),
+      address,
+      memo: method.accountDetails?.memo ?? null,
+      instructions: method.instructions || null,
+      qrCodeUrl: method.accountDetails?.qrCodeUrl ?? null,
+    },
+  ]
+}
+
+function cleanDetails(details: Record<string, string | undefined | null>) {
   return Object.fromEntries(
     Object.entries(details)
-      .map(([key, value]) => [key, value?.trim() ?? ''] as const)
-      .filter(([, value]) => value.length > 0),
+      .map(([k, v]) => [k, (v ?? '').trim()] as const)
+      .filter(([, v]) => v.length > 0),
   )
 }
 
-function cryptoWalletOptions(method?: PaymentMethod): CryptoWalletOption[] {
-  if (!method) return []
-  const wallets = (method.cryptoWallets ?? [])
-    .filter((wallet) => wallet.isActive !== false)
-    .map((wallet) => ({
-      id: wallet.id,
-      label: wallet.label,
-      coin: wallet.coin,
-      network: wallet.network,
-      address: wallet.address,
-      memo: wallet.memo,
-      instructions: wallet.instructions,
-      qrCodeUrl: wallet.qrCodeUrl,
-    }))
-
-  if (wallets.length > 0) return wallets
-
-  const address = method.accountDetails.walletAddress ?? method.accountDetails.address
-  if (!address) return []
-
-  return [
-    {
-      id: `${method.id}:fallback-wallet`,
-      label: method.name,
-      coin: method.accountDetails.coin ?? method.type.replace('USDT_', 'USDT '),
-      network: method.accountDetails.network ?? method.network ?? method.type.replaceAll('_', ' '),
-      address,
-      memo: method.accountDetails.memo ?? null,
-      instructions: method.instructions || null,
-      qrCodeUrl: method.accountDetails.qrCodeUrl ?? null,
-    },
-  ]
+function parseAmount(raw: string) {
+  const n = Number(raw.trim())
+  return Number.isFinite(n) ? n : NaN
 }
 
 function DetailRow({ label, value }: { label: string; value?: string | null }) {
@@ -130,19 +147,41 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
   )
 }
 
-function DepositHistory({ filter }: { filter?: (d: Deposit) => boolean }) {
+function ProofPreview({ file }: { file: File | null }) {
+  const [url, setUrl] = useState<string | null>(null)
+  useEffect(() => {
+    if (!file || !file.type.startsWith('image/')) {
+      setUrl(null)
+      return
+    }
+    const next = URL.createObjectURL(file)
+    setUrl(next)
+    return () => URL.revokeObjectURL(next)
+  }, [file])
+
+  if (!file) return null
+  return (
+    <div className="border-line/60 bg-inset/40 mt-3 overflow-hidden rounded-xl border">
+      {url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={url} alt="Payment proof preview" className="max-h-64 w-full object-contain" />
+      ) : (
+        <p className="text-body-sm text-fg-muted p-4">{file.name}</p>
+      )}
+      <p className="text-caption text-fg-subtle border-line/50 border-t px-3 py-2">{file.name}</p>
+    </div>
+  )
+}
+
+function DepositHistory() {
   const { session } = useSession()
   const { data, isLoading } = useDeposits(undefined, { enabled: Boolean(session) })
-  const rows = (data?.items ?? []).filter((d) => (filter ? filter(d) : true))
+  const rows = data?.items ?? []
   return (
     <Card variant="glass" className="p-5 sm:p-6">
-      <SectionHeader
-        title="Deposit history"
-        description="Recent requests and their review status."
-        as="h3"
-      />
+      <SectionHeader title="Deposit history" description="API-backed requests only." as="h3" />
       {isLoading ? (
-        <p className="text-body-sm text-fg-subtle mt-4">Loading deposits...</p>
+        <p className="text-body-sm text-fg-subtle mt-4">Loading…</p>
       ) : rows.length === 0 ? (
         <p className="text-body-sm text-fg-subtle mt-4">No deposits yet.</p>
       ) : (
@@ -156,6 +195,7 @@ function DepositHistory({ filter }: { filter?: (d: Deposit) => boolean }) {
                 <p className="text-body-sm text-fg font-medium">{row.reference || row.id}</p>
                 <p className="text-caption text-fg-subtle">
                   {row.method?.name ?? 'Deposit'} · {formatDateTime(row.createdAt)}
+                  {row.hasProof ? ' · Proof on file' : ''}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -171,126 +211,170 @@ function DepositHistory({ filter }: { filter?: (d: Deposit) => boolean }) {
 }
 
 function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
-  const { session } = useSession()
-  const { data: depositsData } = useDeposits(undefined, { enabled: Boolean(session) })
   const createDeposit = useCreateDeposit()
   const uploadProof = useUploadDepositProof()
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [amount, setAmount] = useState('500')
-  const [upiIdUsed, setUpiIdUsed] = useState('')
-  const [utr, setUtr] = useState('')
-  const [senderName, setSenderName] = useState('')
-  const [senderBank, setSenderBank] = useState('')
+
+  const [step, setStep] = useState<Step>('method')
+  const [rail, setRail] = useState<Rail | null>(null)
+  const [methodId, setMethodId] = useState<string | null>(null)
+  const [amount, setAmount] = useState('')
   const [walletId, setWalletId] = useState<string | null>(null)
   const [txHash, setTxHash] = useState('')
+  const [utr, setUtr] = useState('')
   const [notes, setNotes] = useState('')
   const [proof, setProof] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [submittedDeposit, setSubmittedDeposit] = useState<Deposit | null>(null)
+  const [submitted, setSubmitted] = useState<Deposit | null>(null)
+
+  const railMethods = useMemo(
+    () => (rail ? pickMethods(methods, rail) : []),
+    [methods, rail],
+  )
 
   const selected = useMemo(
-    () => methods.find((method) => method.id === (selectedId ?? methods[0]?.id)) ?? methods[0],
-    [methods, selectedId],
+    () =>
+      railMethods.find((m) => m.id === methodId) ??
+      railMethods[0] ??
+      null,
+    [railMethods, methodId],
   )
-  const selectedKind = methodKind(selected)
-  const wallets = useMemo(() => cryptoWalletOptions(selected), [selected])
-  const selectedWallet = wallets.find((wallet) => wallet.id === walletId) ?? wallets[0] ?? null
+
+  const wallets = useMemo(() => cryptoWallets(selected ?? undefined), [selected])
+  const selectedWallet = wallets.find((w) => w.id === walletId) ?? wallets[0] ?? null
 
   useEffect(() => {
-    setUpiIdUsed('')
-    setUtr('')
-    setSenderName('')
-    setSenderBank('')
+    if (!selected) return
+    setMethodId(selected.id)
     setWalletId(null)
     setTxHash('')
-    setNotes('')
+    setUtr('')
     setProof(null)
   }, [selected?.id])
 
-  const pending =
-    (depositsData?.items ?? []).find(
-      (deposit) => deposit.status === 'UNDER_REVIEW' || deposit.status === 'PENDING',
-    ) ?? submittedDeposit
+  const railsAvailable = useMemo(() => {
+    return {
+      CRYPTO: pickMethods(methods, 'CRYPTO').length > 0,
+      BANK: pickMethods(methods, 'BANK').length > 0,
+      UPI: pickMethods(methods, 'UPI').length > 0,
+    }
+  }, [methods])
+
+  const min = Number(selected?.minAmount ?? '50')
+  const max = selected?.maxAmount ? Number(selected.maxAmount) : null
+  const amountNum = parseAmount(amount)
+  const amountError = (() => {
+    if (!amount.trim()) return 'Enter a deposit amount.'
+    if (!Number.isFinite(amountNum) || amountNum <= 0) return 'Amount must be a positive number.'
+    if (amountNum < min) return `Minimum deposit is $${selected?.minAmount ?? min}.`
+    if (max != null && amountNum > max) return `Maximum deposit is $${selected?.maxAmount}.`
+    return null
+  })()
+
+  function chooseRail(next: Rail) {
+    setRail(next)
+    const list = pickMethods(methods, next)
+    setMethodId(list[0]?.id ?? null)
+    setAmount('')
+    setStep('amount')
+  }
+
+  function goDetails() {
+    if (amountError) {
+      toast.error(amountError)
+      return
+    }
+    setStep('details')
+  }
+
+  function goSummary() {
+    if (!selected || !rail) return
+    if (rail === 'CRYPTO') {
+      if (!selectedWallet) {
+        toast.error('No crypto wallet is configured for this method.')
+        return
+      }
+      if (!txHash.trim()) {
+        toast.error('Transaction hash is required.')
+        return
+      }
+    } else if (!utr.trim()) {
+      toast.error(rail === 'UPI' ? 'UPI reference number is required.' : 'UTR / reference is required.')
+      return
+    }
+    if (!proof) {
+      toast.error('Payment screenshot is required.')
+      return
+    }
+    setStep('summary')
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!selected) {
-      toast.error('No deposit methods are configured. Contact support.')
+    if (!selected || !rail || !proof) return
+    if (amountError) {
+      toast.error(amountError)
       return
     }
 
-    const reference = selectedKind === 'CRYPTO' ? txHash.trim() : utr.trim()
-    if (!amount.trim() || Number(amount) <= 0) {
-      toast.error('Enter a valid deposit amount.')
-      return
-    }
-    if (!reference) {
-      toast.error(
-        selectedKind === 'CRYPTO'
-          ? 'Enter the transaction hash.'
-          : 'Enter the UTR/reference number.',
-      )
-      return
-    }
-    if (selectedKind === 'UPI' && !upiIdUsed.trim()) {
-      toast.error('Enter the UPI ID used for payment.')
-      return
-    }
-    if (selectedKind === 'BANK_TRANSFER' && (!senderName.trim() || !senderBank.trim())) {
-      toast.error('Enter the sender name and bank.')
-      return
-    }
-    if (selectedKind === 'CRYPTO' && !selectedWallet) {
-      toast.error('Select a crypto wallet before submitting.')
-      return
-    }
-
+    const reference = rail === 'CRYPTO' ? txHash.trim() : utr.trim()
     setSubmitting(true)
     try {
       const submissionDetails =
-        selectedKind === 'UPI'
+        rail === 'CRYPTO'
           ? cleanDetails({
-              upiIdUsed,
-              utr,
-              paymentMethod: selected.name,
-              payeeUpiId: selected.upi?.upiId,
+              rail: 'CRYPTO',
+              methodName: selected.name,
+              methodType: selected.type,
+              coin: selectedWallet?.coin,
+              network: selectedWallet?.network,
+              walletAddress: selectedWallet?.address,
+              walletId: selectedWallet?.id,
+              memo: selectedWallet?.memo,
+              txHash: reference,
+              qrCodeUrl: selectedWallet?.qrCodeUrl,
+              proofFileName: proof.name,
             })
-          : selectedKind === 'BANK_TRANSFER'
+          : rail === 'BANK'
             ? cleanDetails({
-                senderName,
-                senderBank,
-                utr,
-                paymentMethod: selected.name,
-                beneficiaryBank: selected.bank?.bankName,
+                rail: 'BANK',
+                methodName: selected.name,
+                methodType: selected.type,
+                bankName: selected.bank?.bankName,
+                accountHolderName: selected.bank?.accountHolderName,
+                accountNumber: selected.bank?.accountNumber,
+                ifscCode: selected.bank?.ifscCode,
+                branch: selected.bank?.branch,
+                upiId: selected.upi?.upiId,
+                qrCodeUrl: selected.bank?.qrCodeUrl ?? selected.upi?.qrCodeUrl,
+                utr: reference,
+                userReference: reference,
+                proofFileName: proof.name,
               })
             : cleanDetails({
-                txHash,
-                walletId: selectedWallet?.id,
-                coin: selectedWallet?.coin,
-                network: selectedWallet?.network,
-                walletAddress: selectedWallet?.address,
+                rail: 'UPI',
+                methodName: selected.name,
+                methodType: selected.type,
+                upiId: selected.upi?.upiId,
+                accountHolderName: selected.upi?.accountHolderName,
+                qrCodeUrl: selected.upi?.qrCodeUrl,
+                utr: reference,
+                userReference: reference,
+                proofFileName: proof.name,
               })
 
       const deposit = await createDeposit.mutateAsync({
         amount: amount.trim(),
         methodId: selected.id,
         userReference: reference,
-        txHash: selectedKind === 'CRYPTO' ? reference : undefined,
+        txHash: rail === 'CRYPTO' ? reference : undefined,
         notes: notes.trim() || undefined,
         submissionDetails,
       })
-      if (proof) {
-        await uploadProof.mutateAsync({ id: deposit.id, file: proof })
-      }
-      setSubmittedDeposit(deposit)
-      toast.success('Deposit submitted', 'Awaiting operations review.')
-      setUpiIdUsed('')
-      setUtr('')
-      setSenderName('')
-      setSenderBank('')
-      setTxHash('')
-      setNotes('')
-      setProof(null)
+
+      const withProof = await uploadProof.mutateAsync({ id: deposit.id, file: proof })
+      setSubmitted(withProof)
+      setStep('done')
+      toast.success('Deposit submitted', 'Pending review — proof uploaded.')
     } catch (error) {
       toast.error(
         error instanceof ApiError
@@ -304,193 +388,23 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
     }
   }
 
-  function renderSelectedDetails() {
-    if (!selected) return null
-
-    if (selectedKind === 'UPI') {
-      return (
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
-          <div className="border-line/60 bg-inset/40 rounded-lg border px-3">
-            <DetailRow label="UPI ID" value={selected.upi?.upiId} />
-            <DetailRow label="Account holder" value={selected.upi?.accountHolderName} />
-          </div>
-          {selected.upi?.qrCodeUrl ? (
-            <QrFrame
-              src={selected.upi.qrCodeUrl}
-              label={`${selected.name} QR`}
-              className="lg:w-56"
-            />
-          ) : null}
-        </div>
-      )
-    }
-
-    if (selectedKind === 'BANK_TRANSFER') {
-      return (
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
-          <div className="border-line/60 bg-inset/40 rounded-lg border px-3">
-            <DetailRow label="Account holder" value={selected.bank?.accountHolderName} />
-            <DetailRow label="Bank" value={selected.bank?.bankName} />
-            <DetailRow label="Account number" value={selected.bank?.accountNumber} />
-            <DetailRow label="IFSC" value={selected.bank?.ifscCode} />
-            <DetailRow label="Branch" value={selected.bank?.branch} />
-            <DetailRow label="Account type" value={selected.bank?.accountType} />
-          </div>
-          {selected.bank?.qrCodeUrl ? (
-            <QrFrame
-              src={selected.bank.qrCodeUrl}
-              label={`${selected.name} QR`}
-              className="lg:w-56"
-            />
-          ) : null}
-        </div>
-      )
-    }
-
-    if (selectedKind === 'CRYPTO') {
-      return (
-        <div className="space-y-4">
-          {wallets.length > 1 ? (
-            <FormField label="Coin / network" required>
-              <Select value={selectedWallet?.id} onValueChange={setWalletId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select coin and network" />
-                </SelectTrigger>
-                <SelectContent>
-                  {wallets.map((wallet) => (
-                    <SelectItem key={wallet.id} value={wallet.id}>
-                      {wallet.coin} · {wallet.network}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
-          ) : null}
-
-          {selectedWallet ? (
-            <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
-              <div className="space-y-3">
-                <div className="border-line/60 bg-inset/40 rounded-lg border px-3">
-                  <DetailRow label="Coin" value={selectedWallet.coin} />
-                  <DetailRow label="Network" value={selectedWallet.network} />
-                  <DetailRow label="Wallet address" value={selectedWallet.address} />
-                  <DetailRow label="Memo / tag" value={selectedWallet.memo} />
-                </div>
-                <div className="border-warning/30 bg-warning/10 text-caption text-warning flex gap-2 rounded-lg border p-3">
-                  <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
-                  <p>
-                    Send only {selectedWallet.coin} on {selectedWallet.network}. Transfers on the
-                    wrong network may be unrecoverable.
-                  </p>
-                </div>
-                {selectedWallet.instructions ? (
-                  <p className="text-caption text-fg-subtle">{selectedWallet.instructions}</p>
-                ) : null}
-              </div>
-              {selectedWallet.qrCodeUrl ? (
-                <QrFrame
-                  src={selectedWallet.qrCodeUrl}
-                  label={`${selectedWallet.coin} ${selectedWallet.network} QR`}
-                  className="lg:w-56"
-                />
-              ) : null}
-            </div>
-          ) : (
-            <p className="border-line/60 bg-inset/40 text-body-sm text-fg-subtle rounded-lg border p-3">
-              No wallet address is configured for this crypto method. Please contact support.
-            </p>
-          )}
-        </div>
-      )
-    }
-
-    return Object.keys(selected.accountDetails).length > 0 ? (
-      <div className="border-line/60 bg-inset/40 rounded-lg border px-3">
-        {Object.entries(selected.accountDetails).map(([key, value]) => (
-          <DetailRow key={key} label={key.replaceAll('_', ' ')} value={value} />
-        ))}
-      </div>
-    ) : null
-  }
-
-  function renderReferenceFields() {
-    if (selectedKind === 'UPI') {
-      return (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="UPI ID used" required>
-            <Input
-              value={upiIdUsed}
-              onChange={(e) => setUpiIdUsed(e.target.value)}
-              placeholder="name@bank"
-            />
-          </FormField>
-          <FormField label="UTR / reference" required>
-            <Input
-              value={utr}
-              onChange={(e) => setUtr(e.target.value)}
-              placeholder="12-digit UTR or payment reference"
-            />
-          </FormField>
-        </div>
-      )
-    }
-
-    if (selectedKind === 'BANK_TRANSFER') {
-      return (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Sender name" required>
-            <Input
-              value={senderName}
-              onChange={(e) => setSenderName(e.target.value)}
-              placeholder="Name on bank account"
-            />
-          </FormField>
-          <FormField label="Sender bank" required>
-            <Input
-              value={senderBank}
-              onChange={(e) => setSenderBank(e.target.value)}
-              placeholder="Your bank name"
-            />
-          </FormField>
-          <FormField label="UTR / reference" required className="sm:col-span-2">
-            <Input
-              value={utr}
-              onChange={(e) => setUtr(e.target.value)}
-              placeholder="NEFT / IMPS / RTGS reference"
-            />
-          </FormField>
-        </div>
-      )
-    }
-
-    if (selectedKind === 'CRYPTO') {
-      return (
-        <FormField label="Transaction hash" required>
-          <Input
-            value={txHash}
-            onChange={(e) => setTxHash(e.target.value)}
-            placeholder="Blockchain transaction hash"
-          />
-        </FormField>
-      )
-    }
-
-    return (
-      <FormField label="Payment reference" required>
-        <Input
-          value={utr}
-          onChange={(e) => setUtr(e.target.value)}
-          placeholder="Transfer reference"
-        />
-      </FormField>
-    )
+  function resetFlow() {
+    setStep('method')
+    setRail(null)
+    setMethodId(null)
+    setAmount('')
+    setTxHash('')
+    setUtr('')
+    setNotes('')
+    setProof(null)
+    setSubmitted(null)
   }
 
   if (methods.length === 0) {
     return (
       <Card variant="glass" className="p-6">
         <p className="text-body-sm text-fg-subtle">
-          No deposit methods are available right now. Please contact support.
+          No deposit methods are available. Contact support.
         </p>
       </Card>
     )
@@ -499,100 +413,333 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
   return (
     <div className="space-y-5">
       <Card variant="glass" className="p-5 sm:p-6">
-        <SectionHeader
-          title="Deposit request"
-          description={`Select a method, transfer funds, and submit the reference for review.${
-            selected
-              ? ` Minimum $${selected.minAmount}${selected.maxAmount ? ` · Maximum $${selected.maxAmount}` : ''}`
-              : ''
-          }`}
-          as="h3"
-        />
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <SectionHeader
+            title="New deposit"
+            description="Choose method → amount → transfer details → confirm."
+            as="h3"
+          />
+          <p className="text-caption text-fg-subtle tabular-nums">
+            {step === 'method'
+              ? 'Step 1 · Method'
+              : step === 'amount'
+                ? 'Step 2 · Amount'
+                : step === 'details'
+                  ? 'Step 3 · Transfer'
+                  : step === 'summary'
+                    ? 'Step 4 · Confirm'
+                    : 'Submitted'}
+          </p>
+        </div>
 
-        <form className="mt-5 space-y-5" onSubmit={(e) => void onSubmit(e)}>
-          <div className="grid gap-4 lg:grid-cols-[0.75fr_1.25fr]">
-            <div className="space-y-3">
-              <FormField label="Amount (USD)" required>
-                <Input
-                  numeric
-                  prefix="$"
-                  inputMode="decimal"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="500.00"
-                />
+        {step !== 'method' && step !== 'done' ? (
+          <button
+            type="button"
+            className="text-caption text-fg-subtle mb-4 inline-flex items-center gap-1.5 hover:text-fg"
+            onClick={() => {
+              if (step === 'amount') setStep('method')
+              else if (step === 'details') setStep('amount')
+              else if (step === 'summary') setStep('details')
+            }}
+          >
+            <ArrowLeft className="size-3.5" aria-hidden />
+            Back
+          </button>
+        ) : null}
+
+        {step === 'method' ? (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {railsAvailable.CRYPTO ? (
+              <button
+                type="button"
+                onClick={() => chooseRail('CRYPTO')}
+                className="border-line/70 bg-inset/40 hover:border-accent/50 hover:bg-accent/5 flex flex-col gap-2 rounded-2xl border p-4 text-left transition"
+              >
+                <Wallet className="text-accent-300 size-5" aria-hidden />
+                <span className="text-body-sm text-fg font-medium">USDT / Crypto</span>
+                <span className="text-caption text-fg-subtle">TRC20, BEP20, BTC, ETH</span>
+              </button>
+            ) : null}
+            {railsAvailable.BANK ? (
+              <button
+                type="button"
+                onClick={() => chooseRail('BANK')}
+                className="border-line/70 bg-inset/40 hover:border-accent/50 hover:bg-accent/5 flex flex-col gap-2 rounded-2xl border p-4 text-left transition"
+              >
+                <Building2 className="text-accent-300 size-5" aria-hidden />
+                <span className="text-body-sm text-fg font-medium">INR Bank</span>
+                <span className="text-caption text-fg-subtle">IMPS / NEFT / RTGS</span>
+              </button>
+            ) : null}
+            {railsAvailable.UPI ? (
+              <button
+                type="button"
+                onClick={() => chooseRail('UPI')}
+                className="border-line/70 bg-inset/40 hover:border-accent/50 hover:bg-accent/5 flex flex-col gap-2 rounded-2xl border p-4 text-left transition"
+              >
+                <Smartphone className="text-accent-300 size-5" aria-hidden />
+                <span className="text-body-sm text-fg font-medium">UPI</span>
+                <span className="text-caption text-fg-subtle">UPI ID + QR</span>
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {step === 'amount' && selected ? (
+          <div className="mx-auto max-w-md space-y-4">
+            {railMethods.length > 1 ? (
+              <FormField label="Payment method" required>
+                <Select value={selected.id} onValueChange={setMethodId}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {railMethods.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </FormField>
+            ) : (
+              <p className="text-body-sm text-fg-muted">
+                Method: <span className="text-fg font-medium">{selected.name}</span>
+              </p>
+            )}
+            <FormField
+              label="Investment amount (USD)"
+              required
+              hint={`Minimum $${selected.minAmount}${selected.maxAmount ? ` · Maximum $${selected.maxAmount}` : ''}`}
+              error={amount.trim() ? amountError ?? undefined : undefined}
+            >
+              <Input
+                prefix="$"
+                inputMode="decimal"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))}
+                placeholder="Enter custom amount"
+                autoFocus
+              />
+            </FormField>
+            <Button type="button" className="w-full" onClick={goDetails} disabled={Boolean(amountError)}>
+              Continue
+              <ArrowRight aria-hidden />
+            </Button>
+          </div>
+        ) : null}
 
-              <div className="space-y-2">
-                <p className="text-body-sm text-fg font-medium">Payment method</p>
-                <div className="grid gap-3">
-                  {methods.map((method) => (
-                    <DepositMethodCard
-                      key={method.id}
-                      method={method}
-                      selected={selected?.id === method.id}
-                      onSelect={() => setSelectedId(method.id)}
-                      showActions={false}
-                      className={cn(selected?.id === method.id && 'bg-surface/70')}
-                    />
-                  ))}
+        {step === 'details' && selected && rail ? (
+          <div className="space-y-5">
+            {rail === 'CRYPTO' ? (
+              <div className="space-y-4">
+                {wallets.length > 1 ? (
+                  <FormField label="Coin / network" required>
+                    <Select
+                      value={selectedWallet?.id}
+                      onValueChange={setWalletId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select coin and network" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {wallets.map((w) => (
+                          <SelectItem key={w.id} value={w.id}>
+                            {w.coin} · {w.network}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+                ) : null}
+                {selectedWallet ? (
+                  <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+                    <div className="border-line/60 bg-inset/40 rounded-xl border px-3">
+                      <DetailRow label="Coin" value={selectedWallet.coin} />
+                      <DetailRow label="Network" value={selectedWallet.network} />
+                      <DetailRow label="Wallet address" value={selectedWallet.address} />
+                      <DetailRow label="Memo" value={selectedWallet.memo} />
+                    </div>
+                    {selectedWallet.qrCodeUrl ? (
+                      <QrFrame
+                        src={selectedWallet.qrCodeUrl}
+                        label={`${selectedWallet.coin} QR`}
+                        className="lg:w-52"
+                      />
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="text-body-sm text-danger">No wallet configured for this method.</p>
+                )}
+                <div className="border-warning/30 bg-warning/10 text-caption text-warning flex gap-2 rounded-xl border p-3">
+                  <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                  <p>
+                    Send only {selectedWallet?.coin ?? 'the selected coin'} on{' '}
+                    {selectedWallet?.network ?? 'the selected network'}. Wrong-network transfers may
+                    be unrecoverable.
+                  </p>
                 </div>
+                {(selectedWallet?.instructions || selected.instructions) && (
+                  <p className="text-caption text-fg-subtle">
+                    {selectedWallet?.instructions || selected.instructions}
+                  </p>
+                )}
+                <FormField label="Transaction hash" required>
+                  <Input
+                    value={txHash}
+                    onChange={(e) => setTxHash(e.target.value)}
+                    placeholder="Paste blockchain transaction hash"
+                    className="font-mono text-sm"
+                  />
+                </FormField>
               </div>
-            </div>
+            ) : null}
 
-            <div className="space-y-4">
-              {selected ? (
-                <DepositMethodCard
-                  method={selected}
-                  showActions={false}
-                  className="bg-surface/60"
-                />
-              ) : null}
-              {renderSelectedDetails()}
-              {renderReferenceFields()}
-              <FormField label="Payment screenshot">
+            {rail === 'BANK' ? (
+              <div className="space-y-4">
+                <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+                  <div className="border-line/60 bg-inset/40 rounded-xl border px-3">
+                    <DetailRow label="Bank name" value={selected.bank?.bankName} />
+                    <DetailRow label="Account name" value={selected.bank?.accountHolderName} />
+                    <DetailRow label="Account number" value={selected.bank?.accountNumber} />
+                    <DetailRow label="IFSC" value={selected.bank?.ifscCode} />
+                    <DetailRow label="Branch" value={selected.bank?.branch} />
+                    <DetailRow label="UPI ID" value={selected.upi?.upiId} />
+                  </div>
+                  {(selected.bank?.qrCodeUrl || selected.upi?.qrCodeUrl) && (
+                    <QrFrame
+                      src={(selected.bank?.qrCodeUrl || selected.upi?.qrCodeUrl)!}
+                      label="Bank QR"
+                      className="lg:w-52"
+                    />
+                  )}
+                </div>
+                {selected.instructions ? (
+                  <p className="text-caption text-fg-subtle">{selected.instructions}</p>
+                ) : null}
+                <FormField label="Reference number / UTR" required>
+                  <Input
+                    value={utr}
+                    onChange={(e) => setUtr(e.target.value)}
+                    placeholder="IMPS / NEFT / RTGS UTR"
+                  />
+                </FormField>
+              </div>
+            ) : null}
+
+            {rail === 'UPI' ? (
+              <div className="space-y-4">
+                <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+                  <div className="border-line/60 bg-inset/40 rounded-xl border px-3">
+                    <DetailRow label="UPI ID" value={selected.upi?.upiId} />
+                    <DetailRow label="Account holder" value={selected.upi?.accountHolderName} />
+                  </div>
+                  {selected.upi?.qrCodeUrl ? (
+                    <QrFrame src={selected.upi.qrCodeUrl} label="UPI QR" className="lg:w-52" />
+                  ) : null}
+                </div>
+                {selected.instructions ? (
+                  <p className="text-caption text-fg-subtle">{selected.instructions}</p>
+                ) : null}
+                <FormField label="UPI reference number" required>
+                  <Input
+                    value={utr}
+                    onChange={(e) => setUtr(e.target.value)}
+                    placeholder="UPI transaction / reference ID"
+                  />
+                </FormField>
+              </div>
+            ) : null}
+
+            <FormField label="Payment screenshot" required hint="JPG, PNG, WebP or PDF — required.">
+              <div>
                 <FileDropzone
-                  hint="JPG, PNG, WebP or PDF. Attach the bank, UPI, or blockchain transfer proof."
-                  onFileSelect={(file) => {
-                    setProof(file)
-                    toast.info('Proof attached')
-                  }}
+                  onFileSelect={(file) => setProof(file)}
                   onFileClear={() => setProof(null)}
                 />
-              </FormField>
-              <FormField label="Notes">
-                <Textarea
-                  rows={3}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add any details that help operations verify this deposit."
-                />
-              </FormField>
-              <Button type="submit" className="w-full sm:w-auto" loading={submitting}>
-                <Upload aria-hidden />
-                Submit deposit request
-              </Button>
-            </div>
-          </div>
-        </form>
-      </Card>
+                <ProofPreview file={proof} />
+              </div>
+            </FormField>
 
-      <Card variant="glass" className="p-5 sm:p-6">
-        <SectionHeader
-          title="Pending review"
-          description={
-            pending
-              ? `${pending.reference || pending.id} · $${pending.amount} awaiting operations review`
-              : 'Submit a transfer reference to start review.'
-          }
-          as="h3"
-        />
-        <div className="mt-5">
-          <StatusTimeline
-            steps={DEPOSIT_TIMELINE_STEPS}
-            activeIndex={timelineActiveIndex(pending?.status)}
-          />
-        </div>
+            <FormField label="Notes (optional)">
+              <Textarea
+                rows={2}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Anything that helps operations verify this deposit"
+              />
+            </FormField>
+
+            <Button type="button" className="w-full sm:w-auto" onClick={goSummary}>
+              Review summary
+              <ArrowRight aria-hidden />
+            </Button>
+          </div>
+        ) : null}
+
+        {step === 'summary' && selected && rail ? (
+          <form className="space-y-5" onSubmit={(e) => void onSubmit(e)}>
+            <div className="border-line/60 bg-inset/40 grid gap-3 rounded-2xl border p-4 sm:grid-cols-2">
+              <div>
+                <p className="text-caption text-fg-subtle">Amount</p>
+                <p className="text-heading-sm text-fg tabular-nums">${amount}</p>
+              </div>
+              <div>
+                <p className="text-caption text-fg-subtle">Method</p>
+                <p className="text-body-sm text-fg font-medium">{selected.name}</p>
+              </div>
+              {rail === 'CRYPTO' ? (
+                <>
+                  <div>
+                    <p className="text-caption text-fg-subtle">Coin</p>
+                    <p className="text-body-sm text-fg">{selectedWallet?.coin ?? '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-caption text-fg-subtle">Network</p>
+                    <p className="text-body-sm text-fg">{selectedWallet?.network ?? '—'}</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <p className="text-caption text-fg-subtle">Transaction hash</p>
+                    <p className="text-body-sm text-fg break-all font-mono">{txHash}</p>
+                  </div>
+                </>
+              ) : (
+                <div className="sm:col-span-2">
+                  <p className="text-caption text-fg-subtle">
+                    {rail === 'UPI' ? 'UPI reference' : 'UTR / reference'}
+                  </p>
+                  <p className="text-body-sm text-fg break-all font-mono">{utr}</p>
+                </div>
+              )}
+              <div className="sm:col-span-2">
+                <p className="text-caption text-fg-subtle">Uploaded proof</p>
+                <p className="text-body-sm text-fg">{proof?.name ?? '—'}</p>
+              </div>
+            </div>
+            <ProofPreview file={proof} />
+            <Button type="submit" className="w-full sm:w-auto" loading={submitting}>
+              <Upload aria-hidden />
+              Submit deposit request
+            </Button>
+          </form>
+        ) : null}
+
+        {step === 'done' && submitted ? (
+          <div className="space-y-4 text-center">
+            <CheckCircle2 className="text-success mx-auto size-10" aria-hidden />
+            <div>
+              <p className="text-heading-sm text-fg">Pending review</p>
+              <p className="text-body-sm text-fg-muted mt-1">
+                {submitted.reference} · ${submitted.amount}
+                {submitted.hasProof ? ' · Proof uploaded' : ''}
+              </p>
+            </div>
+            <StatusTimeline steps={TIMELINE} activeIndex={1} />
+            <Button type="button" variant="secondary" onClick={resetFlow}>
+              Make another deposit
+            </Button>
+          </div>
+        ) : null}
       </Card>
 
       <DepositHistory />
@@ -608,17 +755,15 @@ export function DepositWorkspace() {
     <div className="space-y-6 lg:space-y-8">
       <PageHeader
         title="Deposit"
-        description="Fund your Growzy wallet using the payment methods configured by operations."
+        description="Fund your Growzy wallet with live payment methods — amount, reference, and proof required."
       />
-
       {isLoading ? (
         <Card variant="glass" className="p-6">
-          <p className="text-body-sm text-fg-subtle">Loading deposit methods...</p>
+          <p className="text-body-sm text-fg-subtle">Loading deposit methods…</p>
         </Card>
       ) : (
         <DepositFlow methods={methods ?? []} />
       )}
-
       <RiskDisclosure />
     </div>
   )

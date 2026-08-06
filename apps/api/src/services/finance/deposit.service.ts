@@ -10,7 +10,8 @@ import { storage } from '../storage/index.js'
 import { assertUploadMagicBytes } from '../../utils/upload-magic.js'
 import { badRequest, conflict, forbidden, notFound } from '../../utils/errors.js'
 import { d, moneyDisplay, moneyString } from '../../utils/money.js'
-import { mapDeposit, mapPaymentMethod } from './finance.mappers.js'
+import { mapDeposit } from './finance.mappers.js'
+import { mapPaymentMethodDetailed } from './payment-method.mapper.js'
 import { ledgerService } from './ledger.service.js'
 import { paymentMethodService } from './payment-method.service.js'
 
@@ -113,6 +114,12 @@ export const depositService = {
     const wallet = await ledgerService.getInvestmentWallet(userId)
 
     const deposit = await prisma.$transaction(async (tx) => {
+      const submissionDetails = {
+        ...(body.submissionDetails ?? {}),
+        clientIp: context.ip ?? '',
+        userAgent: context.userAgent ?? '',
+        submittedAt: new Date().toISOString(),
+      }
       const created = await tx.deposit.create({
         data: {
           reference: depositRef(),
@@ -125,7 +132,7 @@ export const depositService = {
           userReference: body.userReference?.slice(0, 120) ?? null,
           txHash: body.txHash?.slice(0, 120) ?? null,
           notes: body.notes?.slice(0, 2000) ?? null,
-          submissionDetails: body.submissionDetails ?? undefined,
+          submissionDetails,
           idempotencyKey: body.idempotencyKey,
           expiresAt: new Date(Date.now() + 7 * 24 * 3_600_000),
         },
@@ -371,7 +378,13 @@ export const depositService = {
     const deposit = await prisma.deposit.findUnique({
       where: { id },
       include: {
-        paymentMethod: true,
+        paymentMethod: {
+          include: {
+            upiDetails: true,
+            bankDetails: true,
+            walletAddresses: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] },
+          },
+        },
         user: {
           select: {
             id: true,
@@ -393,9 +406,18 @@ export const depositService = {
         const { storage } = await import('../storage/index.js')
         proofUrl = storage.createSignedDownloadUrl(deposit.proofKey, 60 * 60)
       } catch {
-        proofUrl = null
+        try {
+          const { storage } = await import('../storage/index.js')
+          proofUrl = storage.getPublicUrl(deposit.proofKey)
+        } catch {
+          proofUrl = null
+        }
       }
     }
+    const details =
+      deposit.submissionDetails && typeof deposit.submissionDetails === 'object'
+        ? (deposit.submissionDetails as Record<string, unknown>)
+        : {}
     return {
       ...mapDeposit(deposit),
       user: {
@@ -404,13 +426,17 @@ export const depositService = {
       },
       internalNotes: deposit.internalNotes,
       notes: deposit.notes,
-      submissionDetails: deposit.submissionDetails,
+      submissionDetails: details,
       txHash: deposit.txHash,
+      userReference: deposit.userReference,
       proofUrl,
       proofKey: deposit.proofKey,
+      hasProof: Boolean(deposit.proofKey),
+      clientIp: typeof details.clientIp === 'string' ? details.clientIp : null,
+      userAgent: typeof details.userAgent === 'string' ? details.userAgent : null,
       reviews: deposit.reviews,
       queue: deposit.queue,
-      paymentMethod: mapPaymentMethod(deposit.paymentMethod),
+      paymentMethod: mapPaymentMethodDetailed(deposit.paymentMethod),
     }
   },
 

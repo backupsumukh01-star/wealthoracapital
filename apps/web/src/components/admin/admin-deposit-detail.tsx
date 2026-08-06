@@ -129,6 +129,34 @@ export function AdminDepositDetailWorkspace() {
     pickString(submissionDetails, ['walletAddress', 'depositAddress', 'address', 'toAddress', 'wallet']) ??
     pickString(accountDetails, ['walletAddress', 'depositAddress', 'address', 'wallet']) ??
     pickString(walletDetails, ['address', 'walletAddress'])
+  const bankName =
+    pickString(submissionDetails, ['bankName', 'beneficiaryBank']) ??
+    pickString(asRecord(paymentMethod?.bank), ['bankName']) ??
+    pickString(accountDetails, ['bankName', 'bank'])
+  const accountHolder =
+    pickString(submissionDetails, ['accountHolderName', 'accountName']) ??
+    pickString(asRecord(paymentMethod?.bank), ['accountHolderName']) ??
+    pickString(asRecord(paymentMethod?.upi), ['accountHolderName'])
+  const accountNumber =
+    pickString(submissionDetails, ['accountNumber']) ??
+    pickString(asRecord(paymentMethod?.bank), ['accountNumber'])
+  const ifsc =
+    pickString(submissionDetails, ['ifscCode', 'ifsc']) ??
+    pickString(asRecord(paymentMethod?.bank), ['ifscCode'])
+  const branch =
+    pickString(submissionDetails, ['branch']) ??
+    pickString(asRecord(paymentMethod?.bank), ['branch'])
+  const upiId =
+    pickString(submissionDetails, ['upiId', 'payeeUpiId', 'upiIdUsed']) ??
+    pickString(asRecord(paymentMethod?.upi), ['upiId'])
+  const clientIp =
+    deposit.clientIp ??
+    pickString(submissionDetails, ['clientIp', 'ip']) ??
+    null
+  const userAgent =
+    deposit.userAgent ??
+    pickString(submissionDetails, ['userAgent']) ??
+    null
   const submissionEntries = detailEntries(submissionDetails)
 
   async function decide(decision: DepositDecision, title: string) {
@@ -217,11 +245,35 @@ export function AdminDepositDetailWorkspace() {
                 <dd className="break-all font-mono text-fg">{walletAddress ?? '—'}</dd>
               </div>
               <div>
+                <dt className="text-fg-subtle">Bank name</dt>
+                <dd className="text-fg">{bankName ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">Account holder</dt>
+                <dd className="text-fg">{accountHolder ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">Account number</dt>
+                <dd className="break-all font-mono text-fg">{accountNumber ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">IFSC</dt>
+                <dd className="font-mono text-fg">{ifsc ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">Branch</dt>
+                <dd className="text-fg">{branch ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">UPI ID</dt>
+                <dd className="break-all text-fg">{upiId ?? '—'}</dd>
+              </div>
+              <div>
                 <dt className="text-fg-subtle">Hash</dt>
                 <dd className="break-all font-mono text-fg">{deposit.txHash ?? '—'}</dd>
               </div>
               <div>
-                <dt className="text-fg-subtle">UTR</dt>
+                <dt className="text-fg-subtle">UTR / Reference</dt>
                 <dd className="break-all font-mono text-fg">{deposit.userReference ?? '—'}</dd>
               </div>
               <div>
@@ -231,6 +283,14 @@ export function AdminDepositDetailWorkspace() {
               <div>
                 <dt className="text-fg-subtle">Submission Time</dt>
                 <dd className="text-fg">{formatDateTime(deposit.createdAt)}</dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">IP</dt>
+                <dd className="font-mono text-fg">{clientIp || '—'}</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-fg-subtle">User agent</dt>
+                <dd className="break-all text-fg">{userAgent || '—'}</dd>
               </div>
               <div className="sm:col-span-2">
                 <dt className="text-fg-subtle">Notes</dt>
