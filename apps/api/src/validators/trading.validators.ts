@@ -51,6 +51,7 @@ export const publishReturnSchema = z.object({
   idempotencyKey: z.string().min(8).max(120),
   returnBasis: z.enum(['BALANCE', 'INVESTED']).optional(),
   preview: z.boolean().optional(),
+  notes: z.string().max(2000).optional(),
 })
 
 export const adminTradeListQuerySchema = z.object({

@@ -206,14 +206,22 @@ export function usePublishReturn() {
   return useMutation<
     DailyReturnRun,
     Error,
-    { date: string; returnPct: string; idempotencyKey?: string }
+    {
+      date: string
+      returnPct: string
+      idempotencyKey?: string
+      preview?: boolean
+      notes?: string
+      returnBasis?: 'BALANCE' | 'INVESTED'
+    }
   >({
     mutationFn: (body) =>
       adminApi.publishReturn({
         ...body,
         idempotencyKey: body.idempotencyKey ?? crypto.randomUUID(),
       }),
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
+      if (vars.preview) return
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.returns() })
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.dailyReturn() })
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.activity() })

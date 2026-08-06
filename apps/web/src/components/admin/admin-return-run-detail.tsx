@@ -8,10 +8,15 @@ import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import { Money } from '@/components/common/money'
 import { PageHeader } from '@/components/common/page-header'
 import { StatCard } from '@/components/common/stat-card'
-import { PremiumEmptyState } from '@/components/dashboard/premium-empty-state'
 import { Button } from '@/components/ui/button'
 import { useAdminReturns } from '@/features/admin/hooks'
 import { formatDateTime } from '@/lib/format'
+
+function formatDuration(ms: number | null | undefined) {
+  if (ms == null || !Number.isFinite(ms)) return '—'
+  if (ms < 1000) return `${ms}ms`
+  return `${(ms / 1000).toFixed(1)}s`
+}
 
 export function AdminReturnRunDetail() {
   const params = useParams<{ runId: string }>()
@@ -41,7 +46,7 @@ export function AdminReturnRunDetail() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
-        title={`Settlement ${run.id}`}
+        title={`Settlement ${run.date}`}
         description="The permanent record of one daily return: what was applied, to whom, and by whom."
         eyebrow={
           <Link href={ROUTES.admin.dailyReturn} className="hover:text-fg">
@@ -52,29 +57,39 @@ export function AdminReturnRunDetail() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Return figure" value={`+${run.returnPct}%`} />
-        <StatCard label="Balances affected" value={String(run.eligibleWallets)} />
-        <StatCard label="Total distributed" value={<Money value={run.totalDistributed} size="sm" />} />
-        <StatCard label="Outcome" value={run.status} />
+        <StatCard label="Users processed" value={String(run.eligibleWallets)} />
+        <StatCard label="Successful" value={String(run.successfulWallets ?? run.processedWallets)} />
+        <StatCard label="Failed" value={String(run.failedWallets ?? 0)} />
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Total distributed"
+          value={<Money value={run.totalDistributed} size="sm" />}
+        />
+        <StatCard label="Applied by" value={run.appliedBy ?? '—'} />
+        <StatCard
+          label="Started at"
+          value={run.startedAt ? formatDateTime(run.startedAt) : '—'}
+        />
+        <StatCard
+          label="Completed at"
+          value={run.completedAt ? formatDateTime(run.completedAt) : run.status}
+        />
       </div>
 
       <AdminPanel>
         <AdminPanelHeader title="Run summary" description={`Trading day ${run.date}`} />
         <dl className="grid gap-4 p-4 text-body-sm sm:grid-cols-2 sm:p-5">
           <div>
-            <dt className="text-caption text-fg-subtle">Processed wallets</dt>
-            <dd className="mt-0.5 text-fg">{run.processedWallets}</dd>
-          </div>
-          <div>
-            <dt className="text-caption text-fg-subtle">Completed at</dt>
-            <dd className="mt-0.5 text-fg">
-              {run.completedAt ? formatDateTime(run.completedAt) : '—'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-caption text-fg-subtle">Base amount</dt>
+            <dt className="text-caption text-fg-subtle">Investment base</dt>
             <dd className="mt-0.5 text-fg">
               <Money value={run.totalBaseAmount} size="sm" />
             </dd>
+          </div>
+          <div>
+            <dt className="text-caption text-fg-subtle">Duration</dt>
+            <dd className="mt-0.5 text-fg">{formatDuration(run.durationMs)}</dd>
           </div>
           <div>
             <dt className="text-caption text-fg-subtle">Rounding delta</dt>
@@ -82,21 +97,15 @@ export function AdminReturnRunDetail() {
               <Money value={run.roundingDelta} size="sm" />
             </dd>
           </div>
+          <div>
+            <dt className="text-caption text-fg-subtle">Notes</dt>
+            <dd className="mt-0.5 text-fg-muted">{run.notes?.trim() || '—'}</dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-caption text-fg-subtle">Run ID</dt>
+            <dd className="mt-0.5 break-all font-mono text-[11px] text-fg-muted">{run.id}</dd>
+          </div>
         </dl>
-      </AdminPanel>
-
-      <AdminPanel>
-        <AdminPanelHeader
-          title="Per-investor effect"
-          description="Ledger line items are not included on this run payload."
-        />
-        <div className="p-4 sm:p-5">
-          <PremiumEmptyState
-            title="Investor credits not loaded"
-            description="This view shows the run totals only. Open the ledger or wallet tools for per-investor lines."
-            variant="activity"
-          />
-        </div>
       </AdminPanel>
     </div>
   )

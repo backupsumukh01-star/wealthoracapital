@@ -420,27 +420,27 @@ export function renderEmailTemplate(
       }
     case 'daily-roi':
       return {
-        subject: `Daily ROI report · ${v.date ?? 'Today'} · ${v.returnPct ?? ''}%`,
-        text: `Hi ${v.firstName},\n\nReturn: ${v.returnPct}%\nProfit: ${v.profit}\nOpening: ${v.openingBalance}\nClosing: ${v.closingBalance}`,
+        subject: `Today's trading return +${v.returnPct ?? '0.00'}% · Profit $${v.profit ?? '0.00'}`,
+        text: `Hi ${v.firstName},\n\nReturn: ${v.returnPct}%\nProfit: $${v.profit}\nInvestment: $${v.investmentValue}\nNew available balance: $${v.closingBalance}\nSettlement date: ${v.date}\nReference: ${v.reference}`,
         html: emailLayout({
           category: 'Investment',
-          title: 'Daily investment report',
-          preheader: `Today’s return ${v.returnPct ?? '—'}% · Profit ${v.profit ?? '—'}`,
+          title: 'Daily trading return',
+          preheader: `Today’s return +${v.returnPct ?? '—'}% · You earned $${v.profit ?? '—'}`,
           bodyHtml: `${greeting(v.firstName ?? '')}${paragraph(
-            'Your premium daily performance summary is ready.',
+            `Today's trading return <strong>+${escapeHtml(v.returnPct ?? '0.00')}%</strong>. You earned <strong>$${escapeHtml(v.profit ?? '0.00')}</strong>.`,
           )}${highlightCard(
-            `<p style="margin:0 0 4px;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#8B9BB0">Today’s return</p>
-             <p style="margin:0;font-size:32px;font-weight:800;color:#3DDC97">+${escapeHtml(v.returnPct ?? '0.00')}%</p>
-             <p style="margin:8px 0 0;font-size:14px;color:#E8EEF6">Profit ${escapeHtml(v.profit ?? '—')}</p>
+            `<p style="margin:0 0 4px;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#8B9BB0">Profit earned</p>
+             <p style="margin:0;font-size:32px;font-weight:800;color:#3DDC97">$${escapeHtml(v.profit ?? '0.00')}</p>
+             <p style="margin:8px 0 0;font-size:14px;color:#E8EEF6">Return +${escapeHtml(v.returnPct ?? '0.00')}%</p>
              ${miniPerformanceGraph(v.sparkline ?? '')}`,
           )}${detailRows([
-            ['Date', v.date ?? ''],
-            ['Opening balance', v.openingBalance ?? '—'],
-            ['Closing balance', v.closingBalance ?? '—'],
-            ['Portfolio value', v.portfolioValue ?? '—'],
-            ['Total profit', v.totalProfit ?? '—'],
-            ['Investment value', v.investmentValue ?? '—'],
-            ['Monthly profit', v.monthlyProfit ?? '—'],
+            ['User name', v.firstName ?? ''],
+            ['Investment', v.investmentValue ? `$${v.investmentValue}` : '—'],
+            ["Today's %", v.returnPct ? `+${v.returnPct}%` : '—'],
+            ['Profit earned', v.profit ? `$${v.profit}` : '—'],
+            ['New available balance', v.closingBalance ? `$${v.closingBalance}` : '—'],
+            ['Settlement date', v.date ?? ''],
+            ['Settlement reference', v.reference ?? '—'],
           ])}`,
           ctas: [{ label: 'View dashboard', href: dashboardUrl() }],
         }),

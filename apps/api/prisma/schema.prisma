@@ -1132,9 +1132,12 @@ model DailyReturnRun {
   status           DailyReturnRunStatus @default(PENDING)
   eligibleWallets  Int                  @default(0) @map("eligible_wallets")
   processedWallets Int                  @default(0) @map("processed_wallets")
+  successfulWallets Int                 @default(0) @map("successful_wallets")
+  failedWallets    Int                  @default(0) @map("failed_wallets")
   totalBaseAmount  Decimal              @default(0) @map("total_base_amount") @db.Decimal(20, 8)
   totalDistributed Decimal              @default(0) @map("total_distributed") @db.Decimal(20, 8)
   roundingDelta    Decimal              @default(0) @map("rounding_delta") @db.Decimal(20, 8)
+  notes            String?              @db.VarChar(2000)
   idempotencyKey   String               @unique @map("idempotency_key") @db.VarChar(120)
   createdById      String?              @map("created_by_id") @db.Uuid
   startedAt        DateTime?            @map("started_at")

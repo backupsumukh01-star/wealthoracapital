@@ -313,6 +313,89 @@ export const transactionalMailer = {
     })
   },
 
+  async dailyReturn(
+    userId: string,
+    input: {
+      date: string
+      returnPct: string
+      profit: string
+      investment: string
+      openingBalance: string
+      closingBalance: string
+      reference: string
+    },
+  ) {
+    const user = await loadUser(userId)
+    if (!user) return
+    await safe('daily-return', () =>
+      emailService.sendDailyRoi({
+        to: user.email,
+        firstName: user.firstName,
+        returnPct: input.returnPct,
+        profit: input.profit,
+        openingBalance: input.openingBalance,
+        closingBalance: input.closingBalance,
+        portfolioValue: input.closingBalance,
+        investmentValue: input.investment,
+        totalProfit: input.profit,
+        date: input.date,
+        reference: input.reference,
+      }),
+    )
+  },
+
+  async dailySettlementOwner(input: {
+    date: string
+    returnPct: string
+    eligibleUsers: number
+    successfulUsers: number
+    failedUsers: number
+    totalDistributed: string
+    durationMs: number
+    reference: string
+    failures?: Array<{ userId: string; error: string }>
+  }) {
+    const recipients = (env.ADMIN_ALERT_EMAILS ?? '')
+      .split(',')
+      .map((e) => e.trim())
+      .filter(Boolean)
+    if (recipients.length === 0) {
+      logger.debug('No ADMIN_ALERT_EMAILS configured; skipping owner settlement email')
+      return
+    }
+    const durationSec = (input.durationMs / 1000).toFixed(1)
+    const failLines =
+      (input.failures ?? [])
+        .map((f) => `• ${f.userId}: ${f.error}`)
+        .join('\n') || 'None'
+    const html = `
+      <h2>Daily Settlement Completed</h2>
+      <p>Settlement date: <strong>${input.date}</strong></p>
+      <ul>
+        <li>Return %: <strong>${input.returnPct}%</strong></li>
+        <li>Eligible users: <strong>${input.eligibleUsers}</strong></li>
+        <li>Successful users: <strong>${input.successfulUsers}</strong></li>
+        <li>Failed users: <strong>${input.failedUsers}</strong></li>
+        <li>Total distributed: <strong>$${input.totalDistributed}</strong></li>
+        <li>Execution time: <strong>${durationSec}s</strong></li>
+        <li>Reference: <strong>${input.reference}</strong></li>
+      </ul>
+      <p>Failures:</p>
+      <pre>${failLines}</pre>
+    `
+    for (const to of recipients) {
+      await safe('daily-settlement-owner', () =>
+        emailService.sendRaw({
+          to,
+          subject: 'Daily Settlement Completed',
+          html,
+          text: `Daily Settlement Completed\nDate: ${input.date}\nReturn: ${input.returnPct}%\nEligible: ${input.eligibleUsers}\nSuccessful: ${input.successfulUsers}\nFailed: ${input.failedUsers}\nDistributed: $${input.totalDistributed}\nDuration: ${durationSec}s\nRef: ${input.reference}\nFailures:\n${failLines}`,
+          category: 'Investment',
+        }),
+      )
+    }
+  },
+
   async broadcast(to: string, input: { firstName?: string; title: string; body: string }) {
     await safe('broadcast', () =>
       emailService.sendBroadcast({

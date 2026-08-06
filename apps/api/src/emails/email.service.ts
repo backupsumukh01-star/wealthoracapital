@@ -338,6 +338,7 @@ class AppEmailService implements EmailService {
     investmentValue?: string
     monthlyProfit?: string
     date?: string
+    reference?: string
   }): Promise<void> {
     return this.dispatch(input.to, 'daily-roi', {
       firstName: input.firstName,
@@ -350,6 +351,7 @@ class AppEmailService implements EmailService {
       investmentValue: input.investmentValue ?? '',
       monthlyProfit: input.monthlyProfit ?? '',
       date: input.date ?? new Date().toISOString().slice(0, 10),
+      reference: input.reference ?? '',
       sparkline: '0.3,0.5,0.4,0.7,0.6,0.9,1.0',
     })
   }
@@ -457,7 +459,9 @@ class AppEmailService implements EmailService {
     html: string
     text: string
     from?: string
+    category?: 'Security' | 'Finance' | 'Support' | 'KYC' | 'Investment' | 'System'
   }): Promise<void> {
+    const category = input.category ?? 'System'
     await this.transport.send({
       to: input.to,
       subject: input.subject,
@@ -465,8 +469,8 @@ class AppEmailService implements EmailService {
       variables: {},
       text: input.text,
       html: input.html,
-      from: input.from ?? senderForCategory('System').formatted,
-      category: 'System',
+      from: input.from ?? senderForCategory(category).formatted,
+      category,
     })
   }
 }

@@ -242,11 +242,16 @@ export interface DailyReturnRun {
   status: DailyReturnRunStatus
   eligibleWallets: number
   processedWallets: number
+  successfulWallets?: number
+  failedWallets?: number
   totalBaseAmount: MoneyString
   totalDistributed: MoneyString
   roundingDelta: MoneyString
+  notes?: string | null
+  appliedBy?: string | null
   startedAt: IsoDateTime | null
   completedAt: IsoDateTime | null
+  durationMs?: number | null
 }
 
 export interface Notification {

@@ -66,7 +66,16 @@ export function mapDailyReturn(day: DailyReturn) {
   }
 }
 
-export function mapDailyReturnRun(run: DailyReturnRun) {
+export function mapDailyReturnRun(
+  run: DailyReturnRun,
+  extras?: { appliedBy?: string | null },
+) {
+  const startedAt = run.startedAt?.toISOString() ?? null
+  const completedAt = run.completedAt?.toISOString() ?? null
+  const durationMs =
+    run.startedAt && run.completedAt
+      ? Math.max(0, run.completedAt.getTime() - run.startedAt.getTime())
+      : null
   return {
     id: run.id,
     date: run.date.toISOString().slice(0, 10),
@@ -75,11 +84,16 @@ export function mapDailyReturnRun(run: DailyReturnRun) {
     status: run.status,
     eligibleWallets: run.eligibleWallets,
     processedWallets: run.processedWallets,
+    successfulWallets: run.successfulWallets ?? run.processedWallets,
+    failedWallets: run.failedWallets ?? 0,
     totalBaseAmount: moneyDisplay(run.totalBaseAmount),
     totalDistributed: moneyDisplay(run.totalDistributed),
     roundingDelta: moneyDisplay(run.roundingDelta),
-    startedAt: run.startedAt?.toISOString() ?? null,
-    completedAt: run.completedAt?.toISOString() ?? null,
+    notes: run.notes ?? null,
+    appliedBy: extras?.appliedBy ?? null,
+    startedAt,
+    completedAt,
+    durationMs,
   }
 }
 

@@ -191,6 +191,7 @@ export interface EmailService {
     investmentValue?: string
     monthlyProfit?: string
     date?: string
+    reference?: string
   }): Promise<void>
 
   sendInvestmentCreated(input: {
@@ -251,5 +252,6 @@ export interface EmailService {
     html: string
     text: string
     from?: string
+    category?: 'Security' | 'Finance' | 'Support' | 'KYC' | 'Investment' | 'System'
   }): Promise<void>
 }

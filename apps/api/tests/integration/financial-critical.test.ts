@@ -170,7 +170,7 @@ describe.skipIf(!hasDb)('Financial critical regressions', () => {
         { date: date.toISOString().slice(0, 10), returnPct: '0.10', idempotencyKey: key2 },
         {},
       ),
-    ).rejects.toThrow(/already exists|original idempotency/i)
+    ).rejects.toThrow(/already been published|already exists|original idempotency/i)
   })
 
   it('C3: completing a withdrawal decreases investedAmount', async () => {

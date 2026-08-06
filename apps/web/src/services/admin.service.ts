@@ -171,7 +171,14 @@ export const adminService = {
 
   returns: () => apiClient<{ items: DailyReturnRun[] }>(API_ROUTES.admin.returns),
 
-  publishReturn: (body: { date: string; returnPct: string; idempotencyKey: string }) =>
+  publishReturn: (body: {
+    date: string
+    returnPct: string
+    idempotencyKey: string
+    preview?: boolean
+    notes?: string
+    returnBasis?: 'BALANCE' | 'INVESTED'
+  }) =>
     apiClient<DailyReturnRun>(API_ROUTES.admin.returns, {
       method: 'POST',
       body,
