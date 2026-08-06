@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { usePublicPerformanceMonthly } from '@/features/performance/hooks'
+import { MONTHLY_RETURNS } from '@/lib/landing-data'
 import { cn } from '@/lib/cn'
 
 type Range = 'monthly' | 'quarterly'
@@ -14,6 +15,8 @@ type BarPoint = {
   label: string
   fullLabel: string
   returnPct: number
+  /** Calendar year-month key when known (`YYYY-MM`). */
+  monthKey?: string
 }
 
 const FULL_MONTHS = [
@@ -31,33 +34,103 @@ const FULL_MONTHS = [
   'December',
 ] as const
 
+const MONTH_SHORT = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const
+
 function compound(returns: number[]) {
   return (returns.reduce((acc, r) => acc * (1 + r / 100), 1) - 1) * 100
 }
 
-function buildMonthly(source: Array<{ month: string; returnPct: number }>): BarPoint[] {
-  return source.map((m, i) => ({
-    id: `m-${m.month}`,
-    label: m.month,
-    fullLabel: FULL_MONTHS[i] ?? m.month,
-    returnPct: m.returnPct,
-  }))
+/** Parse `YYYY-MM` into calendar parts; otherwise null. */
+function parseYearMonth(month: string): { year: number; monthIndex: number; key: string } | null {
+  const match = /^(\d{4})-(\d{2})$/.exec(month)
+  if (!match) return null
+  const year = Number(match[1])
+  const monthIndex = Number(match[2]) - 1
+  if (!Number.isFinite(year) || monthIndex < 0 || monthIndex > 11) return null
+  return { year, monthIndex, key: `${match[1]}-${match[2]}` }
 }
 
-function buildQuarterly(monthly: BarPoint[]): BarPoint[] {
-  const quarters: BarPoint[] = []
-  for (let q = 0; q * 3 < monthly.length; q += 1) {
-    const slice = monthly.slice(q * 3, q * 3 + 3)
-    if (slice.length === 0) continue
-    const returnPct = Number(compound(slice.map((s) => s.returnPct)).toFixed(1))
-    quarters.push({
-      id: `q-${q + 1}`,
-      label: `Q${q + 1}`,
-      fullLabel: `Quarter ${q + 1}`,
-      returnPct,
-    })
+/** Short axis label from `YYYY-MM` or demo labels like `Jan`. */
+function formatMonthLabel(month: string): string {
+  const parsed = parseYearMonth(month)
+  if (parsed) return MONTH_SHORT[parsed.monthIndex] ?? month
+  return month
+}
+
+/** Full period name from `YYYY-MM` or demo month labels. */
+function formatMonthFullLabel(month: string): string {
+  const parsed = parseYearMonth(month)
+  if (parsed) {
+    const name = FULL_MONTHS[parsed.monthIndex]
+    return name ? `${name} ${parsed.year}` : month
   }
-  return quarters
+  const demoIdx = MONTH_SHORT.findIndex((m) => m === month)
+  if (demoIdx >= 0) return FULL_MONTHS[demoIdx] ?? month
+  return month
+}
+
+function buildMonthly(source: Array<{ month: string; returnPct: number }>): BarPoint[] {
+  return source.map((m) => {
+    const parsed = parseYearMonth(m.month)
+    return {
+      id: `m-${parsed?.key ?? m.month}`,
+      label: formatMonthLabel(m.month),
+      fullLabel: formatMonthFullLabel(m.month),
+      returnPct: m.returnPct,
+      monthKey: parsed?.key,
+    }
+  })
+}
+
+/** Group by calendar quarter (Q1=Jan–Mar), not by array-index chunks of 3. */
+function buildQuarterly(monthly: BarPoint[]): BarPoint[] {
+  const buckets = new Map<string, { year: number; quarter: number; returns: number[] }>()
+
+  monthly.forEach((point, i) => {
+    const parsed = point.monthKey ? parseYearMonth(point.monthKey) : null
+    let year: number
+    let monthIndex: number
+
+    if (parsed) {
+      year = parsed.year
+      monthIndex = parsed.monthIndex
+    } else {
+      // Demo series without year keys: treat as a single calendar year starting at Jan.
+      year = new Date().getFullYear()
+      monthIndex = i % 12
+    }
+
+    const quarter = Math.floor(monthIndex / 3) + 1
+    const key = `${year}-Q${quarter}`
+    const bucket = buckets.get(key) ?? { year, quarter, returns: [] }
+    bucket.returns.push(point.returnPct)
+    buckets.set(key, bucket)
+  })
+
+  return [...buckets.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, bucket]) => {
+      const returnPct = Number(compound(bucket.returns).toFixed(1))
+      return {
+        id: `q-${key}`,
+        label: `Q${bucket.quarter}`,
+        fullLabel: `Q${bucket.quarter} ${bucket.year}`,
+        returnPct,
+      }
+    })
 }
 
 const RANGES: { id: Range; label: string }[] = [
@@ -72,22 +145,23 @@ function formatPct(n: number) {
 
 /**
  * Interactive SVG historical return bars — published monthly performance only.
- * Renders nothing without a published series.
+ * Falls back to demo monthly series when live returnPct is empty or all-zero.
  */
 export const HistoricalReturnTimeline = memo(function HistoricalReturnTimeline() {
   const prefersReducedMotion = usePrefersReducedMotion()
   const { data: monthlyData = [] } = usePublicPerformanceMonthly()
   const gid = useId()
-  const monthly = useMemo(
-    () =>
-      buildMonthly(
-        monthlyData.map((m) => ({
-          month: m.month,
-          returnPct: Number.parseFloat(String(m.returnPct)) || 0,
-        })),
-      ),
-    [monthlyData],
-  )
+  const monthly = useMemo(() => {
+    const live = monthlyData.map((m) => ({
+      month: m.month,
+      returnPct: Number.parseFloat(String(m.returnPct)) || 0,
+    }))
+    const liveUsable = live.length > 0 && live.some((m) => m.returnPct !== 0)
+    const source = liveUsable
+      ? live
+      : MONTHLY_RETURNS.map((m) => ({ month: m.month, returnPct: m.returnPct }))
+    return buildMonthly(source)
+  }, [monthlyData])
   const quarterly = useMemo(() => buildQuarterly(monthly), [monthly])
 
   const [range, setRange] = useState<Range>('monthly')
@@ -102,7 +176,9 @@ export const HistoricalReturnTimeline = memo(function HistoricalReturnTimeline()
   const active = series[activeIndex]!
   const focus = hovered ?? activeIndex
 
-  const W = 720
+  // Widen the chart so many months remain readable and horizontally scrollable.
+  const slotMin = 48
+  const W = Math.max(720, series.length * slotMin + 60)
   const H = 220
   const pad = { t: 28, r: 16, b: 36, l: 44 }
   const innerW = W - pad.l - pad.r
@@ -177,8 +253,8 @@ export const HistoricalReturnTimeline = memo(function HistoricalReturnTimeline()
 
       {/* Stat for selected period — fixed layout, no CLS */}
       <div className="border-b border-white/[0.06] px-4 py-3 sm:px-6">
-        <div className="min-w-0 max-w-[10rem] rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2.5">
-          <p className="text-[11px] text-fg-subtle">Return</p>
+        <div className="min-w-0 max-w-[14rem] rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2.5">
+          <p className="truncate text-[11px] text-fg-subtle">{active.fullLabel}</p>
           <AnimatePresence mode="wait" initial={false}>
             <motion.p
               key={`${range}-${active.id}`}
@@ -197,11 +273,14 @@ export const HistoricalReturnTimeline = memo(function HistoricalReturnTimeline()
         </div>
       </div>
 
-      {/* Chart — fixed height viewport */}
+      {/* Chart — fixed height viewport, horizontal scroll for long series */}
       <div className="relative h-[200px] w-full min-w-0 overflow-x-auto overflow-y-hidden sm:h-[240px] [scrollbar-width:thin]">
         <svg
           viewBox={`0 0 ${W} ${H}`}
-          className="h-full w-full min-w-0 touch-pan-x"
+          width={W}
+          height={H}
+          className="h-full max-w-none touch-pan-x"
+          style={{ minWidth: W, width: W }}
           preserveAspectRatio="xMidYMid meet"
           role="img"
           aria-label={`${active.fullLabel} return ${formatPct(active.returnPct)}`}
