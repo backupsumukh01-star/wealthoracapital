@@ -133,6 +133,34 @@ export const financeController = {
     )
   }),
 
+  depositProofFile: asyncHandler(async (req, res) => {
+    const user = req.user!
+    const isStaff =
+      user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || Boolean(user.staffRole)
+    const file = await depositService.resolveProofFile({
+      id: user.id,
+      isStaff,
+      depositId: req.params.id!,
+    })
+    res.setHeader('Content-Type', file.mimeType)
+    res.setHeader('Content-Disposition', `inline; filename="${file.originalName}"`)
+    res.setHeader('Cache-Control', 'private, no-store')
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    const { storage } = await import('../services/storage/index.js')
+    const stream = await storage.openReadStream(file.storageKey)
+    stream.on('error', () => {
+      if (!res.headersSent) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Proof file missing on storage disk.' },
+        })
+      } else {
+        res.end()
+      }
+    })
+    stream.pipe(res)
+  }),
+
   depositCancel: asyncHandler(async (req, res) => {
     sendSuccess(
       res,
@@ -260,6 +288,31 @@ export const financeController = {
 
   adminDepositGet: asyncHandler(async (req, res) => {
     sendSuccess(res, await depositService.adminGet(req.params.id!))
+  }),
+
+  adminDepositProof: asyncHandler(async (req, res) => {
+    const file = await depositService.resolveProofFile({
+      id: req.user!.id,
+      isStaff: true,
+      depositId: req.params.id!,
+    })
+    res.setHeader('Content-Type', file.mimeType)
+    res.setHeader('Content-Disposition', `inline; filename="${file.originalName}"`)
+    res.setHeader('Cache-Control', 'private, no-store')
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    const { storage } = await import('../services/storage/index.js')
+    const stream = await storage.openReadStream(file.storageKey)
+    stream.on('error', () => {
+      if (!res.headersSent) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Proof file missing on storage disk.' },
+        })
+      } else {
+        res.end()
+      }
+    })
+    stream.pipe(res)
   }),
 
   adminDepositReview: asyncHandler(async (req, res) => {

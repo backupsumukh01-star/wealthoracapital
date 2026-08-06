@@ -52,6 +52,12 @@ adminFinanceRouter.get(
   validate(idParamSchema, 'params'),
   financeController.adminDepositGet,
 )
+adminFinanceRouter.get(
+  '/deposits/:id/proof',
+  requirePermission(PERMISSIONS['finance.view']),
+  validate(idParamSchema, 'params'),
+  financeController.adminDepositProof,
+)
 adminFinanceRouter.post(
   '/deposits/:id/review',
   requirePermission(PERMISSIONS['finance.review']),

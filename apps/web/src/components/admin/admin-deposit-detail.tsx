@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { ROUTES, type MoneyString } from '@meridian/shared'
-import { Download, FileImage, Maximize2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -17,6 +16,7 @@ import {
 } from '@/components/admin/admin-api-adapters'
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import { AdminAccountPill, AdminDepositPill, AdminKycPill } from '@/components/admin/admin-status-pills'
+import { DepositProofViewer } from '@/components/common/deposit-proof-viewer'
 import { Money } from '@/components/common/money'
 import { PageHeader, SectionHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
@@ -392,49 +392,10 @@ export function AdminDepositDetailWorkspace() {
         <AdminPanel className="lg:sticky lg:top-24 lg:self-start" glow>
           <AdminPanelHeader title="Payment Screenshot" />
           <div className="p-4 sm:p-5">
-            {deposit.proofUrl ? (
-              <div className="space-y-3">
-                <a
-                  href={deposit.proofUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block overflow-hidden rounded-2xl border border-white/10 bg-black/30"
-                  aria-label="Open payment screenshot fullscreen"
-                >
-                  <img
-                    src={deposit.proofUrl}
-                    alt={`Payment screenshot for ${deposit.reference}`}
-                    className="max-h-[70vh] min-h-[320px] w-full object-contain"
-                  />
-                </a>
-                <div className="flex flex-wrap gap-2">
-                  <Button asChild size="sm" variant="secondary">
-                    <a href={deposit.proofUrl} target="_blank" rel="noreferrer">
-                      <Maximize2 aria-hidden />
-                      Open fullscreen
-                    </a>
-                  </Button>
-                  <Button asChild size="sm" variant="ghost">
-                    <a href={deposit.proofUrl} download>
-                      <Download aria-hidden />
-                      Download
-                    </a>
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-6 text-center">
-                <FileImage className="size-8 text-fg-subtle" aria-hidden />
-                <p className="mt-3 text-heading-sm text-fg">
-                  {deposit.hasProof ? 'Proof URL unavailable' : 'No payment screenshot'}
-                </p>
-                <p className="mt-1 text-caption text-fg-subtle">
-                  {deposit.hasProof
-                    ? 'A proof file is recorded, but the download URL was not returned.'
-                    : 'The investor did not upload a screenshot for this deposit.'}
-                </p>
-              </div>
-            )}
+            <DepositProofViewer
+              proofUrl={deposit.proofImageUrl ?? deposit.proofUrl}
+              hasProof={deposit.hasProof}
+            />
           </div>
         </AdminPanel>
       </div>

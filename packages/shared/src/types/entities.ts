@@ -142,8 +142,21 @@ export interface Deposit {
   status: DepositStatus
   method: Pick<PaymentMethod, 'id' | 'name' | 'type'> | null
   hasProof: boolean
+  /** Authenticated API URL for the payment screenshot (never an empty string). */
+  proofImageUrl?: string | null
+  proofStorageKey?: string | null
+  proofUploadedAt?: IsoDateTime | null
+  /** Alias for proofImageUrl used by admin detail views. */
+  proofUrl?: string | null
   userReference: string | null
   txHash?: string | null
+  /** Hash / UTR / reference shown to ops. */
+  hashId?: string | null
+  coin?: string | null
+  network?: string | null
+  walletAddress?: string | null
+  depositAddress?: string | null
+  transactionHash?: string | null
   notes?: string | null
   submissionDetails?: Record<string, unknown> | null
   rejectionReason: string | null

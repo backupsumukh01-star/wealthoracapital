@@ -1,7 +1,7 @@
 import { forbidden } from '../utils/errors.js'
 import { storage } from './storage/index.js'
 
-const ALLOWED_PREFIXES = ['reports/', 'media/']
+const ALLOWED_PREFIXES = ['reports/', 'media/', 'deposits/']
 
 /**
  * Generic signed-URL resolver for storage categories that aren't gated behind a
@@ -10,13 +10,14 @@ const ALLOWED_PREFIXES = ['reports/', 'media/']
  */
 export const filesService = {
   /**
-   * `storage.createSignedDownloadUrl` points at the KYC-specific route (its
-   * original and only caller). We reuse its key+expiry+signature — the actual
-   * cryptographic material — but rewrite the path to this generic endpoint.
+   * Prefer this over the KYC-specific signed path for non-KYC private objects
+   * (deposit proofs live under `deposits/`).
    */
-  buildDownloadUrl(key: string): string {
-    const kycStyleUrl = storage.createSignedDownloadUrl(key)
+  buildDownloadUrl(key: string, expiresInSeconds = 3600): string {
+    const kycStyleUrl = storage.createSignedDownloadUrl(key, expiresInSeconds)
     const url = new URL(kycStyleUrl)
+    // Reuse the HMAC material from the storage driver, but serve via the generic files route
+    // which allows the `deposits/` prefix (KYC route rejects non-kyc keys).
     return `${url.origin}/api/v1/files/download?${url.searchParams.toString()}`
   },
 

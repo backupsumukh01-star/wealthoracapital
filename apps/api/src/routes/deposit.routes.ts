@@ -27,6 +27,12 @@ depositRouter.get(
   validate(idParamSchema, 'params'),
   financeController.depositGet,
 )
+depositRouter.get(
+  '/:id/proof-file',
+  requirePermission(PERMISSIONS['deposits.view']),
+  validate(idParamSchema, 'params'),
+  financeController.depositProofFile,
+)
 depositRouter.post(
   '/',
   requirePermission(PERMISSIONS['deposits.create']),

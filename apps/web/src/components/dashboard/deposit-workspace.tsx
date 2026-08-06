@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import type { Deposit, PaymentMethod } from '@meridian/shared'
+import { API_ROUTES, type Deposit, type PaymentMethod } from '@meridian/shared'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -18,6 +18,7 @@ import {
   Wallet,
 } from 'lucide-react'
 
+import { DepositProofViewer } from '@/components/common/deposit-proof-viewer'
 import { Money } from '@/components/common/money'
 import { PageHeader, SectionHeader } from '@/components/common/page-header'
 import { RiskDisclosure } from '@/components/common/risk-disclosure'
@@ -40,6 +41,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/components/ui/toast'
 import {
+  useCancelDeposit,
   useCreateDeposit,
   useDepositMethods,
   useDeposits,
@@ -176,7 +178,10 @@ function ProofPreview({ file }: { file: File | null }) {
 function DepositHistory() {
   const { session } = useSession()
   const { data, isLoading } = useDeposits(undefined, { enabled: Boolean(session) })
+  const [openId, setOpenId] = useState<string | null>(null)
   const rows = data?.items ?? []
+  const openRow = rows.find((r) => r.id === openId) ?? null
+
   return (
     <Card variant="glass" className="p-5 sm:p-6">
       <SectionHeader title="Deposit history" description="API-backed requests only." as="h3" />
@@ -187,21 +192,37 @@ function DepositHistory() {
       ) : (
         <ul className="divide-line/70 mt-4 divide-y">
           {rows.map((row) => (
-            <li
-              key={row.id}
-              className="flex flex-wrap items-center justify-between gap-3 py-3.5 first:pt-0"
-            >
-              <div className="min-w-0">
-                <p className="text-body-sm text-fg font-medium">{row.reference || row.id}</p>
-                <p className="text-caption text-fg-subtle">
-                  {row.method?.name ?? 'Deposit'} · {formatDateTime(row.createdAt)}
-                  {row.hasProof ? ' · Proof on file' : ''}
-                </p>
+            <li key={row.id} className="space-y-3 py-3.5 first:pt-0">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-body-sm text-fg font-medium">{row.reference || row.id}</p>
+                  <p className="text-caption text-fg-subtle">
+                    {row.method?.name ?? 'Deposit'} · {formatDateTime(row.createdAt)}
+                    {row.hasProof ? ' · Proof on file' : ''}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Money value={row.amount} className="text-body-sm font-medium" />
+                  <StatusPill status={row.status} />
+                  {row.hasProof || row.proofImageUrl ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setOpenId(openId === row.id ? null : row.id)}
+                    >
+                      {openId === row.id ? 'Hide proof' : 'View proof'}
+                    </Button>
+                  ) : null}
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <Money value={row.amount} className="text-body-sm font-medium" />
-                <StatusPill status={row.status} />
-              </div>
+              {openRow?.id === row.id ? (
+                <DepositProofViewer
+                  proofUrl={row.proofImageUrl ?? row.proofUrl ?? API_ROUTES.deposits.proofFile(row.id)}
+                  hasProof={row.hasProof}
+                  compact
+                />
+              ) : null}
             </li>
           ))}
         </ul>
@@ -213,6 +234,7 @@ function DepositHistory() {
 function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
   const createDeposit = useCreateDeposit()
   const uploadProof = useUploadDepositProof()
+  const cancelDeposit = useCancelDeposit()
 
   const [step, setStep] = useState<Step>('method')
   const [rail, setRail] = useState<Rail | null>(null)
@@ -371,10 +393,24 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
         submissionDetails,
       })
 
-      const withProof = await uploadProof.mutateAsync({ id: deposit.id, file: proof })
-      setSubmitted(withProof)
-      setStep('done')
-      toast.success('Deposit submitted', 'Pending review — proof uploaded.')
+      try {
+        const withProof = await uploadProof.mutateAsync({ id: deposit.id, file: proof })
+        if (!withProof.hasProof && !withProof.proofImageUrl) {
+          throw new Error('Proof upload did not save. Please try again.')
+        }
+        setSubmitted(withProof)
+        setStep('done')
+        toast.success('Deposit submitted', 'Pending review — proof uploaded.')
+      } catch (proofError) {
+        try {
+          await cancelDeposit.mutateAsync(deposit.id)
+        } catch {
+          // best-effort rollback so a proof-less request does not linger
+        }
+        throw proofError instanceof Error
+          ? proofError
+          : new Error('Proof upload failed. Deposit was not kept.')
+      }
     } catch (error) {
       toast.error(
         error instanceof ApiError
@@ -734,6 +770,17 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
                 {submitted.hasProof ? ' · Proof uploaded' : ''}
               </p>
             </div>
+            {(submitted.proofImageUrl || submitted.proofUrl || submitted.hasProof) && (
+              <DepositProofViewer
+                proofUrl={
+                  submitted.proofImageUrl ??
+                  submitted.proofUrl ??
+                  API_ROUTES.deposits.proofFile(submitted.id)
+                }
+                hasProof={submitted.hasProof}
+                compact
+              />
+            )}
             <StatusTimeline steps={TIMELINE} activeIndex={1} />
             <Button type="button" variant="secondary" onClick={resetFlow}>
               Make another deposit

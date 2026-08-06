@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { ROUTES, type MoneyString } from '@meridian/shared'
-import { FileImage, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -12,8 +12,9 @@ import {
   mapDepositStatus,
   methodLabel,
 } from '@/components/admin/admin-api-adapters'
-import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
+import { AdminPanel } from '@/components/admin/admin-panel'
 import { AdminDepositPill } from '@/components/admin/admin-status-pills'
+import { DepositProofViewer } from '@/components/common/deposit-proof-viewer'
 import { Money } from '@/components/common/money'
 import { PageHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
@@ -30,7 +31,7 @@ import {
 } from '@/components/ui/sheet'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { useAdminDeposits, useReviewDeposit } from '@/features/admin/hooks'
+import { useAdminDeposit, useAdminDeposits, useReviewDeposit } from '@/features/admin/hooks'
 import { formatDateTime } from '@/lib/format'
 
 type TabFilter = 'pending' | 'review' | 'approved' | 'rejected' | 'all'
@@ -51,15 +52,6 @@ function matchesTab(status: string, tab: TabFilter) {
   }
 }
 
-function ProofThumb({ label }: { label: string }) {
-  return (
-    <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-lg border border-white/10 bg-gradient-to-br from-accent-500/25 via-info/15 to-transparent">
-      <FileImage className="size-4 text-accent-300" aria-hidden />
-      <span className="mt-0.5 max-w-[2.75rem] truncate text-[9px] text-fg-subtle">{label}</span>
-    </div>
-  )
-}
-
 export function AdminDepositsWorkspace() {
   const { data, isLoading } = useAdminDeposits()
   const reviewDeposit = useReviewDeposit()
@@ -68,11 +60,16 @@ export function AdminDepositsWorkspace() {
   const [q, setQ] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [reason, setReason] = useState('')
+  const { data: selectedDetail } = useAdminDeposit(selectedId ?? '', {
+    enabled: Boolean(selectedId),
+  })
 
-  const selected = useMemo(
-    () => (selectedId ? deposits.find((d) => d.id === selectedId) ?? null : null),
-    [deposits, selectedId],
-  )
+  const selected = useMemo(() => {
+    if (!selectedId) return null
+    const fromDetail = selectedDetail as AdminDepositRow | undefined
+    if (fromDetail?.id === selectedId) return fromDetail
+    return deposits.find((d) => d.id === selectedId) ?? null
+  }, [deposits, selectedDetail, selectedId])
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -130,6 +127,8 @@ export function AdminDepositsWorkspace() {
     }
   }
 
+  const proofUrl = selected?.proofImageUrl ?? selected?.proofUrl ?? null
+
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
@@ -170,10 +169,7 @@ export function AdminDepositsWorkspace() {
         </label>
       </AdminPanel>
 
-      <Tabs
-        value={tab}
-        onValueChange={(v) => setTab(v as TabFilter)}
-      >
+      <Tabs value={tab} onValueChange={(v) => setTab(v as TabFilter)}>
         <TabsList>
           <TabsTrigger value="pending">Pending</TabsTrigger>
           <TabsTrigger value="review">Under review</TabsTrigger>
@@ -184,16 +180,15 @@ export function AdminDepositsWorkspace() {
       </Tabs>
 
       <AdminPanel className="overflow-hidden">
-        <AdminPanelHeader title="Deposit queue" description={`${filtered.length} shown · oldest first`} />
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left text-caption">
+          <table className="w-full min-w-[960px] text-left text-caption">
             <thead className="border-b border-white/[0.06] text-fg-subtle">
               <tr>
                 <th className="px-4 py-3 font-medium">Proof</th>
+                <th className="px-4 py-3 font-medium">Reference</th>
                 <th className="px-4 py-3 font-medium">Investor</th>
                 <th className="px-4 py-3 font-medium">Amount</th>
                 <th className="px-4 py-3 font-medium">Method</th>
-                <th className="px-4 py-3 font-medium">Reference</th>
                 <th className="px-4 py-3 font-medium">Submitted</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Actions</th>
@@ -203,27 +198,26 @@ export function AdminDepositsWorkspace() {
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-12 text-center text-fg-muted">
-                    {isLoading ? 'Loading deposits…' : 'No deposits in this view.'}
+                    {isLoading ? 'Loading deposits…' : 'No deposits match this filter.'}
                   </td>
                 </tr>
               ) : (
                 filtered.map((d) => (
                   <tr
                     key={d.id}
-                    className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.025]"
+                    className="border-b border-white/[0.04] transition-colors last:border-0 hover:bg-white/[0.025]"
                   >
                     <td className="px-4 py-3">
-                      <ProofThumb label={d.hasProof ? 'Proof' : 'None'} />
+                      <p className="text-[11px] text-fg-subtle">
+                        {d.hasProof || d.proofImageUrl ? 'On file' : 'Missing'}
+                      </p>
                     </td>
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-fg">{investorName(d.user, d.user?.id ?? '—')}</p>
-                      <p className="font-mono text-[11px] text-fg-subtle">{d.user?.id ?? '—'}</p>
-                    </td>
+                    <td className="px-4 py-3 font-mono text-[11px] text-fg-muted">{d.reference}</td>
+                    <td className="px-4 py-3 text-fg">{investorName(d.user)}</td>
                     <td className="px-4 py-3">
                       <Money value={d.amount as MoneyString} size="sm" />
                     </td>
                     <td className="px-4 py-3 text-fg-muted">{methodLabel(d.method)}</td>
-                    <td className="px-4 py-3 font-mono text-[11px] text-fg-muted">{d.reference}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-fg-muted">
                       {formatDateTime(d.createdAt)}
                     </td>
@@ -265,15 +259,7 @@ export function AdminDepositsWorkspace() {
                 <SheetDescription>{selected.id}</SheetDescription>
               </SheetHeader>
               <SheetBody className="space-y-4">
-                <div className="flex aspect-video flex-col justify-between rounded-xl border border-white/10 bg-gradient-to-br from-accent-500/30 via-info/15 to-transparent p-4">
-                  <FileImage className="size-6 text-accent-300" aria-hidden />
-                  <div>
-                    <p className="text-caption font-medium text-fg">
-                      {selected.hasProof ? 'Proof on file' : 'No proof'}
-                    </p>
-                    <p className="text-[11px] text-fg-subtle">Screenshot placeholder</p>
-                  </div>
-                </div>
+                <DepositProofViewer proofUrl={proofUrl} hasProof={selected.hasProof} compact />
                 <dl className="grid gap-3 text-caption">
                   <div>
                     <dt className="text-fg-subtle">Investor</dt>
@@ -285,6 +271,24 @@ export function AdminDepositsWorkspace() {
                     <dt className="text-fg-subtle">Amount</dt>
                     <dd>
                       <Money value={selected.amount as MoneyString} size="sm" />
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-fg-subtle">Hash / ref</dt>
+                    <dd className="break-all font-mono text-fg">
+                      {selected.hashId ?? selected.txHash ?? selected.userReference ?? '—'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-fg-subtle">Coin / network</dt>
+                    <dd className="text-fg">
+                      {[selected.coin, selected.network].filter(Boolean).join(' · ') || '—'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-fg-subtle">Deposit address</dt>
+                    <dd className="break-all font-mono text-fg">
+                      {selected.depositAddress ?? selected.walletAddress ?? '—'}
                     </dd>
                   </div>
                   <div>

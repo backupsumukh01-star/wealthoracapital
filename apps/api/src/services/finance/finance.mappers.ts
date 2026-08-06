@@ -8,10 +8,83 @@ import type {
   Withdrawal,
 } from '@prisma/client'
 
+import { env } from '../../config/env.js'
 import { d, moneyDisplay } from '../../utils/money.js'
 
 type DepositWithMethod = Deposit & {
   paymentMethod: Pick<PaymentMethod, 'id' | 'name' | 'type'>
+}
+
+function nonempty(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+/** Canonical authenticated proof URL stored + returned to clients. */
+export function buildDepositProofImageUrl(depositId: string): string {
+  return `${env.API_URL.replace(/\/$/, '')}/api/v1/deposits/${depositId}/proof-file`
+}
+
+export function mapDeposit(deposit: DepositWithMethod) {
+  const details =
+    deposit.submissionDetails && typeof deposit.submissionDetails === 'object'
+      ? (deposit.submissionDetails as Record<string, unknown>)
+      : null
+
+  const proofStorageKey = nonempty(deposit.proofKey)
+  const proofImageUrl =
+    nonempty(deposit.proofImageUrl) ??
+    (proofStorageKey ? buildDepositProofImageUrl(deposit.id) : null)
+
+  const coin = nonempty(details?.coin) ?? nonempty(details?.cryptoCoin) ?? nonempty(details?.asset)
+  const network = nonempty(details?.network) ?? nonempty(details?.chain)
+  const walletAddress =
+    nonempty(details?.walletAddress) ??
+    nonempty(details?.depositAddress) ??
+    nonempty(details?.address) ??
+    nonempty(details?.toAddress)
+  const hashId =
+    nonempty(deposit.txHash) ??
+    nonempty(deposit.userReference) ??
+    nonempty(details?.txHash) ??
+    nonempty(details?.utr) ??
+    nonempty(details?.userReference)
+
+  return {
+    id: deposit.id,
+    reference: deposit.reference,
+    amount: moneyDisplay(deposit.amount),
+    creditedAmount: deposit.creditedAmount ? moneyDisplay(deposit.creditedAmount) : null,
+    fee: moneyDisplay(deposit.fee),
+    currency: deposit.currency,
+    status: deposit.status,
+    method: {
+      id: deposit.paymentMethod.id,
+      name: deposit.paymentMethod.name,
+      type: deposit.paymentMethod.type,
+    },
+    hasProof: Boolean(proofStorageKey),
+    proofImageUrl,
+    proofUrl: proofImageUrl,
+    proofStorageKey,
+    proofKey: proofStorageKey,
+    proofUploadedAt: deposit.proofUploadedAt?.toISOString() ?? null,
+    uploadedAt: deposit.proofUploadedAt?.toISOString() ?? null,
+    userReference: deposit.userReference,
+    txHash: deposit.txHash,
+    hashId,
+    coin,
+    network,
+    walletAddress,
+    depositAddress: walletAddress,
+    transactionHash: nonempty(deposit.txHash) ?? nonempty(details?.txHash),
+    notes: deposit.notes ?? null,
+    submissionDetails: details,
+    rejectionReason: deposit.rejectionReason,
+    createdAt: deposit.createdAt.toISOString(),
+    reviewedAt: deposit.reviewedAt?.toISOString() ?? null,
+  }
 }
 
 export function mapWalletAggregate(wallets: Wallet[]) {
@@ -95,34 +168,6 @@ export function mapPaymentMethod(method: PaymentMethod) {
     upi: null,
     bank: null,
     cryptoWallets: [] as [],
-  }
-}
-
-export function mapDeposit(deposit: DepositWithMethod) {
-  return {
-    id: deposit.id,
-    reference: deposit.reference,
-    amount: moneyDisplay(deposit.amount),
-    creditedAmount: deposit.creditedAmount ? moneyDisplay(deposit.creditedAmount) : null,
-    fee: moneyDisplay(deposit.fee),
-    currency: deposit.currency,
-    status: deposit.status,
-    method: {
-      id: deposit.paymentMethod.id,
-      name: deposit.paymentMethod.name,
-      type: deposit.paymentMethod.type,
-    },
-    hasProof: Boolean(deposit.proofKey),
-    userReference: deposit.userReference,
-    txHash: deposit.txHash,
-    notes: deposit.notes ?? null,
-    submissionDetails:
-      deposit.submissionDetails && typeof deposit.submissionDetails === 'object'
-        ? (deposit.submissionDetails as Record<string, unknown>)
-        : null,
-    rejectionReason: deposit.rejectionReason,
-    createdAt: deposit.createdAt.toISOString(),
-    reviewedAt: deposit.reviewedAt?.toISOString() ?? null,
   }
 }
 

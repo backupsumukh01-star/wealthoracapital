@@ -1,16 +1,20 @@
 import { createHash, randomUUID } from 'node:crypto'
+import path from 'node:path'
 import type { DepositStatus, Prisma } from '@prisma/client'
 
 import { prisma } from '../../database/prisma.js'
+import { env } from '../../config/env.js'
 import { transactionalMailer } from '../../emails/transactional.js'
 import { activityService } from '../activity.service.js'
 import { auditService } from '../audit.service.js'
 import { notificationService } from '../notification.service.js'
+import { filesService } from '../files.service.js'
 import { storage } from '../storage/index.js'
 import { assertUploadMagicBytes } from '../../utils/upload-magic.js'
 import { badRequest, conflict, forbidden, notFound } from '../../utils/errors.js'
+import { logger } from '../../utils/logger.js'
 import { d, moneyDisplay, moneyString } from '../../utils/money.js'
-import { mapDeposit } from './finance.mappers.js'
+import { buildDepositProofImageUrl, mapDeposit } from './finance.mappers.js'
 import { mapPaymentMethodDetailed } from './payment-method.mapper.js'
 import { ledgerService } from './ledger.service.js'
 import { paymentMethodService } from './payment-method.service.js'
@@ -213,6 +217,17 @@ export const depositService = {
       throw forbidden('Proof cannot be uploaded for this deposit status.')
     }
 
+    logger.info(
+      {
+        depositId,
+        userId,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        bytes: file.size,
+      },
+      'Deposit proof upload received',
+    )
+
     const checksum = createHash('sha256').update(file.buffer).digest('hex')
     const dup = await prisma.deposit.findFirst({
       where: { proofChecksum: checksum, NOT: { id: deposit.id } },
@@ -226,27 +241,133 @@ export const depositService = {
       contentType: file.mimetype,
     })
 
+    const absolutePath = (() => {
+      try {
+        return storage.getAbsolutePath(stored.key)
+      } catch {
+        return null
+      }
+    })()
+    const exists = await storage.exists(stored.key)
+    if (!exists) {
+      logger.error(
+        { depositId, storageKey: stored.key, absolutePath, uploadRoot: env.UPLOAD_ROOT },
+        'Deposit proof missing on disk after put',
+      )
+      throw badRequest('Proof upload failed — file was not stored. Please try again.')
+    }
+
+    const proofImageUrl = buildDepositProofImageUrl(deposit.id)
+    const proofUploadedAt = new Date()
+
+    logger.info(
+      {
+        depositId,
+        storageKey: stored.key,
+        absolutePath,
+        proofImageUrl,
+        uploadRoot: env.UPLOAD_ROOT,
+      },
+      'Deposit proof stored — saving database URL',
+    )
+
     const updated = await prisma.deposit.update({
       where: { id: deposit.id },
       data: {
         proofKey: stored.key,
+        proofImageUrl,
         proofChecksum: checksum,
+        proofUploadedAt,
         status: deposit.status === 'PENDING' ? 'UNDER_REVIEW' : deposit.status,
       },
       include: { paymentMethod: { select: { id: true, name: true, type: true } } },
     })
+
+    const mapped = mapDeposit(updated)
+    logger.info(
+      {
+        depositId,
+        proofStorageKey: mapped.proofStorageKey,
+        proofImageUrl: mapped.proofImageUrl,
+        returnedApiUrl: mapped.proofImageUrl,
+      },
+      'Deposit proof saved — returning API URL',
+    )
 
     await auditService.record({
       actorId: userId,
       targetUserId: userId,
       action: 'deposit.proof_upload',
       module: 'finance',
-      newValue: { depositId, proofKey: stored.key },
+      newValue: {
+        depositId,
+        proofKey: stored.key,
+        proofImageUrl,
+        proofUploadedAt: proofUploadedAt.toISOString(),
+      },
       ip: context.ip,
       userAgent: context.userAgent,
     })
 
-    return mapDeposit(updated)
+    return mapped
+  },
+
+  /**
+   * Stream payment proof for the deposit owner or an authenticated staff operator.
+   */
+  async resolveProofFile(actor: {
+    id: string
+    isStaff: boolean
+    depositId: string
+  }) {
+    const deposit = await prisma.deposit.findUnique({
+      where: { id: actor.depositId },
+      select: {
+        id: true,
+        userId: true,
+        proofKey: true,
+        proofImageUrl: true,
+      },
+    })
+    if (!deposit) throw notFound('Deposit not found.')
+    if (deposit.userId !== actor.id && !actor.isStaff) {
+      throw forbidden('Not allowed to view this payment proof.')
+    }
+    if (!deposit.proofKey || !deposit.proofKey.trim()) {
+      throw notFound('No payment proof uploaded.')
+    }
+
+    const exists = await storage.exists(deposit.proofKey)
+    if (!exists) {
+      logger.error(
+        {
+          depositId: deposit.id,
+          storageKey: deposit.proofKey,
+          uploadRoot: env.UPLOAD_ROOT,
+        },
+        'Deposit proof file missing on storage',
+      )
+      throw notFound('Proof file missing on storage. Ask the investor to re-upload.')
+    }
+
+    const ext = path.extname(deposit.proofKey).toLowerCase()
+    const mimeType =
+      ext === '.png'
+        ? 'image/png'
+        : ext === '.jpg' || ext === '.jpeg'
+          ? 'image/jpeg'
+          : ext === '.webp'
+            ? 'image/webp'
+            : ext === '.pdf'
+              ? 'application/pdf'
+              : 'application/octet-stream'
+
+    return {
+      storageKey: deposit.proofKey,
+      mimeType,
+      originalName: path.basename(deposit.proofKey),
+      proofImageUrl: deposit.proofImageUrl || buildDepositProofImageUrl(deposit.id),
+    }
   },
 
   async cancel(userId: string, depositId: string, context: Ctx) {
@@ -361,10 +482,18 @@ export const depositService = {
     ])
 
     return {
-      items: items.map((row) => ({
-        ...mapDeposit(row),
-        user: row.user,
-      })),
+      items: items.map((row) => {
+        const mapped = mapDeposit(row)
+        const proofImageUrl = mapped.hasProof
+          ? `${env.API_URL.replace(/\/$/, '')}/api/v1/admin/deposits/${row.id}/proof`
+          : null
+        return {
+          ...mapped,
+          proofImageUrl,
+          proofUrl: proofImageUrl,
+          user: row.user,
+        }
+      }),
       pagination: {
         page: query.page,
         limit: query.limit,
@@ -400,26 +529,34 @@ export const depositService = {
       },
     })
     if (!deposit) throw notFound('Deposit not found.')
-    let proofUrl: string | null = null
-    if (deposit.proofKey) {
+    const adminProofUrl = `${env.API_URL.replace(/\/$/, '')}/api/v1/admin/deposits/${deposit.id}/proof`
+    let signedFallback: string | null = null
+    if (deposit.proofKey && deposit.proofKey.trim()) {
       try {
-        const { storage } = await import('../storage/index.js')
-        proofUrl = storage.createSignedDownloadUrl(deposit.proofKey, 60 * 60)
-      } catch {
-        try {
-          const { storage } = await import('../storage/index.js')
-          proofUrl = storage.getPublicUrl(deposit.proofKey)
-        } catch {
-          proofUrl = null
-        }
+        signedFallback = filesService.buildDownloadUrl(deposit.proofKey, 60 * 60)
+      } catch (err) {
+        logger.warn({ err, depositId: deposit.id, proofKey: deposit.proofKey }, 'Signed proof URL failed')
+        signedFallback = null
       }
+      logger.info(
+        {
+          depositId: deposit.id,
+          proofStorageKey: deposit.proofKey,
+          proofImageUrl: adminProofUrl,
+          signedFallback,
+          returnedApiUrl: adminProofUrl,
+        },
+        'Admin deposit detail — returning proof URLs',
+      )
     }
     const details =
       deposit.submissionDetails && typeof deposit.submissionDetails === 'object'
         ? (deposit.submissionDetails as Record<string, unknown>)
         : {}
+    const mapped = mapDeposit(deposit)
+    const proofImageUrl = mapped.hasProof ? adminProofUrl : null
     return {
-      ...mapDeposit(deposit),
+      ...mapped,
       user: {
         ...deposit.user,
         phone: (deposit.user as { phone?: string | null }).phone ?? null,
@@ -429,8 +566,11 @@ export const depositService = {
       submissionDetails: details,
       txHash: deposit.txHash,
       userReference: deposit.userReference,
-      proofUrl,
+      proofUrl: proofImageUrl,
+      proofImageUrl,
+      proofStorageKey: mapped.proofStorageKey,
       proofKey: deposit.proofKey,
+      signedProofUrl: signedFallback,
       hasProof: Boolean(deposit.proofKey),
       clientIp: typeof details.clientIp === 'string' ? details.clientIp : null,
       userAgent: typeof details.userAgent === 'string' ? details.userAgent : null,

@@ -23,6 +23,7 @@ import {
 import { toast } from '@/components/ui/toast'
 import { ApiError } from '@/lib/api-client'
 import {
+  useCancelDeposit,
   useCreateDeposit,
   useDepositMethods,
   useUploadDepositProof,
@@ -120,6 +121,7 @@ export function DepositModal({
   const { data: methods } = useDepositMethods({ enabled: open })
   const createDeposit = useCreateDeposit()
   const uploadProof = useUploadDepositProof()
+  const cancelDeposit = useCancelDeposit()
   const [step, setStep] = useState<Step>('rail')
   const [rail, setRail] = useState<Rail>(null)
   const [channel, setChannel] = useState<InrChannel>(null)
@@ -232,6 +234,11 @@ export function DepositModal({
       return
     }
 
+    if (!proof) {
+      toast.error('Payment screenshot is required.')
+      return
+    }
+
     setSubmitting(true)
     try {
       const deposit = await createDeposit.mutateAsync({
@@ -239,8 +246,18 @@ export function DepositModal({
         methodId: method.id,
         userReference: utr || txHash || undefined,
       })
-      if (proof) {
-        await uploadProof.mutateAsync({ id: deposit.id, file: proof })
+      try {
+        const withProof = await uploadProof.mutateAsync({ id: deposit.id, file: proof })
+        if (!withProof.hasProof) {
+          throw new Error('Proof upload did not save. Please try again.')
+        }
+      } catch (proofError) {
+        try {
+          await cancelDeposit.mutateAsync(deposit.id)
+        } catch {
+          // best-effort rollback
+        }
+        throw proofError
       }
       setReference(deposit.reference || deposit.id)
       handleOpenChange(false)

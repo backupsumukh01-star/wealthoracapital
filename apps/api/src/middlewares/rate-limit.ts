@@ -62,6 +62,8 @@ export const globalRateLimiter = rateLimit({
         path.startsWith('/api/v1/admin') ||
         path.startsWith('/api/v1/notifications') ||
         path.startsWith('/api/v1/kyc') ||
+        path.startsWith('/api/v1/deposits') ||
+        path.startsWith('/api/v1/files') ||
         path.startsWith('/api/v1/wallet') ||
         path.startsWith('/api/v1/activity')
       ) {

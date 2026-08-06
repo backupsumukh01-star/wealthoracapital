@@ -150,6 +150,8 @@ export const API_ROUTES = {
     methods: '/deposits/methods',
     cancel: (id: string) => `/deposits/${id}/cancel`,
     proof: (id: string) => `/deposits/${id}/proof`,
+    /** Authenticated binary stream for payment proof preview/download. */
+    proofFile: (id: string) => `/deposits/${id}/proof-file`,
   },
   withdrawals: {
     root: '/withdrawals',
@@ -226,6 +228,7 @@ export const API_ROUTES = {
     users: '/admin/users',
     kyc: '/admin/kyc',
     deposits: '/admin/deposits',
+    depositProof: (id: string) => `/admin/deposits/${id}/proof`,
     withdrawals: '/admin/withdrawals',
     wallets: '/admin/wallets',
     paymentMethods: '/admin/payment-methods',
