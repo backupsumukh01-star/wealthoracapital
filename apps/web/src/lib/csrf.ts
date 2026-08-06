@@ -23,8 +23,12 @@ export function clearRememberedCsrfToken(): void {
   memoryCsrfToken = undefined
 }
 
+/**
+ * Prefer the memory token from the last /csrf or auth response.
+ * Document cookies can be stale when a host-only API cookie and a Domain cookie both exist.
+ */
 export function getCsrfToken(): string | undefined {
-  return readCsrfCookie() ?? memoryCsrfToken
+  return memoryCsrfToken ?? readCsrfCookie()
 }
 
 export function csrfHeaders(): Record<string, string> {
@@ -41,11 +45,14 @@ export async function ensureCsrfToken(force = false): Promise<string | undefined
   if (!force) {
     const existing = getCsrfToken()
     if (existing) return existing
+  } else {
+    memoryCsrfToken = undefined
   }
 
-  if (csrfBootstrapInFlight) return csrfBootstrapInFlight
+  // A forced refresh must not reuse a non-forced in-flight bootstrap.
+  if (csrfBootstrapInFlight && !force) return csrfBootstrapInFlight
 
-  csrfBootstrapInFlight = fetch(`${env.NEXT_PUBLIC_API_URL}/csrf`, {
+  const bootstrap = fetch(`${env.NEXT_PUBLIC_API_URL}/csrf`, {
     method: 'GET',
     credentials: 'include',
     headers: { Accept: 'application/json' },
@@ -65,8 +72,11 @@ export async function ensureCsrfToken(force = false): Promise<string | undefined
     })
     .catch(() => getCsrfToken())
     .finally(() => {
-      csrfBootstrapInFlight = null
+      if (csrfBootstrapInFlight === bootstrap) {
+        csrfBootstrapInFlight = null
+      }
     })
 
-  return csrfBootstrapInFlight
+  csrfBootstrapInFlight = bootstrap
+  return bootstrap
 }

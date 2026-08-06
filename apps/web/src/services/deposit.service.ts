@@ -12,18 +12,26 @@ export type CreateDepositBody = {
 }
 
 async function apiFormData<T>(path: string, form: FormData): Promise<T> {
-  const csrf = await ensureCsrfToken()
-  const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${path}`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
-    },
-    body: form,
-  })
-  const payload = (await response.json()) as { success: true; data: T } | {
-    success: false
-    error: { code: string; message: string }
+  const run = async (forceCsrf: boolean) => {
+    const csrf = await ensureCsrfToken(forceCsrf)
+    const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${path}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
+      },
+      body: form,
+    })
+    const payload = (await response.json()) as { success: true; data: T } | {
+      success: false
+      error: { code: string; message: string }
+    }
+    return { response, payload }
+  }
+
+  let { response, payload } = await run(false)
+  if (!payload.success && payload.error.code === 'CSRF_REJECTED') {
+    ;({ response, payload } = await run(true))
   }
   if (response.ok && payload.success) return payload.data
   throw new ApiError(

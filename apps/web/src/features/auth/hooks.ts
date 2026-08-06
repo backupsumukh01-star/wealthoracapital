@@ -8,6 +8,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { clearRememberedCsrfToken } from '@/lib/csrf'
 import {
   authService,
   type AuthSessionPayload,
@@ -64,6 +65,7 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => authService.logout(),
     onSettled: () => {
+      clearRememberedCsrfToken()
       queryClient.clear()
       queryClient.setQueryData(authQueryKeys.session(), null)
     },

@@ -73,6 +73,27 @@ export function clearCsrfCookieOptions(): CookieOptions {
   return { ...csrfCookieOptions(0), maxAge: 0 }
 }
 
+/**
+ * Clears both host-only and Domain-scoped `mfx_csrf` cookies.
+ * Older deploys without COOKIE_DOMAIN leave a host-only duplicate that
+ * shadows the shared Domain cookie and breaks double-submit checks.
+ */
+export function clearAllCsrfCookieVariants(res: {
+  cookie: (name: string, value: string, options: CookieOptions) => unknown
+}): void {
+  const base = {
+    httpOnly: false,
+    secure: env.COOKIE_SECURE || isProduction,
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge: 0,
+  }
+  res.cookie(COOKIE_NAMES.csrf, '', base)
+  if (env.COOKIE_DOMAIN) {
+    res.cookie(COOKIE_NAMES.csrf, '', { ...base, domain: env.COOKIE_DOMAIN })
+  }
+}
+
 export function clearOauthStateCookieOptions(): CookieOptions {
   return { ...oauthStateCookieOptions(0), maxAge: 0 }
 }

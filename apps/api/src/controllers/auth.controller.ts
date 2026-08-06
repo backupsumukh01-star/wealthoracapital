@@ -4,6 +4,7 @@ import {
   COOKIE_NAMES,
   accessTokenCookieOptions,
   clearAccessTokenCookieOptions,
+  clearAllCsrfCookieVariants,
   clearCsrfCookieOptions,
   clearOauthStateCookieOptions,
   clearRefreshTokenCookieOptions,
@@ -48,12 +49,14 @@ function setAuthCookies(res: Response, tokens: AuthTokens): void {
     tokens.refreshToken,
     refreshTokenCookieOptions(tokens.refreshTokenMaxAgeMs),
   )
+  clearAllCsrfCookieVariants(res)
   res.cookie(COOKIE_NAMES.csrf, tokens.csrfToken, csrfCookieOptions(tokens.refreshTokenMaxAgeMs))
 }
 
 function clearAuthCookies(res: Response): void {
   res.cookie(COOKIE_NAMES.accessToken, '', clearAccessTokenCookieOptions())
   res.cookie(COOKIE_NAMES.refreshToken, '', clearRefreshTokenCookieOptions())
+  clearAllCsrfCookieVariants(res)
   res.cookie(COOKIE_NAMES.csrf, '', clearCsrfCookieOptions())
 }
 

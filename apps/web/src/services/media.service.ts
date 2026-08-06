@@ -46,19 +46,26 @@ export const mediaService = {
     form.append('file', file)
     if (folder) form.append('folder', folder)
 
-    const csrf = await ensureCsrfToken()
-    const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${API_ROUTES.admin.media}/upload`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
-      },
-      body: form,
-    }).catch(() => {
-      throw new ApiError(ERROR_CODES.NETWORK_ERROR, 'We could not reach the server.', 0)
-    })
+    const run = async (forceCsrf: boolean) => {
+      const csrf = await ensureCsrfToken(forceCsrf)
+      const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${API_ROUTES.admin.media}/upload`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
+        },
+        body: form,
+      }).catch(() => {
+        throw new ApiError(ERROR_CODES.NETWORK_ERROR, 'We could not reach the server.', 0)
+      })
+      const payload = (await response.json().catch(() => null)) as ApiResponse<MediaAsset> | null
+      return { response, payload }
+    }
 
-    const payload = (await response.json().catch(() => null)) as ApiResponse<MediaAsset> | null
+    let { response, payload } = await run(false)
+    if (response.status === 403 && payload && !payload.success && payload.error.code === 'CSRF_REJECTED') {
+      ;({ response, payload } = await run(true))
+    }
     if (response.ok && payload?.success) return payload.data
     const error = payload && !payload.success ? payload.error : null
     throw new ApiError(

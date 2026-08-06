@@ -1,6 +1,10 @@
 import type { Response } from 'express'
 
-import { COOKIE_NAMES, csrfCookieOptions } from '../config/cookies.js'
+import {
+  COOKIE_NAMES,
+  clearAllCsrfCookieVariants,
+  csrfCookieOptions,
+} from '../config/cookies.js'
 import { tokenService } from '../services/token.service.js'
 
 /** Default lifetime for anonymously issued CSRF cookies (aligned with refresh window). */
@@ -15,6 +19,7 @@ export function issueCsrfCookie(
   maxAgeMs: number = DEFAULT_CSRF_MAX_AGE_MS,
 ): string {
   const token = tokenService.createCsrfToken()
+  clearAllCsrfCookieVariants(res)
   res.cookie(COOKIE_NAMES.csrf, token, csrfCookieOptions(maxAgeMs))
   return token
 }

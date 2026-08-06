@@ -117,6 +117,10 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
   }
 
   if (response.ok && payload?.success) {
+    const data = payload.data as T & { csrfToken?: string }
+    if (data && typeof data === 'object' && 'csrfToken' in data && typeof data.csrfToken === 'string') {
+      rememberCsrfToken(data.csrfToken)
+    }
     return payload.data
   }
 
@@ -126,7 +130,16 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
   // CSRF cookie may be host-only on the API after Google OAuth — re-bootstrap once.
   if (response.status === 403 && code === 'CSRF_REJECTED' && !skipCsrfRetry) {
     clearRememberedCsrfToken()
-    await ensureCsrfToken(true)
+    const fresh = await ensureCsrfToken(true)
+    if (!fresh) {
+      throw new ApiError(
+        code,
+        error?.message ?? 'Missing or invalid CSRF token.',
+        response.status,
+        error?.details,
+        payload?.meta?.requestId,
+      )
+    }
     return apiClient<T>(path, { ...options, skipCsrfRetry: true })
   }
 
