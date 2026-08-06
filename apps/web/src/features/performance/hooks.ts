@@ -71,6 +71,15 @@ export function usePublicPerformance(options?: QueryHookOptions) {
   })
 }
 
+/**
+ * Monthly series for marketing pages. Reads the unauthenticated public payload so
+ * signed-out visitors are not sent to the authenticated `/performance/monthly`.
+ */
+export function usePublicPerformanceMonthly(options?: QueryHookOptions) {
+  const query = usePublicPerformance(options)
+  return { ...query, data: query.data?.monthly ?? [] }
+}
+
 /** Kicks off an async CSV/XLSX/PDF export job; the caller polls or follows `downloadUrl`. */
 export function useExportPerformanceReport() {
   return useMutation<

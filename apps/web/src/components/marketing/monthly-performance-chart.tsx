@@ -4,7 +4,7 @@ import { useCallback, useId, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
-import { usePerformanceMonthly } from '@/features/performance/hooks'
+import { usePublicPerformanceMonthly } from '@/features/performance/hooks'
 import { cn } from '@/lib/cn'
 
 type Point = { month: string; value: number }
@@ -19,7 +19,7 @@ function buildGrowth(points: Point[]) {
 }
 
 function useMonthlySeries(): Point[] {
-  const { data: monthly = [] } = usePerformanceMonthly()
+  const { data: monthly = [] } = usePublicPerformanceMonthly()
   return useMemo(
     () =>
       monthly.map((m) => ({

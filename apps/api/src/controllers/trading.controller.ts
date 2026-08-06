@@ -73,10 +73,13 @@ export const tradingController = {
   }),
 
   performancePublic: asyncHandler(async (_req, res) => {
-    sendSuccess(res, {
-      summary: await performanceService.summary(),
-      analytics: await performanceService.analytics(),
-    })
+    const [summary, analytics, monthly, yearly] = await Promise.all([
+      performanceService.summary(),
+      performanceService.analytics(),
+      performanceService.monthly(),
+      performanceService.yearly(),
+    ])
+    sendSuccess(res, { summary, analytics, monthly, yearly })
   }),
 
   portfolio: asyncHandler(async (req, res) => {

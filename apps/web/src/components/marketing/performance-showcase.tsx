@@ -9,7 +9,7 @@ import { CountUp } from '@/components/motion/count-up'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { Button } from '@/components/ui/button'
 import { usePublishedLanding } from '@/features/cms/site'
-import { usePerformanceMonthly, usePublicPerformance } from '@/features/performance/hooks'
+import { usePublicPerformance, usePublicPerformanceMonthly } from '@/features/performance/hooks'
 
 import {
   MonthlyPerformanceChart,
@@ -23,7 +23,7 @@ export function PerformanceShowcase({
 }) {
   const { landing } = usePublishedLanding()
   const { data: pub } = usePublicPerformance()
-  const { data: monthly = [] } = usePerformanceMonthly()
+  const { data: monthly = [] } = usePublicPerformanceMonthly()
   const yearly: Array<{ year: string; returnPct: number; profitLabel: string }> = []
   const winRate = landing.winRate || pub?.analytics.winRate || ''
   const bestMonth =

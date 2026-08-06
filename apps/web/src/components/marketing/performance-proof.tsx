@@ -10,7 +10,7 @@ import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { StaggerGroup, StaggerItem } from '@/components/motion/stagger-group'
 import { Button } from '@/components/ui/button'
 import { usePublishedLanding } from '@/features/cms/site'
-import { usePerformanceMonthly, usePublicPerformance } from '@/features/performance/hooks'
+import { usePublicPerformance, usePublicPerformanceMonthly } from '@/features/performance/hooks'
 import { cn } from '@/lib/cn'
 
 import { HistoricalNote } from './historical-note'
@@ -25,7 +25,7 @@ function numericOrNull(value: string | number | null | undefined) {
 export function PerformanceProof() {
   const { landing } = usePublishedLanding()
   const { data: pub } = usePublicPerformance()
-  const { data: monthly = [] } = usePerformanceMonthly()
+  const { data: monthly = [] } = usePublicPerformanceMonthly()
 
   const worst = numericOrNull(pub?.analytics.worstTrade?.returnPct ?? undefined)
 

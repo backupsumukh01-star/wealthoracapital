@@ -1,3 +1,5 @@
+import type { Prisma } from '@prisma/client'
+
 import { prisma } from '../../database/prisma.js'
 import { d, moneyString } from '../../utils/money.js'
 
@@ -184,7 +186,7 @@ export const reconciliationService = {
       data: {
         status: critical > 0 ? 'ISSUES_FOUND' : 'CLEAN',
         issuesFound: issues.length,
-        summary,
+        summary: summary as unknown as Prisma.InputJsonObject,
         createdById: createdById ?? null,
       },
     })

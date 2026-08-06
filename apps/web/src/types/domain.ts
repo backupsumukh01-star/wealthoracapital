@@ -125,6 +125,8 @@ export type PublicPerformancePayload = {
     openTrades: number
     closedTrades: number
   }
+  monthly?: Array<{ month: string; returnPct: string; profit: string }>
+  yearly?: Array<{ year: string; returnPct: string; profit: string }>
 }
 
 export type PublicSettings = {

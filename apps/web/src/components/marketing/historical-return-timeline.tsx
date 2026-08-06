@@ -4,7 +4,7 @@ import { memo, useId, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
-import { usePerformanceMonthly } from '@/features/performance/hooks'
+import { usePublicPerformanceMonthly } from '@/features/performance/hooks'
 import { cn } from '@/lib/cn'
 
 type Range = 'monthly' | 'quarterly'
@@ -76,7 +76,7 @@ function formatPct(n: number) {
  */
 export const HistoricalReturnTimeline = memo(function HistoricalReturnTimeline() {
   const prefersReducedMotion = usePrefersReducedMotion()
-  const { data: monthlyData = [] } = usePerformanceMonthly()
+  const { data: monthlyData = [] } = usePublicPerformanceMonthly()
   const gid = useId()
   const monthly = useMemo(
     () =>
