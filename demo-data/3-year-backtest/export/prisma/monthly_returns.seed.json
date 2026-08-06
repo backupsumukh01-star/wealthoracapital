@@ -1,0 +1,335 @@
+[
+  {
+    "yearMonth": "2023-08",
+    "year": 2023,
+    "month": 8,
+    "label": "Aug 2023",
+    "returnPct": 5.54,
+    "tradingDays": 19,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2023-09",
+    "year": 2023,
+    "month": 9,
+    "label": "Sep 2023",
+    "returnPct": 6.1,
+    "tradingDays": 21,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2023-10",
+    "year": 2023,
+    "month": 10,
+    "label": "Oct 2023",
+    "returnPct": 9.19,
+    "tradingDays": 22,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2023-11",
+    "year": 2023,
+    "month": 11,
+    "label": "Nov 2023",
+    "returnPct": 8.53,
+    "tradingDays": 22,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2023-12",
+    "year": 2023,
+    "month": 12,
+    "label": "Dec 2023",
+    "returnPct": 7.23,
+    "tradingDays": 21,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2024-01",
+    "year": 2024,
+    "month": 1,
+    "label": "Jan 2024",
+    "returnPct": 8.51,
+    "tradingDays": 23,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2024-02",
+    "year": 2024,
+    "month": 2,
+    "label": "Feb 2024",
+    "returnPct": 8.21,
+    "tradingDays": 21,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2024-03",
+    "year": 2024,
+    "month": 3,
+    "label": "Mar 2024",
+    "returnPct": 7.36,
+    "tradingDays": 21,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2024-04",
+    "year": 2024,
+    "month": 4,
+    "label": "Apr 2024",
+    "returnPct": 6.99,
+    "tradingDays": 22,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2024-05",
+    "year": 2024,
+    "month": 5,
+    "label": "May 2024",
+    "returnPct": 6.14,
+    "tradingDays": 23,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2024-06",
+    "year": 2024,
+    "month": 6,
+    "label": "Jun 2024",
+    "returnPct": 8.84,
+    "tradingDays": 20,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2024-07",
+    "year": 2024,
+    "month": 7,
+    "label": "Jul 2024",
+    "returnPct": 8.18,
+    "tradingDays": 23,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2024-08",
+    "year": 2024,
+    "month": 8,
+    "label": "Aug 2024",
+    "returnPct": 8.34,
+    "tradingDays": 22,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2024-09",
+    "year": 2024,
+    "month": 9,
+    "label": "Sep 2024",
+    "returnPct": 6.74,
+    "tradingDays": 21,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2024-10",
+    "year": 2024,
+    "month": 10,
+    "label": "Oct 2024",
+    "returnPct": 6.83,
+    "tradingDays": 23,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2024-11",
+    "year": 2024,
+    "month": 11,
+    "label": "Nov 2024",
+    "returnPct": 5.62,
+    "tradingDays": 21,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2024-12",
+    "year": 2024,
+    "month": 12,
+    "label": "Dec 2024",
+    "returnPct": 5.05,
+    "tradingDays": 22,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2025-01",
+    "year": 2025,
+    "month": 1,
+    "label": "Jan 2025",
+    "returnPct": 5.89,
+    "tradingDays": 23,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2025-02",
+    "year": 2025,
+    "month": 2,
+    "label": "Feb 2025",
+    "returnPct": 5.57,
+    "tradingDays": 20,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2025-03",
+    "year": 2025,
+    "month": 3,
+    "label": "Mar 2025",
+    "returnPct": 9.08,
+    "tradingDays": 21,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2025-04",
+    "year": 2025,
+    "month": 4,
+    "label": "Apr 2025",
+    "returnPct": 8.46,
+    "tradingDays": 22,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2025-05",
+    "year": 2025,
+    "month": 5,
+    "label": "May 2025",
+    "returnPct": 7.96,
+    "tradingDays": 22,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2025-06",
+    "year": 2025,
+    "month": 6,
+    "label": "Jun 2025",
+    "returnPct": 6.79,
+    "tradingDays": 21,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2025-07",
+    "year": 2025,
+    "month": 7,
+    "label": "Jul 2025",
+    "returnPct": 6.99,
+    "tradingDays": 23,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2025-08",
+    "year": 2025,
+    "month": 8,
+    "label": "Aug 2025",
+    "returnPct": 5.81,
+    "tradingDays": 21,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2025-09",
+    "year": 2025,
+    "month": 9,
+    "label": "Sep 2025",
+    "returnPct": 8.32,
+    "tradingDays": 22,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2025-10",
+    "year": 2025,
+    "month": 10,
+    "label": "Oct 2025",
+    "returnPct": 8.38,
+    "tradingDays": 23,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2025-11",
+    "year": 2025,
+    "month": 11,
+    "label": "Nov 2025",
+    "returnPct": 8.19,
+    "tradingDays": 20,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2025-12",
+    "year": 2025,
+    "month": 12,
+    "label": "Dec 2025",
+    "returnPct": 7.62,
+    "tradingDays": 23,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2026-01",
+    "year": 2026,
+    "month": 1,
+    "label": "Jan 2026",
+    "returnPct": 8.32,
+    "tradingDays": 22,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2026-02",
+    "year": 2026,
+    "month": 2,
+    "label": "Feb 2026",
+    "returnPct": 7.06,
+    "tradingDays": 20,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2026-03",
+    "year": 2026,
+    "month": 3,
+    "label": "Mar 2026",
+    "returnPct": 6.48,
+    "tradingDays": 22,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2026-04",
+    "year": 2026,
+    "month": 4,
+    "label": "Apr 2026",
+    "returnPct": 6.09,
+    "tradingDays": 22,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2026-05",
+    "year": 2026,
+    "month": 5,
+    "label": "May 2026",
+    "returnPct": 5.82,
+    "tradingDays": 21,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2026-06",
+    "year": 2026,
+    "month": 6,
+    "label": "Jun 2026",
+    "returnPct": 8.6,
+    "tradingDays": 22,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2026-07",
+    "year": 2026,
+    "month": 7,
+    "label": "Jul 2026",
+    "returnPct": 7.98,
+    "tradingDays": 23,
+    "inPresentationBand": true
+  },
+  {
+    "yearMonth": "2026-08",
+    "year": 2026,
+    "month": 8,
+    "label": "Aug 2026",
+    "returnPct": 7.47,
+    "tradingDays": 3,
+    "inPresentationBand": true
+  }
+]
