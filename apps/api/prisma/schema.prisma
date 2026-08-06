@@ -319,15 +319,17 @@ enum WithdrawalStatus {
 }
 
 enum PaymentMethodType {
+  UPI
   BANK_TRANSFER
+  CRYPTO
+  MANUAL
+  OTHER
+  /// Legacy rails — retained for historical deposits / payouts; prefer UPI/CRYPTO going forward.
   USDT_TRC20
   USDT_BEP20
   BTC
   ETH
-  MANUAL
-  CRYPTO
   MOBILE_WALLET
-  OTHER
 }
 
 enum ApprovalQueueStatus {
@@ -753,8 +755,10 @@ model PaymentMethod {
   name           String            @db.VarChar(80)
   type           PaymentMethodType
   instructions   String            @db.VarChar(2000)
+  /// @deprecated Prefer normalized upiDetails / bankDetails / walletAddresses. Kept for safe migration.
   accountDetails Json              @default("{}") @map("account_details")
   network        String?           @db.VarChar(40)
+  logoKey        String?           @map("logo_key") @db.VarChar(400)
   minAmount      Decimal           @default(50) @map("min_amount") @db.Decimal(20, 8)
   maxAmount      Decimal?          @map("max_amount") @db.Decimal(20, 8)
   feePct         Decimal           @default(0) @map("fee_pct") @db.Decimal(10, 6)
@@ -765,6 +769,8 @@ model PaymentMethod {
   createdAt      DateTime          @default(now()) @map("created_at")
   updatedAt      DateTime          @updatedAt @map("updated_at")
 
+  upiDetails      PaymentMethodUpiDetails?
+  bankDetails     PaymentMethodBankDetails?
   walletAddresses WalletAddress[]
   deposits        Deposit[]
 
@@ -773,15 +779,49 @@ model PaymentMethod {
   @@map("payment_methods")
 }
 
+model PaymentMethodUpiDetails {
+  paymentMethodId   String        @id @map("payment_method_id") @db.Uuid
+  paymentMethod     PaymentMethod @relation(fields: [paymentMethodId], references: [id], onDelete: Cascade)
+  upiId             String        @map("upi_id") @db.VarChar(120)
+  accountHolderName String        @map("account_holder_name") @db.VarChar(120)
+  qrCodeKey         String?       @map("qr_code_key") @db.VarChar(400)
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  @@map("payment_method_upi_details")
+}
+
+model PaymentMethodBankDetails {
+  paymentMethodId   String        @id @map("payment_method_id") @db.Uuid
+  paymentMethod     PaymentMethod @relation(fields: [paymentMethodId], references: [id], onDelete: Cascade)
+  accountHolderName String        @map("account_holder_name") @db.VarChar(120)
+  bankName          String        @map("bank_name") @db.VarChar(120)
+  accountNumber     String        @map("account_number") @db.VarChar(64)
+  ifscCode          String        @map("ifsc_code") @db.VarChar(32)
+  branch            String?       @db.VarChar(120)
+  accountType       String?       @map("account_type") @db.VarChar(40)
+  qrCodeKey         String?       @map("qr_code_key") @db.VarChar(400)
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  @@map("payment_method_bank_details")
+}
+
+/// Crypto deposit wallets (coin + network + address). Multiple rows per CRYPTO method.
 model WalletAddress {
   id              String         @id @default(uuid()) @db.Uuid
   paymentMethodId String?        @map("payment_method_id") @db.Uuid
   paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
   label           String         @db.VarChar(80)
+  coin            String         @default("USDT") @db.VarChar(20)
   network         String         @db.VarChar(40)
   address         String         @db.VarChar(200)
   memo            String?        @db.VarChar(120)
+  instructions    String?        @db.VarChar(2000)
   qrCodeKey       String?        @map("qr_code_key") @db.VarChar(400)
+  minAmount       Decimal?       @map("min_amount") @db.Decimal(20, 8)
+  maxAmount       Decimal?       @map("max_amount") @db.Decimal(20, 8)
+  sortOrder       Int            @default(100) @map("sort_order")
   isDefault       Boolean        @default(false) @map("is_default")
   isActive        Boolean        @default(true) @map("is_active")
   deletedAt       DateTime?      @map("deleted_at")
@@ -789,7 +829,8 @@ model WalletAddress {
   updatedAt       DateTime       @updatedAt @map("updated_at")
 
   @@index([network, isActive])
-  @@index([paymentMethodId])
+  @@index([coin, network, isActive])
+  @@index([paymentMethodId, sortOrder])
   @@map("wallet_addresses")
 }
 

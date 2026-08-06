@@ -1,75 +1,69 @@
 import { prisma } from '../../database/prisma.js'
 import { auditService } from '../audit.service.js'
 import { badRequest, notFound } from '../../utils/errors.js'
+import { d, moneyString } from '../../utils/money.js'
+import { mapWallet } from './payment-method.mapper.js'
 
 type Ctx = { ip?: string | null; userAgent?: string | null }
 
-function mapAddress(row: {
-  id: string
-  paymentMethodId: string | null
+export type WalletWriteBody = {
+  paymentMethodId?: string | null
   label: string
+  coin?: string
   network: string
   address: string
-  memo: string | null
-  qrCodeKey: string | null
-  isDefault: boolean
-  isActive: boolean
-  createdAt: Date
-  updatedAt: Date
-}) {
-  return {
-    id: row.id,
-    paymentMethodId: row.paymentMethodId,
-    label: row.label,
-    network: row.network,
-    address: row.address,
-    memo: row.memo,
-    qrCodeKey: row.qrCodeKey,
-    isDefault: row.isDefault,
-    isActive: row.isActive,
-    createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString(),
-  }
+  memo?: string | null
+  instructions?: string | null
+  qrCodeKey?: string | null
+  minAmount?: string | null
+  maxAmount?: string | null
+  sortOrder?: number
+  isDefault?: boolean
+  isActive?: boolean
 }
 
 export const walletAddressService = {
-  async list() {
+  async list(paymentMethodId?: string) {
     const rows = await prisma.walletAddress.findMany({
-      where: { deletedAt: null },
-      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+      where: {
+        deletedAt: null,
+        ...(paymentMethodId ? { paymentMethodId } : {}),
+      },
+      orderBy: [{ sortOrder: 'asc' }, { isDefault: 'desc' }, { createdAt: 'desc' }],
     })
-    return rows.map(mapAddress)
+    return rows.map(mapWallet)
   },
 
-  async create(
-    actorId: string,
-    body: {
-      paymentMethodId?: string
-      label: string
-      network: string
-      address: string
-      memo?: string
-      qrCodeKey?: string
-      isDefault?: boolean
-      isActive?: boolean
-    },
-    context: Ctx,
-  ) {
+  async create(actorId: string, body: WalletWriteBody, context: Ctx) {
     if (!body.address?.trim()) throw badRequest('Address is required.')
+    if (!body.paymentMethodId) throw badRequest('paymentMethodId is required.')
+    if (!body.coin?.trim()) throw badRequest('Coin is required.')
+
+    const method = await prisma.paymentMethod.findFirst({
+      where: { id: body.paymentMethodId, deletedAt: null },
+    })
+    if (!method) throw notFound('Payment method not found.')
+
     if (body.isDefault) {
       await prisma.walletAddress.updateMany({
-        where: { network: body.network, deletedAt: null },
+        where: { paymentMethodId: body.paymentMethodId, deletedAt: null },
         data: { isDefault: false },
       })
     }
+
     const created = await prisma.walletAddress.create({
       data: {
-        paymentMethodId: body.paymentMethodId ?? null,
-        label: body.label,
-        network: body.network,
+        paymentMethodId: body.paymentMethodId,
+        label: body.label.trim(),
+        coin: body.coin.trim().toUpperCase(),
+        network: body.network.trim().toUpperCase(),
         address: body.address.trim(),
-        memo: body.memo ?? null,
+        memo: body.memo?.trim() || null,
+        instructions: body.instructions?.trim() || null,
         qrCodeKey: body.qrCodeKey ?? null,
+        minAmount: body.minAmount ? moneyString(d(body.minAmount)) : null,
+        maxAmount: body.maxAmount ? moneyString(d(body.maxAmount)) : null,
+        sortOrder: body.sortOrder ?? 100,
         isDefault: body.isDefault ?? false,
         isActive: body.isActive ?? true,
       },
@@ -78,34 +72,26 @@ export const walletAddressService = {
       actorId,
       action: 'wallet_address.create',
       module: 'finance',
-      newValue: { id: created.id, network: created.network },
+      newValue: { id: created.id, coin: created.coin, network: created.network },
       ip: context.ip,
       userAgent: context.userAgent,
     })
-    return mapAddress(created)
+    return mapWallet(created)
   },
 
   async update(
     actorId: string,
     id: string,
-    body: Partial<{
-      paymentMethodId: string | null
-      label: string
-      network: string
-      address: string
-      memo: string | null
-      qrCodeKey: string | null
-      isDefault: boolean
-      isActive: boolean
-    }>,
+    body: Partial<WalletWriteBody>,
     context: Ctx,
   ) {
     const existing = await prisma.walletAddress.findFirst({ where: { id, deletedAt: null } })
     if (!existing) throw notFound('Wallet address not found.')
 
-    if (body.isDefault) {
+    const methodId = body.paymentMethodId === undefined ? existing.paymentMethodId : body.paymentMethodId
+    if (body.isDefault && methodId) {
       await prisma.walletAddress.updateMany({
-        where: { network: body.network ?? existing.network, deletedAt: null, NOT: { id } },
+        where: { paymentMethodId: methodId, deletedAt: null, NOT: { id } },
         data: { isDefault: false },
       })
     }
@@ -114,11 +100,20 @@ export const walletAddressService = {
       where: { id },
       data: {
         ...(body.paymentMethodId !== undefined ? { paymentMethodId: body.paymentMethodId } : {}),
-        ...(body.label !== undefined ? { label: body.label } : {}),
-        ...(body.network !== undefined ? { network: body.network } : {}),
+        ...(body.label !== undefined ? { label: body.label.trim() } : {}),
+        ...(body.coin !== undefined ? { coin: body.coin.trim().toUpperCase() } : {}),
+        ...(body.network !== undefined ? { network: body.network.trim().toUpperCase() } : {}),
         ...(body.address !== undefined ? { address: body.address.trim() } : {}),
         ...(body.memo !== undefined ? { memo: body.memo } : {}),
+        ...(body.instructions !== undefined ? { instructions: body.instructions } : {}),
         ...(body.qrCodeKey !== undefined ? { qrCodeKey: body.qrCodeKey } : {}),
+        ...(body.minAmount !== undefined
+          ? { minAmount: body.minAmount ? moneyString(d(body.minAmount)) : null }
+          : {}),
+        ...(body.maxAmount !== undefined
+          ? { maxAmount: body.maxAmount ? moneyString(d(body.maxAmount)) : null }
+          : {}),
+        ...(body.sortOrder !== undefined ? { sortOrder: body.sortOrder } : {}),
         ...(body.isDefault !== undefined ? { isDefault: body.isDefault } : {}),
         ...(body.isActive !== undefined ? { isActive: body.isActive } : {}),
       },
@@ -131,7 +126,7 @@ export const walletAddressService = {
       ip: context.ip,
       userAgent: context.userAgent,
     })
-    return mapAddress(updated)
+    return mapWallet(updated)
   },
 
   async softDelete(actorId: string, id: string, context: Ctx) {

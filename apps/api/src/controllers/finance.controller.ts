@@ -19,6 +19,7 @@ import type {
   createDepositSchema,
   createWithdrawalSchema,
   paymentMethodCreateSchema,
+  paymentMethodReorderSchema,
   paymentMethodUpdateSchema,
   walletAddressCreateSchema,
   walletAddressUpdateSchema,
@@ -33,6 +34,7 @@ type WithdrawalReview = z.infer<typeof adminWithdrawalReviewSchema>
 type WalletAdjust = z.infer<typeof adminWalletAdjustSchema>
 type PmCreate = z.infer<typeof paymentMethodCreateSchema>
 type PmUpdate = z.infer<typeof paymentMethodUpdateSchema>
+type PmReorder = z.infer<typeof paymentMethodReorderSchema>
 type WaCreate = z.infer<typeof walletAddressCreateSchema>
 type WaUpdate = z.infer<typeof walletAddressUpdateSchema>
 
@@ -305,8 +307,18 @@ export const financeController = {
     )
   }),
 
-  adminWalletAddresses: asyncHandler(async (_req, res) => {
-    sendSuccess(res, await walletAddressService.list())
+  adminPaymentMethodReorder: asyncHandler(async (req, res) => {
+    const body = req.body as PmReorder
+    sendSuccess(
+      res,
+      await paymentMethodService.reorder(req.user!.id, body.orderedIds, requestContext(req)),
+    )
+  }),
+
+  adminWalletAddresses: asyncHandler(async (req, res) => {
+    const paymentMethodId =
+      typeof req.query.paymentMethodId === 'string' ? req.query.paymentMethodId : undefined
+    sendSuccess(res, await walletAddressService.list(paymentMethodId))
   }),
 
   adminWalletAddressCreate: asyncHandler(async (req, res) => {

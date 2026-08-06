@@ -91,15 +91,16 @@ export const WithdrawalStatus = {
 export type WithdrawalStatus = (typeof WithdrawalStatus)[keyof typeof WithdrawalStatus]
 
 export const PaymentMethodType = {
+  UPI: 'UPI',
   BANK_TRANSFER: 'BANK_TRANSFER',
+  CRYPTO: 'CRYPTO',
+  MANUAL: 'MANUAL',
+  OTHER: 'OTHER',
   USDT_TRC20: 'USDT_TRC20',
   USDT_BEP20: 'USDT_BEP20',
   BTC: 'BTC',
   ETH: 'ETH',
-  MANUAL: 'MANUAL',
-  CRYPTO: 'CRYPTO',
   MOBILE_WALLET: 'MOBILE_WALLET',
-  OTHER: 'OTHER',
 } as const
 export type PaymentMethodType = (typeof PaymentMethodType)[keyof typeof PaymentMethodType]
 

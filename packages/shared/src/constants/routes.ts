@@ -224,6 +224,7 @@ export const API_ROUTES = {
     withdrawals: '/admin/withdrawals',
     wallets: '/admin/wallets',
     paymentMethods: '/admin/payment-methods',
+    paymentMethodsReorder: '/admin/payment-methods/reorder',
     walletAddresses: '/admin/wallet-addresses',
     ledger: '/admin/ledger',
     financeMetrics: '/admin/finance/metrics',

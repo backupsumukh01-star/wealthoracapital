@@ -60,12 +60,14 @@ function pickMethod(
   }
   if (prefer === 'mobile') {
     return (
-      methods.find((m) => m.type === 'MOBILE_WALLET') ??
+      methods.find((m) => m.type === 'UPI' || m.type === 'MOBILE_WALLET') ??
+      methods.find((m) => m.upi?.upiId) ??
       methods.find((m) => /upi|jazz|easypaisa|mobile/i.test(m.name))
     )
   }
   return (
     methods.find((m) => m.type === 'BANK_TRANSFER' || m.type === 'MANUAL') ??
+    methods.find((m) => m.bank?.accountNumber) ??
     methods.find((m) => /bank|imps|neft|rtgs/i.test(m.name)) ??
     methods[0]
   )

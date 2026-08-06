@@ -71,6 +71,7 @@ export function mapLedgerEntry(entry: LedgerEntry) {
 }
 
 export function mapPaymentMethod(method: PaymentMethod) {
+  // Thin legacy mapper — prefer mapPaymentMethodDetailed when relations are loaded.
   const details =
     method.accountDetails && typeof method.accountDetails === 'object'
       ? (method.accountDetails as Record<string, string>)
@@ -88,6 +89,12 @@ export function mapPaymentMethod(method: PaymentMethod) {
     network: method.network,
     processingTime: method.processingTime,
     priority: method.priority,
+    feePct: moneyDisplay(method.feePct),
+    logoKey: method.logoKey ?? null,
+    logoUrl: null,
+    upi: null,
+    bank: null,
+    cryptoWallets: [] as [],
   }
 }
 

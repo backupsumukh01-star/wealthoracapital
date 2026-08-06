@@ -12,6 +12,7 @@ import { badRequest, conflict, forbidden, notFound } from '../../utils/errors.js
 import { d, moneyDisplay, moneyString } from '../../utils/money.js'
 import { mapDeposit, mapPaymentMethod } from './finance.mappers.js'
 import { ledgerService } from './ledger.service.js'
+import { paymentMethodService } from './payment-method.service.js'
 
 type Ctx = { ip?: string | null; userAgent?: string | null }
 
@@ -32,33 +33,7 @@ async function requireActiveInvestor(userId: string) {
 
 export const depositService = {
   async listMethods() {
-    const methods = await prisma.paymentMethod.findMany({
-      where: { isActive: true, deletedAt: null },
-      include: {
-        walletAddresses: {
-          where: { isActive: true, deletedAt: null },
-          orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
-        },
-      },
-      orderBy: [{ priority: 'asc' }, { name: 'asc' }],
-    })
-
-    return methods.map((method) => {
-      const mapped = mapPaymentMethod(method)
-      const wallet = method.walletAddresses[0]
-      const details = { ...mapped.accountDetails }
-
-      if (wallet) {
-        if (!details.address?.trim()) details.address = wallet.address
-        if (!details.walletAddress?.trim()) details.walletAddress = wallet.address
-        if (!details.network?.trim()) details.network = wallet.network
-        if (wallet.memo && !details.memo?.trim()) details.memo = wallet.memo
-      } else if (method.network && !details.network?.trim()) {
-        details.network = method.network
-      }
-
-      return { ...mapped, accountDetails: details }
-    })
+    return paymentMethodService.listEnabledForInvestor()
   },
 
   async list(

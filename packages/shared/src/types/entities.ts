@@ -74,15 +74,61 @@ export interface LedgerEntry {
   createdAt: IsoDateTime
 }
 
+export interface PaymentMethodUpiDetails {
+  upiId: string
+  accountHolderName: string
+  qrCodeKey: string | null
+  qrCodeUrl: string | null
+}
+
+export interface PaymentMethodBankDetails {
+  accountHolderName: string
+  bankName: string
+  accountNumber: string
+  ifscCode: string
+  branch: string | null
+  accountType: string | null
+  qrCodeKey: string | null
+  qrCodeUrl: string | null
+}
+
+export interface CryptoWalletAddress {
+  id: string
+  paymentMethodId: string | null
+  label: string
+  coin: string
+  network: string
+  address: string
+  memo: string | null
+  instructions: string | null
+  qrCodeKey: string | null
+  qrCodeUrl: string | null
+  minAmount: MoneyString | null
+  maxAmount: MoneyString | null
+  sortOrder: number
+  isDefault: boolean
+  isActive: boolean
+}
+
 export interface PaymentMethod {
   id: string
   name: string
   type: PaymentMethodType
   instructions: string
+  /** @deprecated Prefer `upi` / `bank` / `cryptoWallets`. Derived for older clients. */
   accountDetails: Record<string, string>
   minAmount: MoneyString
   maxAmount: MoneyString | null
+  feePct?: MoneyString
+  processingTime: string | null
+  priority: number
   isActive: boolean
+  logoKey: string | null
+  logoUrl: string | null
+  network: string | null
+  upi: PaymentMethodUpiDetails | null
+  bank: PaymentMethodBankDetails | null
+  cryptoWallets: CryptoWalletAddress[]
 }
 
 export interface Deposit {

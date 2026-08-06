@@ -1,4 +1,5 @@
 export * from './currency-pairs'
+export * from './deposit-methods'
 export * from './error-codes'
 export * from './limits'
 export * from './routes'

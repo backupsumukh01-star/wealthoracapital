@@ -12,6 +12,7 @@ import {
   adminWithdrawalReviewSchema,
   idParamSchema,
   paymentMethodCreateSchema,
+  paymentMethodReorderSchema,
   paymentMethodUpdateSchema,
   walletAddressCreateSchema,
   walletAddressUpdateSchema,
@@ -139,6 +140,12 @@ adminFinanceRouter.post(
   requirePermission(PERMISSIONS['finance.manage']),
   validate(paymentMethodCreateSchema),
   financeController.adminPaymentMethodCreate,
+)
+adminFinanceRouter.post(
+  '/payment-methods/reorder',
+  requirePermission(PERMISSIONS['finance.manage']),
+  validate(paymentMethodReorderSchema),
+  financeController.adminPaymentMethodReorder,
 )
 adminFinanceRouter.patch(
   '/payment-methods/:id',

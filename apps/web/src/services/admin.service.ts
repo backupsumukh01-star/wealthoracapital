@@ -209,33 +209,13 @@ export const adminService = {
   paymentMethods: () =>
     apiClient<import('@meridian/shared').PaymentMethod[]>(API_ROUTES.admin.paymentMethods),
 
-  createPaymentMethod: (body: {
-    name: string
-    type: string
-    instructions: string
-    accountDetails?: Record<string, string>
-    network?: string
-    minAmount?: string
-    maxAmount?: string | null
-    isActive?: boolean
-  }) =>
+  createPaymentMethod: (body: Record<string, unknown>) =>
     apiClient<import('@meridian/shared').PaymentMethod>(API_ROUTES.admin.paymentMethods, {
       method: 'POST',
       body,
     }),
 
-  updatePaymentMethod: (
-    id: string,
-    body: Partial<{
-      name: string
-      instructions: string
-      accountDetails: Record<string, string>
-      network: string
-      minAmount: string
-      maxAmount: string | null
-      isActive: boolean
-    }>,
-  ) =>
+  updatePaymentMethod: (id: string, body: Record<string, unknown>) =>
     apiClient<import('@meridian/shared').PaymentMethod>(`${API_ROUTES.admin.paymentMethods}/${id}`, {
       method: 'PATCH',
       body,
@@ -244,44 +224,30 @@ export const adminService = {
   deletePaymentMethod: (id: string) =>
     apiClient(`${API_ROUTES.admin.paymentMethods}/${id}`, { method: 'DELETE' }),
 
-  walletAddresses: () =>
-    apiClient<
-      Array<{
-        id: string
-        label: string
-        network: string
-        address: string
-        memo: string | null
-        qrCodeKey: string | null
-        isDefault: boolean
-        isActive: boolean
-        paymentMethodId: string | null
-      }>
-    >(API_ROUTES.admin.walletAddresses),
+  reorderPaymentMethods: (orderedIds: string[]) =>
+    apiClient<import('@meridian/shared').PaymentMethod[]>(API_ROUTES.admin.paymentMethodsReorder, {
+      method: 'POST',
+      body: { orderedIds },
+    }),
 
-  createWalletAddress: (body: {
-    label: string
-    network: string
-    address: string
-    memo?: string
-    qrCodeKey?: string
-    isDefault?: boolean
-    isActive?: boolean
-    paymentMethodId?: string
-  }) => apiClient(API_ROUTES.admin.walletAddresses, { method: 'POST', body }),
+  walletAddresses: (paymentMethodId?: string) => {
+    const qs = paymentMethodId ? `?paymentMethodId=${encodeURIComponent(paymentMethodId)}` : ''
+    return apiClient<import('@meridian/shared').CryptoWalletAddress[]>(
+      `${API_ROUTES.admin.walletAddresses}${qs}`,
+    )
+  },
 
-  updateWalletAddress: (
-    id: string,
-    body: Partial<{
-      label: string
-      network: string
-      address: string
-      memo: string
-      qrCodeKey: string
-      isDefault: boolean
-      isActive: boolean
-    }>,
-  ) => apiClient(`${API_ROUTES.admin.walletAddresses}/${id}`, { method: 'PATCH', body }),
+  createWalletAddress: (body: Record<string, unknown>) =>
+    apiClient<import('@meridian/shared').CryptoWalletAddress>(API_ROUTES.admin.walletAddresses, {
+      method: 'POST',
+      body,
+    }),
+
+  updateWalletAddress: (id: string, body: Record<string, unknown>) =>
+    apiClient<import('@meridian/shared').CryptoWalletAddress>(
+      `${API_ROUTES.admin.walletAddresses}/${id}`,
+      { method: 'PATCH', body },
+    ),
 
   deleteWalletAddress: (id: string) =>
     apiClient(`${API_ROUTES.admin.walletAddresses}/${id}`, { method: 'DELETE' }),

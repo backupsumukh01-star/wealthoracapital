@@ -75,42 +75,89 @@ export const adminWalletAdjustSchema = z.object({
 
 export const paymentMethodCreateSchema = z.object({
   name: z.string().min(2).max(80),
-  type: z.enum([
-    'BANK_TRANSFER',
-    'USDT_TRC20',
-    'USDT_BEP20',
-    'BTC',
-    'ETH',
-    'MANUAL',
-    'CRYPTO',
-    'MOBILE_WALLET',
-    'OTHER',
-  ]),
+  type: z.enum(['UPI', 'BANK_TRANSFER', 'CRYPTO', 'MANUAL', 'OTHER']),
   instructions: z.string().min(3).max(2000),
-  accountDetails: z.record(z.string()).optional(),
-  network: z.string().max(40).optional(),
+  logoKey: z.string().max(400).nullable().optional(),
+  network: z.string().max(40).nullable().optional(),
   minAmount: money.optional(),
   maxAmount: money.nullable().optional(),
-  feePct: z.string().regex(/^\d+(\.\d{1,6})?$/).optional(),
-  processingTime: z.string().max(80).optional(),
+  feePct: z
+    .string()
+    .regex(/^\d+(\.\d{1,6})?$/)
+    .optional(),
+  processingTime: z.string().max(80).nullable().optional(),
   priority: z.number().int().min(0).max(1000).optional(),
   isActive: z.boolean().optional(),
+  upi: z
+    .object({
+      upiId: z.string().min(3).max(120),
+      accountHolderName: z.string().min(2).max(120),
+      qrCodeKey: z.string().max(400).nullable().optional(),
+    })
+    .optional(),
+  bank: z
+    .object({
+      accountHolderName: z.string().min(2).max(120),
+      bankName: z.string().min(2).max(120),
+      accountNumber: z.string().min(4).max(64),
+      ifscCode: z.string().min(4).max(32),
+      branch: z.string().max(120).nullable().optional(),
+      accountType: z.string().max(40).nullable().optional(),
+      qrCodeKey: z.string().max(400).nullable().optional(),
+    })
+    .optional(),
+  cryptoWallets: z
+    .array(
+      z.object({
+        id: z.string().uuid().optional(),
+        label: z.string().min(2).max(80),
+        coin: z.string().min(2).max(20),
+        network: z.string().min(2).max(40),
+        address: z.string().min(6).max(200),
+        memo: z.string().max(120).nullable().optional(),
+        instructions: z.string().max(2000).nullable().optional(),
+        qrCodeKey: z.string().max(400).nullable().optional(),
+        minAmount: money.nullable().optional(),
+        maxAmount: money.nullable().optional(),
+        sortOrder: z.number().int().min(0).max(10000).optional(),
+        isDefault: z.boolean().optional(),
+        isActive: z.boolean().optional(),
+      }),
+    )
+    .optional(),
 })
 
-export const paymentMethodUpdateSchema = paymentMethodCreateSchema.partial().omit({ type: true })
+export const paymentMethodUpdateSchema = paymentMethodCreateSchema
+  .partial()
+  .omit({ type: true })
+  .extend({
+    upi: paymentMethodCreateSchema.shape.upi.nullable().optional(),
+    bank: paymentMethodCreateSchema.shape.bank.nullable().optional(),
+  })
+
+export const paymentMethodReorderSchema = z.object({
+  orderedIds: z.array(z.string().uuid()).min(1).max(200),
+})
 
 export const walletAddressCreateSchema = z.object({
-  paymentMethodId: z.string().uuid().optional(),
+  paymentMethodId: z.string().uuid(),
   label: z.string().min(2).max(80),
+  coin: z.string().min(2).max(20).default('USDT'),
   network: z.string().min(2).max(40),
   address: z.string().min(6).max(200),
-  memo: z.string().max(120).optional(),
-  qrCodeKey: z.string().max(400).optional(),
+  memo: z.string().max(120).nullable().optional(),
+  instructions: z.string().max(2000).nullable().optional(),
+  qrCodeKey: z.string().max(400).nullable().optional(),
+  minAmount: money.nullable().optional(),
+  maxAmount: money.nullable().optional(),
+  sortOrder: z.number().int().min(0).max(10000).optional(),
   isDefault: z.boolean().optional(),
   isActive: z.boolean().optional(),
 })
 
-export const walletAddressUpdateSchema = walletAddressCreateSchema.partial()
+export const walletAddressUpdateSchema = walletAddressCreateSchema.partial().extend({
+  paymentMethodId: z.string().uuid().nullable().optional(),
+})
 
 export type CreateDepositInput = z.infer<typeof createDepositSchema>
 export type CreateWithdrawalInput = z.infer<typeof createWithdrawalSchema>
