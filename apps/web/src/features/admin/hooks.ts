@@ -172,7 +172,7 @@ export function useReviewWithdrawal() {
   return useMutation<
     Withdrawal,
     Error,
-    { id: string; decision: 'APPROVE' | 'REJECT' | 'PAID'; reason?: string }
+    { id: string; decision: 'APPROVE' | 'REJECT' | 'REQUEST_INFORMATION' | 'PAID'; reason?: string }
   >({
     mutationFn: ({ id, ...body }) => adminApi.reviewWithdrawal(id, body),
     onSuccess: (withdrawal) => {

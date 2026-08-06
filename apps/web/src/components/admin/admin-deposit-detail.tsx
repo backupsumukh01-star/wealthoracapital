@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { ROUTES, type MoneyString } from '@meridian/shared'
-import { FileImage } from 'lucide-react'
+import { Download, FileImage, Maximize2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -30,6 +30,47 @@ import {
 import { formatDateTime } from '@/lib/format'
 
 type DepositDecision = 'APPROVE' | 'REJECT' | 'REQUEST_INFORMATION'
+type DetailRecord = Record<string, unknown>
+
+function asRecord(value: unknown): DetailRecord | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as DetailRecord)
+    : null
+}
+
+function displayValue(value: unknown): string | null {
+  if (value === null || value === undefined || value === '') return null
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+  return JSON.stringify(value)
+}
+
+function pickString(record: DetailRecord | null | undefined, keys: string[]) {
+  if (!record) return null
+  for (const key of keys) {
+    const value = displayValue(record[key])
+    if (value) return value
+  }
+  return null
+}
+
+function firstRecord(items: unknown) {
+  return Array.isArray(items) ? items.map(asRecord).find(Boolean) ?? null : null
+}
+
+function formatDetailKey(key: string) {
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function detailEntries(record: DetailRecord | null) {
+  return Object.entries(record ?? {})
+    .map(([key, value]) => [key, displayValue(value)] as const)
+    .filter((entry): entry is readonly [string, string] => Boolean(entry[1]))
+}
 
 export function AdminDepositDetailWorkspace() {
   const params = useParams<{ depositId: string }>()
@@ -66,6 +107,29 @@ export function AdminDepositDetailWorkspace() {
   const name = investor
     ? `${investor.firstName} ${investor.lastName}`
     : investorName(deposit.user, deposit.user?.id ?? depositId)
+  const userEmail = investor?.email ?? deposit.user?.email ?? '—'
+  const userPhone = investor?.phone ?? deposit.user?.phone ?? '—'
+  const submissionDetails = asRecord(deposit.submissionDetails)
+  const paymentMethod = asRecord(deposit.paymentMethod) ?? asRecord(deposit.method)
+  const accountDetails = asRecord(paymentMethod?.accountDetails)
+  const walletDetails = firstRecord(paymentMethod?.cryptoWallets)
+  const methodName =
+    methodLabel(deposit.method) !== '—'
+      ? methodLabel(deposit.method)
+      : pickString(paymentMethod, ['name', 'type']) ?? '—'
+  const coin =
+    pickString(submissionDetails, ['coin', 'cryptoCoin', 'asset', 'token']) ??
+    pickString(paymentMethod, ['coin', 'asset', 'currency']) ??
+    pickString(walletDetails, ['coin', 'asset', 'symbol'])
+  const network =
+    pickString(submissionDetails, ['network', 'chain']) ??
+    pickString(paymentMethod, ['network', 'chain']) ??
+    pickString(walletDetails, ['network', 'chain'])
+  const walletAddress =
+    pickString(submissionDetails, ['walletAddress', 'depositAddress', 'address', 'toAddress', 'wallet']) ??
+    pickString(accountDetails, ['walletAddress', 'depositAddress', 'address', 'wallet']) ??
+    pickString(walletDetails, ['address', 'walletAddress'])
+  const submissionEntries = detailEntries(submissionDetails)
 
   async function decide(decision: DepositDecision, title: string) {
     if ((decision === 'REJECT' || decision === 'REQUEST_INFORMATION') && !reason.trim()) {
@@ -125,22 +189,72 @@ export function AdminDepositDetailWorkspace() {
                 </dd>
               </div>
               <div>
-                <dt className="text-fg-subtle">Method</dt>
-                <dd className="text-fg">{methodLabel(deposit.method)}</dd>
+                <dt className="text-fg-subtle">Currency</dt>
+                <dd className="text-fg">{deposit.currency ?? '—'}</dd>
               </div>
               <div>
-                <dt className="text-fg-subtle">Reference</dt>
+                <dt className="text-fg-subtle">Email</dt>
+                <dd className="break-all text-fg">{userEmail}</dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">Phone</dt>
+                <dd className="text-fg">{userPhone}</dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">Payment Method</dt>
+                <dd className="text-fg">{methodName}</dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">Coin</dt>
+                <dd className="text-fg">{coin ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">Network</dt>
+                <dd className="text-fg">{network ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">Wallet Address</dt>
+                <dd className="break-all font-mono text-fg">{walletAddress ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">Hash</dt>
+                <dd className="break-all font-mono text-fg">{deposit.txHash ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">UTR</dt>
+                <dd className="break-all font-mono text-fg">{deposit.userReference ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">Reference ID</dt>
                 <dd className="font-mono text-fg">{deposit.reference}</dd>
               </div>
               <div>
-                <dt className="text-fg-subtle">Submitted</dt>
+                <dt className="text-fg-subtle">Submission Time</dt>
                 <dd className="text-fg">{formatDateTime(deposit.createdAt)}</dd>
               </div>
-              <div>
-                <dt className="text-fg-subtle">Proof file</dt>
-                <dd className="text-fg">{deposit.hasProof ? 'On file' : '—'}</dd>
+              <div className="sm:col-span-2">
+                <dt className="text-fg-subtle">Notes</dt>
+                <dd className="whitespace-pre-wrap text-fg">{deposit.notes ?? '—'}</dd>
               </div>
             </dl>
+          </AdminPanel>
+
+          <AdminPanel>
+            <AdminPanelHeader title="Submission details" />
+            {submissionEntries.length > 0 ? (
+              <dl className="grid gap-3 px-4 py-4 text-caption sm:grid-cols-2 sm:px-5">
+                {submissionEntries.map(([key, value]) => (
+                  <div key={key}>
+                    <dt className="text-fg-subtle">{formatDetailKey(key)}</dt>
+                    <dd className="break-all text-fg">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <p className="px-4 py-4 text-caption text-fg-muted sm:px-5">
+                No additional submission details.
+              </p>
+            )}
           </AdminPanel>
 
           <AdminPanel>
@@ -216,17 +330,51 @@ export function AdminDepositDetailWorkspace() {
         </div>
 
         <AdminPanel className="lg:sticky lg:top-24 lg:self-start" glow>
-          <AdminPanelHeader title="Proof of payment" />
+          <AdminPanelHeader title="Payment Screenshot" />
           <div className="p-4 sm:p-5">
-            <div className="flex min-h-[320px] flex-col justify-between rounded-2xl border border-white/10 bg-gradient-to-br from-accent-500/35 via-info/20 to-transparent p-6">
-              <FileImage className="size-8 text-accent-300" aria-hidden />
-              <div>
-                <p className="text-heading-sm text-fg">{deposit.hasProof ? 'Proof on file' : 'No proof'}</p>
+            {deposit.proofUrl ? (
+              <div className="space-y-3">
+                <a
+                  href={deposit.proofUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block overflow-hidden rounded-2xl border border-white/10 bg-black/30"
+                  aria-label="Open payment screenshot fullscreen"
+                >
+                  <img
+                    src={deposit.proofUrl}
+                    alt={`Payment screenshot for ${deposit.reference}`}
+                    className="max-h-[70vh] min-h-[320px] w-full object-contain"
+                  />
+                </a>
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild size="sm" variant="secondary">
+                    <a href={deposit.proofUrl} target="_blank" rel="noreferrer">
+                      <Maximize2 aria-hidden />
+                      Open fullscreen
+                    </a>
+                  </Button>
+                  <Button asChild size="sm" variant="ghost">
+                    <a href={deposit.proofUrl} download>
+                      <Download aria-hidden />
+                      Download
+                    </a>
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-6 text-center">
+                <FileImage className="size-8 text-fg-subtle" aria-hidden />
+                <p className="mt-3 text-heading-sm text-fg">
+                  {deposit.hasProof ? 'Proof URL unavailable' : 'No payment screenshot'}
+                </p>
                 <p className="mt-1 text-caption text-fg-subtle">
-                  Zoomable proof viewer placeholder
+                  {deposit.hasProof
+                    ? 'A proof file is recorded, but the download URL was not returned.'
+                    : 'The investor did not upload a screenshot for this deposit.'}
                 </p>
               </div>
-            </div>
+            )}
           </div>
         </AdminPanel>
       </div>

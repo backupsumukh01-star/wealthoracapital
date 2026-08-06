@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { ROUTES, type MoneyString, type UserStatus } from '@meridian/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Ban, CheckCircle2, FileImage } from 'lucide-react'
+import { Ban, CheckCircle2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -17,6 +17,7 @@ import {
   mapWithdrawalStatus,
   methodLabel,
 } from '@/components/admin/admin-api-adapters'
+import { AdminKycDocumentsGrid } from '@/components/admin/admin-kyc-review'
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import {
   AdminAccountPill,
@@ -45,21 +46,6 @@ import { formatDateTime } from '@/lib/format'
 import { useSession } from '@/providers/session-provider'
 import { adminService } from '@/services/admin.service'
 import { kycService } from '@/services/kyc.service'
-
-function DocPanel({ label, accent }: { label: string; accent: string }) {
-  return (
-    <div
-      className={`relative flex aspect-[4/3] flex-col justify-between overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br ${accent} p-3`}
-    >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgb(255_255_255/0.08),transparent_55%)]" />
-      <div className="relative flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-fg-muted">
-        <FileImage className="size-3.5 text-accent-300" aria-hidden />
-        {label}
-      </div>
-      <p className="relative text-caption text-fg-subtle">Document on file via KYC API</p>
-    </div>
-  )
-}
 
 export function AdminUserDetailWorkspace() {
   const params = useParams<{ userId: string }>()
@@ -95,7 +81,7 @@ export function AdminUserDetailWorkspace() {
     enabled: Boolean(userId),
   })
 
-  const { data: kycDetail } = useQuery({
+  const { data: kycDetail, isLoading: kycLoading } = useQuery({
     queryKey: ['admin', 'kyc', userId],
     queryFn: () => kycService.adminGet(userId),
     enabled: Boolean(userId),
@@ -141,6 +127,41 @@ export function AdminUserDetailWorkspace() {
       toast.success('Account activated')
     },
     onError: (err: Error) => toast.error(err.message || 'Activate failed'),
+  })
+
+  const softDelete = useMutation({
+    mutationFn: () =>
+      adminService.deleteUser(userId, {
+        mode: 'soft',
+        reason: 'Soft-deleted by operator',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.user(userId) })
+      toast.success('User soft-deleted — login disabled, records retained')
+    },
+    onError: (err: Error) => toast.error(err.message || 'Soft delete failed'),
+  })
+
+  const hardDelete = useMutation({
+    mutationFn: () =>
+      adminService.deleteUser(userId, {
+        mode: 'hard',
+        reason: 'Hard-deleted by super admin',
+      }),
+    onSuccess: () => {
+      toast.success('User permanently deleted — email and phone released')
+      window.location.href = ROUTES.admin.users
+    },
+    onError: (err: Error) => toast.error(err.message || 'Hard delete failed'),
+  })
+
+  const restoreUser = useMutation({
+    mutationFn: () => adminService.restoreUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.user(userId) })
+      toast.success('User restored')
+    },
+    onError: (err: Error) => toast.error(err.message || 'Restore failed'),
   })
 
   const approveKyc = useMutation({
@@ -211,10 +232,20 @@ export function AdminUserDetailWorkspace() {
   const showMarketLists = accountStatus === 'VERIFIED' || kycStatus === 'APPROVED'
   const username = user.email.split('@')[0] || user.id
   const available = (walletRow?.availableBalance ?? walletRow?.balance ?? '0.00') as MoneyString
-  const kycMeta =
-    kycDetail && typeof kycDetail === 'object'
-      ? (kycDetail as Record<string, unknown>)
-      : null
+  const kycDocuments = (kycDetail?.documents ?? []) as Array<{
+    id: string
+    kind?: string
+    documentType?: string
+    side?: string
+    mimeType?: string
+    originalName?: string
+    downloadUrl?: string
+    storageKey?: string
+    fileExists?: boolean
+    absolutePath?: string | null
+    status?: string
+  }>
+  const kycOwnerId = kycDetail?.id ?? userId
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -333,13 +364,13 @@ export function AdminUserDetailWorkspace() {
           <AdminPanel className="space-y-5 p-4 sm:p-5" glow>
             <SectionHeader
               title="Identity documents"
-              description="Review documents stored via the production KYC API."
+              description="Live previews from investor uploads — click to zoom or download."
             />
-            <div className="grid gap-3 sm:grid-cols-3">
-              <DocPanel label="Front ID" accent="from-accent-500/35 via-info/20 to-transparent" />
-              <DocPanel label="Back ID" accent="from-info/30 via-accent-500/15 to-transparent" />
-              <DocPanel label="Selfie" accent="from-warning/25 via-accent-500/20 to-transparent" />
-            </div>
+            <AdminKycDocumentsGrid
+              ownerId={kycOwnerId}
+              documents={kycDocuments}
+              loading={kycLoading}
+            />
             <dl className="grid gap-3 text-caption sm:grid-cols-3">
               <div>
                 <dt className="text-fg-subtle">KYC status</dt>
@@ -354,9 +385,11 @@ export function AdminUserDetailWorkspace() {
                 </dd>
               </div>
               <div>
-                <dt className="text-fg-subtle">API payload</dt>
+                <dt className="text-fg-subtle">Documents</dt>
                 <dd className="mt-0.5 text-fg-muted">
-                  {kycMeta ? 'Loaded' : 'No KYC submission yet'}
+                  {kycDocuments.length > 0
+                    ? `${kycDocuments.length} on file`
+                    : 'No KYC submission yet'}
                 </dd>
               </div>
             </dl>
@@ -665,6 +698,60 @@ export function AdminUserDetailWorkspace() {
                 >
                   Force logout all sessions
                 </Button>
+              </div>
+            </AdminPanel>
+          </PermissionGate>
+
+          <PermissionGate permission="users.delete">
+            <AdminPanel>
+              <AdminPanelHeader
+                title="Delete user"
+                description="Soft delete disables login and keeps financial + audit records. Hard delete is SUPER_ADMIN only and permanently removes the account so email/phone can register again."
+              />
+              <div className="flex flex-wrap gap-2 px-4 py-4 sm:px-5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  disabled={softDelete.isPending || Boolean(user.deletedAt)}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        'Soft-delete this user? They will not be able to log in. Financial records stay.',
+                      )
+                    ) {
+                      softDelete.mutate()
+                    }
+                  }}
+                >
+                  Soft delete
+                </Button>
+                {user.deletedAt ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={restoreUser.isPending}
+                    onClick={() => restoreUser.mutate()}
+                  >
+                    Restore user
+                  </Button>
+                ) : null}
+                <PermissionGate permission="users.delete">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="danger"
+                    disabled={hardDelete.isPending || session?.user.role !== 'SUPER_ADMIN'}
+                    onClick={() => {
+                      const typed = window.prompt(
+                        'HARD DELETE is permanent. Type DELETE to confirm releasing email/phone and removing credentials.',
+                      )
+                      if (typed === 'DELETE') hardDelete.mutate()
+                    }}
+                  >
+                    Hard delete
+                  </Button>
+                </PermissionGate>
               </div>
             </AdminPanel>
           </PermissionGate>

@@ -78,7 +78,7 @@ export const adminService = {
 
   reviewWithdrawal: (
     id: string,
-    body: { decision: 'APPROVE' | 'REJECT' | 'PAID'; reason?: string },
+    body: { decision: 'APPROVE' | 'REJECT' | 'REQUEST_INFORMATION' | 'PAID'; reason?: string },
   ) =>
     apiClient<Withdrawal>(`${API_ROUTES.admin.withdrawals}/${id}/review`, {
       method: 'POST',
@@ -117,6 +117,18 @@ export const adminService = {
 
   forceLogoutUser: (id: string) =>
     apiClient<{ revokedSessions: number }>(`${API_ROUTES.admin.users}/${id}/force-logout`, {
+      method: 'POST',
+      body: {},
+    }),
+
+  deleteUser: (id: string, body: { mode: 'soft' | 'hard'; reason?: string }) =>
+    apiClient<{ id: string; deleted?: boolean } | User>(`${API_ROUTES.admin.users}/${id}/delete`, {
+      method: 'POST',
+      body,
+    }),
+
+  restoreUser: (id: string) =>
+    apiClient<User>(`${API_ROUTES.admin.users}/${id}/restore`, {
       method: 'POST',
       body: {},
     }),

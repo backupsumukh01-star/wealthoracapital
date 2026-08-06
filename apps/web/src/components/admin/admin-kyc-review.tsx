@@ -349,12 +349,70 @@ function KycDocCard({
 
 function pickDoc(docs: KycDoc[], side: string, kinds?: string[]): KycDoc | undefined {
   return docs.find((d) => {
-    const type = d.documentType ?? d.kind ?? ''
-    const sideOk = (d.side ?? 'SINGLE') === side
+    const type = (d.documentType ?? d.kind ?? '').toUpperCase()
+    const docSide = (d.side ?? 'SINGLE').toUpperCase()
+    const sideOk = docSide === side.toUpperCase()
     if (!sideOk) return false
     if (!kinds?.length) return true
-    return kinds.includes(type)
+    return kinds.some((k) => k.toUpperCase() === type)
   })
+}
+
+/** Shared document grid for KYC review + admin user detail. */
+export function AdminKycDocumentsGrid({
+  ownerId,
+  documents,
+  loading,
+}: {
+  ownerId: string
+  documents: KycDoc[]
+  loading?: boolean
+}) {
+  const idKinds = ['NATIONAL_ID', 'DRIVING_LICENSE', 'RESIDENCE_PERMIT', 'PASSPORT']
+  const front =
+    pickDoc(documents, 'FRONT', idKinds) ??
+    pickDoc(documents, 'FRONT') ??
+    documents.find((d) => (d.side ?? '').toUpperCase() === 'FRONT')
+  const back =
+    pickDoc(documents, 'BACK', idKinds) ??
+    pickDoc(documents, 'BACK') ??
+    documents.find((d) => (d.side ?? '').toUpperCase() === 'BACK')
+  const selfie =
+    pickDoc(documents, 'SINGLE', ['SELFIE']) ??
+    documents.find((d) => (d.documentType ?? d.kind ?? '').toUpperCase() === 'SELFIE')
+  const addressProof =
+    pickDoc(documents, 'SINGLE', ['PROOF_OF_ADDRESS']) ??
+    documents.find((d) => (d.documentType ?? d.kind ?? '').toUpperCase() === 'PROOF_OF_ADDRESS')
+  const extras = documents.filter(
+    (d) =>
+      d.id !== front?.id &&
+      d.id !== back?.id &&
+      d.id !== selfie?.id &&
+      d.id !== addressProof?.id,
+  )
+
+  if (loading) {
+    return <p className="text-body-sm text-fg-muted">Loading documents…</p>
+  }
+  if (documents.length === 0) {
+    return (
+      <AdminPanel className="p-6 text-body-sm text-fg-muted">
+        No documents are attached to this KYC submission. Ask the investor to upload again.
+      </AdminPanel>
+    )
+  }
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <KycDocCard label="Front ID" doc={front} ownerId={ownerId} />
+      <KycDocCard label="Back ID" doc={back} ownerId={ownerId} />
+      <KycDocCard label="Selfie" doc={selfie} ownerId={ownerId} />
+      <KycDocCard label="Address proof" doc={addressProof} ownerId={ownerId} />
+      {extras.map((doc) => (
+        <KycDocCard key={doc.id} label={docLabel(doc)} doc={doc} ownerId={ownerId} />
+      ))}
+    </div>
+  )
 }
 
 export function AdminKycReviewWorkspace() {
@@ -443,22 +501,6 @@ export function AdminKycReviewWorkspace() {
   const submission = kycDetail
   const ownerId = submission?.id ?? userId
   const documents = (submission?.documents ?? []) as KycDoc[]
-  const idKinds = ['NATIONAL_ID', 'DRIVING_LICENSE', 'RESIDENCE_PERMIT', 'PASSPORT']
-  const front = pickDoc(documents, 'FRONT', idKinds) ?? pickDoc(documents, 'FRONT')
-  const back = pickDoc(documents, 'BACK', idKinds) ?? pickDoc(documents, 'BACK')
-  const selfie =
-    pickDoc(documents, 'SINGLE', ['SELFIE']) ??
-    documents.find((d) => (d.documentType ?? d.kind) === 'SELFIE')
-  const addressProof =
-    pickDoc(documents, 'SINGLE', ['PROOF_OF_ADDRESS']) ??
-    documents.find((d) => (d.documentType ?? d.kind) === 'PROOF_OF_ADDRESS')
-  const extras = documents.filter(
-    (d) =>
-      d.id !== front?.id &&
-      d.id !== back?.id &&
-      d.id !== selfie?.id &&
-      d.id !== addressProof?.id,
-  )
   const country = submission?.country ?? account.country ?? '—'
   const busy = approve.isPending || reject.isPending || resubmit.isPending
 
@@ -621,23 +663,11 @@ export function AdminKycReviewWorkspace() {
 
       <div>
         <h2 className="mb-3 text-heading-sm text-fg">Submitted documents</h2>
-        {kycLoading ? (
-          <p className="text-body-sm text-fg-muted">Loading documents…</p>
-        ) : documents.length === 0 ? (
-          <AdminPanel className="p-6 text-body-sm text-fg-muted">
-            No documents are attached to this KYC submission. Ask the investor to upload again.
-          </AdminPanel>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <KycDocCard label="Front ID" doc={front} ownerId={ownerId} />
-            <KycDocCard label="Back ID" doc={back} ownerId={ownerId} />
-            <KycDocCard label="Selfie" doc={selfie} ownerId={ownerId} />
-            <KycDocCard label="Address proof" doc={addressProof} ownerId={ownerId} />
-            {extras.map((doc) => (
-              <KycDocCard key={doc.id} label={docLabel(doc)} doc={doc} ownerId={ownerId} />
-            ))}
-          </div>
-        )}
+        <AdminKycDocumentsGrid
+          ownerId={ownerId}
+          documents={documents}
+          loading={kycLoading}
+        />
       </div>
     </div>
   )

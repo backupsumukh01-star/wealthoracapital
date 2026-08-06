@@ -31,15 +31,28 @@ export type AdminUserRef = {
   email: string
   firstName: string
   lastName: string
+  phone?: string | null
   kycStatus?: KycStatus
 }
 
+export type AdminDetailRecord = Record<string, unknown>
+
 export type AdminDepositRow = Deposit & {
   user?: AdminUserRef
+  currency?: string
+  notes?: string | null
+  proofUrl?: string | null
+  txHash?: string | null
+  submissionDetails?: AdminDetailRecord | null
+  paymentMethod?: AdminDetailRecord | null
 }
 
 export type AdminWithdrawalRow = Withdrawal & {
   user?: AdminUserRef
+  currency?: string
+  destinationSnapshot?: AdminDetailRecord | null
+  otpVerifiedAt?: string | null
+  payoutMethod?: AdminDetailRecord | null
 }
 
 export function investorName(
