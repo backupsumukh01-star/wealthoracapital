@@ -2,19 +2,17 @@ import { env } from '../../config/env.js'
 import { logger } from '../../utils/logger.js'
 import type { EmailMessage, EmailTransport } from '../email.types.js'
 
-/** SendGrid transport stub — logs intent until `SENDGRID_API_KEY` is wired to a real HTTP call. */
+/** SendGrid transport stub — fails closed in production until a real HTTP client is wired. */
 export class SendgridEmailTransport implements EmailTransport {
   async send(message: EmailMessage): Promise<void> {
-    if (!env.SENDGRID_API_KEY) {
-      logger.warn(
-        { to: message.to, subject: message.subject },
-        'SendGrid transport selected but SENDGRID_API_KEY is not set; message logged only',
+    if (env.NODE_ENV === 'production') {
+      throw new Error(
+        'EMAIL_TRANSPORT=sendgrid is stubbed. Use EMAIL_TRANSPORT=resend or implement SendGrid HTTP delivery.',
       )
-      return
     }
-    logger.info(
+    logger.warn(
       { to: message.to, subject: message.subject, template: message.template },
-      'Email dispatched via SendGrid (stub — integrate @sendgrid/mail for live delivery)',
+      'SendGrid transport stub — message logged only (non-production)',
     )
   }
 }

@@ -23,14 +23,14 @@ function dayDate(input: string | Date): Date {
 
 /**
  * Active investment for settlement.
- * Prefer investedAmount (principal). Fall back to liquid balances so funded wallets
- * are never skipped when investedAmount was not bumped historically.
+ * INVESTED basis uses principal only — never fall back to liquid balances
+ * (that would pay ROI on uninvested cash / locked withdrawals).
  */
 function activeInvestment(wallet: Wallet, basis: ReturnBasis): Decimal {
   const invested = d(wallet.investedAmount)
   const liquid = d(wallet.availableBalance).plus(d(wallet.lockedBalance))
   if (basis === 'INVESTED') {
-    return invested.gt(0) ? invested : liquid
+    return invested
   }
   return liquid.gt(0) ? liquid : invested
 }
@@ -164,11 +164,12 @@ export const distributionService = {
       if (priorBlocking.status === 'COMPLETED') {
         throw conflict("Today's return has already been published.")
       }
-      if (priorBlocking.idempotencyKey !== body.idempotencyKey) {
+      if (priorBlocking.status === 'PROCESSING') {
         throw conflict(
-          'A distribution run for this date is already in progress or failed. Resume with the original idempotency key.',
+          'A distribution run for this date is already in progress. Resume with the original idempotency key.',
         )
       }
+      // FAILED prior runs: allow a new publish — already-paid wallets are skipped via idempotency keys.
     }
 
     const wallets = await prisma.wallet.findMany({
@@ -485,22 +486,28 @@ export const distributionService = {
     }
 
     const completedAt = new Date()
+    const finalStatus = failed > 0 && successful === 0 ? 'FAILED' : failed > 0 ? 'FAILED' : 'COMPLETED'
+    // FAILED with partial success still records counts so ops can see unpaid wallets and re-run after fixing data.
     const completed = await prisma.dailyReturnRun.update({
       where: { id: run.id },
       data: {
-        status: 'COMPLETED',
+        status: finalStatus,
         processedWallets: processed,
         successfulWallets: successful,
         failedWallets: failed,
         totalDistributed: moneyString(distributed),
         completedAt,
+        notes:
+          failed > 0
+            ? `${failed} wallet(s) failed. Fix data then publish a new run for unpaid investors only.`
+            : undefined,
       },
     })
 
     await prisma.dailyReturn.update({
       where: { id: daily.id },
       data: {
-        status: 'DISTRIBUTED',
+        status: failed > 0 && successful === 0 ? 'DRAFT' : 'DISTRIBUTED',
         netReturnPct: returnPct.toFixed(6),
       },
     })

@@ -1,5 +1,4 @@
-'use client'
-
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ROUTES } from '@meridian/shared'
 import { ArrowDownToLine, ArrowUpFromLine } from 'lucide-react'
@@ -31,10 +30,15 @@ export function PortfolioHero({
   onWithdraw?: () => void
 }) {
   const prefersReducedMotion = usePrefersReducedMotion()
-  const hour = new Date().getHours()
-  const greeting = greetingForHour(hour)
+  const [greeting, setGreeting] = useState('Welcome')
+  useEffect(() => {
+    setGreeting(greetingForHour(new Date().getHours()))
+  }, [])
   const { session } = useSession()
-  const { data: summary } = useWalletSummary({ enabled: Boolean(session) })
+  const { data: summary } = useWalletSummary({
+    enabled: Boolean(session),
+    refetchInterval: 15_000,
+  })
 
   const wallet = summary?.wallet ?? session?.wallet
   const balance = wallet?.availableBalance ?? '0.00'
@@ -42,8 +46,8 @@ export function PortfolioHero({
   const totalProfit = wallet?.totalProfit ?? '0.00'
   const invested = wallet?.investedAmount ?? '0.00'
   const available = wallet?.availableBalance ?? '0.00'
-  const pendingDep = '0.00'
-  const pendingWdr = wallet?.lockedBalance ?? '0.00'
+  const pendingDep = summary?.pending?.depositAmount ?? '0.00'
+  const pendingWdr = summary?.pending?.withdrawalAmount ?? wallet?.lockedBalance ?? '0.00'
   const todayReturnPct = summary?.today.returnPct ?? '0.00'
   const name = session?.user.firstName ?? 'Investor'
   const allowed = canTransact(session?.user.kycStatus)

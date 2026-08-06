@@ -14,7 +14,20 @@ export const settingsService = {
   /** Admin — platform configuration */
   adminGet: () => apiClient<PlatformSettings>(API_ROUTES.admin.settings),
 
-  adminUpdate: (body: Partial<PlatformSettings>) =>
+  adminUpdate: (body: {
+    companyName?: string
+    supportEmail?: string
+    supportPhone?: string | null
+    defaultCurrency?: string
+    timezone?: string
+    maintenanceMode?: boolean
+    networks?: string[]
+    coins?: string[]
+    minDeposit?: string
+    maxDeposit?: string
+    minWithdrawal?: string
+    maxWithdrawal?: string
+  }) =>
     apiClient<PlatformSettings>(API_ROUTES.admin.settings, { method: 'PUT', body }),
 
   featureFlags: () =>

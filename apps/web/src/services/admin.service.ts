@@ -290,6 +290,20 @@ export const adminService = {
 
   trades: () => apiClient<{ items: Trade[] }>(API_ROUTES.admin.trades),
 
+  createTrade: (body: {
+    pair: string
+    direction: 'BUY' | 'SELL'
+    entryPrice: string
+    exitPrice?: string
+    returnPct?: string
+    tradeDate: string
+    adminNotes?: string
+  }) =>
+    apiClient<Trade>(API_ROUTES.admin.trades, {
+      method: 'POST',
+      body,
+    }),
+
   publishTrade: (id: string) =>
     apiClient<Trade>(`${API_ROUTES.admin.trades}/${id}/publish`, { method: 'POST' }),
 

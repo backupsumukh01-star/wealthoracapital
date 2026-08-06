@@ -296,7 +296,12 @@ export interface WalletSummary {
   performance: PerformanceSummary
   chart: { range: string; points: EquityPoint[] }
   recentTrades: Trade[]
-  pending: { deposits: number; withdrawals: number }
+  pending: {
+    deposits: number
+    withdrawals: number
+    depositAmount: MoneyString
+    withdrawalAmount: MoneyString
+  }
   unreadNotifications: number
 }
 

@@ -117,55 +117,73 @@ export const depositService = {
     const fee = amount.mul(d(method.feePct)).div(100)
     const wallet = await ledgerService.getInvestmentWallet(userId)
 
-    const deposit = await prisma.$transaction(async (tx) => {
-      const submissionDetails = {
-        ...(body.submissionDetails ?? {}),
-        clientIp: context.ip ?? '',
-        userAgent: context.userAgent ?? '',
-        submittedAt: new Date().toISOString(),
-      }
-      const created = await tx.deposit.create({
-        data: {
-          reference: depositRef(),
-          userId,
-          walletId: wallet.id,
-          paymentMethodId: method.id,
-          amount: moneyString(amount),
-          fee: moneyString(fee),
-          status: 'PENDING',
-          userReference: body.userReference?.slice(0, 120) ?? null,
-          txHash: body.txHash?.slice(0, 120) ?? null,
-          notes: body.notes?.slice(0, 2000) ?? null,
-          submissionDetails,
-          idempotencyKey: body.idempotencyKey,
-          expiresAt: new Date(Date.now() + 7 * 24 * 3_600_000),
-        },
-        include: { paymentMethod: { select: { id: true, name: true, type: true } } },
-      })
+    let deposit
+    try {
+      deposit = await prisma.$transaction(async (tx) => {
+        const submissionDetails = {
+          ...(body.submissionDetails ?? {}),
+          clientIp: context.ip ?? '',
+          userAgent: context.userAgent ?? '',
+          submittedAt: new Date().toISOString(),
+        }
+        const created = await tx.deposit.create({
+          data: {
+            reference: depositRef(),
+            userId,
+            walletId: wallet.id,
+            paymentMethodId: method.id,
+            amount: moneyString(amount),
+            fee: moneyString(fee),
+            status: 'PENDING',
+            userReference: body.userReference?.slice(0, 120) ?? null,
+            txHash: body.txHash?.slice(0, 120) ?? null,
+            notes: body.notes?.slice(0, 2000) ?? null,
+            submissionDetails,
+            idempotencyKey: body.idempotencyKey,
+            expiresAt: new Date(Date.now() + 7 * 24 * 3_600_000),
+          },
+          include: { paymentMethod: { select: { id: true, name: true, type: true } } },
+        })
 
-      await ledgerService.adjustPending(tx, wallet.id, amount)
-      await tx.approvalQueue.create({
-        data: {
-          entityType: 'DEPOSIT',
-          entityId: created.id,
-          depositId: created.id,
-          status: 'PENDING',
-          requiredRole: 'FINANCE',
-          priority: 100,
-        },
+        await ledgerService.adjustPending(tx, wallet.id, amount)
+        await tx.approvalQueue.create({
+          data: {
+            entityType: 'DEPOSIT',
+            entityId: created.id,
+            depositId: created.id,
+            status: 'PENDING',
+            requiredRole: 'FINANCE',
+            priority: 100,
+          },
+        })
+        await tx.transactionHistory.create({
+          data: {
+            userId,
+            event: 'DEPOSIT_SUBMITTED',
+            status: 'PENDING',
+            amount: moneyString(amount),
+            currency: 'USD',
+            message: `Deposit ${created.reference} submitted`,
+          },
+        })
+        return created
       })
-      await tx.transactionHistory.create({
-        data: {
-          userId,
-          event: 'DEPOSIT_SUBMITTED',
-          status: 'PENDING',
-          amount: moneyString(amount),
-          currency: 'USD',
-          message: `Deposit ${created.reference} submitted`,
-        },
-      })
-      return created
-    })
+    } catch (err) {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'code' in err &&
+        (err as { code?: string }).code === 'P2002'
+      ) {
+        const again = await prisma.deposit.findUnique({
+          where: { idempotencyKey: body.idempotencyKey },
+          include: { paymentMethod: { select: { id: true, name: true, type: true } } },
+        })
+        if (again && again.userId === userId) return mapDeposit(again)
+        throw conflict('Idempotency key conflict.')
+      }
+      throw err
+    }
 
     await activityService.record({
       userId,

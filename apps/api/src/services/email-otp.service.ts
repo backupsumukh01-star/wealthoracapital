@@ -15,6 +15,9 @@ type OtpPayload = {
   attempts: number
   otpHash: string
   withdrawalId?: string | null
+  /** Bound withdrawal intent — required for WITHDRAWAL_OTP. */
+  amount?: string | null
+  payoutMethodId?: string | null
 }
 
 function hashOtp(otp: string): string {
@@ -35,6 +38,8 @@ function readPayload(raw: unknown): OtpPayload | null {
     attempts: Number(p.attempts ?? 0),
     otpHash: p.otpHash,
     withdrawalId: typeof p.withdrawalId === 'string' ? p.withdrawalId : null,
+    amount: typeof p.amount === 'string' ? p.amount : null,
+    payoutMethodId: typeof p.payoutMethodId === 'string' ? p.payoutMethodId : null,
   }
 }
 
@@ -94,7 +99,8 @@ export const emailOtpService = {
     userId: string
     email: string
     firstName: string
-    amount?: string
+    amount: string
+    payoutMethodId: string
     wallet?: string
     network?: string
     withdrawalId?: string
@@ -112,6 +118,8 @@ export const emailOtpService = {
           attempts: 0,
           otpHash: hashOtp(otp),
           withdrawalId: input.withdrawalId ?? null,
+          amount: input.amount,
+          payoutMethodId: input.payoutMethodId,
         },
       },
     })
@@ -127,8 +135,12 @@ export const emailOtpService = {
     return { expiresInSeconds: Math.floor(WITHDRAWAL_OTP_TTL_MS / 1000) }
   },
 
-  async verifyWithdrawalOtp(userId: string, otp: string) {
-    return this.verify(userId, 'WITHDRAWAL_OTP', otp)
+  async verifyWithdrawalOtp(
+    userId: string,
+    otp: string,
+    intent: { amount: string; payoutMethodId: string },
+  ) {
+    return this.verify(userId, 'WITHDRAWAL_OTP', otp, intent)
   },
 
   async invalidatePrior(userId: string, kind: OtpKind) {
@@ -144,7 +156,12 @@ export const emailOtpService = {
     }
   },
 
-  async verify(userId: string, kind: OtpKind, otp: string) {
+  async verify(
+    userId: string,
+    kind: OtpKind,
+    otp: string,
+    intent?: { amount: string; payoutMethodId: string },
+  ) {
     const rows = await prisma.verificationToken.findMany({
       where: {
         userId,
@@ -156,7 +173,11 @@ export const emailOtpService = {
       take: 10,
     })
     const row = rows.find((r) => readPayload(r.payload)?.otpKind === kind)
-    if (!row) throw badRequest(`${kind === 'LOGIN_OTP' ? 'Login' : 'Withdrawal'} code expired or not found. Request a new code.`)
+    if (!row) {
+      throw badRequest(
+        `${kind === 'LOGIN_OTP' ? 'Login' : 'Withdrawal'} code expired or not found. Request a new code.`,
+      )
+    }
 
     const payload = readPayload(row.payload)
     if (!payload) throw badRequest('Invalid OTP record.')
@@ -175,6 +196,21 @@ export const emailOtpService = {
         },
       })
       throw badRequest(`Invalid code. ${MAX_ATTEMPTS - payload.attempts - 1} attempts remaining.`)
+    }
+
+    if (kind === 'WITHDRAWAL_OTP') {
+      if (!intent?.amount || !intent?.payoutMethodId) {
+        throw badRequest('Withdrawal OTP requires amount and payout method.')
+      }
+      // Bind OTP to the exact request issued to the user (prevents OTP reuse for a different payout).
+      if (!payload.amount || !payload.payoutMethodId) {
+        throw badRequest('Withdrawal code is outdated. Request a new code.')
+      }
+      if (payload.amount !== intent.amount || payload.payoutMethodId !== intent.payoutMethodId) {
+        throw badRequest(
+          'Withdrawal details changed after the code was sent. Request a new code for this amount and wallet.',
+        )
+      }
     }
 
     await prisma.verificationToken.update({ where: { id: row.id }, data: { usedAt: new Date() } })

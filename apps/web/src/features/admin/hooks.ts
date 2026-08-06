@@ -242,6 +242,8 @@ export function usePublishReturn() {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.returns() })
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.dailyReturn() })
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.activity() })
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.ops() })
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.users() })
     },
   })
 }

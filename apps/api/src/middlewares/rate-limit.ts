@@ -53,16 +53,18 @@ export const globalRateLimiter = rateLimit({
     const accessCookie = `${COOKIE_NAMES.accessToken}=`
     const hasSession = cookie.includes(accessCookie)
 
-    // Authenticated console/page-init GETs — admin KYC alone fires me + user + kyc + N document blobs.
-    // Aggressive global limits were returning 429 and cascading into login redirects / hung previews.
-    if (hasSession && (method === 'GET' || method === 'HEAD')) {
+    // Authenticated console/page-init — admin KYC alone fires me + user + kyc + N document blobs.
+    // Also skip authenticated admin mutations so approve/reject/publish are not 429'd mid-ops.
+    if (hasSession) {
       if (
         path === '/api/v1/auth/me' ||
+        path === '/api/v1/auth/refresh' ||
         path === '/api/v1/csrf' ||
         path.startsWith('/api/v1/admin') ||
         path.startsWith('/api/v1/notifications') ||
         path.startsWith('/api/v1/kyc') ||
         path.startsWith('/api/v1/deposits') ||
+        path.startsWith('/api/v1/withdrawals') ||
         path.startsWith('/api/v1/files') ||
         path.startsWith('/api/v1/wallet') ||
         path.startsWith('/api/v1/activity')

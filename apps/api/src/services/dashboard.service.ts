@@ -675,6 +675,9 @@ export const dashboardService = {
   /** Legacy summary kept for older clients. */
   async getSummary() {
     const ops = await this.getOpsSnapshot()
+    const blockedUsers = await prisma.user.count({
+      where: { role: 'USER', status: 'BLOCKED', deletedAt: null },
+    })
     return {
       totalUsers: ops.totals.users.total,
       todaysRegistrations: ops.liveCards.find((c) => c.id === 'new-users')?.count ?? 0,
@@ -683,7 +686,7 @@ export const dashboardService = {
       pendingDeposits: ops.totals.deposits.pending,
       pendingWithdrawals: ops.totals.withdrawals.pending,
       suspendedUsers: ops.totals.users.suspended,
-      blockedUsers: 0,
+      blockedUsers,
       revenueSummary: { totalRevenue: ops.totals.profit.lifetime, currency: 'USD' },
       investmentSummary: {
         totalAum: ops.totals.wallets.invested,

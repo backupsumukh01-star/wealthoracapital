@@ -96,6 +96,7 @@ export function AdminTopbar() {
 /** Soft gate — UI only. The API enforces roles on every request. */
 export function AdminSessionGate({ children }: { children: ReactNode }) {
   const router = useRouter()
+  const pathname = usePathname()
   const { isAuthenticated, isStaff, isLoading, session } = useSession()
 
   useEffect(() => {
@@ -104,9 +105,10 @@ export function AdminSessionGate({ children }: { children: ReactNode }) {
     if (isLoading) return
     if (session && isStaff) return
     if (!session || !isAuthenticated || !isStaff) {
-      router.replace(ROUTES.admin.login)
+      const next = `${pathname}${typeof window !== 'undefined' ? window.location.search : ''}`
+      router.replace(`${ROUTES.admin.login}?next=${encodeURIComponent(next || ROUTES.admin.root)}`)
     }
-  }, [isLoading, isAuthenticated, isStaff, session, router])
+  }, [isLoading, isAuthenticated, isStaff, session, router, pathname])
 
   if (isLoading || (session && isStaff)) {
     if (session && isStaff) return <>{children}</>

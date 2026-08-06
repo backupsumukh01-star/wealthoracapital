@@ -44,7 +44,7 @@ export const authenticate = asyncHandler(async (req, _res, next) => {
   if (!user) {
     throw unauthorized('Account not found.', ERROR_CODES.UNAUTHENTICATED)
   }
-  if (user.status === 'SUSPENDED' || user.status === 'BLOCKED' || user.status === 'CLOSED') {
+  if (user.status === 'SUSPENDED' || user.status === 'BLOCKED' || user.status === 'CLOSED' || user.status === 'ARCHIVED') {
     throw unauthorized('Account is not allowed to sign in.', ERROR_CODES.ACCOUNT_SUSPENDED)
   }
 

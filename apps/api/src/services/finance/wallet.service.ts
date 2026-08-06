@@ -28,12 +28,26 @@ export const walletService = {
 
   async summary(userId: string) {
     const wallet = await this.get(userId)
-    const [pendingDeposits, pendingWithdrawals, unreadNotifications] = await Promise.all([
+    const [
+      pendingDeposits,
+      pendingWithdrawals,
+      pendingDepositSum,
+      pendingWithdrawalSum,
+      unreadNotifications,
+    ] = await Promise.all([
       prisma.deposit.count({
         where: { userId, status: { in: ['PENDING', 'UNDER_REVIEW'] } },
       }),
       prisma.withdrawal.count({
         where: { userId, status: { in: ['PENDING', 'UNDER_REVIEW', 'APPROVED', 'PROCESSING'] } },
+      }),
+      prisma.deposit.aggregate({
+        where: { userId, status: { in: ['PENDING', 'UNDER_REVIEW'] } },
+        _sum: { amount: true },
+      }),
+      prisma.withdrawal.aggregate({
+        where: { userId, status: { in: ['PENDING', 'UNDER_REVIEW', 'APPROVED', 'PROCESSING'] } },
+        _sum: { amount: true },
       }),
       notificationRepository.unreadCount(userId),
     ])
@@ -46,7 +60,12 @@ export const walletService = {
       performance: extras.performance,
       chart: extras.chart,
       recentTrades: extras.recentTrades,
-      pending: { deposits: pendingDeposits, withdrawals: pendingWithdrawals },
+      pending: {
+        deposits: pendingDeposits,
+        withdrawals: pendingWithdrawals,
+        depositAmount: moneyDisplay(pendingDepositSum._sum.amount ?? 0),
+        withdrawalAmount: moneyDisplay(pendingWithdrawalSum._sum.amount ?? 0),
+      },
       unreadNotifications,
     }
   },

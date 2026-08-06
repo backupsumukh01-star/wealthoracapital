@@ -135,6 +135,7 @@ export const withdrawalService = {
       email: user.email,
       firstName: user.firstName,
       amount: moneyDisplay(amount),
+      payoutMethodId: payout.id,
       wallet: details.address ?? details.upiId ?? details.accountNumber ?? payout.maskedDetails,
       network: details.network ?? payout.type,
     })
@@ -236,7 +237,6 @@ export const withdrawalService = {
     }
 
     const { emailOtpService } = await import('../email-otp.service.js')
-    await emailOtpService.verifyWithdrawalOtp(userId, body.otp)
 
     const amount = d(body.amount)
     if (!amount.isFinite() || amount.lte(0)) throw badRequest('Invalid withdrawal amount.')
@@ -247,6 +247,12 @@ export const withdrawalService = {
       where: { id: body.payoutMethodId, userId, deletedAt: null },
     })
     if (!payout) throw badRequest('Payout method not found.')
+
+    // Verify OTP only after amount/method validation so a bad request does not burn the code.
+    await emailOtpService.verifyWithdrawalOtp(userId, body.otp, {
+      amount: moneyDisplay(amount),
+      payoutMethodId: payout.id,
+    })
 
     const fee = amount.mul(DEFAULT_FEE_PCT).div(100)
     const net = amount.minus(fee)
@@ -632,14 +638,23 @@ export const withdrawalService = {
         if (current.status === 'PAID' || current.status === 'COMPLETED') {
           return current
         }
-        if (!['APPROVED', 'PROCESSING', 'UNDER_REVIEW', 'PENDING'].includes(current.status)) {
-          throw badRequest('Withdrawal cannot be completed from the current status.')
+        if (body.decision === 'PAID') {
+          if (!['APPROVED', 'PROCESSING'].includes(current.status)) {
+            throw badRequest('Mark as paid only after approval (APPROVED or PROCESSING).')
+          }
+        } else if (!['APPROVED', 'PROCESSING', 'UNDER_REVIEW', 'PENDING'].includes(current.status)) {
+          throw badRequest('Withdrawal cannot be force-completed from the current status.')
         }
+
+        const allowedStatuses =
+          body.decision === 'PAID'
+            ? (['APPROVED', 'PROCESSING'] as const)
+            : (['APPROVED', 'PROCESSING', 'UNDER_REVIEW', 'PENDING'] as const)
 
         const claimed = await tx.withdrawal.updateMany({
           where: {
             id: current.id,
-            status: { in: ['APPROVED', 'PROCESSING', 'UNDER_REVIEW', 'PENDING'] },
+            status: { in: [...allowedStatuses] },
           },
           data: {
             status: 'PAID',

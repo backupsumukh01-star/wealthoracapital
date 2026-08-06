@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { ROUTES } from '@meridian/shared'
@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/cn'
 import { adminService } from '@/services/admin.service'
+import { settingsService } from '@/services/settings.service'
 
 export type AdminSettingsSection =
   | 'general'
@@ -24,10 +25,10 @@ export type AdminSettingsSection =
   | 'paymentMethods'
   | 'staff'
 
-function SaveBar({ onSave }: { onSave: () => void }) {
+function SaveBar({ onSave, disabled }: { onSave: () => void; disabled?: boolean }) {
   return (
     <div className="flex justify-end border-t border-white/[0.06] px-4 py-4 sm:px-5">
-      <Button type="button" onClick={onSave}>
+      <Button type="button" onClick={onSave} disabled={disabled}>
         Save changes
       </Button>
     </div>
@@ -66,37 +67,112 @@ function Toggle({
 }
 
 function GeneralSection() {
-  const [name, setName] = useState('Growzy')
-  const [support, setSupport] = useState('support@growzy.com')
-  const [timezone, setTimezone] = useState('Asia/Dubai')
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin', 'settings', 'platform'],
+    queryFn: () => settingsService.adminGet(),
+  })
+  const [name, setName] = useState('')
+  const [support, setSupport] = useState('')
+  const [timezone, setTimezone] = useState('')
+  const [hydrated, setHydrated] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!data || hydrated) return
+    setName(data.companyName)
+    setSupport(data.supportEmail)
+    setTimezone(data.timezone)
+    setHydrated(true)
+  }, [data, hydrated])
+
+  async function save() {
+    setSaving(true)
+    try {
+      await settingsService.adminUpdate({
+        companyName: name.trim(),
+        supportEmail: support.trim(),
+        timezone: timezone.trim(),
+      })
+      toast.success('General settings saved')
+    } catch {
+      toast.error('Could not save settings')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <AdminPanel>
       <AdminPanelHeader title="General" description="Brand and support defaults." />
       <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
         <FormField label="Platform name">
-          <Input value={name} onChange={(e) => setName(e.target.value)} />
+          <Input
+            value={name}
+            disabled={isLoading || !hydrated}
+            onChange={(e) => setName(e.target.value)}
+          />
         </FormField>
         <FormField label="Support email">
-          <Input type="email" value={support} onChange={(e) => setSupport(e.target.value)} />
+          <Input
+            type="email"
+            value={support}
+            disabled={isLoading || !hydrated}
+            onChange={(e) => setSupport(e.target.value)}
+          />
         </FormField>
         <FormField label="Default timezone" className="sm:col-span-2">
-          <Input value={timezone} onChange={(e) => setTimezone(e.target.value)} />
+          <Input
+            value={timezone}
+            disabled={isLoading || !hydrated}
+            onChange={(e) => setTimezone(e.target.value)}
+          />
         </FormField>
       </div>
-      <SaveBar onSave={() => toast.success('General settings saved')} />
+      <SaveBar onSave={() => void save()} disabled={saving || isLoading} />
     </AdminPanel>
   )
 }
 
 function PlatformSection() {
-  const [minDeposit, setMinDeposit] = useState('100')
-  const [maxDeposit, setMaxDeposit] = useState('100000')
-  const [minWithdraw, setMinWithdraw] = useState('50')
-  const [dailyCap, setDailyCap] = useState('25000')
-  const [cutoff, setCutoff] = useState('21:00')
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin', 'settings', 'platform'],
+    queryFn: () => settingsService.adminGet(),
+  })
+  const [minDeposit, setMinDeposit] = useState('')
+  const [maxDeposit, setMaxDeposit] = useState('')
+  const [minWithdraw, setMinWithdraw] = useState('')
+  const [maxWithdraw, setMaxWithdraw] = useState('')
   const [maintenance, setMaintenance] = useState(false)
-  const [maintenanceMsg, setMaintenanceMsg] = useState('')
+  const [hydrated, setHydrated] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!data || hydrated) return
+    setMinDeposit(data.limits.minDeposit)
+    setMaxDeposit(data.limits.maxDeposit)
+    setMinWithdraw(data.limits.minWithdrawal)
+    setMaxWithdraw(data.limits.maxWithdrawal)
+    setMaintenance(data.maintenanceMode)
+    setHydrated(true)
+  }, [data, hydrated])
+
+  async function save() {
+    setSaving(true)
+    try {
+      await settingsService.adminUpdate({
+        minDeposit: minDeposit.trim(),
+        maxDeposit: maxDeposit.trim(),
+        minWithdrawal: minWithdraw.trim(),
+        maxWithdrawal: maxWithdraw.trim(),
+        maintenanceMode: maintenance,
+      })
+      toast.success('Platform settings saved')
+    } catch {
+      toast.error('Could not save settings')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -107,10 +183,18 @@ function PlatformSection() {
         <AdminPanelHeader title="Deposit limits" />
         <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
           <FormField label="Minimum (USD)">
-            <Input value={minDeposit} onChange={(e) => setMinDeposit(e.target.value)} />
+            <Input
+              value={minDeposit}
+              disabled={isLoading || !hydrated}
+              onChange={(e) => setMinDeposit(e.target.value)}
+            />
           </FormField>
           <FormField label="Maximum (USD)">
-            <Input value={maxDeposit} onChange={(e) => setMaxDeposit(e.target.value)} />
+            <Input
+              value={maxDeposit}
+              disabled={isLoading || !hydrated}
+              onChange={(e) => setMaxDeposit(e.target.value)}
+            />
           </FormField>
         </div>
       </AdminPanel>
@@ -118,18 +202,18 @@ function PlatformSection() {
         <AdminPanelHeader title="Withdrawal limits" />
         <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
           <FormField label="Minimum (USD)">
-            <Input value={minWithdraw} onChange={(e) => setMinWithdraw(e.target.value)} />
+            <Input
+              value={minWithdraw}
+              disabled={isLoading || !hydrated}
+              onChange={(e) => setMinWithdraw(e.target.value)}
+            />
           </FormField>
-          <FormField label="Daily cap (USD)">
-            <Input value={dailyCap} onChange={(e) => setDailyCap(e.target.value)} />
-          </FormField>
-        </div>
-      </AdminPanel>
-      <AdminPanel>
-        <AdminPanelHeader title="Trading calendar" description="Settlement cut-off (desk local)." />
-        <div className="p-4 sm:p-5">
-          <FormField label="Daily return cut-off">
-            <Input type="time" value={cutoff} onChange={(e) => setCutoff(e.target.value)} />
+          <FormField label="Maximum (USD)">
+            <Input
+              value={maxWithdraw}
+              disabled={isLoading || !hydrated}
+              onChange={(e) => setMaxWithdraw(e.target.value)}
+            />
           </FormField>
         </div>
       </AdminPanel>
@@ -142,80 +226,51 @@ function PlatformSection() {
               type="button"
               onClick={() => setMaintenance((v) => !v)}
               className="shrink-0"
+              disabled={isLoading || !hydrated}
             >
               <Toggle checked={maintenance} label="Maintenance mode" />
             </button>
           </label>
-          <FormField label="Public message">
-            <Textarea
-              rows={2}
-              value={maintenanceMsg}
-              onChange={(e) => setMaintenanceMsg(e.target.value)}
-              placeholder="Shown to investors while maintenance is on."
-            />
-          </FormField>
         </div>
-        <SaveBar onSave={() => toast.success('Platform settings saved')} />
+        <SaveBar onSave={() => void save()} disabled={saving || isLoading} />
       </AdminPanel>
     </div>
   )
 }
 
 function EmailSection() {
-  const [fromName, setFromName] = useState('Growzy')
-  const [fromEmail, setFromEmail] = useState('noreply@growzy.com')
-  const [replyTo, setReplyTo] = useState('support@growzy.com')
-
   return (
     <AdminPanel>
       <AdminPanelHeader
         title="Email defaults"
-        description="Sender identity for transactional templates."
+        description="Sender identity is configured via server environment (EMAIL_TRANSPORT / SMTP_FROM_* / Resend)."
       />
-      <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
-        <FormField label="From name">
-          <Input value={fromName} onChange={(e) => setFromName(e.target.value)} />
-        </FormField>
-        <FormField label="From address">
-          <Input type="email" value={fromEmail} onChange={(e) => setFromEmail(e.target.value)} />
-        </FormField>
-        <FormField label="Reply-to" className="sm:col-span-2">
-          <Input type="email" value={replyTo} onChange={(e) => setReplyTo(e.target.value)} />
-        </FormField>
+      <div className="space-y-3 p-4 sm:p-5">
+        <Alert tone="info" title="Managed in deployment env">
+          Changing From name/address in the UI is disabled — production mail must use verified Resend (or
+          ESP) credentials so OTP and finance emails never silently drop.
+        </Alert>
+        <Button asChild variant="secondary">
+          <Link href={ROUTES.admin.emailTemplates}>Open email templates</Link>
+        </Button>
       </div>
-      <SaveBar onSave={() => toast.success('Email settings saved')} />
     </AdminPanel>
   )
 }
 
 function SecuritySection() {
-  const [sessionHours, setSessionHours] = useState('8')
-  const [require2fa, setRequire2fa] = useState(true)
-  const [ipAllowlist, setIpAllowlist] = useState('')
-
   return (
     <AdminPanel>
       <AdminPanelHeader title="Security" description="Operator console hardening." />
-      <div className="space-y-4 p-4 sm:p-5">
-        <FormField label="Session length (hours)">
-          <Input value={sessionHours} onChange={(e) => setSessionHours(e.target.value)} />
-        </FormField>
-        <label className="flex items-center justify-between gap-3 text-body-sm text-fg">
-          Require 2FA for all staff
-          <button type="button" onClick={() => setRequire2fa((v) => !v)} className="shrink-0">
-            <Toggle checked={require2fa} label="Require 2FA" />
-          </button>
-        </label>
-        <FormField label="IP allowlist" hint="Comma-separated. Empty = allow all.">
-          <Textarea
-            rows={3}
-            value={ipAllowlist}
-            onChange={(e) => setIpAllowlist(e.target.value)}
-            placeholder="203.0.113.10, 198.51.100.0/24"
-          />
-        </FormField>
+      <div className="space-y-3 p-4 sm:p-5">
+        <Alert tone="info" title="Managed via environment & auth service">
+          Session TTL, CSRF, rate limits, and JWT secrets are deployment configuration — not stored in
+          this form — so operators cannot weaken production auth from the UI.
+        </Alert>
+        <Button asChild variant="secondary">
+          <Link href={ROUTES.admin.settings.roles}>Review role permissions</Link>
+        </Button>
       </div>
-      <SaveBar onSave={() => toast.success('Security settings saved')} />
     </AdminPanel>
   )
 }
@@ -289,39 +344,24 @@ function RolesSection() {
 }
 
 function PaymentMethodsSection() {
-  const [methods, setMethods] = useState([
-    { id: 'bank', name: 'Bank transfer', details: 'Growzy Ops · IBAN AE00…', enabled: true },
-    { id: 'usdt', name: 'USDT (TRC20)', details: 'Configure address in Payments', enabled: true },
-  ])
-
   return (
     <div className="space-y-5">
       <Alert tone="danger" title="These details are what investors send money to">
-        A typo here sends real funds to the wrong place. Changes require super admin in production.
+        Manage deposit rails on the live Payment Methods screen — this settings stub never persisted.
       </Alert>
       <AdminPanel>
-        <AdminPanelHeader title="Accepted methods" />
-        <ul className="divide-y divide-white/[0.04]">
-          {methods.map((m, idx) => (
-            <li key={m.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-5">
-              <div>
-                <p className="text-body-sm font-medium text-fg">{m.name}</p>
-                <p className="text-caption text-fg-muted">{m.details}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  setMethods((prev) =>
-                    prev.map((x, i) => (i === idx ? { ...x, enabled: !x.enabled } : x)),
-                  )
-                }
-              >
-                <Toggle checked={m.enabled} label={`${m.name} enabled`} />
-              </button>
-            </li>
-          ))}
-        </ul>
-        <SaveBar onSave={() => toast.success('Payment methods saved')} />
+        <AdminPanelHeader
+          title="Accepted methods"
+          description="Bank, UPI, and crypto rails are edited in the dedicated payments workspace."
+          action={
+            <Button asChild size="sm">
+              <Link href={ROUTES.admin.settings.paymentMethods}>Open payment methods</Link>
+            </Button>
+          }
+        />
+        <div className="p-4 text-caption text-fg-muted sm:p-5">
+          Addresses, QR codes, networks, and fees are loaded from the database there.
+        </div>
       </AdminPanel>
     </div>
   )

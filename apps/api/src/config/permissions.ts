@@ -77,7 +77,6 @@ const STAFF_PERMISSION_MAP: Record<StaffRole, Permission[]> = {
     PERMISSIONS['dashboard.view'],
     PERMISSIONS['users.view'],
     PERMISSIONS['users.edit'],
-    PERMISSIONS['users.suspend'],
     PERMISSIONS['activity.view'],
     PERMISSIONS['profile.view'],
     PERMISSIONS['profile.edit'],
@@ -166,10 +165,7 @@ export function resolvePermissions(input: {
     return [...STAFF_PERMISSION_MAP.ADMIN]
   }
 
-  if (input.staffRole) {
-    return [...STAFF_PERMISSION_MAP[input.staffRole]]
-  }
-
+  // Never grant staff permission maps to investors — even if staffRole is set erroneously.
   return [...INVESTOR_PERMISSIONS]
 }
 
@@ -181,7 +177,9 @@ export function hasPermission(
 }
 
 export function isStaffUser(input: { role: Role; staffRole: StaffRole | null }): boolean {
-  return input.role === 'ADMIN' || input.role === 'SUPER_ADMIN' || input.staffRole !== null
+  // Staff console requires an admin role. staffRole only scopes permissions within staff —
+  // a USER with a stray staffRole must never gain admin routes.
+  return input.role === 'ADMIN' || input.role === 'SUPER_ADMIN'
 }
 
 export function listRoleCatalog() {

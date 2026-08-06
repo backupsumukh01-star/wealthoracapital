@@ -154,6 +154,8 @@ export function AdminUserDetailWorkspace() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.user(userId) })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.ops() })
       toast.success('User soft-deleted — login disabled, records retained')
     },
     onError: (err: Error) => toast.error(err.message || 'Soft delete failed'),
@@ -176,6 +178,8 @@ export function AdminUserDetailWorkspace() {
     mutationFn: () => adminService.restoreUser(userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.user(userId) })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.ops() })
       toast.success('User restored')
     },
     onError: (err: Error) => toast.error(err.message || 'Restore failed'),
@@ -185,7 +189,9 @@ export function AdminUserDetailWorkspace() {
     mutationFn: () => kycService.adminApprove(userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.user(userId) })
-      queryClient.invalidateQueries({ queryKey: ['admin', 'kyc', userId] })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'kyc'] })
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.ops() })
       toast.success('KYC approved')
     },
     onError: (err: Error) => toast.error(err.message || 'KYC approve failed'),
@@ -195,6 +201,9 @@ export function AdminUserDetailWorkspace() {
     mutationFn: (reason: string) => kycService.adminReject(userId, { reason }),
     onSuccess: (_data, reason) => {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.user(userId) })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'kyc'] })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.ops() })
       toast.message('KYC rejected', { description: reason })
     },
     onError: (err: Error) => toast.error(err.message || 'KYC reject failed'),
@@ -204,6 +213,8 @@ export function AdminUserDetailWorkspace() {
     mutationFn: (reason: string) => kycService.adminRequestInformation(userId, { reason }),
     onSuccess: (_data, reason) => {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.user(userId) })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'kyc'] })
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.ops() })
       toast.message('Resubmission requested', { description: reason })
     },
     onError: (err: Error) => toast.error(err.message || 'Request info failed'),
