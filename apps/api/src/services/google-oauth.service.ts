@@ -38,26 +38,46 @@ function oauthConfigured(): boolean {
   return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.GOOGLE_CALLBACK_URL)
 }
 
-function googleAdminEmails(): Set<string> {
+function googleEmailList(raw: string): Set<string> {
   return new Set(
-    env.GOOGLE_ADMIN_EMAILS.split(',')
+    raw
+      .split(',')
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean),
   )
 }
 
-function isGoogleAdminEmail(email: string): boolean {
-  return googleAdminEmails().has(email.trim().toLowerCase())
+function resolveGoogleStaffRole(
+  email: string,
+): 'SUPER_ADMIN' | 'ADMIN' | null {
+  const normalized = email.trim().toLowerCase()
+  const superAdmins = googleEmailList(env.GOOGLE_SUPER_ADMIN_EMAILS)
+  const admins = googleEmailList(env.GOOGLE_ADMIN_EMAILS)
+
+  if (superAdmins.has(normalized)) return 'SUPER_ADMIN'
+  if (admins.has(normalized)) return 'ADMIN'
+  return null
 }
 
-async function promoteGoogleAdminIfAllowlisted(user: User): Promise<User> {
-  if (!isGoogleAdminEmail(user.email)) return user
-  if (user.role === 'SUPER_ADMIN' && user.staffRole === 'SUPER_ADMIN' && user.status === 'ACTIVE') {
+async function applyGoogleStaffAllowlist(
+  user: User,
+  options: { adminIntent: boolean },
+): Promise<User> {
+  const staffRole = resolveGoogleStaffRole(user.email)
+
+  if (options.adminIntent && !staffRole) {
+    throw forbidden('This Google account is not allowed to access the admin console.')
+  }
+
+  if (!staffRole) return user
+
+  if (user.role === staffRole && user.staffRole === staffRole && user.status === 'ACTIVE') {
     return user
   }
+
   return userRepository.update(user.id, {
-    role: 'SUPER_ADMIN',
-    staffRole: 'SUPER_ADMIN',
+    role: staffRole,
+    staffRole,
     status: 'ACTIVE',
     emailVerifiedAt: user.emailVerifiedAt ?? new Date(),
   })
@@ -298,9 +318,12 @@ export const googleOAuthService = {
   async completeLogin(
     profile: GoogleProfile,
     context: SessionContext,
+    options: { adminIntent?: boolean } = {},
   ): Promise<{ user: User; tokens: AuthTokens }> {
     let user = await this.upsertUserFromGoogle(profile)
-    user = await promoteGoogleAdminIfAllowlisted(user)
+    user = await applyGoogleStaffAllowlist(user, {
+      adminIntent: Boolean(options.adminIntent),
+    })
     await userRepository.recordSuccessfulLogin(user.id, context.ip)
     const { tokens } = await authService.issueTokensForUser(user, context)
     await activityService.record({

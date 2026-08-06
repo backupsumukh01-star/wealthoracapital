@@ -32,6 +32,11 @@ function OAuthCallbackInner() {
 
     if (error) {
       const reason = OAUTH_ERROR_MESSAGES[error] ? error : 'oauth_failed'
+      const next = searchParams.get('next')
+      if (next === 'admin') {
+        router.replace(`${ROUTES.admin.login}?oauth=${encodeURIComponent(reason)}`)
+        return
+      }
       router.replace(`${ROUTES.auth.login}?oauth=${encodeURIComponent(reason)}`)
       return
     }
@@ -53,9 +58,9 @@ function OAuthCallbackInner() {
           session.user.role === 'SUPER_ADMIN' ||
           Boolean(session.user.staffRole)
 
-        if (next === 'admin' || isStaff) {
+        if (next === 'admin') {
           if (!isStaff) {
-            router.replace(`${ROUTES.auth.login}?oauth=forbidden`)
+            router.replace(`${ROUTES.admin.login}?oauth=forbidden`)
             return
           }
           router.replace(ROUTES.admin.root)
@@ -68,6 +73,11 @@ function OAuthCallbackInner() {
       })
       .catch(() => {
         queryClient.setQueryData(authQueryKeys.session(), null)
+        const next = searchParams.get('next')
+        if (next === 'admin') {
+          router.replace(`${ROUTES.admin.login}?oauth=oauth_failed`)
+          return
+        }
         router.replace(`${ROUTES.auth.login}?oauth=oauth_failed`)
       })
   }, [error, router, queryClient, searchParams])

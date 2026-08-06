@@ -59,8 +59,14 @@ const envSchema = z.object({
   // Absolute callback URL registered in Google Cloud Console
   GOOGLE_CALLBACK_URL: z.string().optional().default(''),
   /**
-   * Comma-separated Google emails that become SUPER_ADMIN on OAuth sign-in.
-   * Example: you@company.com,ops@growzycapital.com
+   * Comma-separated Google emails promoted to SUPER_ADMIN on OAuth sign-in.
+   * Example: you@gmail.com,boss@company.com
+   */
+  GOOGLE_SUPER_ADMIN_EMAILS: z.string().optional().default(''),
+  /**
+   * Comma-separated Google emails promoted to ADMIN on OAuth sign-in.
+   * Example: ops@company.com
+   * (Also accepts legacy GOOGLE_ADMIN_EMAILS used as SUPER_ADMIN if SUPER list is empty — see service.)
    */
   GOOGLE_ADMIN_EMAILS: z.string().optional().default(''),
 

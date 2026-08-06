@@ -57,10 +57,11 @@ function clearAuthCookies(res: Response): void {
   res.cookie(COOKIE_NAMES.csrf, '', clearCsrfCookieOptions())
 }
 
-function oauthFailureRedirect(errorCode: string): string {
+function oauthFailureRedirect(errorCode: string, next?: string | null): string {
   const base = `${env.APP_URL.replace(/\/$/, '')}/oauth/callback`
   const url = new URL(base)
   url.searchParams.set('error', errorCode)
+  if (next) url.searchParams.set('next', next)
   return url.toString()
 }
 
@@ -179,6 +180,9 @@ export const authController = {
       res.cookie(COOKIE_NAMES.oauthState, '', clearOauthStateCookieOptions())
     }
 
+    let frontendRedirect: string | undefined
+    let adminIntent = false
+
     try {
       const errorParam = typeof req.query.error === 'string' ? req.query.error : undefined
       if (errorParam) {
@@ -200,13 +204,23 @@ export const authController = {
         return
       }
 
-      const frontendRedirect = googleOAuthService.parseAndValidateState(state, nonceCookie)
+      frontendRedirect = googleOAuthService.parseAndValidateState(state, nonceCookie)
+      try {
+        adminIntent = new URL(frontendRedirect).searchParams.get('next') === 'admin'
+      } catch {
+        adminIntent = false
+      }
+
       const { accessToken } = await googleOAuthService.exchangeCode(code)
       const profile = await googleOAuthService.fetchProfile(accessToken)
-      const { tokens } = await googleOAuthService.completeLogin(profile, {
-        ip: clientIp(req),
-        userAgent: req.get('user-agent') ?? null,
-      })
+      const { tokens } = await googleOAuthService.completeLogin(
+        profile,
+        {
+          ip: clientIp(req),
+          userAgent: req.get('user-agent') ?? null,
+        },
+        { adminIntent },
+      )
 
       setAuthCookies(res, tokens)
       clearState()
@@ -215,7 +229,7 @@ export const authController = {
       clearState()
       const code = mapOAuthError(err)
       logger.warn({ err, code }, 'Google OAuth callback failed')
-      res.redirect(302, oauthFailureRedirect(code))
+      res.redirect(302, oauthFailureRedirect(code, adminIntent ? 'admin' : null))
     }
   }),
 }
