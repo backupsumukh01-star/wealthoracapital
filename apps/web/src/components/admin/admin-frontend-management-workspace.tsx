@@ -677,6 +677,8 @@ export function AdminFrontendManagementWorkspace() {
                 {selected.bodyHtml ? (
                   <div
                     className="prose prose-invert max-w-none text-caption text-fg-muted"
+                    // CMS-authored HTML preview for operators (trusted admin content).
+                    // eslint-disable-next-line react/no-danger -- intentional CMS HTML preview
                     dangerouslySetInnerHTML={{ __html: selected.bodyHtml }}
                   />
                 ) : null}

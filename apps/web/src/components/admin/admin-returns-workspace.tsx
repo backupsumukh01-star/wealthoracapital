@@ -55,7 +55,7 @@ export function AdminReturnsWorkspace() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [confirmText, setConfirmText] = useState('')
 
-  const returns = returnsData?.items ?? []
+  const returns = useMemo(() => returnsData?.items ?? [], [returnsData?.items])
 
   const todayRuns = useMemo(
     () => returns.filter((r) => r.date === tradingDay),
