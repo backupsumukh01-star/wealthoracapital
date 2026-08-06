@@ -2,7 +2,10 @@ import type { KycDocument, KycHistory, KycSubmission } from '@prisma/client'
 
 import { storage } from '../storage/index.js'
 
-export function mapDocument(doc: KycDocument) {
+export function mapDocument(doc: KycDocument, extras?: {
+  fileExists?: boolean
+  absolutePath?: string | null
+}) {
   return {
     id: doc.id,
     kind: doc.documentType,
@@ -12,8 +15,13 @@ export function mapDocument(doc: KycDocument) {
     mimeType: doc.mimeType,
     sizeBytes: doc.sizeBytes,
     originalName: doc.originalName,
+    storageKey: doc.storageKey,
     // 1h so admins can review without links expiring mid-session
     downloadUrl: storage.createSignedDownloadUrl(doc.storageKey, 3600),
+    // Public /uploads/kyc is intentionally blocked — use signed or admin stream URLs.
+    publicUrl: storage.getPublicUrl(doc.storageKey),
+    fileExists: extras?.fileExists,
+    absolutePath: extras?.absolutePath ?? null,
     createdAt: doc.createdAt.toISOString(),
   }
 }
@@ -59,7 +67,7 @@ export function mapSubmission(
     expiresAt: submission.expiresAt?.toISOString() ?? null,
     createdAt: submission.createdAt.toISOString(),
     updatedAt: submission.updatedAt.toISOString(),
-    documents: documents.map(mapDocument),
+    documents: documents.map((doc) => mapDocument(doc)),
     history: (submission.history ?? []).map((item) => ({
       id: item.id,
       action: item.action,
@@ -109,6 +117,8 @@ export function toKycProfile(
         kind: d.documentType,
         side: d.side,
         status: d.status,
+        mimeType: d.mimeType,
+        originalName: d.originalName,
         downloadUrl: storage.createSignedDownloadUrl(d.storageKey, 3600),
       })),
   }

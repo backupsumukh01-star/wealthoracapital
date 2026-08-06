@@ -18,6 +18,8 @@ export interface StorageDriver {
   getPublicUrl(key: string): string
   /** Local disk path when available; object storage drivers throw. Prefer `openReadStream`. */
   getAbsolutePath(key: string): string
+  /** True when the object is readable in the active driver. */
+  exists(key: string): Promise<boolean>
   openReadStream(key: string): Promise<NodeJS.ReadableStream>
   createSignedDownloadUrl(key: string, expiresInSeconds?: number): string
   verifySignedDownloadUrl(key: string, expires: string, signature: string): boolean

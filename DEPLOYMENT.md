@@ -286,4 +286,4 @@ Docker Compose / Nginx files remain in the repo for optional self-hosting; **Ren
 | `ERR_PNPM_OUTDATED_LOCKFILE` | Run `pnpm install`, commit updated `pnpm-lock.yaml`, redeploy |
 | Prisma/tsup missing on build | Ensure install uses `--prod=false` (see build command above) |
 | Emails not sent | `EMAIL_TRANSPORT=resend` + valid `RESEND_API_KEY` + verified domain |
-| Uploads disappear | `/tmp/uploads` is ephemeral — add a disk or object storage later |
+| Uploads disappear | Attach Render Persistent Disk at `/data` and set `UPLOAD_ROOT=/data/uploads` (see `render.yaml` `disk:`). Or set `STORAGE_DRIVER=s3`. |

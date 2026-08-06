@@ -6,12 +6,14 @@ import { registerDefaultJobs } from './jobs/index.js'
 import { captureException, initSentry } from './observability/sentry.js'
 import { emailTemplateService } from './services/email/email-template.service.js'
 import { disconnectRedis } from './services/redis/client.js'
+import { ensureUploadRoot } from './services/storage/ensure-upload-root.js'
 import { logger } from './utils/logger.js'
 
 async function bootstrap(): Promise<void> {
   await initSentry()
   registerDefaultJobs()
   await connectDatabase()
+  await ensureUploadRoot()
 
   try {
     await emailTemplateService.ensureSeeded(DEFAULT_EMAIL_TEMPLATES)
@@ -29,6 +31,8 @@ async function bootstrap(): Promise<void> {
         apiUrl: env.API_URL,
         jobDriver: env.JOB_DRIVER,
         cacheDriver: env.CACHE_DRIVER,
+        storageDriver: env.STORAGE_DRIVER,
+        uploadRoot: env.STORAGE_DRIVER === 'local' ? env.UPLOAD_ROOT : undefined,
       },
       'Growzy API listening',
     )

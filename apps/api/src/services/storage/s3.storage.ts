@@ -4,6 +4,7 @@ import { Readable } from 'node:stream'
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3'
@@ -82,6 +83,21 @@ export class S3StorageDriver implements StorageDriver {
 
   getAbsolutePath(_key: string): string {
     throw new Error('Object storage has no local filesystem path; use openReadStream.')
+  }
+
+  async exists(key: string): Promise<boolean> {
+    const normalized = this.assertKey(key)
+    try {
+      await this.client.send(
+        new HeadObjectCommand({
+          Bucket: this.bucket,
+          Key: normalized,
+        }),
+      )
+      return true
+    } catch {
+      return false
+    }
   }
 
   async openReadStream(key: string): Promise<NodeJS.ReadableStream> {

@@ -111,6 +111,10 @@ export const kycService = {
         mimeType?: string
         originalName?: string
         downloadUrl?: string
+        storageKey?: string
+        publicUrl?: string
+        fileExists?: boolean
+        absolutePath?: string | null
         status?: string
       }>
     }>(`${API_ROUTES.admin.kyc}/${id}`),
@@ -129,12 +133,18 @@ export const kycService = {
       let message = 'Could not load document preview.'
       try {
         const payload = (await response.json()) as {
-          error?: { message?: string }
+          error?: { message?: string; code?: string }
         }
         if (payload?.error?.message) message = payload.error.message
       } catch {
         // binary or empty error body
       }
+      console.error('[kyc] adminDocumentBlob failed', {
+        submissionOrUserId,
+        documentId,
+        status: response.status,
+        message,
+      })
       throw new ApiError(ERROR_CODES.INTERNAL_ERROR, message, response.status)
     }
     return response.blob()

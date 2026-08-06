@@ -1,10 +1,10 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { createReadStream } from 'node:fs'
-import { access, mkdir, unlink, writeFile } from 'node:fs/promises'
-import { constants as fsConstants } from 'node:fs'
+import { access, constants as fsConstants, mkdir, rename, unlink, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { env } from '../../config/env.js'
+import { logger } from '../../utils/logger.js'
 import type { StorageCategory, StorageDriver, StoredObject } from './storage.types.js'
 
 function sanitizeFilename(filename: string): string {
@@ -22,9 +22,30 @@ export class LocalStorageDriver implements StorageDriver {
   }): Promise<StoredObject> {
     const safeName = sanitizeFilename(input.filename)
     const key = `${input.category}/${randomUUID()}-${safeName}`
-    const absolute = path.join(this.root, key)
-    await mkdir(path.dirname(absolute), { recursive: true })
-    await writeFile(absolute, input.buffer)
+    const absolute = this.getAbsolutePath(key)
+    const dir = path.dirname(absolute)
+    await mkdir(dir, { recursive: true })
+
+    // Atomic write: temp file then rename so partial uploads never leave broken files.
+    const tmp = `${absolute}.${process.pid}.${Date.now()}.tmp`
+    await writeFile(tmp, input.buffer, { mode: 0o640 })
+    await rename(tmp, absolute)
+
+    try {
+      await access(absolute, fsConstants.R_OK)
+    } catch (err) {
+      logger.error(
+        { err, key, absolute, uploadRoot: this.root },
+        'KYC/storage write verification failed — file missing after put',
+      )
+      throw new Error(`Storage write verification failed for ${key}`)
+    }
+
+    logger.info(
+      { key, absolute, bytes: input.buffer.byteLength, contentType: input.contentType },
+      'Stored upload on local disk',
+    )
+
     return {
       key,
       url: this.getPublicUrl(key),
@@ -50,25 +71,35 @@ export class LocalStorageDriver implements StorageDriver {
     return path.join(this.root, normalized)
   }
 
+  async exists(key: string): Promise<boolean> {
+    try {
+      await access(this.getAbsolutePath(key), fsConstants.R_OK)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   async openReadStream(key: string): Promise<NodeJS.ReadableStream> {
     const absolute = this.getAbsolutePath(key)
     try {
       await access(absolute, fsConstants.R_OK)
-    } catch {
-      throw new Error(`Storage object not found: ${key}`)
+    } catch (err) {
+      logger.warn({ err, key, absolute, uploadRoot: this.root }, 'Storage object not found on disk')
+      throw new Error(`Storage object not found: ${key} (path: ${absolute})`)
     }
     return createReadStream(absolute)
   }
 
   getPublicUrl(key: string): string {
-    return `${env.API_URL}/uploads/${key.replace(/\\/g, '/')}`
+    return `${env.API_URL.replace(/\/$/, '')}/uploads/${key.replace(/\\/g, '/')}`
   }
 
   createSignedDownloadUrl(key: string, expiresInSeconds = 300): string {
     const expires = String(Math.floor(Date.now() / 1000) + expiresInSeconds)
     const signature = this.sign(key, expires)
     const params = new URLSearchParams({ key, expires, signature })
-    return `${env.API_URL}/api/v1/kyc/files/download?${params.toString()}`
+    return `${env.API_URL.replace(/\/$/, '')}/api/v1/kyc/files/download?${params.toString()}`
   }
 
   verifySignedDownloadUrl(key: string, expires: string, signature: string): boolean {

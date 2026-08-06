@@ -4,8 +4,17 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { ROUTES } from '@meridian/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ExternalLink, FileText, Loader2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import {
+  Download,
+  ExternalLink,
+  FileText,
+  Loader2,
+  Maximize2,
+  X,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -29,6 +38,10 @@ type KycDoc = {
   mimeType?: string
   originalName?: string
   downloadUrl?: string
+  storageKey?: string
+  publicUrl?: string
+  fileExists?: boolean
+  absolutePath?: string | null
   status?: string
 }
 
@@ -61,6 +74,21 @@ function useAdminDocPreview(ownerId: string | undefined, doc: KycDoc | undefined
       return
     }
 
+    if (doc.fileExists === false) {
+      setBlobUrl(null)
+      setLoading(false)
+      setError(
+        [
+          'File missing on storage disk.',
+          doc.storageKey ? `storageKey=${doc.storageKey}` : null,
+          doc.absolutePath ? `path=${doc.absolutePath}` : null,
+        ]
+          .filter(Boolean)
+          .join(' '),
+      )
+      return
+    }
+
     let objectUrl: string | null = null
     let cancelled = false
     setLoading(true)
@@ -76,7 +104,20 @@ function useAdminDocPreview(ownerId: string | undefined, doc: KycDoc | undefined
       })
       .catch((err: Error) => {
         if (cancelled) return
-        setError(err.message || 'Preview unavailable')
+        const detail = [
+          err.message || 'Preview unavailable',
+          doc.storageKey ? `storageKey=${doc.storageKey}` : null,
+          doc.absolutePath ? `path=${doc.absolutePath}` : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+        console.error('[admin-kyc] document preview failed', {
+          documentId: doc.id,
+          storageKey: doc.storageKey,
+          absolutePath: doc.absolutePath,
+          error: err,
+        })
+        setError(detail)
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -86,9 +127,115 @@ function useAdminDocPreview(ownerId: string | undefined, doc: KycDoc | undefined
       cancelled = true
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  }, [ownerId, doc?.id])
+  }, [ownerId, doc?.id, doc?.fileExists, doc?.storageKey, doc?.absolutePath])
 
   return { blobUrl, error, loading }
+}
+
+function DocumentLightbox({
+  open,
+  onClose,
+  label,
+  blobUrl,
+  isImage,
+  isPdf,
+  fileName,
+}: {
+  open: boolean
+  onClose: () => void
+  label: string
+  blobUrl: string
+  isImage: boolean
+  isPdf: boolean
+  fileName: string
+}) {
+  const [zoom, setZoom] = useState(1)
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+      if (e.key === '+' || e.key === '=') setZoom((z) => Math.min(4, z + 0.25))
+      if (e.key === '-') setZoom((z) => Math.max(0.5, z - 0.25))
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
+  useEffect(() => {
+    if (open) setZoom(1)
+  }, [open, blobUrl])
+
+  if (!open) return null
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex flex-col bg-black/90"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${label} preview`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
+        <p className="truncate text-body-sm font-medium text-white">{label}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          {isImage ? (
+            <>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
+              >
+                <ZoomOut className="size-4" aria-hidden />
+                Zoom out
+              </Button>
+              <span className="text-caption text-white/70">{Math.round(zoom * 100)}%</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => setZoom((z) => Math.min(4, z + 0.25))}
+              >
+                <ZoomIn className="size-4" aria-hidden />
+                Zoom in
+              </Button>
+            </>
+          ) : null}
+          <Button type="button" size="sm" variant="secondary" asChild>
+            <a href={blobUrl} download={fileName}>
+              <Download className="size-4" aria-hidden />
+              Download
+            </a>
+          </Button>
+          <Button type="button" size="sm" variant="secondary" asChild>
+            <a href={blobUrl} target="_blank" rel="noreferrer">
+              <ExternalLink className="size-4" aria-hidden />
+              New tab
+            </a>
+          </Button>
+          <Button type="button" size="sm" variant="ghost" className="text-white" onClick={onClose}>
+            <X className="size-4" aria-hidden />
+            Close
+          </Button>
+        </div>
+      </div>
+      <div className="flex flex-1 items-center justify-center overflow-auto p-4">
+        {isImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={blobUrl}
+            alt={label}
+            className="max-h-none origin-center transition-transform"
+            style={{ transform: `scale(${zoom})` }}
+          />
+        ) : isPdf ? (
+          <iframe title={label} src={blobUrl} className="h-full min-h-[70vh] w-full max-w-5xl bg-white" />
+        ) : (
+          <p className="text-body-sm text-white/80">Preview not available for this file type.</p>
+        )}
+      </div>
+    </div>
+  )
 }
 
 function KycDocCard({
@@ -101,67 +248,102 @@ function KycDocCard({
   ownerId?: string
 }) {
   const { blobUrl, error, loading } = useAdminDocPreview(ownerId, doc)
+  const [lightbox, setLightbox] = useState(false)
   const isImage = doc ? looksLikeImage(doc) : false
   const isPdf = doc ? looksLikePdf(doc) : false
+  const openLightbox = useCallback(() => {
+    if (blobUrl) setLightbox(true)
+  }, [blobUrl])
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-inset/40">
-      <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] px-3 py-2">
-        <p className="truncate text-body-sm font-medium text-fg">{label}</p>
-        {blobUrl ? (
-          <a
-            href={blobUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex shrink-0 items-center gap-1 text-caption text-accent-300 hover:underline"
-          >
-            Open <ExternalLink className="size-3.5" aria-hidden />
-          </a>
-        ) : null}
-      </div>
-      <div className="relative aspect-[4/3] bg-gradient-to-br from-accent-500/10 via-inset to-info/10">
-        {loading ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-fg-muted">
-            <Loader2 className="size-6 animate-spin" aria-hidden />
-            <p className="text-caption">Loading preview…</p>
-          </div>
-        ) : error ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
-            <FileText className="size-8 text-warning" aria-hidden />
-            <p className="text-caption text-warning">{error}</p>
-            <p className="text-[11px] text-fg-subtle">
-              If the file was uploaded before persistent disk was attached, ask the investor to
-              re-upload.
-            </p>
-          </div>
-        ) : blobUrl && isImage ? (
-          // Object URL from authenticated admin fetch
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={blobUrl}
-            alt={label}
-            className="absolute inset-0 size-full object-contain p-2"
-          />
-        ) : blobUrl && isPdf ? (
-          <iframe title={label} src={blobUrl} className="absolute inset-0 size-full bg-white" />
-        ) : blobUrl ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
-            <FileText className="size-8 text-fg-muted" aria-hidden />
-            <p className="text-caption text-fg-muted">{doc?.originalName ?? 'Document uploaded'}</p>
-            <Button asChild size="sm" variant="secondary">
-              <a href={blobUrl} target="_blank" rel="noreferrer">
-                Open file
+    <>
+      <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-inset/40">
+        <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] px-3 py-2">
+          <p className="truncate text-body-sm font-medium text-fg">{label}</p>
+          {blobUrl ? (
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={openLightbox}
+                className="inline-flex items-center gap-1 text-caption text-accent-300 hover:underline"
+              >
+                Expand <Maximize2 className="size-3.5" aria-hidden />
+              </button>
+              <a
+                href={blobUrl}
+                download={doc?.originalName ?? 'document'}
+                className="inline-flex items-center gap-1 text-caption text-accent-300 hover:underline"
+              >
+                Download <Download className="size-3.5" aria-hidden />
               </a>
-            </Button>
-          </div>
-        ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-4 text-center">
-            <p className={cn('text-body-sm font-medium text-fg')}>{label}</p>
-            <p className="text-caption text-fg-subtle">No file uploaded</p>
-          </div>
-        )}
+            </div>
+          ) : null}
+        </div>
+        <div className="relative aspect-[4/3] bg-gradient-to-br from-accent-500/10 via-inset to-info/10">
+          {loading ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-fg-muted">
+              <Loader2 className="size-6 animate-spin" aria-hidden />
+              <p className="text-caption">Loading preview…</p>
+            </div>
+          ) : error ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
+              <FileText className="size-8 text-warning" aria-hidden />
+              <p className="text-caption font-medium text-warning">Document unavailable</p>
+              <p className="break-all text-[11px] text-fg-subtle">{error}</p>
+              <p className="text-[11px] text-fg-subtle">
+                If the file was uploaded before the persistent disk was attached, ask the investor to
+                re-upload.
+              </p>
+            </div>
+          ) : blobUrl && isImage ? (
+            <button
+              type="button"
+              className="absolute inset-0 size-full cursor-zoom-in"
+              onClick={openLightbox}
+              aria-label={`Open ${label} full screen`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={blobUrl} alt={label} className="size-full object-contain p-2" />
+            </button>
+          ) : blobUrl && isPdf ? (
+            <button
+              type="button"
+              className="absolute inset-0 size-full"
+              onClick={openLightbox}
+              aria-label={`Open ${label} full screen`}
+            >
+              <iframe title={label} src={blobUrl} className="pointer-events-none size-full bg-white" />
+            </button>
+          ) : blobUrl ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
+              <FileText className="size-8 text-fg-muted" aria-hidden />
+              <p className="text-caption text-fg-muted">{doc?.originalName ?? 'Document uploaded'}</p>
+              <Button asChild size="sm" variant="secondary">
+                <a href={blobUrl} target="_blank" rel="noreferrer">
+                  Open file
+                </a>
+              </Button>
+            </div>
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-4 text-center">
+              <p className={cn('text-body-sm font-medium text-fg')}>{label}</p>
+              <p className="text-caption text-fg-subtle">No file uploaded</p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+      {blobUrl ? (
+        <DocumentLightbox
+          open={lightbox}
+          onClose={() => setLightbox(false)}
+          label={label}
+          blobUrl={blobUrl}
+          isImage={isImage}
+          isPdf={isPdf}
+          fileName={doc?.originalName ?? 'document'}
+        />
+      ) : null}
+    </>
   )
 }
 
@@ -242,16 +424,22 @@ export function AdminKycReviewWorkspace() {
 
   const submission = kycDetail
   const ownerId = submission?.id ?? userId
-  const documents = submission?.documents ?? []
+  const documents = (submission?.documents ?? []) as KycDoc[]
   const idKinds = ['NATIONAL_ID', 'DRIVING_LICENSE', 'RESIDENCE_PERMIT', 'PASSPORT']
   const front = pickDoc(documents, 'FRONT', idKinds) ?? pickDoc(documents, 'FRONT')
   const back = pickDoc(documents, 'BACK', idKinds) ?? pickDoc(documents, 'BACK')
   const selfie =
     pickDoc(documents, 'SINGLE', ['SELFIE']) ??
-    documents.find((d) => (d.documentType ?? d.kind) === 'SELFIE') ??
-    pickDoc(documents, 'SINGLE')
+    documents.find((d) => (d.documentType ?? d.kind) === 'SELFIE')
+  const addressProof =
+    pickDoc(documents, 'SINGLE', ['PROOF_OF_ADDRESS']) ??
+    documents.find((d) => (d.documentType ?? d.kind) === 'PROOF_OF_ADDRESS')
   const extras = documents.filter(
-    (d) => d.id !== front?.id && d.id !== back?.id && d.id !== selfie?.id,
+    (d) =>
+      d.id !== front?.id &&
+      d.id !== back?.id &&
+      d.id !== selfie?.id &&
+      d.id !== addressProof?.id,
   )
   const country = submission?.country ?? account.country ?? '—'
   const busy = approve.isPending || reject.isPending || resubmit.isPending
@@ -351,10 +539,11 @@ export function AdminKycReviewWorkspace() {
             No documents are attached to this KYC submission. Ask the investor to upload again.
           </AdminPanel>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <KycDocCard label="Front ID" doc={front} ownerId={ownerId} />
             <KycDocCard label="Back ID" doc={back} ownerId={ownerId} />
             <KycDocCard label="Selfie" doc={selfie} ownerId={ownerId} />
+            <KycDocCard label="Address proof" doc={addressProof} ownerId={ownerId} />
             {extras.map((doc) => (
               <KycDocCard key={doc.id} label={docLabel(doc)} doc={doc} ownerId={ownerId} />
             ))}

@@ -12,6 +12,7 @@ import path from 'node:path'
 
 import { kycRepository } from '../../repositories/kyc.repository.js'
 import { userRepository } from '../../repositories/user.repository.js'
+import { env } from '../../config/env.js'
 import { badRequest, forbidden, notFound } from '../../utils/errors.js'
 import { logger } from '../../utils/logger.js'
 import { assertUploadMagicBytes } from '../../utils/upload-magic.js'
@@ -20,7 +21,7 @@ import { activityService } from '../activity.service.js'
 import { auditService } from '../audit.service.js'
 import { notificationService } from '../notification.service.js'
 import { storage } from '../storage/index.js'
-import { mapSubmission, toKycProfile } from './kyc.mapper.js'
+import { mapDocument, mapSubmission, toKycProfile } from './kyc.mapper.js'
 import { assessKycRisk } from './risk-engine.js'
 import { virusScanner } from './virus-scan.js'
 
@@ -478,7 +479,34 @@ export const kycService = {
   async adminGet(id: string) {
     const submission = await this.resolveSubmission(id)
     if (!submission) throw notFound('KYC submission not found.')
-    return mapSubmission(submission)
+    const mapped = mapSubmission(submission)
+    const documents = await Promise.all(
+      (submission.documents ?? [])
+        .filter((d) => !d.deletedAt)
+        .map(async (doc) => {
+          const fileExists = await storage.exists(doc.storageKey)
+          let absolutePath: string | null = null
+          try {
+            absolutePath = storage.getAbsolutePath(doc.storageKey)
+          } catch {
+            absolutePath = null
+          }
+          if (!fileExists) {
+            logger.warn(
+              {
+                documentId: doc.id,
+                storageKey: doc.storageKey,
+                absolutePath,
+                submissionId: submission.id,
+                uploadRoot: env.UPLOAD_ROOT,
+              },
+              'KYC document missing on storage disk',
+            )
+          }
+          return mapDocument(doc, { fileExists, absolutePath })
+        }),
+    )
+    return { ...mapped, documents }
   },
 
   async adminDecision(
@@ -727,10 +755,38 @@ export const kycService = {
     if (!submission) throw notFound('KYC submission not found.')
     const doc = (submission.documents ?? []).find((d) => d.id === documentId && !d.deletedAt)
     if (!doc) throw notFound('Document not found.')
+
+    const fileExists = await storage.exists(doc.storageKey)
+    let absolutePath: string | null = null
+    try {
+      absolutePath = storage.getAbsolutePath(doc.storageKey)
+    } catch {
+      absolutePath = null
+    }
+
+    if (!fileExists) {
+      logger.error(
+        {
+          documentId: doc.id,
+          storageKey: doc.storageKey,
+          absolutePath,
+          submissionId: submission.id,
+          uploadRoot: env.UPLOAD_ROOT,
+        },
+        'Admin KYC preview failed — file missing on storage',
+      )
+      throw notFound(
+        `File missing on storage disk. storageKey=${doc.storageKey}${
+          absolutePath ? ` path=${absolutePath}` : ''
+        }. Ask the investor to re-upload.`,
+      )
+    }
+
     return {
       storageKey: doc.storageKey,
       mimeType: doc.mimeType || 'application/octet-stream',
       originalName: doc.originalName || 'document',
+      absolutePath,
     }
   },
 }

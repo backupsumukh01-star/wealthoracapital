@@ -1,4 +1,5 @@
-import { access } from 'node:fs/promises'
+import { access, mkdir } from 'node:fs/promises'
+import { constants } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
@@ -128,8 +129,16 @@ async function probeStorage(): Promise<{
       return { status: 'up', driver, detail: `bucket ${env.S3_BUCKET}` }
     }
     const root = path.resolve(env.UPLOAD_ROOT)
-    await access(root)
-    return { status: 'up', driver: 'local', detail: root }
+    await mkdir(root, { recursive: true }).catch(() => undefined)
+    await access(root, constants.R_OK | constants.W_OK)
+    const onPersistentDisk = root.startsWith('/data')
+    return {
+      status: 'up' as const,
+      driver: 'local',
+      detail: onPersistentDisk
+        ? `${root} (persistent disk mount)`
+        : `${root} (WARNING: not under /data — uploads may be ephemeral)`,
+    }
   } catch (error) {
     return {
       status: 'down',
