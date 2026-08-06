@@ -25,6 +25,8 @@
     "render:build:web": "pnpm --filter @meridian/web... build",
     "render:migrate": "pnpm --filter @meridian/api run db:migrate:deploy",
     "render:start:api": "pnpm --filter @meridian/api run db:migrate:deploy && pnpm --filter @meridian/api start",
+    "render:start:web": "pnpm --filter @meridian/web start",
+    "render:start:worker": "pnpm --filter @meridian/api worker:start"
   },
   "devDependencies": {
     "@meridian/config": "workspace:*",
