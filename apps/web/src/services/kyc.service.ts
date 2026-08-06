@@ -9,7 +9,8 @@ export type KycProfile = {
   submittedAt: string | null
   reviewedAt: string | null
   rejectionReason: string | null
-  documents: Array<{ id: string; kind: string; status: string }>
+  infoRequestMessage?: string | null
+  documents: Array<{ id: string; kind: string; status: string; side?: string; downloadUrl?: string }>
   submission?: unknown
 }
 

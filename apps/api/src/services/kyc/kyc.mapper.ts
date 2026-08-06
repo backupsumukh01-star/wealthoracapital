@@ -92,7 +92,8 @@ export function toKycProfile(
       submittedAt: null,
       reviewedAt: null,
       rejectionReason: null,
-      documents: [] as Array<{ id: string; kind: string; status: string }>,
+      infoRequestMessage: null,
+      documents: [] as Array<{ id: string; kind: string; status: string; side?: string; downloadUrl?: string }>,
     }
   }
   return {
@@ -100,12 +101,15 @@ export function toKycProfile(
     submittedAt: submission.submittedAt?.toISOString() ?? null,
     reviewedAt: submission.reviewedAt?.toISOString() ?? null,
     rejectionReason: submission.rejectionReason,
+    infoRequestMessage: submission.infoRequestMessage,
     documents: (submission.documents ?? [])
       .filter((d) => !d.deletedAt)
       .map((d) => ({
         id: d.id,
         kind: d.documentType,
+        side: d.side,
         status: d.status,
+        downloadUrl: storage.createSignedDownloadUrl(d.storageKey, 3600),
       })),
   }
 }

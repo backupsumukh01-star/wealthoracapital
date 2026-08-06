@@ -163,6 +163,18 @@ export const transactionalMailer = {
     )
   },
 
+  async kycInfoRequested(userId: string, reason: string) {
+    const user = await loadUser(userId)
+    if (!user) return
+    await safe('kyc-info-requested', () =>
+      emailService.sendKycRejected({
+        to: user.email,
+        firstName: user.firstName,
+        reason: `More information needed: ${reason}`,
+      }),
+    )
+  },
+
   async supportReply(
     userId: string,
     input: { reference: string; subject: string; message: string },

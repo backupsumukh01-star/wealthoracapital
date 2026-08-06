@@ -75,6 +75,17 @@ export function OnboardingWizard() {
 
   const kycStatus =
     kycStatusQuery.data?.status ?? session?.user.kycStatus ?? 'NOT_STARTED'
+  const infoRequestMessage =
+    kycStatusQuery.data?.infoRequestMessage ?? kycStatusQuery.data?.rejectionReason ?? null
+  const existingDocs = kycStatusQuery.data?.documents ?? []
+  const hasExistingFront = existingDocs.some(
+    (d) => d.side === 'FRONT' || (d.kind !== 'SELFIE' && !d.side),
+  )
+  const hasExistingBack = existingDocs.some((d) => d.side === 'BACK')
+  const hasExistingSelfie = existingDocs.some(
+    (d) => d.kind === 'SELFIE' || d.side === 'SINGLE',
+  )
+  const needsResubmit = kycStatus === 'NEED_MORE_INFO' || kycStatus === 'REJECTED'
 
   const form = useForm<OnboardingKycInput>({
     resolver: zodResolver(onboardingKycSchema),
@@ -130,11 +141,16 @@ export function OnboardingWizard() {
 
   async function onSubmitDocs(values: OnboardingKycInput) {
     setSubmitError(null)
-    if (!front || !selfie) {
+    const frontOk = Boolean(front) || (needsResubmit && hasExistingFront)
+    const selfieOk = Boolean(selfie) || (needsResubmit && hasExistingSelfie)
+    const backOk =
+      values.idType === 'PASSPORT' || Boolean(back) || (needsResubmit && hasExistingBack)
+
+    if (!frontOk || !selfieOk) {
       setSubmitError('Upload ID front and a selfie to continue.')
       return
     }
-    if (values.idType !== 'PASSPORT' && !back) {
+    if (!backOk) {
       setSubmitError('Upload the back of your ID.')
       return
     }
@@ -152,11 +168,13 @@ export function OnboardingWizard() {
         primaryDocumentType: values.idType,
       })
 
-      await uploadDoc.mutateAsync({
-        kind: values.idType,
-        file: front,
-        side: 'FRONT',
-      })
+      if (front) {
+        await uploadDoc.mutateAsync({
+          kind: values.idType,
+          file: front,
+          side: 'FRONT',
+        })
+      }
       if (values.idType !== 'PASSPORT' && back) {
         await uploadDoc.mutateAsync({
           kind: values.idType,
@@ -164,11 +182,13 @@ export function OnboardingWizard() {
           side: 'BACK',
         })
       }
-      await uploadDoc.mutateAsync({
-        kind: 'SELFIE',
-        file: selfie,
-        side: 'SINGLE',
-      })
+      if (selfie) {
+        await uploadDoc.mutateAsync({
+          kind: 'SELFIE',
+          file: selfie,
+          side: 'SINGLE',
+        })
+      }
 
       await submitKyc.mutateAsync({})
       refresh()
@@ -285,6 +305,13 @@ export function OnboardingWizard() {
             })}
           </ol>
         </div>
+
+        {needsResubmit ? (
+          <Alert tone="warning" title={kycStatus === 'REJECTED' ? 'KYC rejected' : 'More information needed'}>
+            {infoRequestMessage?.trim() ||
+              'Please update your documents and submit again for review.'}
+          </Alert>
+        ) : null}
 
         {submitError && step !== 3 ? (
           <Alert tone="danger" title="Could not continue">

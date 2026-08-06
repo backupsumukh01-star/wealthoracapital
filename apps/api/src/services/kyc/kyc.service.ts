@@ -13,6 +13,7 @@ import path from 'node:path'
 import { kycRepository } from '../../repositories/kyc.repository.js'
 import { userRepository } from '../../repositories/user.repository.js'
 import { badRequest, forbidden, notFound } from '../../utils/errors.js'
+import { logger } from '../../utils/logger.js'
 import { assertUploadMagicBytes } from '../../utils/upload-magic.js'
 import { transactionalMailer } from '../../emails/transactional.js'
 import { activityService } from '../activity.service.js'
@@ -598,36 +599,50 @@ export const kycService = {
       const { ledgerService } = await import('../finance/ledger.service.js')
       await ledgerService.ensureWalletsForUser(submission.userId)
     }
-    await kycRepository.createReview({
-      submission: { connect: { id: submission.id } },
-      reviewer: { connect: { id: actorId } },
-      decision,
-      reason: body.reason ?? null,
-      internalNotes: body.internalNotes ?? null,
-      riskLevel: body.riskLevel ?? null,
-      riskScore: body.riskScore ?? null,
-      fraudFlag: body.fraudFlag ?? null,
-      documentQuality: body.documentQuality ?? null,
-    })
-    await appendHistory(submission.id, historyAction, actorId, body.reason)
-    await recordActivity(submission.userId, actorId, activityKind, notifyTitle, context)
-    await notifyKyc(submission.userId, notifyTitle, notifyBody)
-    if (decision === 'APPROVE') {
-      await transactionalMailer.kycApproved(submission.userId)
-    } else if (decision === 'REJECT') {
-      await transactionalMailer.kycRejected(submission.userId, body.reason ?? 'Verification rejected')
+
+    try {
+      await kycRepository.createReview({
+        submission: { connect: { id: submission.id } },
+        reviewer: { connect: { id: actorId } },
+        decision,
+        reason: body.reason ?? null,
+        internalNotes: body.internalNotes ?? null,
+        riskLevel: body.riskLevel ?? null,
+        riskScore: body.riskScore ?? null,
+        fraudFlag: body.fraudFlag ?? null,
+        documentQuality: body.documentQuality ?? null,
+      })
+      await appendHistory(submission.id, historyAction, actorId, body.reason)
+      await recordActivity(submission.userId, actorId, activityKind, notifyTitle, context)
+      await notifyKyc(submission.userId, notifyTitle, notifyBody)
+      if (decision === 'APPROVE') {
+        await transactionalMailer.kycApproved(submission.userId)
+      } else if (decision === 'REJECT') {
+        await transactionalMailer.kycRejected(submission.userId, body.reason ?? 'Verification rejected')
+      } else if (decision === 'REQUEST_INFORMATION') {
+        await transactionalMailer.kycInfoRequested(
+          submission.userId,
+          body.reason ?? 'Please update your documents and resubmit.',
+        )
+      }
+      await auditService.record({
+        actorId,
+        targetUserId: submission.userId,
+        action: `kyc.${decision.toLowerCase()}`,
+        module: 'kyc',
+        oldValue: { status: submission.status },
+        newValue: { status: nextStatus },
+        reason: body.reason ?? null,
+        ip: context.ip,
+        userAgent: context.userAgent,
+      })
+    } catch (sideEffectError) {
+      // Status already persisted — do not roll back the decision if notifications fail.
+      logger.warn(
+        { err: sideEffectError, submissionId: submission.id, decision },
+        'KYC decision side-effects failed after status update',
+      )
     }
-    await auditService.record({
-      actorId,
-      targetUserId: submission.userId,
-      action: `kyc.${decision.toLowerCase()}`,
-      module: 'kyc',
-      oldValue: { status: submission.status },
-      newValue: { status: nextStatus },
-      reason: body.reason ?? null,
-      ip: context.ip,
-      userAgent: context.userAgent,
-    })
 
     return {
       ...toKycProfile({ ...updated, documents: submission.documents }),

@@ -71,7 +71,21 @@ export const kycAdminListQuerySchema = z.object({
 })
 
 export const kycReviewBodySchema = z.object({
-  reason: z.string().trim().min(3).max(1000).optional(),
+  reason: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.string().trim().min(3).max(1000).optional(),
+  ),
+  internalNotes: z.string().trim().max(2000).optional(),
+  riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional(),
+  riskScore: z.number().int().min(0).max(100).optional(),
+  fraudFlag: z.boolean().optional(),
+  documentQuality: z.number().int().min(0).max(100).optional(),
+  assignedReviewerId: z.string().uuid().optional(),
+})
+
+/** Request-information / reject require a human-readable reason. */
+export const kycRequestInfoBodySchema = z.object({
+  reason: z.string().trim().min(3).max(1000),
   internalNotes: z.string().trim().max(2000).optional(),
   riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional(),
   riskScore: z.number().int().min(0).max(100).optional(),

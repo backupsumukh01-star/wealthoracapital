@@ -61,9 +61,9 @@ function KycReviewCard({
   busy,
 }: {
   account: KycQueueItem
-  onApprove: (userId: string) => void
-  onReject: (userId: string, reason: string) => void
-  onResubmit: (userId: string, reason: string) => void
+  onApprove: (userId: string) => void | Promise<unknown>
+  onReject: (userId: string, reason: string) => void | Promise<unknown>
+  onResubmit: (userId: string, reason: string) => void | Promise<unknown>
   busy: boolean
 }) {
   const [reason, setReason] = useState('')
@@ -116,7 +116,7 @@ function KycReviewCard({
             rows={3}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Optional note for approve; required when rejecting or requesting resubmission…"
+            placeholder="Required when rejecting or requesting resubmission…"
             className="border-white/10 bg-white/[0.04]"
           />
         </FormField>
@@ -126,10 +126,7 @@ function KycReviewCard({
             size="sm"
             disabled={busy}
             onClick={() => {
-              onApprove(account.id)
-              toast.success('KYC approved', {
-                description: `${account.id} is verified. Deposits unlocked.`,
-              })
+              void onApprove(account.id)
             }}
           >
             <Check aria-hidden />
@@ -140,9 +137,12 @@ function KycReviewCard({
             variant="danger"
             disabled={busy}
             onClick={() => {
-              const note = reason.trim() || 'Documents unclear. Please re-upload.'
-              onReject(account.id, note)
-              toast.message('KYC rejected', { description: note })
+              const note = reason.trim()
+              if (note.length < 3) {
+                toast.error('Add a rejection reason (at least 3 characters)')
+                return
+              }
+              void onReject(account.id, note)
             }}
           >
             <X aria-hidden />
@@ -153,9 +153,12 @@ function KycReviewCard({
             variant="secondary"
             disabled={busy}
             onClick={() => {
-              const note = reason.trim() || 'Please replace blurry documents.'
-              onResubmit(account.id, note)
-              toast.message('Resubmission requested', { description: note })
+              const note = reason.trim()
+              if (note.length < 3) {
+                toast.error('Add a resubmission note (at least 3 characters)')
+                return
+              }
+              void onResubmit(account.id, note)
             }}
           >
             <RotateCcw aria-hidden />
@@ -186,20 +189,29 @@ export function AdminKycQueue() {
 
   const approve = useMutation({
     mutationFn: (userId: string) => kycService.adminApprove(userId),
-    onSuccess: invalidate,
-    onError: (err: Error) => toast.error(err.message),
+    onSuccess: () => {
+      invalidate()
+      toast.success('KYC approved')
+    },
+    onError: (err: Error) => toast.error(err.message || 'Approve failed'),
   })
   const reject = useMutation({
     mutationFn: ({ userId, reason }: { userId: string; reason: string }) =>
       kycService.adminReject(userId, { reason }),
-    onSuccess: invalidate,
-    onError: (err: Error) => toast.error(err.message),
+    onSuccess: (_data, vars) => {
+      invalidate()
+      toast.message('KYC rejected', { description: vars.reason })
+    },
+    onError: (err: Error) => toast.error(err.message || 'Reject failed'),
   })
   const resubmit = useMutation({
     mutationFn: ({ userId, reason }: { userId: string; reason: string }) =>
       kycService.adminRequestInformation(userId, { reason }),
-    onSuccess: invalidate,
-    onError: (err: Error) => toast.error(err.message),
+    onSuccess: (_data, vars) => {
+      invalidate()
+      toast.success('Resubmission requested', { description: vars.reason })
+    },
+    onError: (err: Error) => toast.error(err.message || 'Request resubmission failed'),
   })
 
   const pending = (data?.items ?? []) as KycQueueItem[]
@@ -238,9 +250,9 @@ export function AdminKycQueue() {
               <KycReviewCard
                 account={account}
                 busy={busy}
-                onApprove={(userId) => approve.mutate(userId)}
-                onReject={(userId, reason) => reject.mutate({ userId, reason })}
-                onResubmit={(userId, reason) => resubmit.mutate({ userId, reason })}
+                onApprove={(userId) => approve.mutateAsync(userId)}
+                onReject={(userId, reason) => reject.mutateAsync({ userId, reason })}
+                onResubmit={(userId, reason) => resubmit.mutateAsync({ userId, reason })}
               />
             </li>
           ))}

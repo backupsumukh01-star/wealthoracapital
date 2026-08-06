@@ -8,6 +8,7 @@ import { idParamSchema } from '../validators/admin.validators.js'
 import {
   kycAdminListQuerySchema,
   kycCompatReviewSchema,
+  kycRequestInfoBodySchema,
   kycReviewBodySchema,
 } from '../validators/kyc.validators.js'
 
@@ -45,7 +46,7 @@ adminKycRouter.post(
   '/:id/reject',
   requirePermission(PERMISSIONS['kyc.review']),
   validate(idParamSchema, 'params'),
-  validate(kycReviewBodySchema),
+  validate(kycRequestInfoBodySchema),
   kycController.reject,
 )
 
@@ -53,7 +54,7 @@ adminKycRouter.post(
   '/:id/request-information',
   requirePermission(PERMISSIONS['kyc.review']),
   validate(idParamSchema, 'params'),
-  validate(kycReviewBodySchema),
+  validate(kycRequestInfoBodySchema),
   kycController.requestInformation,
 )
 
