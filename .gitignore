@@ -57,3 +57,4 @@ test-results/
 apps/api/coverage/
 packages/shared/coverage/
 
+build-out.txt
