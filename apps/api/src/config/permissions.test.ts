@@ -25,26 +25,29 @@ describe('RBAC permissions', () => {
   })
 
   it('FINANCE staff has finance permissions but not cms.manage', () => {
-    expect(hasPermission({ role: 'USER', staffRole: 'FINANCE' }, 'finance.review')).toBe(true)
-    expect(hasPermission({ role: 'USER', staffRole: 'FINANCE' }, 'cms.manage')).toBe(false)
-    expect(isStaffUser({ role: 'USER', staffRole: 'FINANCE' })).toBe(true)
+    // Staff maps apply only to ADMIN accounts; staffRole on USER must not elevate.
+    expect(hasPermission({ role: 'ADMIN', staffRole: 'FINANCE' }, 'finance.review')).toBe(true)
+    expect(hasPermission({ role: 'ADMIN', staffRole: 'FINANCE' }, 'cms.manage')).toBe(false)
+    expect(hasPermission({ role: 'USER', staffRole: 'FINANCE' }, 'finance.review')).toBe(false)
+    expect(isStaffUser({ role: 'ADMIN', staffRole: 'FINANCE' })).toBe(true)
+    expect(isStaffUser({ role: 'USER', staffRole: 'FINANCE' })).toBe(false)
   })
 
   it('SUPPORT cannot approve KYC', () => {
-    expect(hasPermission({ role: 'USER', staffRole: 'SUPPORT' }, 'support.manage')).toBe(true)
-    expect(hasPermission({ role: 'USER', staffRole: 'SUPPORT' }, 'kyc.review')).toBe(false)
+    expect(hasPermission({ role: 'ADMIN', staffRole: 'SUPPORT' }, 'support.manage')).toBe(true)
+    expect(hasPermission({ role: 'ADMIN', staffRole: 'SUPPORT' }, 'kyc.review')).toBe(false)
   })
 
   it('CONTENT can manage CMS and media', () => {
-    expect(hasPermission({ role: 'USER', staffRole: 'CONTENT' }, 'cms.manage')).toBe(true)
-    expect(hasPermission({ role: 'USER', staffRole: 'CONTENT' }, 'media.manage')).toBe(true)
-    expect(hasPermission({ role: 'USER', staffRole: 'CONTENT' }, 'finance.adjust')).toBe(false)
+    expect(hasPermission({ role: 'ADMIN', staffRole: 'CONTENT' }, 'cms.manage')).toBe(true)
+    expect(hasPermission({ role: 'ADMIN', staffRole: 'CONTENT' }, 'media.manage')).toBe(true)
+    expect(hasPermission({ role: 'ADMIN', staffRole: 'CONTENT' }, 'finance.adjust')).toBe(false)
   })
 
   it('VIEWER is read-only on finance', () => {
-    expect(hasPermission({ role: 'USER', staffRole: 'VIEWER' }, 'finance.view')).toBe(true)
-    expect(hasPermission({ role: 'USER', staffRole: 'VIEWER' }, 'finance.review')).toBe(false)
-    expect(hasPermission({ role: 'USER', staffRole: 'VIEWER' }, 'users.edit')).toBe(false)
+    expect(hasPermission({ role: 'ADMIN', staffRole: 'VIEWER' }, 'finance.view')).toBe(true)
+    expect(hasPermission({ role: 'ADMIN', staffRole: 'VIEWER' }, 'finance.review')).toBe(false)
+    expect(hasPermission({ role: 'ADMIN', staffRole: 'VIEWER' }, 'users.edit')).toBe(false)
   })
 
   it('isStaffUser detects ADMIN and staff roles', () => {

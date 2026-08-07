@@ -59,4 +59,10 @@ export const authService = {
 
   revokeSession: (sessionId: string) =>
     apiClient<null>(`${API_ROUTES.auth.sessions}/${sessionId}`, { method: 'DELETE' }),
+
+  /** Revoke every session except the current one (profile API). */
+  terminateOtherSessions: () =>
+    apiClient<{ revokedSessions: number }>(`${API_ROUTES.profile.sessions}/others`, {
+      method: 'DELETE',
+    }),
 }

@@ -77,6 +77,7 @@ const STAFF_PERMISSION_MAP: Record<StaffRole, Permission[]> = {
     PERMISSIONS['dashboard.view'],
     PERMISSIONS['users.view'],
     PERMISSIONS['users.edit'],
+    PERMISSIONS['users.suspend'],
     PERMISSIONS['activity.view'],
     PERMISSIONS['profile.view'],
     PERMISSIONS['profile.edit'],
@@ -159,8 +160,10 @@ export function resolvePermissions(input: {
   }
 
   if (input.role === 'ADMIN') {
+    // staffRole scopes a full Admin account — do not union with ADMIN (all permissions)
+    // or FINANCE/VIEWER/etc. would still receive every permission.
     if (input.staffRole) {
-      return [...new Set([...STAFF_PERMISSION_MAP[input.staffRole], ...STAFF_PERMISSION_MAP.ADMIN])]
+      return [...STAFF_PERMISSION_MAP[input.staffRole]]
     }
     return [...STAFF_PERMISSION_MAP.ADMIN]
   }

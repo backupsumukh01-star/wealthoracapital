@@ -119,7 +119,8 @@ export const depositService = {
 
     const platform = await settingsService.getOrInitPlatformSettings()
     const rate = d(platform.usdInrRate ?? DEFAULT_USD_INR_RATE)
-    const amountInr = body.amountInr ? d(body.amountInr) : usdToInr(amount, rate)
+    // Always derive INR server-side — never trust client amountInr (forgery / rate tampering).
+    const amountInr = usdToInr(amount, rate)
     if (!amountInr.isFinite() || amountInr.lte(0)) throw badRequest('Invalid INR amount.')
 
     const fee = amount.mul(d(method.feePct)).div(100)

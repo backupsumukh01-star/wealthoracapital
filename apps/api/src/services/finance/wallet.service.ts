@@ -143,15 +143,20 @@ export const walletService = {
     limit: number
   }) {
     const skip = (query.page - 1) * query.limit
+    const q = query.q?.trim()
+    const qIsUuid =
+      Boolean(q) &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(q!)
     const where: Prisma.WalletWhereInput = {
       kind: 'INVESTMENT',
-      ...(query.q
+      ...(q
         ? {
             user: {
               OR: [
-                { email: { contains: query.q, mode: 'insensitive' } },
-                { firstName: { contains: query.q, mode: 'insensitive' } },
-                { lastName: { contains: query.q, mode: 'insensitive' } },
+                ...(qIsUuid ? [{ id: q }] : []),
+                { email: { contains: q, mode: 'insensitive' as const } },
+                { firstName: { contains: q, mode: 'insensitive' as const } },
+                { lastName: { contains: q, mode: 'insensitive' as const } },
               ],
             },
           }

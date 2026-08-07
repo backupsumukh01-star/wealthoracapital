@@ -25,14 +25,15 @@ function dayDate(input: string | Date): Date {
  * Active investment for settlement.
  * INVESTED basis uses principal only — never fall back to liquid balances
  * (that would pay ROI on uninvested cash / locked withdrawals).
+ * BALANCE basis uses spendable capital only — locked withdrawal funds must not earn.
  */
 function activeInvestment(wallet: Wallet, basis: ReturnBasis): Decimal {
   const invested = d(wallet.investedAmount)
-  const liquid = d(wallet.availableBalance).plus(d(wallet.lockedBalance))
   if (basis === 'INVESTED') {
     return invested
   }
-  return liquid.gt(0) ? liquid : invested
+  const available = d(wallet.availableBalance)
+  return available.gt(0) ? available : d(0)
 }
 
 export const distributionService = {

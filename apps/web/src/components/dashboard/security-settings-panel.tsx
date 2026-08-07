@@ -13,11 +13,13 @@ import { toast } from '@/components/ui/toast'
 import { useChangePassword } from '@/features/auth/hooks'
 import { ApiError } from '@/lib/api-client'
 import { useSession } from '@/providers/session-provider'
+import { authService } from '@/services/auth.service'
 
 export function SecuritySettingsPanel() {
   const { session } = useSession()
   const changePassword = useChangePassword()
   const [busy, setBusy] = useState(false)
+  const [revokeBusy, setRevokeBusy] = useState(false)
 
   return (
     <div className="min-w-0 max-w-full space-y-4">
@@ -81,18 +83,35 @@ export function SecuritySettingsPanel() {
           <SettingsRow
             label="This device"
             value={session ? 'Active now' : 'Signed out'}
-            hint="Session revoke for other devices will use the production auth flow."
+            hint="Other devices can be signed out below without ending this session."
           />
         </ul>
         <Button
           className="mt-3.5"
           variant="secondary"
-          onClick={() =>
-            toast.info(
-              'Session revoke is not available here yet',
-              'Use production auth session management when enabled.',
-            )
-          }
+          loading={revokeBusy}
+          onClick={() => {
+            setRevokeBusy(true)
+            void authService
+              .terminateOtherSessions()
+              .then((data) => {
+                toast.success(
+                  data.revokedSessions > 0
+                    ? `Signed out ${data.revokedSessions} other device${data.revokedSessions === 1 ? '' : 's'}`
+                    : 'No other sessions were active',
+                )
+              })
+              .catch((error: unknown) => {
+                toast.error(
+                  error instanceof ApiError
+                    ? error.message
+                    : error instanceof Error
+                      ? error.message
+                      : 'Could not sign out other devices',
+                )
+              })
+              .finally(() => setRevokeBusy(false))
+          }}
         >
           Sign out other devices
         </Button>
@@ -103,21 +122,10 @@ export function SecuritySettingsPanel() {
         description="Manage authenticator enrolment from Profile · 2FA."
         icon={ShieldCheck}
       >
-        <SettingsRow label="Status" value="Managed in production auth" />
+        <SettingsRow label="Status" value="Managed in Profile · 2FA" />
         <div className="mt-3 flex flex-wrap gap-2">
           <Button asChild variant="secondary">
             <Link href={ROUTES.dashboard.settings.profile}>Open Profile · 2FA</Link>
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() =>
-              toast.info(
-                '2FA enrolment uses the production auth flow',
-                'Authenticator setup is not available from this demo panel.',
-              )
-            }
-          >
-            Manage 2FA
           </Button>
         </div>
       </SettingsCard>

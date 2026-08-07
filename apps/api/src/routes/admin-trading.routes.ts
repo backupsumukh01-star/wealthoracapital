@@ -18,7 +18,7 @@ export const adminTradingRouter = Router()
 
 adminTradingRouter.get(
   '/trades',
-  requirePermission(PERMISSIONS['trades.manage']),
+  requirePermission(PERMISSIONS['trades.view']),
   validate(adminTradeListQuerySchema, 'query'),
   tradingController.adminListTrades,
 )
@@ -41,7 +41,7 @@ adminTradingRouter.post(
 )
 adminTradingRouter.get(
   '/trades/:id',
-  requirePermission(PERMISSIONS['trades.manage']),
+  requirePermission(PERMISSIONS['trades.view']),
   validate(tradeIdParamSchema, 'params'),
   tradingController.adminGetTrade,
 )

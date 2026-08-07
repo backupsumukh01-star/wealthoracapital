@@ -5,7 +5,7 @@ import { toPublicUser } from '../models/user.mapper.js'
 import { sessionRepository } from '../repositories/session.repository.js'
 import { userRepository, type UserListFilters } from '../repositories/user.repository.js'
 import { badRequest, forbidden, notFound } from '../utils/errors.js'
-import { moneyDisplay } from '../utils/money.js'
+import { d, moneyDisplay } from '../utils/money.js'
 import { storage } from './storage/index.js'
 import { activityService } from './activity.service.js'
 import { auditService } from './audit.service.js'
@@ -58,12 +58,15 @@ function snapshotUser(user: User) {
 /** Higher number = more privilege. Used to stop lateral/vertical escalation. */
 function privilegeRank(user: { role: Role; staffRole: StaffRole | null }): number {
   if (user.role === 'SUPER_ADMIN' || user.staffRole === 'SUPER_ADMIN') return 100
-  if (user.role === 'ADMIN' || user.staffRole === 'ADMIN') return 80
+  // Scoped staffRole must win over the ADMIN account role — otherwise every
+  // FINANCE/SUPPORT/VIEWER staff account ranks as a full Admin (80).
+  if (user.staffRole === 'ADMIN') return 80
   if (user.staffRole === 'FINANCE') return 60
   if (user.staffRole === 'SUPPORT' || user.staffRole === 'KYC' || user.staffRole === 'CONTENT') {
     return 40
   }
   if (user.staffRole === 'VIEWER') return 20
+  if (user.role === 'ADMIN') return 80
   return 0
 }
 
@@ -184,7 +187,7 @@ export const adminUsersService = {
       throw notFound('User not found.')
     }
 
-    const [finance, profile, kyc, payoutMethods, deposits, withdrawals, profits, tickets, sessions, activities] =
+    const [finance, profile, kyc, payoutMethods, deposits, withdrawals, profits, tickets, sessions, activities, tradeAllocations] =
       await Promise.all([
         singleUserFinance(id),
         prisma.userProfile.findUnique({ where: { userId: id } }),
@@ -270,6 +273,26 @@ export const adminUsersService = {
             createdAt: true,
             ip: true,
             actor: { select: { id: true, firstName: true, lastName: true, email: true } },
+          },
+        }),
+        prisma.tradeAllocation.findMany({
+          where: { userId: id },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+          include: {
+            trade: {
+              select: {
+                id: true,
+                pair: true,
+                direction: true,
+                tradeDate: true,
+                entryPrice: true,
+                exitPrice: true,
+                returnPct: true,
+                status: true,
+                isPublic: true,
+              },
+            },
           },
         }),
       ])
@@ -368,6 +391,16 @@ export const adminUsersService = {
         balanceAfter: moneyDisplay(p.balanceAfter),
         createdAt: p.createdAt.toISOString(),
         runId: p.runId,
+      })),
+      trades: tradeAllocations.map((a) => ({
+        id: a.trade.id,
+        pair: a.trade.pair,
+        direction: a.trade.direction,
+        date: a.trade.tradeDate.toISOString().slice(0, 10),
+        entryPrice: d(a.trade.entryPrice).toFixed(5),
+        exitPrice: a.trade.exitPrice != null ? d(a.trade.exitPrice).toFixed(5) : null,
+        returnPct: a.trade.returnPct != null ? a.trade.returnPct.toFixed(6) : null,
+        status: a.trade.status,
       })),
       supportTickets: tickets.map((t) => ({
         id: t.id,

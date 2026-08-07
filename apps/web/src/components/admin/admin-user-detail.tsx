@@ -109,6 +109,15 @@ export function AdminUserDetailWorkspace() {
     }>
     deposits?: AdminDepositRow[]
     withdrawals?: AdminWithdrawalRow[]
+    trades?: Array<{
+      id: string
+      pair?: string
+      direction?: string
+      date?: string
+      entryPrice?: string
+      exitPrice?: string | null
+      returnPct?: string | null
+    }>
   }
 
   const detail = user as AdminUserDetail | undefined
@@ -269,15 +278,15 @@ export function AdminUserDetailWorkspace() {
   const deposits = (detail?.deposits ?? []) as AdminDepositRow[]
   const withdrawals = (detail?.withdrawals ?? []) as AdminWithdrawalRow[]
   const returns = detail?.profitDistributions ?? []
-  const trades: Array<{
+  const trades = (detail?.trades ?? []) as Array<{
     id: string
     pair?: string
     direction?: string
     date?: string
     entryPrice?: string
-    exitPrice?: string
-    returnPct?: string
-  }> = []
+    exitPrice?: string | null
+    returnPct?: string | null
+  }>
   const timeline = detail?.activityTimeline ?? []
   const adminNotes = detail?.adminNotes ?? []
 
@@ -820,7 +829,9 @@ export function AdminUserDetailWorkspace() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-profit">+{t.returnPct}%</p>
+                      <p className="text-profit">
+                        {t.returnPct != null && t.returnPct !== '' ? `+${t.returnPct}%` : '—'}
+                      </p>
                     </div>
                   </li>
                 ))}

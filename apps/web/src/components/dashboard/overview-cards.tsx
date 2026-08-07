@@ -28,7 +28,7 @@ export function OverviewCards() {
   const availableBalance = wallet?.availableBalance ?? '0.00'
   const totalProfit = wallet?.totalProfit ?? '0.00'
   const totalDeposited = wallet?.totalDeposited ?? '0.00'
-  const pendingDeposit = '0.00'
+  const pendingDeposit = summary?.pending?.depositAmount ?? '0.00'
   const totalWithdrawn = wallet?.totalWithdrawn ?? '0.00'
   const todayProfit = summary?.today.profit ?? '0.00'
   const todayReturnPct = summary?.today.returnPct ?? '0.00'

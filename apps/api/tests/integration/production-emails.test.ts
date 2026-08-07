@@ -254,7 +254,8 @@ describe('Production email system V2', () => {
   it('daily-roi includes performance summary fields', () => {
     const rendered = renderEmailTemplate('daily-roi', FIXTURES['daily-roi']!)
     expect(rendered.html).toContain('0.85')
-    expect(rendered.html).toContain('Opening balance')
+    expect(rendered.html).toContain('Investment')
+    expect(rendered.html).toContain('New available balance')
     expect(rendered.html).toContain('View dashboard')
   })
 

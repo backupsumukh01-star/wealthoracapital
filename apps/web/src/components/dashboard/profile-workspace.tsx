@@ -47,6 +47,7 @@ import {
 import { ApiError } from '@/lib/api-client'
 import { formatDateTime } from '@/lib/format'
 import { useSession } from '@/providers/session-provider'
+import { authService } from '@/services/auth.service'
 import { cn } from '@/lib/cn'
 
 function isCryptoType(type: string) {
@@ -488,12 +489,26 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
             <Button
               className="mt-3.5"
               variant="secondary"
-              onClick={() =>
-                toast.info(
-                  'Session revoke uses the production auth flow',
-                  'Other-device sign-out is not available from this panel yet.',
-                )
-              }
+              onClick={() => {
+                void authService
+                  .terminateOtherSessions()
+                  .then((data) => {
+                    toast.success(
+                      data.revokedSessions > 0
+                        ? `Signed out ${data.revokedSessions} other device${data.revokedSessions === 1 ? '' : 's'}`
+                        : 'No other sessions were active',
+                    )
+                  })
+                  .catch((error: unknown) => {
+                    toast.error(
+                      error instanceof ApiError
+                        ? error.message
+                        : error instanceof Error
+                          ? error.message
+                          : 'Could not sign out other devices',
+                    )
+                  })
+              }}
             >
               Sign out other devices
             </Button>

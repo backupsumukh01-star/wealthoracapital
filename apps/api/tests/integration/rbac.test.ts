@@ -68,7 +68,7 @@ describe('Production RBAC', () => {
     })
     await prisma.user.update({
       where: { id: targetId },
-      data: { role: 'USER', staffRole: 'SUPPORT' },
+      data: { role: 'ADMIN', staffRole: 'SUPPORT' },
     })
 
     const { agent: targetAgent } = await loginAgent(targetEmail)
@@ -101,11 +101,11 @@ describe('Production RBAC', () => {
     const { prisma } = await import('../../src/database/prisma.js')
     await prisma.user.update({
       where: { id: supportId },
-      data: { role: 'USER', staffRole: 'SUPPORT' },
+      data: { role: 'ADMIN', staffRole: 'SUPPORT' },
     })
     await prisma.user.update({
       where: { id: viewerId },
-      data: { role: 'USER', staffRole: 'VIEWER' },
+      data: { role: 'ADMIN', staffRole: 'VIEWER' },
     })
     await prisma.user.update({
       where: { id: adminId },
@@ -144,7 +144,7 @@ describe('Production RBAC', () => {
     const { prisma } = await import('../../src/database/prisma.js')
     await prisma.user.update({
       where: { id },
-      data: { role: 'USER', staffRole: 'FINANCE' },
+      data: { role: 'ADMIN', staffRole: 'FINANCE' },
     })
     const { agent } = await loginAgent(email)
     const dash = await agent.get('/api/v1/admin/dashboard')
@@ -159,20 +159,19 @@ describe('Production RBAC', () => {
       const resolved =
         role.roleKey === 'INVESTOR'
           ? resolvePermissions({ role: 'USER', staffRole: null })
-          : role.roleKey === 'SUPER_ADMIN' || role.roleKey === 'ADMIN'
-            ? resolvePermissions({
-                role: role.roleKey as 'SUPER_ADMIN' | 'ADMIN',
-                staffRole: role.roleKey as 'SUPER_ADMIN' | 'ADMIN',
-              })
-            : resolvePermissions({
-                role: 'USER',
-                staffRole: role.roleKey as
-                  | 'FINANCE'
-                  | 'SUPPORT'
-                  | 'KYC'
-                  | 'CONTENT'
-                  | 'VIEWER',
-              })
+          : role.roleKey === 'SUPER_ADMIN'
+            ? resolvePermissions({ role: 'SUPER_ADMIN', staffRole: 'SUPER_ADMIN' })
+            : role.roleKey === 'ADMIN'
+              ? resolvePermissions({ role: 'ADMIN', staffRole: null })
+              : resolvePermissions({
+                  role: 'ADMIN',
+                  staffRole: role.roleKey as
+                    | 'FINANCE'
+                    | 'SUPPORT'
+                    | 'KYC'
+                    | 'CONTENT'
+                    | 'VIEWER',
+                })
       for (const perm of matrix.permissions) {
         expect(matrix.matrix[perm]![role.roleKey]).toBe(resolved.includes(perm))
       }

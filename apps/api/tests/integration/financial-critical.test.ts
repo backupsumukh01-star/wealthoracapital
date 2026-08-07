@@ -2,13 +2,17 @@
  * Regression tests for FINANCIAL_WORKFLOW_AUDIT critical / high money bugs.
  * Requires DATABASE_URL (same as other integration tests).
  */
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 
-import { describe, expect, it, beforeAll } from 'vitest'
+import { describe, expect, it, beforeAll, vi } from 'vitest'
 
 import { d, moneyString } from '../../src/utils/money.js'
 
 const hasDb = Boolean(process.env.DATABASE_URL)
+
+function hashOtp(otp: string) {
+  return createHash('sha256').update(otp).digest('hex')
+}
 
 describe.skipIf(!hasDb)('Financial critical regressions', () => {
   let prisma: typeof import('../../src/database/prisma.js').prisma
@@ -17,6 +21,7 @@ describe.skipIf(!hasDb)('Financial critical regressions', () => {
   let withdrawalService: typeof import('../../src/services/finance/withdrawal.service.js').withdrawalService
   let distributionService: typeof import('../../src/services/trading/distribution.service.js').distributionService
   let walletService: typeof import('../../src/services/finance/wallet.service.js').walletService
+  let emailOtpService: typeof import('../../src/services/email-otp.service.js').emailOtpService
 
   beforeAll(async () => {
     ;({ prisma } = await import('../../src/database/prisma.js'))
@@ -25,8 +30,33 @@ describe.skipIf(!hasDb)('Financial critical regressions', () => {
     ;({ withdrawalService } = await import('../../src/services/finance/withdrawal.service.js'))
     ;({ distributionService } = await import('../../src/services/trading/distribution.service.js'))
     ;({ walletService } = await import('../../src/services/finance/wallet.service.js'))
+    ;({ emailOtpService } = await import('../../src/services/email-otp.service.js'))
   })
 
+  async function plantWithdrawalOtp(
+    userId: string,
+    amount: string,
+    payoutMethodId: string,
+    otp = '424242',
+  ) {
+    await emailOtpService.invalidatePrior(userId, 'WITHDRAWAL_OTP')
+    await prisma.verificationToken.create({
+      data: {
+        userId,
+        tokenHash: hashOtp(`WDR:${userId}:${otp}:${Date.now()}`),
+        type: 'EMAIL_CHANGE',
+        expiresAt: new Date(Date.now() + 600_000),
+        payload: {
+          otpKind: 'WITHDRAWAL_OTP',
+          attempts: 0,
+          otpHash: hashOtp(otp),
+          amount,
+          payoutMethodId,
+        },
+      },
+    })
+    return otp
+  }
   async function seedInvestor() {
     const email = `crit_${randomUUID().slice(0, 10)}@example.com`
     const user = await prisma.user.create({
@@ -215,11 +245,13 @@ describe.skipIf(!hasDb)('Financial critical regressions', () => {
       },
     })
 
+    const otp = await plantWithdrawalOtp(user.id, '40.00', payout.id)
     const wd = await withdrawalService.create(
       user.id,
       {
         amount: '40.00',
         payoutMethodId: payout.id,
+        otp,
         idempotencyKey: `wd-c3-${randomUUID()}`,
       },
       {},
@@ -286,40 +318,51 @@ describe.skipIf(!hasDb)('Financial critical regressions', () => {
       },
     })
 
-    // Daily limit is 50000 — two parallel 30000 should yield one success and one failure.
-    const results = await Promise.allSettled([
-      withdrawalService.create(
-        user.id,
-        {
-          amount: '30000.00',
-          payoutMethodId: payout.id,
-          idempotencyKey: `wd-h4-a-${randomUUID()}`,
-        },
-        {},
-      ),
-      withdrawalService.create(
-        user.id,
-        {
-          amount: '30000.00',
-          payoutMethodId: payout.id,
-          idempotencyKey: `wd-h4-b-${randomUUID()}`,
-        },
-        {},
-      ),
-    ])
+    // Bypass single-use OTP so this test isolates the daily-limit advisory lock.
+    const otpSpy = vi
+      .spyOn(emailOtpService, 'verifyWithdrawalOtp')
+      .mockResolvedValue(undefined as never)
 
-    const ok = results.filter((r) => r.status === 'fulfilled').length
-    const fail = results.filter((r) => r.status === 'rejected').length
-    expect(ok).toBe(1)
-    expect(fail).toBe(1)
+    try {
+      // Daily limit is 50000 — two parallel 30000 should yield one success and one failure.
+      const results = await Promise.allSettled([
+        withdrawalService.create(
+          user.id,
+          {
+            amount: '30000.00',
+            payoutMethodId: payout.id,
+            otp: '000000',
+            idempotencyKey: `wd-h4-a-${randomUUID()}`,
+          },
+          {},
+        ),
+        withdrawalService.create(
+          user.id,
+          {
+            amount: '30000.00',
+            payoutMethodId: payout.id,
+            otp: '000000',
+            idempotencyKey: `wd-h4-b-${randomUUID()}`,
+          },
+          {},
+        ),
+      ])
 
-    const open = await prisma.withdrawal.count({
-      where: {
-        userId: user.id,
-        status: { notIn: ['CANCELLED', 'REJECTED'] },
-        amount: moneyString(d('30000')),
-      },
-    })
-    expect(open).toBe(1)
+      const ok = results.filter((r) => r.status === 'fulfilled').length
+      const fail = results.filter((r) => r.status === 'rejected').length
+      expect(ok).toBe(1)
+      expect(fail).toBe(1)
+
+      const open = await prisma.withdrawal.count({
+        where: {
+          userId: user.id,
+          status: { notIn: ['CANCELLED', 'REJECTED'] },
+          amount: moneyString(d('30000')),
+        },
+      })
+      expect(open).toBe(1)
+    } finally {
+      otpSpy.mockRestore()
+    }
   })
 })

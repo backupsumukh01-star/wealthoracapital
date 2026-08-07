@@ -381,7 +381,8 @@ export const withdrawalService = {
 
     const platform = await settingsService.getOrInitPlatformSettings()
     const rate = d(platform.usdInrRate ?? DEFAULT_USD_INR_RATE)
-    const amountInr = body.amountInr ? d(body.amountInr) : usdToInr(amount, rate)
+    // Always derive INR server-side — never trust client amountInr (forgery / rate tampering).
+    const amountInr = usdToInr(amount, rate)
     if (!amountInr.isFinite() || amountInr.lte(0)) throw badRequest('Invalid INR amount.')
 
     // Verify OTP only after amount/method validation so a bad request does not burn the code.
@@ -604,7 +605,12 @@ export const withdrawalService = {
     limit: number
   }) {
     const where: Prisma.WithdrawalWhereInput = {
-      ...(query.status ? { status: query.status } : {}),
+      // Admin "Pending" tab uses PENDING; create flow moves rows to UNDER_REVIEW.
+      ...(query.status
+        ? query.status === 'PENDING'
+          ? { status: { in: ['PENDING', 'UNDER_REVIEW'] as WithdrawalStatus[] } }
+          : { status: query.status }
+        : {}),
       ...(query.reviewerId ? { reviewedById: query.reviewerId } : {}),
       ...(query.from || query.to
         ? {

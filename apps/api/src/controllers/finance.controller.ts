@@ -1,6 +1,7 @@
 import multer from 'multer'
 import type { DepositStatus, WithdrawalStatus } from '@prisma/client'
 
+import { isStaffUser } from '../config/permissions.js'
 import { depositService } from '../services/finance/deposit.service.js'
 import { financeMetricsService } from '../services/finance/finance-metrics.service.js'
 import { paymentMethodService } from '../services/finance/payment-method.service.js'
@@ -137,8 +138,8 @@ export const financeController = {
 
   depositProofFile: asyncHandler(async (req, res) => {
     const user = req.user!
-    const isStaff =
-      user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || Boolean(user.staffRole)
+    // staffRole on a USER must never elevate proof access — use role-based staff check.
+    const isStaff = isStaffUser({ role: user.role, staffRole: user.staffRole })
     const file = await depositService.resolveProofFile({
       id: user.id,
       isStaff,

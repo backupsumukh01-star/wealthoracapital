@@ -1,6 +1,7 @@
 'use client'
 
 import { FileSpreadsheet, FileText, Trophy } from 'lucide-react'
+import { useState } from 'react'
 
 import { Money } from '@/components/common/money'
 import { PageHeader, SectionHeader } from '@/components/common/page-header'
@@ -13,11 +14,13 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { toast } from '@/components/ui/toast'
 import {
+  useExportPerformanceReport,
   usePerformanceDistributions,
   usePerformanceMonthly,
   usePerformanceSummary,
 } from '@/features/performance/hooks'
 import { useWalletSummary } from '@/features/wallet/hooks'
+import { ApiError } from '@/lib/api-client'
 import { formatDate } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useSession } from '@/providers/session-provider'
@@ -42,6 +45,8 @@ export function PerformanceWorkspace() {
   const { data: walletSummary } = useWalletSummary({ enabled })
   const { data: monthly } = usePerformanceMonthly({ enabled })
   const { data: distributions } = usePerformanceDistributions({ enabled })
+  const exportReport = useExportPerformanceReport()
+  const [pdfBusy, setPdfBusy] = useState(false)
 
   const wallet = walletSummary?.wallet ?? session?.wallet
   const dailyReturns = (distributions?.items ?? []).slice(0, 10).map((d) => ({
@@ -82,7 +87,38 @@ export function PerformanceWorkspace() {
           <>
             <Button
               variant="secondary"
-              onClick={() => toast.info('PDF export is coming soon.')}
+              loading={pdfBusy || exportReport.isPending}
+              onClick={() => {
+                const to = new Date()
+                const from = new Date()
+                from.setFullYear(from.getFullYear() - 1)
+                setPdfBusy(true)
+                void exportReport
+                  .mutateAsync({
+                    type: 'PERFORMANCE',
+                    from: from.toISOString().slice(0, 10),
+                    to: to.toISOString().slice(0, 10),
+                    format: 'PDF',
+                  })
+                  .then((res) => {
+                    if (res.downloadUrl) {
+                      window.open(res.downloadUrl, '_blank', 'noopener,noreferrer')
+                      toast.success('PDF export ready')
+                      return
+                    }
+                    toast.success('PDF export started', `Job ${res.jobId}`)
+                  })
+                  .catch((error: unknown) => {
+                    toast.error(
+                      error instanceof ApiError
+                        ? error.message
+                        : error instanceof Error
+                          ? error.message
+                          : 'PDF export failed',
+                    )
+                  })
+                  .finally(() => setPdfBusy(false))
+              }}
             >
               <FileText aria-hidden />
               Export PDF

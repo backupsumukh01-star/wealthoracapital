@@ -55,7 +55,10 @@ describe('API health & docs', () => {
     expect(res.body.data.csrfToken).toMatch(/^[A-Za-z0-9_-]+$/)
 
     const setCookie = res.headers['set-cookie'] ?? []
-    const csrfLine = setCookie.find((c: string) => c.startsWith('mfx_csrf='))
+    // Cookie middleware may clear then set — pick the non-empty token cookie.
+    const csrfLine = setCookie.find(
+      (c: string) => c.startsWith('mfx_csrf=') && !c.startsWith('mfx_csrf=;'),
+    )
     expect(csrfLine).toBeTruthy()
     expect(csrfLine).toContain(`mfx_csrf=${res.body.data.csrfToken}`)
     expect(csrfLine!.toLowerCase()).toMatch(/samesite=lax/)
