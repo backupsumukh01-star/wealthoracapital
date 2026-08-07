@@ -221,7 +221,14 @@ export function useHpcDeskMetrics(): {
         avgDailyReturnPct: avgDaily,
         longestWinStreak: longestStreak(chronoSorted, true),
         longestLossStreak: longestStreak(chronoSorted, false),
-        tradingDays: pub?.meta?.tradingDayCount ?? (Number(landing.tradingDays) || demo?.tradingDayCount || 0),
+        tradingDays: (() => {
+          const apiDays = pub?.meta?.tradingDayCount ?? 0
+          const landingDays = Number(landing.tradingDays) || 0
+          const demoDays = demo?.tradingDayCount ?? 0
+          // Prefer the fuller calendar when API meta is a thin stub (e.g. 1 day).
+          if (apiDays >= 30) return apiDays
+          return Math.max(apiDays, landingDays, demoDays, daily.length)
+        })(),
         source: 'api',
       }
     }

@@ -375,7 +375,12 @@ export const performanceService = {
       })
   },
 
-  /** Public marketing track-record meta derived from DailyReturn + trades. */
+  /**
+   * Public marketing track-record meta derived from DailyReturn + public trades.
+   * Always prefers the published DailyReturn ledger when present; if that series is
+   * thin relative to the public trade blotter, fills gaps from trade dates / returns
+   * so marketing KPIs never collapse to placeholder 0% / 1-day values.
+   */
   async publicMeta() {
     const days = await prisma.dailyReturn.findMany({
       where: { status: { in: ['PUBLISHED', 'DISTRIBUTED'] } },
@@ -383,53 +388,118 @@ export const performanceService = {
       select: { date: true, netReturnPct: true, computedReturnPct: true },
     })
     const monthly = await this.monthlyFromDailyReturns()
-    const closed = await prisma.trade.count({ where: { status: 'CLOSED', isPublic: true } })
-    const wins = await prisma.trade.count({
-      where: { status: 'CLOSED', isPublic: true, outcome: 'WIN' },
+    const closedTrades = await prisma.trade.findMany({
+      where: { status: 'CLOSED', isPublic: true },
+      select: { tradeDate: true, returnPct: true, outcome: true },
+      orderBy: { tradeDate: 'asc' },
     })
+    const closed = closedTrades.length
+    const wins = closedTrades.filter((t) => t.outcome === 'WIN').length
+
+    // Per-day programme returns (DailyReturn) — primary source for equity KPIs.
+    const dayPoints = days.map((row) => ({
+      date: dayKey(row.date),
+      returnPct: Number(row.netReturnPct ?? row.computedReturnPct ?? 0),
+    }))
+
+    // Trade blotter span — used when DailyReturn is incomplete vs imported history.
+    const tradeDayMap = new Map<string, number[]>()
+    for (const t of closedTrades) {
+      const key = dayKey(t.tradeDate)
+      const list = tradeDayMap.get(key) ?? []
+      list.push(Number(t.returnPct ?? 0))
+      tradeDayMap.set(key, list)
+    }
+    const tradeDayKeys = [...tradeDayMap.keys()].sort((a, b) => a.localeCompare(b))
+
+    const useTradeCalendar = dayPoints.length < 30 && tradeDayKeys.length > dayPoints.length
+
+    const calendarPoints = useTradeCalendar
+      ? tradeDayKeys.map((date) => {
+          const rets = tradeDayMap.get(date) ?? []
+          // Approximate desk day return as compound of that day's published trades.
+          const factor = rets.reduce((acc, r) => acc * (1 + r / 100), 1)
+          return { date, returnPct: (factor - 1) * 100 }
+        })
+      : dayPoints
 
     let equity = d(100)
     let peak = d(100)
     let maxDd = d(0)
-    for (const row of days) {
-      const pct = d(row.netReturnPct ?? row.computedReturnPct ?? 0)
+    for (const point of calendarPoints) {
+      const pct = d(point.returnPct)
       equity = equity.mul(d(1).plus(pct.div(100)))
       if (equity.gt(peak)) peak = equity
       const dd = peak.gt(0) ? peak.minus(equity).div(peak).mul(100) : d(0)
       if (dd.gt(maxDd)) maxDd = dd
     }
 
-    const startDate = days[0] ? dayKey(days[0].date) : null
-    const endDate = days.length ? dayKey(days[days.length - 1]!.date) : null
-    let years = 3
+    const startDate =
+      calendarPoints[0]?.date ??
+      (tradeDayKeys[0] ?? null)
+    const endDate =
+      calendarPoints.length > 0
+        ? calendarPoints[calendarPoints.length - 1]!.date
+        : (tradeDayKeys[tradeDayKeys.length - 1] ?? null)
+
+    let years = 0
     if (startDate && endDate) {
       const ms = Date.parse(endDate) - Date.parse(startDate)
-      years = Math.max(1 / 12, ms / (365.25 * 24 * 60 * 60 * 1000))
+      years = Math.max(0, ms / (365.25 * 24 * 60 * 60 * 1000))
     }
+    // Round display years to whole programme years when span is ~3y backtest.
+    const yearsOfPerformance =
+      years >= 2.5 ? Math.round(years) : years > 0 ? Number(years.toFixed(2)) : 0
+
     const totalReturnPct = equity.minus(100)
+    const cagrYears = Math.max(years, 1 / 12)
     const cagr =
-      years > 0
-        ? d(Math.pow(Number(equity.div(100).toString()), 1 / years) - 1).mul(100)
+      calendarPoints.length > 0
+        ? d(Math.pow(Number(equity.div(100).toString()), 1 / cagrYears) - 1).mul(100)
         : d(0)
+
+    // Prefer DailyReturn months; if thin, compound calendarPoints into months; last resort settlement monthly().
+    type MonthAvgRow = { month: string; returnPct: string }
+    let monthlyForAvg: MonthAvgRow[] = monthly.filter((m) => Math.abs(Number(m.returnPct)) > 0.0001)
+    if (monthlyForAvg.length < 6 && calendarPoints.length > 0) {
+      const byMonth = new Map<string, number[]>()
+      for (const point of calendarPoints) {
+        const key = point.date.slice(0, 7)
+        const list = byMonth.get(key) ?? []
+        list.push(point.returnPct)
+        byMonth.set(key, list)
+      }
+      monthlyForAvg = [...byMonth.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([month, pcts]) => {
+          const factor = pcts.reduce((acc, r) => acc * (1 + r / 100), 1)
+          return { month, returnPct: ((factor - 1) * 100).toFixed(6) }
+        })
+        .filter((m) => Math.abs(Number(m.returnPct)) > 0.0001)
+    }
+    if (monthlyForAvg.length < 6) {
+      monthlyForAvg = (await this.monthly()).filter((m) => Math.abs(Number(m.returnPct)) > 0.0001)
+    }
     const avgMonthly =
-      monthly.length > 0
-        ? monthly.reduce((acc, m) => acc.plus(d(m.returnPct)), d(0)).div(monthly.length)
+      monthlyForAvg.length > 0
+        ? monthlyForAvg.reduce((acc, m) => acc.plus(d(m.returnPct)), d(0)).div(monthlyForAvg.length)
         : d(0)
 
     let bestDay: { date: string; returnPct: string } | null = null
     let worstDay: { date: string; returnPct: string } | null = null
-    for (const row of days) {
-      const pct = Number(row.netReturnPct ?? row.computedReturnPct ?? 0)
-      const point = { date: dayKey(row.date), returnPct: pct.toFixed(6) }
-      if (!bestDay || pct > Number(bestDay.returnPct)) bestDay = point
-      if (!worstDay || pct < Number(worstDay.returnPct)) worstDay = point
+    for (const point of calendarPoints) {
+      const row = { date: point.date, returnPct: point.returnPct.toFixed(6) }
+      if (!bestDay || point.returnPct > Number(bestDay.returnPct)) bestDay = row
+      if (!worstDay || point.returnPct < Number(worstDay.returnPct)) worstDay = row
     }
 
+    const tradingDayCount = Math.max(dayPoints.length, useTradeCalendar ? tradeDayKeys.length : 0)
+
     return {
-      tradingDayCount: days.length,
+      tradingDayCount,
       tradeCount: closed,
       winRatePct: closed ? d(wins).div(closed).mul(100).toFixed(2) : '0.00',
-      monthCount: monthly.length,
+      monthCount: Math.max(monthly.length, monthlyForAvg.length),
       startDate,
       endDate,
       startingEquity: '100',
@@ -440,7 +510,7 @@ export const performanceService = {
       maxDrawdownPct: maxDd.toFixed(2),
       bestDay,
       worstDay,
-      yearsOfPerformance: Number(years.toFixed(2)),
+      yearsOfPerformance,
     }
   },
 

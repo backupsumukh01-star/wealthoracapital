@@ -102,34 +102,38 @@ export const tradingController = {
       performanceService.publicMeta(),
       performanceService.monthlyFromDailyReturns(),
     ])
-    // Prefer DailyReturn-backed summary fields when distribution ledger is empty.
-    const mergedSummary =
-      summary.activeDays > 0
-        ? summary
-        : {
-            ...summary,
-            activeDays: meta.tradingDayCount,
-            winRatePct: meta.winRatePct,
-            avgDailyReturnPct:
-              meta.tradingDayCount > 0
-                ? (Number(meta.totalReturnPct) / meta.tradingDayCount).toFixed(6)
-                : summary.avgDailyReturnPct,
-            bestDay: meta.bestDay
-              ? { date: meta.bestDay.date, returnPct: meta.bestDay.returnPct, profit: '0' }
-              : summary.bestDay,
-            worstDay: meta.worstDay
-              ? { date: meta.worstDay.date, returnPct: meta.worstDay.returnPct, profit: '0' }
-              : summary.worstDay,
-            roiPct: meta.totalReturnPct,
-          }
+    // Always overlay programme KPIs from publicMeta (DailyReturn / trade calendar).
+    // Wallet distributions can have activeDays > 0 while best/worst returnPct stay at 0.
+    const mergedSummary = {
+      ...summary,
+      activeDays: Math.max(summary.activeDays, meta.tradingDayCount),
+      winRatePct: meta.winRatePct || summary.winRatePct,
+      avgDailyReturnPct:
+        meta.tradingDayCount > 0
+          ? (Number(meta.totalReturnPct) / meta.tradingDayCount).toFixed(6)
+          : summary.avgDailyReturnPct,
+      bestDay: meta.bestDay
+        ? { date: meta.bestDay.date, returnPct: meta.bestDay.returnPct, profit: '0' }
+        : summary.bestDay,
+      worstDay: meta.worstDay
+        ? { date: meta.worstDay.date, returnPct: meta.worstDay.returnPct, profit: '0' }
+        : summary.worstDay,
+      roiPct: meta.totalReturnPct || summary.roiPct,
+    }
     sendSuccess(res, {
       summary: mergedSummary,
       analytics: {
         ...analytics,
         winRate: meta.winRatePct || analytics.winRate,
         closedTrades: meta.tradeCount || analytics.closedTrades,
+        bestTrade: meta.bestDay
+          ? { ...(analytics.bestTrade ?? {}), returnPct: meta.bestDay.returnPct }
+          : analytics.bestTrade,
+        worstTrade: meta.worstDay
+          ? { ...(analytics.worstTrade ?? {}), returnPct: meta.worstDay.returnPct }
+          : analytics.worstTrade,
       },
-      monthly,
+      monthly: monthlyDetail.length >= monthly.length ? monthlyDetail : monthly,
       yearly,
       monthlyDetail,
       meta,

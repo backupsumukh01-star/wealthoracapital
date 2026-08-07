@@ -2,6 +2,7 @@
  * Landing-page live statistics helpers.
  * Prefer public performance API → demo/backtest JSON → current baseline.
  * Never prefer known stale CMS marketing fixtures.
+ * Never surface near-zero placeholders (0%, −0%, 1 day, 1 year) when richer history exists.
  */
 
 import type { DemoDashboardStats, DemoMonthlyReturn, DemoYearlyReturn } from '@/lib/demo-backtest/types'
@@ -30,6 +31,9 @@ export const LANDING_BASELINE = {
   yearsOfPerformance: 3,
 } as const
 
+/** Minimum trading days before API meta is trusted over the imported backtest. */
+const MIN_TRUSTED_TRADING_DAYS = 30
+
 export type LandingMonthlyPoint = {
   month: string
   returnPct: number
@@ -55,10 +59,16 @@ export type LandingLiveStats = {
   monthCount: string
 }
 
+function isNearZeroPlaceholder(s: string): boolean {
+  const n = Number.parseFloat(s.replace(/%/g, ''))
+  return Number.isFinite(n) && Math.abs(n) < 1e-9
+}
+
 function clean(value: string | number | null | undefined): string | null {
   if (value == null) return null
   const s = String(value).trim()
-  if (!s || s === '0' || s === '0.00' || s === '0.000000') return null
+  if (!s) return null
+  if (isNearZeroPlaceholder(s)) return null
   if (STALE_MARKETING_VALUES.has(s)) return null
   return s
 }
@@ -90,15 +100,35 @@ export function pickMarketingValue(
   return clean(cmsValue) ?? String(fallback)
 }
 
-export function yearsFromRange(startDate?: string, endDate?: string): number {
-  if (!startDate || !endDate) return LANDING_BASELINE.yearsOfPerformance
+export function yearsFromRange(startDate?: string | null, endDate?: string | null): number | null {
+  if (!startDate || !endDate) return null
   const a = Date.parse(startDate)
   const b = Date.parse(endDate)
-  if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) {
-    return LANDING_BASELINE.yearsOfPerformance
-  }
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) return null
   const years = (b - a) / (365.25 * 24 * 60 * 60 * 1000)
-  return Math.max(1, Math.round(years))
+  if (years < 0.08) return null // reject sub-month spans that round to "1 year"
+  return years >= 2.5 ? Math.round(years) : Number(years.toFixed(2))
+}
+
+function metaHistoryUsable(
+  meta: PublicPerformancePayload['meta'] | undefined,
+): meta is NonNullable<PublicPerformancePayload['meta']> {
+  if (!meta) return false
+  return (meta.tradingDayCount ?? 0) >= MIN_TRUSTED_TRADING_DAYS
+}
+
+function pickRicherCount(
+  apiCount: number | null | undefined,
+  demoCount: number | null | undefined,
+): number | null {
+  const api = typeof apiCount === 'number' && apiCount > 0 ? apiCount : null
+  const demo = typeof demoCount === 'number' && demoCount > 0 ? demoCount : null
+  if (api != null && demo != null) {
+    // Prefer the fuller history when API meta is a thin stub (e.g. 1 day).
+    if (api < MIN_TRUSTED_TRADING_DAYS && demo >= MIN_TRUSTED_TRADING_DAYS) return demo
+    return Math.max(api, demo)
+  }
+  return api ?? demo
 }
 
 export function buildLandingLiveStats(input: {
@@ -117,78 +147,87 @@ export function buildLandingLiveStats(input: {
 }): LandingLiveStats {
   const { pub, demo, demoMeta, cms, reportCount = 0 } = input
   const meta = pub?.meta
+  const historyOk = metaHistoryUsable(meta)
 
   const trades =
     (meta?.tradeCount && meta.tradeCount > 0 ? meta.tradeCount : null) ??
     (pub?.analytics.closedTrades && pub.analytics.closedTrades > 0
       ? pub.analytics.closedTrades
       : null) ??
-    demo?.tradeCount ??
-    2786
+    (demo?.tradeCount && demo.tradeCount > 0 ? demo.tradeCount : null)
 
   const winRate =
     clean(meta?.winRatePct) ??
     clean(pub?.analytics.winRate) ??
-    clean(cms?.winRate) ??
-    (demo ? fmt(demo.winRatePct, 1) : '79.5')
+    (demo ? fmt(demo.winRatePct, 1) : null) ??
+    clean(cms?.winRate)
 
   const avgMonthly =
-    clean(meta?.avgMonthlyReturnPct) ??
-    clean(cms?.avgMonthlyReturn) ??
-    (demo ? fmt(demo.avgMonthlyReturnPct, 1) : '7.3')
+    (historyOk ? clean(meta?.avgMonthlyReturnPct) : null) ??
+    (demo ? fmt(demo.avgMonthlyReturnPct, 1) : null) ??
+    clean(cms?.avgMonthlyReturn)
 
-  const bestDay =
-    clean(meta?.bestDay?.returnPct) ??
+  const bestDayRaw =
+    (historyOk ? clean(meta?.bestDay?.returnPct) : null) ??
+    clean(demo ? String(demo.bestDay.returnPct) : null) ??
     clean(pub?.analytics.bestTrade?.returnPct) ??
-    clean(cms?.bestDay) ??
-    (demo ? fmt(demo.bestDay.returnPct, 1) : '3.7')
+    clean(cms?.bestDay)
 
   const worstRaw =
-    clean(meta?.worstDay?.returnPct) ??
-    clean(pub?.analytics.worstTrade?.returnPct) ??
-    (demo ? String(demo.worstDay.returnPct) : '-1.1')
-  const worstDayAbs = String(Math.abs(Number.parseFloat(worstRaw) || 0).toFixed(1))
+    (historyOk ? clean(meta?.worstDay?.returnPct) : null) ??
+    clean(demo ? String(demo.worstDay.returnPct) : null) ??
+    clean(pub?.analytics.worstTrade?.returnPct)
 
   const totalReturn =
-    clean(meta?.totalReturnPct) ??
+    (historyOk ? clean(meta?.totalReturnPct) : null) ??
     (demoMeta?.totalReturnPct != null ? fmt(demoMeta.totalReturnPct, 0) : null) ??
     (demo ? fmt(demo.totalReturnPct, 0) : null) ??
-    clean(pub?.summary?.roiPct) ??
-    '1255'
+    clean(pub?.summary?.roiPct)
 
-  const tradingDays = meta?.tradingDayCount ?? demo?.tradingDayCount ?? 783
+  const tradingDays = pickRicherCount(meta?.tradingDayCount, demo?.tradingDayCount)
+
+  const yearsFromMeta =
+    historyOk && meta.yearsOfPerformance != null && meta.yearsOfPerformance >= 1
+      ? meta.yearsOfPerformance >= 2.5
+        ? Math.round(meta.yearsOfPerformance)
+        : meta.yearsOfPerformance
+      : null
   const years =
-    meta?.yearsOfPerformance != null
-      ? Math.max(1, Math.round(meta.yearsOfPerformance))
-      : yearsFromRange(
-          meta?.startDate ?? demoMeta?.startDate,
-          meta?.endDate ?? demoMeta?.endDate,
-        )
+    yearsFromMeta ??
+    yearsFromRange(meta?.startDate ?? demoMeta?.startDate, meta?.endDate ?? demoMeta?.endDate)
 
   const distributedRaw = clean(pub?.analytics.totalPnl)
   const aum = pickMarketingValue(cms?.aum, LANDING_BASELINE.aumMillions)
+
+  const cagr =
+    (historyOk ? clean(meta?.cagrPct) : null) ??
+    (demo && years
+      ? fmt(demo.totalReturnPct / Math.max(Number(years), 1), 1)
+      : null)
 
   return {
     investors: pickMarketingValue(cms?.investorCount, LANDING_BASELINE.investors),
     aumMillions: aum,
     countries: pickMarketingValue(cms?.countries, LANDING_BASELINE.countries),
-    avgMonthlyReturn: avgMonthly,
-    winRate,
-    bestDay: String(Math.abs(Number.parseFloat(bestDay) || 0).toFixed(1)),
-    worstDayAbs,
-    totalReturn,
-    tradingDays: String(tradingDays),
-    trades: String(trades),
-    yearsOfPerformance: String(years),
+    avgMonthlyReturn: avgMonthly ?? '—',
+    winRate: winRate ?? '—',
+    bestDay: bestDayRaw
+      ? String(Math.abs(Number.parseFloat(bestDayRaw) || 0).toFixed(1))
+      : '—',
+    worstDayAbs: worstRaw
+      ? String(Math.abs(Number.parseFloat(worstRaw) || 0).toFixed(1))
+      : '—',
+    totalReturn: totalReturn ?? '—',
+    tradingDays: tradingDays != null ? String(tradingDays) : '—',
+    trades: trades != null ? String(trades) : '—',
+    yearsOfPerformance: years != null ? String(years) : '—',
     totalDistributed: distributedRaw ? formatMoneyCompact(distributedRaw) : aum,
     totalDistributedRaw: distributedRaw ?? '',
     availableReports: reportCount,
-    yearlyReturn: meta?.cagrPct
-      ? clean(meta.cagrPct) ?? meta.cagrPct
-      : demo
-        ? fmt(demo.totalReturnPct / Math.max(years, 1), 1)
-        : '54.8',
-    monthCount: String(meta?.monthCount ?? demo?.monthCount ?? 37),
+    yearlyReturn: cagr ?? '—',
+    monthCount: String(
+      (historyOk ? meta.monthCount : null) ?? demo?.monthCount ?? '—',
+    ),
   }
 }
 

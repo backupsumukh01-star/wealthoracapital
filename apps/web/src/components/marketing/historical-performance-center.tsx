@@ -42,7 +42,7 @@ function StatTiles() {
   if (isLoading && !meta) {
     return (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => (
+        {Array.from({ length: 11 }).map((_, i) => (
           <Skeleton key={i} className="h-24 rounded-2xl" />
         ))}
       </div>
@@ -57,20 +57,32 @@ function StatTiles() {
           return Number.isFinite(tr) ? String((100 * (1 + tr / 100)).toFixed(1)) : '100'
         })()
 
+  const maxDd =
+    meta?.maxDrawdownPct && Number(meta.maxDrawdownPct) > 0 ? meta.maxDrawdownPct : null
+
   const tiles = [
     { label: 'Trading days', value: stats.tradingDays, decimals: 0, suffix: '' },
     { label: 'Trades', value: stats.trades, decimals: 0, suffix: '' },
     { label: 'Win rate', value: stats.winRate, decimals: 1, suffix: '%' },
-    { label: 'Avg monthly', value: stats.avgMonthlyReturn, decimals: 1, suffix: '%' },
+    { label: 'Average monthly return', value: stats.avgMonthlyReturn, decimals: 1, suffix: '%' },
+    { label: 'Best day', value: stats.bestDay, decimals: 1, suffix: '%' },
+    {
+      label: 'Worst day',
+      value: stats.worstDayAbs,
+      decimals: 1,
+      suffix: '%',
+      loss: true,
+    },
+    { label: 'Years of performance', value: stats.yearsOfPerformance, decimals: 0, suffix: '' },
     { label: 'Total return', value: stats.totalReturn, decimals: 0, suffix: '%' },
     { label: 'Ending equity', value: endingEquity, decimals: 1, suffix: '' },
     { label: 'CAGR', value: meta?.cagrPct ?? stats.yearlyReturn, decimals: 1, suffix: '%' },
     {
       label: 'Max drawdown',
-      value: meta?.maxDrawdownPct && Number(meta.maxDrawdownPct) > 0 ? meta.maxDrawdownPct : '0',
+      value: maxDd ?? '—',
       decimals: 1,
-      suffix: '%',
-      loss: true,
+      suffix: maxDd ? '%' : '',
+      loss: Boolean(maxDd),
     },
   ]
 
