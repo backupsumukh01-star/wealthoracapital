@@ -650,17 +650,32 @@ export const withdrawalService = {
       prisma.withdrawal.count({ where }),
     ])
 
+    const userIds = [...new Set(items.map((row) => row.userId))]
+    const wallets = userIds.length
+      ? await prisma.wallet.findMany({
+          where: { userId: { in: userIds }, kind: 'INVESTMENT' },
+          select: { userId: true, availableBalance: true, balance: true },
+        })
+      : []
+    const walletByUser = new Map(wallets.map((w) => [w.userId, w]))
+
     return {
-      items: items.map((row) => ({
-        ...mapWithdrawal(row),
-        user: row.user,
-        payoutMethod: mapPayoutMethod(row.payoutMethod),
-      })),
+      items: items.map((row) => {
+        const wallet = walletByUser.get(row.userId)
+        return {
+          ...mapWithdrawal(row),
+          user: row.user,
+          payoutMethod: mapPayoutMethod(row.payoutMethod),
+          availableBalance: moneyDisplay(wallet?.availableBalance ?? 0),
+          walletBalance: moneyDisplay(wallet?.balance ?? 0),
+        }
+      }),
       pagination: {
         page: query.page,
         limit: query.limit,
         total,
         totalPages: Math.max(1, Math.ceil(total / query.limit)),
+        hasNext: skip + items.length < total,
       },
     }
   },
@@ -676,6 +691,10 @@ export const withdrawalService = {
       },
     })
     if (!row) throw notFound('Withdrawal not found.')
+    const wallet = await prisma.wallet.findUnique({
+      where: { userId_kind: { userId: row.userId, kind: 'INVESTMENT' } },
+      select: { availableBalance: true, balance: true },
+    })
     return {
       ...mapWithdrawal(row),
       user: row.user,
@@ -684,6 +703,8 @@ export const withdrawalService = {
       destinationSnapshot: row.destinationSnapshot,
       reviews: row.reviews,
       queue: row.queue,
+      availableBalance: moneyDisplay(wallet?.availableBalance ?? 0),
+      walletBalance: moneyDisplay(wallet?.balance ?? 0),
     }
   },
 

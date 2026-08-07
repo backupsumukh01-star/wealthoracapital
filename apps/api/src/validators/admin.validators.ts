@@ -116,6 +116,10 @@ export const adminActivityQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 })
 
+export const adminUserNoteSchema = z.object({
+  note: z.string().trim().min(1).max(4000),
+})
+
 export const idParamSchema = z.object({
   id: z.string().uuid(),
 })

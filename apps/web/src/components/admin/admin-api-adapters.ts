@@ -5,6 +5,7 @@ import type {
   Deposit,
   DepositStatus,
   KycStatus,
+  MoneyString,
   User,
   UserStatus,
   Withdrawal,
@@ -67,6 +68,10 @@ export type AdminWithdrawalRow = Withdrawal & {
   destinationSnapshot?: AdminDetailRecord | null
   otpVerifiedAt?: string | null
   payoutMethod?: AdminDetailRecord | null
+  availableBalance?: MoneyString
+  walletBalance?: MoneyString
+  amountInr?: string | null
+  withdrawInr?: string | null
 }
 
 export function investorName(

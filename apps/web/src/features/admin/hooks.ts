@@ -63,8 +63,29 @@ export function useAdminOpsDashboard(options?: QueryHookOptions) {
   })
 }
 
-export function useAdminUsers(query?: { q?: string; cursor?: string }, options?: QueryHookOptions) {
-  return useQuery<{ items: User[]; nextCursor: string | null }>({
+export function useAdminUsers(
+  query?: {
+    q?: string
+    cursor?: string
+    page?: number
+    limit?: number
+    status?: string
+    role?: string
+    kycStatus?: string
+  },
+  options?: QueryHookOptions,
+) {
+  return useQuery<{
+    items: User[]
+    nextCursor: string | null
+    pagination?: {
+      page: number
+      limit: number
+      total: number
+      totalPages: number
+      hasNext?: boolean
+    }
+  }>({
     queryKey: adminQueryKeys.users(query),
     queryFn: () => adminApi.users(query),
     enabled: options?.enabled,
@@ -84,8 +105,20 @@ export function useAdminUser(id: string, options?: QueryHookOptions) {
   })
 }
 
-export function useAdminDeposits(query?: { status?: string }, options?: QueryHookOptions) {
-  return useQuery<{ items: Deposit[] }>({
+export function useAdminDeposits(
+  query?: { status?: string; q?: string; page?: number; limit?: number },
+  options?: QueryHookOptions,
+) {
+  return useQuery<{
+    items: Deposit[]
+    pagination?: {
+      page: number
+      limit: number
+      total: number
+      totalPages: number
+      hasNext?: boolean
+    }
+  }>({
     queryKey: adminQueryKeys.deposits(query),
     queryFn: () => adminApi.deposits(query),
     enabled: options?.enabled,
@@ -93,8 +126,20 @@ export function useAdminDeposits(query?: { status?: string }, options?: QueryHoo
   })
 }
 
-export function useAdminWithdrawals(query?: { status?: string }, options?: QueryHookOptions) {
-  return useQuery<{ items: Withdrawal[] }>({
+export function useAdminWithdrawals(
+  query?: { status?: string; q?: string; page?: number; limit?: number },
+  options?: QueryHookOptions,
+) {
+  return useQuery<{
+    items: Withdrawal[]
+    pagination?: {
+      page: number
+      limit: number
+      total: number
+      totalPages: number
+      hasNext?: boolean
+    }
+  }>({
     queryKey: adminQueryKeys.withdrawals(query),
     queryFn: () => adminApi.withdrawals(query),
     enabled: options?.enabled,

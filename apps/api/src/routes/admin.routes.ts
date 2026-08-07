@@ -24,6 +24,7 @@ import {
   adminStatusReasonSchema,
   adminUpdateUserSchema,
   adminUserListQuerySchema,
+  adminUserNoteSchema,
   idParamSchema,
 } from '../validators/admin.validators.js'
 
@@ -81,6 +82,14 @@ adminRouter.get(
   requirePermission(PERMISSIONS['users.view']),
   validate(idParamSchema, 'params'),
   adminUsersController.get,
+)
+
+adminRouter.post(
+  '/users/:id/notes',
+  requirePermission(PERMISSIONS['users.edit']),
+  validate(idParamSchema, 'params'),
+  validate(adminUserNoteSchema),
+  adminUsersController.addNote,
 )
 
 adminRouter.patch(

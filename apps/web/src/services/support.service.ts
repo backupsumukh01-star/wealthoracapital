@@ -31,4 +31,16 @@ export const supportService = {
       method: 'POST',
       body,
     }),
+
+  adminUpdatePriority: (id: string, priority: string) =>
+    apiClient<SupportTicket>(`${API_ROUTES.admin.support}/${id}/priority`, {
+      method: 'POST',
+      body: { priority },
+    }),
+
+  adminClose: (id: string) =>
+    apiClient<SupportTicket>(`${API_ROUTES.admin.support}/${id}/close`, {
+      method: 'POST',
+      body: {},
+    }),
 }

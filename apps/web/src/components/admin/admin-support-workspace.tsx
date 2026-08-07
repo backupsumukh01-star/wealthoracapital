@@ -16,8 +16,10 @@ import type { SupportTicket } from '@/types/domain'
 const selectClass =
   'h-8 rounded-lg border border-white/10 bg-inset/60 px-2 text-caption text-fg'
 
+const PRIORITIES = ['LOW', 'NORMAL', 'HIGH', 'URGENT'] as const
+
 type TicketRow = Omit<SupportTicket, 'priority' | 'messages'> & {
-  priority: NonNullable<SupportTicket['priority']> | 'URGENT'
+  priority: (typeof PRIORITIES)[number]
   messages: Array<{ id: string; from: string; body: string; at: string }>
 }
 
@@ -32,9 +34,12 @@ function normalizeTicket(t: SupportTicket): TicketRow {
     body: m.body,
     at: m.at,
   }))
+  const priority = PRIORITIES.includes(t.priority as (typeof PRIORITIES)[number])
+    ? (t.priority as (typeof PRIORITIES)[number])
+    : 'NORMAL'
   return {
     ...t,
-    priority: (t.priority as TicketRow['priority']) ?? 'NORMAL',
+    priority,
     messages,
   }
 }
@@ -48,16 +53,12 @@ export function AdminSupportWorkspace() {
   const tickets = (data?.items ?? []).map(normalizeTicket)
   const [selectedId, setSelectedId] = useState('')
   const [reply, setReply] = useState('')
-  const [localPriority, setLocalPriority] = useState<Record<string, TicketRow['priority']>>({})
 
   useEffect(() => {
     if (!selectedId && tickets[0]?.id) setSelectedId(tickets[0].id)
   }, [tickets, selectedId])
 
   const selected = tickets.find((t) => t.id === selectedId)
-  const priority = selected
-    ? (localPriority[selected.id] ?? selected.priority)
-    : 'NORMAL'
 
   const replyMutation = useMutation({
     mutationFn: ({ id, message }: { id: string; message: string }) =>
@@ -68,6 +69,25 @@ export function AdminSupportWorkspace() {
       toast.success('Reply sent')
     },
     onError: (err: Error) => toast.error(err.message || 'Could not send reply'),
+  })
+
+  const priorityMutation = useMutation({
+    mutationFn: ({ id, priority }: { id: string; priority: TicketRow['priority'] }) =>
+      supportService.adminUpdatePriority(id, priority),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'support', 'tickets'] })
+      toast.success('Priority updated')
+    },
+    onError: (err: Error) => toast.error(err.message || 'Could not update priority'),
+  })
+
+  const closeMutation = useMutation({
+    mutationFn: (id: string) => supportService.adminClose(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'support', 'tickets'] })
+      toast.success('Ticket closed')
+    },
+    onError: (err: Error) => toast.error(err.message || 'Could not close ticket'),
   })
 
   return (
@@ -98,7 +118,7 @@ export function AdminSupportWorkspace() {
                   >
                     <p className="truncate text-body-sm font-medium text-fg">{t.subject}</p>
                     <p className="mt-0.5 text-caption text-fg-subtle">
-                      {t.userLabel} · {t.status} · {localPriority[t.id] ?? t.priority}
+                      {t.userLabel} · {t.status} · {t.priority}
                     </p>
                   </button>
                 </li>
@@ -116,15 +136,16 @@ export function AdminSupportWorkspace() {
                 <div className="flex flex-wrap gap-2">
                   <select
                     className={selectClass}
-                    value={priority}
+                    value={selected.priority}
+                    disabled={priorityMutation.isPending}
                     onChange={(e) =>
-                      setLocalPriority((prev) => ({
-                        ...prev,
-                        [selected.id]: e.target.value as TicketRow['priority'],
-                      }))
+                      priorityMutation.mutate({
+                        id: selected.id,
+                        priority: e.target.value as TicketRow['priority'],
+                      })
                     }
                   >
-                    {['LOW', 'NORMAL', 'MEDIUM', 'HIGH', 'URGENT'].map((p) => (
+                    {PRIORITIES.map((p) => (
                       <option key={p} value={p}>
                         {p}
                       </option>
@@ -133,16 +154,9 @@ export function AdminSupportWorkspace() {
                   <Button
                     type="button"
                     size="sm"
-                    variant="glass"
-                    onClick={() => toast.message('Assignment is tracked on reply')}
-                  >
-                    Assign me
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
                     variant="ghost"
-                    onClick={() => toast.message('Close via reply when API supports status updates')}
+                    disabled={closeMutation.isPending}
+                    onClick={() => closeMutation.mutate(selected.id)}
                   >
                     Close
                   </Button>
@@ -157,55 +171,46 @@ export function AdminSupportWorkspace() {
                   <div
                     key={m.id}
                     className={cn(
-                      'rounded-xl border px-3 py-2 text-caption',
-                      m.from === 'internal'
-                        ? 'border-amber-500/20 bg-amber-500/10 text-amber-100'
-                        : m.from === 'agent'
-                          ? 'border-accent-500/20 bg-accent-500/10 text-fg'
-                          : 'border-white/8 bg-inset/40 text-fg-muted',
+                      'rounded-lg border px-3 py-2 text-caption',
+                      m.from === 'agent'
+                        ? 'border-accent-500/20 bg-accent-500/10'
+                        : m.from === 'internal'
+                          ? 'border-warning/20 bg-warning/10'
+                          : 'border-white/[0.06] bg-white/[0.02]',
                     )}
                   >
-                    <p className="mb-1 text-[10px] uppercase tracking-wider opacity-70">
-                      {m.from} · {new Date(m.at).toLocaleString()}
-                    </p>
-                    {m.body}
+                    <p className="text-[11px] uppercase tracking-wide text-fg-subtle">{m.from}</p>
+                    <p className="mt-1 whitespace-pre-wrap text-fg">{m.body}</p>
                   </div>
                 ))
               )}
             </div>
-            <div className="grid gap-3 p-4 sm:p-5">
+            <div className="space-y-3 p-4 sm:p-5">
               <FormField label="Reply">
-                <Textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={3} />
+                <Textarea
+                  rows={4}
+                  value={reply}
+                  onChange={(e) => setReply(e.target.value)}
+                  className="border-white/10 bg-white/[0.04]"
+                />
               </FormField>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  disabled={replyMutation.isPending}
-                  onClick={() => {
-                    if (!reply.trim()) return
-                    replyMutation.mutate({ id: selected.id, message: reply.trim() })
-                  }}
-                >
-                  Reply
-                </Button>
-                <Button
-                  type="button"
-                  variant="glass"
-                  disabled={replyMutation.isPending}
-                  onClick={() => {
-                    if (!reply.trim()) return
-                    replyMutation.mutate({
-                      id: selected.id,
-                      message: `[Internal] ${reply.trim()}`,
-                    })
-                  }}
-                >
-                  Internal note
-                </Button>
-              </div>
+              <Button
+                type="button"
+                size="sm"
+                disabled={!reply.trim() || replyMutation.isPending}
+                onClick={() =>
+                  replyMutation.mutate({ id: selected.id, message: reply.trim() })
+                }
+              >
+                Send reply
+              </Button>
             </div>
           </AdminPanel>
-        ) : null}
+        ) : (
+          <AdminPanel className="grid place-items-center p-8 text-caption text-fg-subtle">
+            Select a ticket
+          </AdminPanel>
+        )}
       </div>
     </div>
   )

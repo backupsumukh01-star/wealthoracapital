@@ -269,6 +269,7 @@ export const adminUsersService = {
             description: true,
             createdAt: true,
             ip: true,
+            actor: { select: { id: true, firstName: true, lastName: true, email: true } },
           },
         }),
       ])
@@ -395,7 +396,54 @@ export const adminUsersService = {
         at: a.createdAt.toISOString(),
         ip: a.ip,
       })),
+      adminNotes: activities
+        .filter((a) => a.kind === 'ADMIN_ACTION' && a.title === 'Admin note')
+        .map((a) => ({
+          id: a.id,
+          body: a.description ?? '',
+          createdAt: a.createdAt.toISOString(),
+          author: a.actor
+            ? {
+                id: a.actor.id,
+                name: `${a.actor.firstName} ${a.actor.lastName}`.trim(),
+                email: a.actor.email,
+              }
+            : null,
+        })),
     }
+  },
+
+  async addNote(
+    actorId: string,
+    id: string,
+    note: string,
+    context: { ip?: string | null; userAgent?: string | null },
+  ) {
+    const existing = await userRepository.findByIdIncludingDeleted(id)
+    if (!existing) {
+      throw notFound('User not found.')
+    }
+
+    await activityService.record({
+      userId: id,
+      actorId,
+      kind: 'ADMIN_ACTION',
+      title: 'Admin note',
+      description: note,
+      ip: context.ip,
+      userAgent: context.userAgent,
+    })
+    await auditService.record({
+      actorId,
+      targetUserId: id,
+      action: 'user.admin_note',
+      module: 'users',
+      newValue: { note: note.slice(0, 200) },
+      ip: context.ip,
+      userAgent: context.userAgent,
+    })
+
+    return this.getById(id)
   },
 
   async update(

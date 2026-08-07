@@ -394,7 +394,7 @@ function PaymentMethodsSection() {
 function StaffSection() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['admin', 'users', 'staff'],
-    queryFn: () => adminService.users(),
+    queryFn: () => adminService.users({ limit: 100, page: 1 }),
   })
 
   const staff = (data?.items ?? []).filter(

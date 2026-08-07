@@ -5,31 +5,30 @@ import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
+import { AdminUserPicker } from '@/components/admin/admin-user-picker'
 import { PageHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { useAdminUsers } from '@/features/admin/hooks'
 import { adminService } from '@/services/admin.service'
 
 const selectClass =
   'h-10 w-full rounded-lg border border-white/10 bg-inset/60 px-3 text-body-sm text-fg'
 
 export function AdminWalletManagerWorkspace() {
-  const { data: usersData } = useAdminUsers()
-  const users = usersData?.items ?? []
   const [userId, setUserId] = useState('')
   const [wallet, setWallet] = useState<'MAIN' | 'BONUS' | 'TRADING' | 'REFERRAL'>('MAIN')
   const [action, setAction] = useState<'ADJUST' | 'BONUS' | 'FREEZE' | 'UNLOCK'>('ADJUST')
   const [amount, setAmount] = useState('100.00')
   const [note, setNote] = useState('')
 
-  const selectedUserId = userId || users[0]?.id || ''
+  const selectedUserId = userId
 
   const { data: walletsData } = useQuery({
-    queryKey: ['admin', 'wallets'],
-    queryFn: () => adminService.wallets(),
+    queryKey: ['admin', 'wallets', selectedUserId],
+    queryFn: () => adminService.wallets(selectedUserId ? { q: selectedUserId } : undefined),
+    enabled: Boolean(selectedUserId),
   })
 
   const adjust = useMutation({
@@ -47,9 +46,9 @@ export function AdminWalletManagerWorkspace() {
   })
 
   const userLabel = useMemo(() => {
-    const a = users.find((x) => x.id === selectedUserId)
-    return a ? `${a.firstName} ${a.lastName}` : selectedUserId
-  }, [users, selectedUserId])
+    const a = walletsData?.items.find((x) => x.user.id === selectedUserId)?.user
+    return a ? `${a.firstName} ${a.lastName}` : selectedUserId || '—'
+  }, [walletsData, selectedUserId])
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -62,21 +61,7 @@ export function AdminWalletManagerWorkspace() {
         <AdminPanelHeader title="Adjust wallet" />
         <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
           <FormField label="Investor">
-            <select
-              className={selectClass}
-              value={selectedUserId}
-              onChange={(e) => setUserId(e.target.value)}
-            >
-              {users.length === 0 ? (
-                <option value="">No investors from API</option>
-              ) : (
-                users.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.firstName} {a.lastName} · {a.id}
-                  </option>
-                ))
-              )}
-            </select>
+            <AdminUserPicker value={selectedUserId} onChange={setUserId} />
           </FormField>
           <FormField label="Wallet">
             <select

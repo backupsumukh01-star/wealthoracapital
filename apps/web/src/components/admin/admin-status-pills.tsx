@@ -6,7 +6,7 @@ import type {
   AdminDepositStatus,
   AdminKycStatus,
   AdminWithdrawalStatus,
-} from '@/lib/admin-demo-data'
+} from '@/components/admin/admin-ui-types'
 
 const tone = {
   profit: 'border-profit/25 bg-profit/15 text-profit',

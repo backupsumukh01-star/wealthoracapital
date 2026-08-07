@@ -153,23 +153,62 @@ export const adminService = {
       { method: 'POST', body },
     ),
 
-  users: (query?: { q?: string; cursor?: string }) => {
+  users: (query?: {
+    q?: string
+    cursor?: string
+    page?: number
+    limit?: number
+    status?: string
+    role?: string
+    kycStatus?: string
+  }) => {
     const params = new URLSearchParams()
     if (query?.q) params.set('q', query.q)
     if (query?.cursor) params.set('cursor', query.cursor)
+    if (query?.page) params.set('page', String(query.page))
+    if (query?.limit) params.set('limit', String(query.limit))
+    if (query?.status) params.set('status', query.status)
+    if (query?.role) params.set('role', query.role)
+    if (query?.kycStatus) params.set('kycStatus', query.kycStatus)
     const qs = params.toString()
-    return apiClient<{ items: User[]; nextCursor: string | null }>(
-      `${API_ROUTES.admin.users}${qs ? `?${qs}` : ''}`,
-    )
+    return apiClient<{
+      items: User[]
+      nextCursor: string | null
+      pagination?: {
+        page: number
+        limit: number
+        total: number
+        totalPages: number
+        hasNext?: boolean
+      }
+    }>(`${API_ROUTES.admin.users}${qs ? `?${qs}` : ''}`)
   },
 
   user: (id: string) => apiClient<User>(`${API_ROUTES.admin.users}/${id}`),
 
-  deposits: (query?: { status?: string }) => {
+  addUserNote: (id: string, note: string) =>
+    apiClient<User>(`${API_ROUTES.admin.users}/${id}/notes`, {
+      method: 'POST',
+      body: { note },
+    }),
+
+  deposits: (query?: { status?: string; q?: string; page?: number; limit?: number }) => {
     const params = new URLSearchParams()
     if (query?.status) params.set('status', query.status)
+    if (query?.q) params.set('q', query.q)
+    if (query?.page) params.set('page', String(query.page))
+    if (query?.limit) params.set('limit', String(query.limit))
     const qs = params.toString()
-    return apiClient<{ items: Deposit[] }>(`${API_ROUTES.admin.deposits}${qs ? `?${qs}` : ''}`)
+    return apiClient<{
+      items: Deposit[]
+      pagination?: {
+        page: number
+        limit: number
+        total: number
+        totalPages: number
+        hasNext?: boolean
+      }
+    }>(`${API_ROUTES.admin.deposits}${qs ? `?${qs}` : ''}`)
   },
 
   deposit: (id: string) => apiClient<Deposit>(`${API_ROUTES.admin.deposits}/${id}`),
@@ -188,13 +227,23 @@ export const adminService = {
       idempotencyKey: `dep-review-${id}-${body.decision}`,
     }),
 
-  withdrawals: (query?: { status?: string }) => {
+  withdrawals: (query?: { status?: string; q?: string; page?: number; limit?: number }) => {
     const params = new URLSearchParams()
     if (query?.status) params.set('status', query.status)
+    if (query?.q) params.set('q', query.q)
+    if (query?.page) params.set('page', String(query.page))
+    if (query?.limit) params.set('limit', String(query.limit))
     const qs = params.toString()
-    return apiClient<{ items: Withdrawal[] }>(
-      `${API_ROUTES.admin.withdrawals}${qs ? `?${qs}` : ''}`,
-    )
+    return apiClient<{
+      items: Withdrawal[]
+      pagination?: {
+        page: number
+        limit: number
+        total: number
+        totalPages: number
+        hasNext?: boolean
+      }
+    }>(`${API_ROUTES.admin.withdrawals}${qs ? `?${qs}` : ''}`)
   },
 
   withdrawal: (id: string) =>
@@ -287,6 +336,13 @@ export const adminService = {
       idempotencyKey,
     })
   },
+
+  performance: () =>
+    apiClient<{
+      summary: Record<string, unknown>
+      analytics: Record<string, unknown>
+      dailyReturns: Array<Record<string, unknown>>
+    }>(API_ROUTES.admin.performance),
 
   trades: () => apiClient<{ items: Trade[] }>(API_ROUTES.admin.trades),
 

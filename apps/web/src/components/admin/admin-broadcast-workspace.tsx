@@ -20,7 +20,6 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { formatDateTime } from '@/lib/format'
 import { broadcastService, type Broadcast } from '@/services/broadcast.service'
-import { useAdminUsers } from '@/features/admin/hooks'
 
 type Segment = 'ALL' | 'VERIFIED' | 'PENDING_KYC'
 type Channel = 'IN_APP' | 'EMAIL' | 'BOTH'
@@ -37,7 +36,6 @@ function audienceForSegment(segment: Segment): Broadcast['audience'] {
 
 export function AdminBroadcastWorkspace() {
   const qc = useQueryClient()
-  const { data: usersData } = useAdminUsers()
   const { data: listData } = useQuery({
     queryKey: ['admin', 'broadcasts'],
     queryFn: () => broadcastService.list(),
@@ -48,13 +46,12 @@ export function AdminBroadcastWorkspace() {
   const [segment, setSegment] = useState<Segment>('ALL')
   const [channel, setChannel] = useState<Channel>('BOTH')
 
-  const users = usersData?.items ?? []
-  const recipients =
+  const recipientLabel =
     segment === 'ALL'
-      ? users.length
+      ? 'All investors'
       : segment === 'VERIFIED'
-        ? users.filter((u) => u.kycStatus === 'APPROVED').length
-        : users.filter((u) => u.kycStatus !== 'APPROVED').length
+        ? 'KYC-approved investors'
+        : 'Pending-KYC investors'
 
   const history = (listData?.items ?? []).filter(
     (n) => n.status === 'SENT' || n.audience === 'ALL' || n.audience === 'SEGMENT',
@@ -77,7 +74,7 @@ export function AdminBroadcastWorkspace() {
     onSuccess: (sent) => {
       qc.invalidateQueries({ queryKey: ['admin', 'broadcasts'] })
       toast.success('Broadcast sent', {
-        description: `${sent.stats?.recipientCount ?? recipients} recipients · ${channel}`,
+        description: `${sent.stats?.recipientCount ?? recipientLabel} · ${channel}`,
       })
       setSubject('')
       setBody('')
@@ -162,8 +159,7 @@ export function AdminBroadcastWorkspace() {
                 </Select>
               </FormField>
               <p className="text-body-sm text-fg">
-                <span className="tabular-nums text-heading-sm">{recipients.toLocaleString()}</span>
-                <span className="ml-2 text-fg-muted">recipients</span>
+                <span className="text-heading-sm text-fg">{recipientLabel}</span>
               </p>
             </div>
           </AdminPanel>

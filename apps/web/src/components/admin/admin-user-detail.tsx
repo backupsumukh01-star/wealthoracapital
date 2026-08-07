@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { ROUTES, type MoneyString, type UserStatus } from '@meridian/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ban, CheckCircle2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -25,6 +25,7 @@ import {
   AdminKycPill,
   AdminWithdrawalPill,
 } from '@/components/admin/admin-status-pills'
+import { DualMoney } from '@/components/common/dual-money'
 import { Money } from '@/components/common/money'
 import { PageHeader, SectionHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
@@ -32,15 +33,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { FormField } from '@/components/ui/form-field'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  adminQueryKeys,
-  useAdminActivity,
-  useAdminDeposits,
-  useAdminReturns,
-  useAdminTrades,
-  useAdminUser,
-  useAdminWithdrawals,
-} from '@/features/admin/hooks'
+import { adminQueryKeys, useAdminUser } from '@/features/admin/hooks'
 import { PermissionGate } from '@/features/auth/guards'
 import { peekAdminListLocation } from '@/lib/admin-nav'
 import { formatDateTime } from '@/lib/format'
@@ -55,11 +48,6 @@ export function AdminUserDetailWorkspace() {
   const queryClient = useQueryClient()
   const { refresh, session } = useSession()
   const { data: user, isLoading, isError } = useAdminUser(userId)
-  const { data: depositsData } = useAdminDeposits()
-  const { data: withdrawalsData } = useAdminWithdrawals()
-  const { data: returnsData } = useAdminReturns()
-  const { data: tradesData } = useAdminTrades()
-  const { data: activityData } = useAdminActivity()
   const [noteDraft, setNoteDraft] = useState('')
   const [roleDraft, setRoleDraft] = useState<'USER' | 'ADMIN' | 'SUPER_ADMIN'>('USER')
   const [staffRoleDraft, setStaffRoleDraft] = useState<string>('')
@@ -113,6 +101,12 @@ export function AdminUserDetailWorkspace() {
       description: string | null
       at: string
     }>
+    adminNotes?: Array<{
+      id: string
+      body: string
+      createdAt: string
+      author: { id: string; name: string; email: string } | null
+    }>
     deposits?: AdminDepositRow[]
     withdrawals?: AdminWithdrawalRow[]
   }
@@ -124,19 +118,6 @@ export function AdminUserDetailWorkspace() {
     setRoleDraft(user.role)
     setStaffRoleDraft(user.staffRole ?? '')
   }, [user])
-
-  const { data: walletRow } = useQuery({
-    queryKey: [...adminQueryKeys.all, 'wallets', userId],
-    queryFn: async () => {
-      const res = await adminService.wallets({ q: userId })
-      return (
-        res.items.find((w) => w.user.id === userId) ??
-        res.items.find((w) => w.user.email === user?.email) ??
-        null
-      )
-    },
-    enabled: Boolean(userId),
-  })
 
   const { data: kycDetail, isLoading: kycLoading } = useQuery({
     queryKey: ['admin', 'kyc', userId],
@@ -275,30 +256,30 @@ export function AdminUserDetailWorkspace() {
     onError: (err: Error) => toast.error(err.message || 'Request info failed'),
   })
 
-  const deposits = useMemo(() => {
-    const items = (depositsData?.items ?? []) as AdminDepositRow[]
-    const filtered = items.filter((d) => d.user?.id === userId)
-    if (filtered.length) return filtered
-    return (detail?.deposits ?? []) as AdminDepositRow[]
-  }, [detail?.deposits, depositsData, userId])
+  const addNote = useMutation({
+    mutationFn: () => adminService.addUserNote(userId, noteDraft.trim()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.user(userId) })
+      setNoteDraft('')
+      toast.success('Admin note saved')
+    },
+    onError: (err: Error) => toast.error(err.message || 'Could not save note'),
+  })
 
-  const withdrawals = useMemo(() => {
-    const items = (withdrawalsData?.items ?? []) as AdminWithdrawalRow[]
-    const filtered = items.filter((w) => w.user?.id === userId)
-    if (filtered.length) return filtered
-    return (detail?.withdrawals ?? []) as AdminWithdrawalRow[]
-  }, [detail?.withdrawals, withdrawalsData, userId])
-
-  const returns = detail?.profitDistributions?.length
-    ? detail.profitDistributions
-    : returnsData?.items ?? []
-  const trades = tradesData?.items ?? []
-  const timeline =
-    detail?.activityTimeline?.length
-      ? detail.activityTimeline
-      : (activityData?.items ?? []).filter(
-          (e) => e.title.toLowerCase().includes(userId.toLowerCase()) || e.id.includes(userId),
-        )
+  const deposits = (detail?.deposits ?? []) as AdminDepositRow[]
+  const withdrawals = (detail?.withdrawals ?? []) as AdminWithdrawalRow[]
+  const returns = detail?.profitDistributions ?? []
+  const trades: Array<{
+    id: string
+    pair?: string
+    direction?: string
+    date?: string
+    entryPrice?: string
+    exitPrice?: string
+    returnPct?: string
+  }> = []
+  const timeline = detail?.activityTimeline ?? []
+  const adminNotes = detail?.adminNotes ?? []
 
   if (isLoading) {
     return (
@@ -323,13 +304,10 @@ export function AdminUserDetailWorkspace() {
   const accountStatus = mapAccountStatus(user.status, user.kycStatus)
   const showMarketLists = accountStatus === 'VERIFIED' || kycStatus === 'APPROVED'
   const username = user.email.split('@')[0] || user.id
-  const available = (detail?.availableBalance ??
-    walletRow?.availableBalance ??
-    walletRow?.balance ??
-    '0.00') as MoneyString
+  const available = (detail?.availableBalance ?? '0.00') as MoneyString
   const walletBalance = (detail?.walletBalance ?? available) as MoneyString
-  const lockedBalance = (detail?.lockedBalance ?? walletRow?.lockedBalance ?? '0.00') as MoneyString
-  const ledgerBalance = (walletRow?.balance ?? detail?.walletBalance ?? '0.00') as MoneyString
+  const lockedBalance = (detail?.lockedBalance ?? '0.00') as MoneyString
+  const ledgerBalance = (detail?.walletBalance ?? '0.00') as MoneyString
   const kycDocuments = (kycDetail?.documents ?? []) as Array<{
     id: string
     kind?: string
@@ -410,25 +388,16 @@ export function AdminUserDetailWorkspace() {
               {
                 label: 'Wallet balance',
                 node: (
-                  <span className="flex flex-col gap-0.5">
-                    <Money
-                      value={(detail?.walletBalanceInr ?? '0') as MoneyString}
-                      currency="INR"
-                      size="md"
-                    />
-                    <span className="text-caption text-fg-subtle">
-                      (<Money value={walletBalance} size="sm" className="text-fg-subtle" />)
-                    </span>
-                  </span>
+                  <DualMoney
+                    usd={walletBalance}
+                    inr={(detail?.walletBalanceInr ?? null) as MoneyString | null}
+                    size="md"
+                  />
                 ),
               },
               {
                 label: 'Locked balance',
-                node: (
-                  <span className="flex flex-col gap-0.5">
-                    <Money value={lockedBalance} size="md" />
-                  </span>
-                ),
+                node: <Money value={lockedBalance} size="md" />,
               },
               {
                 label: 'Ledger balance',
@@ -453,31 +422,66 @@ export function AdminUserDetailWorkspace() {
           <AdminPanel>
             <AdminPanelHeader title="Personal details" />
             <dl className="grid gap-3 px-4 py-4 text-caption sm:grid-cols-2 sm:px-5">
-              {[
-                ['User ID', user.id],
-                ['Username', `@${username}`],
-                ['Email', user.email],
-                ['Phone', user.phone ?? '—'],
-                ['Country', countryLabel],
-                ['City', detail?.city ?? '—'],
-                ['Address', detail?.address ?? '—'],
-                ['Occupation', detail?.occupation ?? '—'],
-                ['Date of birth', detail?.dateOfBirth ?? '—'],
-                ['Timezone', user.timezone],
-                ['Role', user.role],
-                ['Staff role', user.staffRole ?? '—'],
-                ['Registered', formatDateTime(user.createdAt)],
-                ['Last login', detail?.lastLoginAt ? formatDateTime(detail.lastLoginAt) : '—'],
-                ['Total deposited', `${detail?.totalDepositedInr ?? '0'} INR / $${detail?.totalDeposited ?? '0.00'}`],
-                ['Total withdrawn', `${detail?.totalWithdrawnInr ?? '0'} INR / $${detail?.totalWithdrawn ?? '0.00'}`],
-                ['Total profit', `${detail?.totalProfitInr ?? '0'} INR / $${detail?.totalProfit ?? '0.00'}`],
-                ['Active investment', `$${detail?.investedAmount ?? '0.00'}`],
-              ].map(([k, v]) => (
+              {(
+                [
+                  ['User ID', user.id],
+                  ['Username', `@${username}`],
+                  ['Email', user.email],
+                  ['Phone', user.phone ?? '—'],
+                  ['Country', countryLabel],
+                  ['City', detail?.city ?? '—'],
+                  ['Address', detail?.address ?? '—'],
+                  ['Occupation', detail?.occupation ?? '—'],
+                  ['Date of birth', detail?.dateOfBirth ?? '—'],
+                  ['Timezone', user.timezone],
+                  ['Role', user.role],
+                  ['Staff role', user.staffRole ?? '—'],
+                  ['Registered', formatDateTime(user.createdAt)],
+                  ['Last login', detail?.lastLoginAt ? formatDateTime(detail.lastLoginAt) : '—'],
+                ] as Array<[string, string]>
+              ).map(([k, v]) => (
                 <div key={k}>
                   <dt className="text-fg-subtle">{k}</dt>
                   <dd className="mt-0.5 text-fg">{v}</dd>
                 </div>
               ))}
+              <div>
+                <dt className="text-fg-subtle">Total deposited</dt>
+                <dd className="mt-0.5">
+                  <DualMoney
+                    usd={(detail?.totalDeposited ?? '0.00') as MoneyString}
+                    inr={(detail?.totalDepositedInr ?? null) as MoneyString | null}
+                    size="sm"
+                  />
+                </dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">Total withdrawn</dt>
+                <dd className="mt-0.5">
+                  <DualMoney
+                    usd={(detail?.totalWithdrawn ?? '0.00') as MoneyString}
+                    inr={(detail?.totalWithdrawnInr ?? null) as MoneyString | null}
+                    size="sm"
+                  />
+                </dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">Total profit</dt>
+                <dd className="mt-0.5">
+                  <DualMoney
+                    usd={(detail?.totalProfit ?? '0.00') as MoneyString}
+                    inr={(detail?.totalProfitInr ?? null) as MoneyString | null}
+                    size="sm"
+                    signed
+                  />
+                </dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">Active investment</dt>
+                <dd className="mt-0.5">
+                  <Money value={(detail?.investedAmount ?? '0.00') as MoneyString} size="sm" />
+                </dd>
+              </div>
             </dl>
           </AdminPanel>
 
@@ -1032,10 +1036,23 @@ export function AdminUserDetailWorkspace() {
           <AdminPanel className="space-y-4 p-4 sm:p-5">
             <SectionHeader
               title="Admin notes"
-              description="Internal notes require a dedicated API endpoint — drafts are not stored in the browser."
+              description="Internal operator notes — persisted on the user activity timeline."
             />
-            <p className="text-caption text-fg-muted">No persisted notes API yet.</p>
-            <FormField label="Draft note (not saved)">
+            {adminNotes.length === 0 ? (
+              <p className="text-caption text-fg-muted">No notes yet.</p>
+            ) : (
+              <ul className="space-y-3">
+                {adminNotes.map((n) => (
+                  <li key={n.id} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+                    <p className="whitespace-pre-wrap text-body-sm text-fg">{n.body}</p>
+                    <p className="mt-1 text-[11px] text-fg-subtle">
+                      {n.author?.name ?? 'Operator'} · {formatDateTime(n.createdAt)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <FormField label="Add note">
               <Textarea
                 rows={3}
                 value={noteDraft}
@@ -1046,12 +1063,10 @@ export function AdminUserDetailWorkspace() {
             </FormField>
             <Button
               size="sm"
-              disabled={!noteDraft.trim()}
-              onClick={() => {
-                toast.error('Admin notes API is not available — nothing was saved')
-              }}
+              disabled={!noteDraft.trim() || addNote.isPending}
+              onClick={() => addNote.mutate()}
             >
-              Add note
+              {addNote.isPending ? 'Saving…' : 'Add note'}
             </Button>
           </AdminPanel>
         </TabsContent>

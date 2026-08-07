@@ -11,13 +11,14 @@ import {
   mapKycStatus,
   userInitials,
 } from '@/components/admin/admin-api-adapters'
+import { AdminListPagination } from '@/components/admin/admin-list-pagination'
 import { AdminPanel } from '@/components/admin/admin-panel'
 import { AdminAccountPill, AdminKycPill } from '@/components/admin/admin-status-pills'
-import { Money } from '@/components/common/money'
+import type { AdminAccountStatus, AdminKycStatus } from '@/components/admin/admin-ui-types'
+import { DualMoney } from '@/components/common/dual-money'
 import { PageHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import type { AdminAccountStatus, AdminKycStatus } from '@/lib/admin-demo-data'
 import {
   loadAdminViewState,
   rememberAdminListLocation,
@@ -76,22 +77,6 @@ const FILTERS: { id: FilterChip; label: string }[] = [
   { id: 'rejected', label: 'Rejected' },
 ]
 
-function matchesFilter(row: UserRow, filter: FilterChip) {
-  const s = row.accountStatus
-  switch (filter) {
-    case 'verified':
-      return s === 'VERIFIED'
-    case 'pending':
-      return s === 'PENDING_EMAIL' || s === 'PENDING_KYC' || row.kycStatus === 'UNDER_REVIEW'
-    case 'suspended':
-      return s === 'SUSPENDED' || s === 'RESTRICTED'
-    case 'rejected':
-      return s === 'REJECTED' || row.kycStatus === 'REJECTED'
-    default:
-      return true
-  }
-}
-
 function asMoney(v: string | null | undefined, fallback = '0.00'): MoneyString {
   if (v == null || v === '') return fallback as MoneyString
   return String(v) as MoneyString
@@ -126,25 +111,6 @@ function mapUser(u: AdminUserListItem): UserRow {
   }
 }
 
-function DualMoney({
-  usd,
-  inr,
-  signed = false,
-}: {
-  usd: MoneyString
-  inr: string
-  signed?: boolean
-}) {
-  return (
-    <span className="flex flex-col gap-0.5">
-      <Money value={inr as MoneyString} currency="INR" size="sm" signed={signed} />
-      <span className="text-[11px] text-fg-subtle">
-        (<Money value={usd} size="sm" signed={signed} className="text-fg-subtle" />
-      </span>
-    </span>
-  )
-}
-
 function Avatar({ initials }: { initials: string }) {
   return (
     <span
@@ -158,66 +124,77 @@ function Avatar({ initials }: { initials: string }) {
 
 const VIEW_KEY = 'admin:users:view'
 
+function serverFilters(filter: FilterChip): { status?: string; kycStatus?: string } {
+  switch (filter) {
+    case 'verified':
+      return { kycStatus: 'APPROVED' }
+    case 'pending':
+      return { kycStatus: 'UNDER_REVIEW' }
+    case 'suspended':
+      return { status: 'SUSPENDED' }
+    case 'rejected':
+      return { kycStatus: 'REJECTED' }
+    default:
+      return {}
+  }
+}
+
 export function AdminUsersWorkspace() {
   const searchParams = useSearchParams()
   const [q, setQ] = useState('')
+  const [debouncedQ, setDebouncedQ] = useState('')
   const [filter, setFilter] = useState<FilterChip>('all')
+  const [page, setPage] = useState(1)
   const [hydrated, setHydrated] = useState(false)
-  const { data, isLoading } = useAdminUsers(q.trim() ? { q: q.trim() } : undefined)
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setDebouncedQ(q.trim())
+      setPage(1)
+    }, 300)
+    return () => window.clearTimeout(t)
+  }, [q])
+
+  const { data, isLoading } = useAdminUsers({
+    q: debouncedQ.length >= 2 ? debouncedQ : undefined,
+    page,
+    limit: 20,
+    ...serverFilters(filter),
+  })
 
   useEffect(() => {
     rememberAdminListLocation()
-    const saved = loadAdminViewState<{ q?: string; filter?: FilterChip }>(VIEW_KEY)
+    const saved = loadAdminViewState<{ q?: string; filter?: FilterChip; page?: number }>(VIEW_KEY)
     const fromUrl = searchParams.get('q')
     if (fromUrl) setQ(fromUrl)
     else if (saved?.q) setQ(saved.q)
     if (saved?.filter) setFilter(saved.filter)
+    if (saved?.page) setPage(saved.page)
     if (saved?.scrollY != null) restoreAdminScroll(saved.scrollY)
     setHydrated(true)
   }, [searchParams])
 
   useEffect(() => {
     if (!hydrated) return
-    const persist = () => saveAdminViewState(VIEW_KEY, { q, filter })
+    const persist = () => saveAdminViewState(VIEW_KEY, { q, filter, page })
     persist()
     window.addEventListener('pagehide', persist)
     return () => {
       persist()
       window.removeEventListener('pagehide', persist)
     }
-  }, [q, filter, hydrated])
+  }, [q, filter, page, hydrated])
 
   const rows = useMemo(
     () => ((data?.items ?? []) as AdminUserListItem[]).map(mapUser),
     [data?.items],
   )
-
-  const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase()
-    return rows.filter((u) => {
-      if (!matchesFilter(u, filter)) return false
-      if (!needle) return true
-      return (
-        u.userId.toLowerCase().includes(needle) ||
-        u.username.toLowerCase().includes(needle) ||
-        u.email.toLowerCase().includes(needle) ||
-        u.phone.toLowerCase().includes(needle) ||
-        u.country.toLowerCase().includes(needle) ||
-        `${u.firstName} ${u.lastName}`.toLowerCase().includes(needle)
-      )
-    })
-  }, [q, filter, rows])
+  const pagination = data?.pagination
 
   const counts = useMemo(() => {
-    const base = { all: rows.length, verified: 0, pending: 0, suspended: 0, rejected: 0 }
-    for (const u of rows) {
-      if (matchesFilter(u, 'verified')) base.verified += 1
-      if (matchesFilter(u, 'pending')) base.pending += 1
-      if (matchesFilter(u, 'suspended')) base.suspended += 1
-      if (matchesFilter(u, 'rejected')) base.rejected += 1
-    }
-    return base
-  }, [rows])
+    const total = pagination?.total ?? rows.length
+    return { all: total, verified: 0, pending: 0, suspended: 0, rejected: 0 }
+  }, [pagination?.total, rows.length])
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -226,7 +203,7 @@ export function AdminUsersWorkspace() {
         description="Searchable directory of investors — KYC, balances, and account state."
         actions={
           <Button asChild variant="secondary" size="sm">
-            <Link href={ROUTES.admin.kyc}>KYC queue ({counts.pending})</Link>
+            <Link href={ROUTES.admin.kyc}>KYC queue</Link>
           </Button>
         }
       />
@@ -249,7 +226,10 @@ export function AdminUsersWorkspace() {
               <button
                 key={f.id}
                 type="button"
-                onClick={() => setFilter(f.id)}
+                onClick={() => {
+                  setFilter(f.id)
+                  setPage(1)
+                }}
                 className={cn(
                   'rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors',
                   active
@@ -258,7 +238,9 @@ export function AdminUsersWorkspace() {
                 )}
               >
                 {f.label}
-                <span className="ml-1.5 tabular-nums text-fg-subtle">{counts[f.id]}</span>
+                {f.id === 'all' ? (
+                  <span className="ml-1.5 tabular-nums text-fg-subtle">{counts.all}</span>
+                ) : null}
               </button>
             )
           })}
@@ -288,14 +270,14 @@ export function AdminUsersWorkspace() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {rows.length === 0 ? (
                 <tr>
                   <td colSpan={15} className="px-4 py-12 text-center text-fg-muted">
                     {isLoading ? 'Loading investors…' : 'No investors match this search.'}
                   </td>
                 </tr>
               ) : (
-                filtered.map((u) => (
+                rows.map((u) => (
                   <tr
                     key={u.userId}
                     className="border-b border-white/[0.04] transition-colors last:border-0 hover:bg-white/[0.025]"
@@ -318,16 +300,33 @@ export function AdminUsersWorkspace() {
                       <AdminAccountPill status={u.accountStatus} />
                     </td>
                     <td className="px-4 py-3">
-                      <DualMoney usd={u.walletBalance} inr={u.walletBalanceInr} />
+                      <DualMoney
+                        usd={u.walletBalance}
+                        inr={u.walletBalanceInr as MoneyString}
+                        size="sm"
+                      />
                     </td>
                     <td className="px-4 py-3">
-                      <DualMoney usd={u.totalDeposited} inr={u.totalDepositedInr} />
+                      <DualMoney
+                        usd={u.totalDeposited}
+                        inr={u.totalDepositedInr as MoneyString}
+                        size="sm"
+                      />
                     </td>
                     <td className="px-4 py-3">
-                      <DualMoney usd={u.totalWithdrawn} inr={u.totalWithdrawnInr} />
+                      <DualMoney
+                        usd={u.totalWithdrawn}
+                        inr={u.totalWithdrawnInr as MoneyString}
+                        size="sm"
+                      />
                     </td>
                     <td className="px-4 py-3">
-                      <DualMoney usd={u.totalProfit} inr={u.totalProfitInr} signed />
+                      <DualMoney
+                        usd={u.totalProfit}
+                        inr={u.totalProfitInr as MoneyString}
+                        size="sm"
+                        signed
+                      />
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-fg-muted">
                       {formatDateTime(u.registeredAt)}
@@ -351,6 +350,7 @@ export function AdminUsersWorkspace() {
             </tbody>
           </table>
         </div>
+        <AdminListPagination pagination={pagination} onPageChange={setPage} />
       </AdminPanel>
     </div>
   )

@@ -6,12 +6,14 @@ import type {
   adminStatusReasonSchema,
   adminUpdateUserSchema,
   adminUserListQuerySchema,
+  adminUserNoteSchema,
 } from '../validators/admin.validators.js'
 import type { z } from 'zod'
 
 type ListQuery = z.infer<typeof adminUserListQuerySchema>
 type UpdateBody = z.infer<typeof adminUpdateUserSchema>
 type ReasonBody = z.infer<typeof adminStatusReasonSchema>
+type NoteBody = z.infer<typeof adminUserNoteSchema>
 
 export const adminUsersController = {
   list: asyncHandler(async (req, res) => {
@@ -41,6 +43,17 @@ export const adminUsersController = {
 
   get: asyncHandler(async (req, res) => {
     const data = await adminUsersService.getById(req.params.id!)
+    sendSuccess(res, data)
+  }),
+
+  addNote: asyncHandler(async (req, res) => {
+    const body = req.body as NoteBody
+    const data = await adminUsersService.addNote(
+      req.user!.id,
+      req.params.id!,
+      body.note,
+      requestContext(req),
+    )
     sendSuccess(res, data)
   }),
 

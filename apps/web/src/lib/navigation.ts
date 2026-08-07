@@ -15,7 +15,6 @@ import {
   History,
   Inbox,
   LayoutDashboard,
-  LayoutTemplate,
   LifeBuoy,
   type LucideIcon,
   LogOut,
@@ -350,12 +349,6 @@ export const ADMIN_NAV: NavSection[] = [
     label: 'Growth & CMS',
     items: [
       {
-        label: 'Landing CMS',
-        href: ROUTES.admin.cms.landing,
-        icon: LayoutTemplate,
-        permission: 'cms.view',
-      },
-      {
         label: 'Frontend Management',
         href: ROUTES.admin.frontendManagement,
         icon: Monitor,
@@ -416,12 +409,6 @@ export const ADMIN_NAV: NavSection[] = [
     label: 'Communication',
     items: [
       {
-        label: 'Notifications',
-        href: ROUTES.admin.notifications,
-        icon: Bell,
-        permission: 'notifications.view',
-      },
-      {
         label: 'Broadcast',
         href: ROUTES.admin.broadcast,
         icon: Megaphone,
@@ -474,12 +461,6 @@ export const ADMIN_SETTINGS_NAV: NavItem[] = [
     href: ROUTES.admin.settings.platform,
     icon: Settings,
     permission: 'settings.manage',
-  },
-  {
-    label: 'Email',
-    href: ROUTES.admin.settings.emailTemplates,
-    icon: Mail,
-    permission: 'emails.manage',
   },
   {
     label: 'Security',

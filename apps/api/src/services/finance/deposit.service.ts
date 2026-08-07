@@ -529,6 +529,7 @@ export const depositService = {
         limit: query.limit,
         total,
         totalPages: Math.max(1, Math.ceil(total / query.limit)),
+        hasNext: skip + items.length < total,
       },
     }
   },

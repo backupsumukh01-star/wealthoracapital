@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { ROUTES, type MoneyString } from '@meridian/shared'
 import { Search } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -12,6 +12,7 @@ import {
   mapDepositStatus,
   methodLabel,
 } from '@/components/admin/admin-api-adapters'
+import { AdminListPagination } from '@/components/admin/admin-list-pagination'
 import { AdminPanel } from '@/components/admin/admin-panel'
 import { AdminDepositPill } from '@/components/admin/admin-status-pills'
 import { DepositProofViewer } from '@/components/common/deposit-proof-viewer'
@@ -38,29 +39,46 @@ import { formatDateTime } from '@/lib/format'
 type TabFilter = 'pending' | 'review' | 'approved' | 'rejected' | 'all'
 type DepositDecision = 'APPROVE' | 'REJECT' | 'REQUEST_INFORMATION'
 
-function matchesTab(status: string, tab: TabFilter) {
+function statusForTab(tab: TabFilter): string | undefined {
   switch (tab) {
     case 'pending':
-      return status === 'PENDING'
+      return 'PENDING'
     case 'review':
-      return status === 'UNDER_REVIEW'
+      return 'UNDER_REVIEW'
     case 'approved':
-      return status === 'APPROVED'
+      return 'APPROVED'
     case 'rejected':
-      return status === 'REJECTED' || status === 'CANCELLED' || status === 'EXPIRED'
+      return 'REJECTED'
     default:
-      return true
+      return undefined
   }
 }
 
 export function AdminDepositsWorkspace() {
-  const { data, isLoading } = useAdminDeposits()
-  const reviewDeposit = useReviewDeposit()
-  const deposits = (data?.items ?? []) as AdminDepositRow[]
   const [tab, setTab] = useState<TabFilter>('pending')
   const [q, setQ] = useState('')
+  const [debouncedQ, setDebouncedQ] = useState('')
+  const [page, setPage] = useState(1)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [reason, setReason] = useState('')
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setDebouncedQ(q.trim())
+      setPage(1)
+    }, 300)
+    return () => window.clearTimeout(t)
+  }, [q])
+
+  const { data, isLoading } = useAdminDeposits({
+    status: statusForTab(tab),
+    q: debouncedQ.length >= 2 ? debouncedQ : undefined,
+    page,
+    limit: 20,
+  })
+  const reviewDeposit = useReviewDeposit()
+  const deposits = useMemo(() => (data?.items ?? []) as AdminDepositRow[], [data?.items])
+  const pagination = data?.pagination
   const { data: selectedDetail } = useAdminDeposit(selectedId ?? '', {
     enabled: Boolean(selectedId),
   })
@@ -71,25 +89,6 @@ export function AdminDepositsWorkspace() {
     if (fromDetail?.id === selectedId) return fromDetail
     return deposits.find((d) => d.id === selectedId) ?? null
   }, [deposits, selectedDetail, selectedId])
-
-  const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase()
-    return deposits
-      .filter((d) => matchesTab(d.status, tab))
-      .filter((d) => {
-        if (!needle) return true
-        const name = investorName(d.user, d.user?.id ?? '').toLowerCase()
-        const method = methodLabel(d.method).toLowerCase()
-        return (
-          d.id.toLowerCase().includes(needle) ||
-          d.reference.toLowerCase().includes(needle) ||
-          method.includes(needle) ||
-          (d.user?.id ?? '').toLowerCase().includes(needle) ||
-          name.includes(needle)
-        )
-      })
-      .sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt))
-  }, [deposits, tab, q])
 
   const stats = useMemo(() => {
     const awaiting = deposits.filter((d) => d.status === 'PENDING').length
@@ -139,19 +138,19 @@ export function AdminDepositsWorkspace() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <AdminPanel className="p-4" glow>
-          <p className="text-caption text-fg-muted">Awaiting review</p>
+          <p className="text-caption text-fg-muted">Awaiting (page)</p>
           <p className="mt-2 text-stat-md text-fg">{isLoading ? '—' : stats.awaiting}</p>
         </AdminPanel>
         <AdminPanel className="p-4">
-          <p className="text-caption text-fg-muted">Under review</p>
+          <p className="text-caption text-fg-muted">Under review (page)</p>
           <p className="mt-2 text-stat-md text-fg">{isLoading ? '—' : stats.review}</p>
         </AdminPanel>
         <AdminPanel className="p-4">
-          <p className="text-caption text-fg-muted">Approved</p>
+          <p className="text-caption text-fg-muted">Approved (page)</p>
           <p className="mt-2 text-stat-md text-fg">{isLoading ? '—' : stats.approved}</p>
         </AdminPanel>
         <AdminPanel className="p-4" glow>
-          <p className="text-caption text-fg-muted">Value pending</p>
+          <p className="text-caption text-fg-muted">Value pending (page)</p>
           <div className="mt-2">
             <Money value={stats.pendingValue} size="md" />
           </div>
@@ -170,7 +169,13 @@ export function AdminDepositsWorkspace() {
         </label>
       </AdminPanel>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as TabFilter)}>
+      <Tabs
+        value={tab}
+        onValueChange={(v) => {
+          setTab(v as TabFilter)
+          setPage(1)
+        }}
+      >
         <TabsList>
           <TabsTrigger value="pending">Pending</TabsTrigger>
           <TabsTrigger value="review">Under review</TabsTrigger>
@@ -196,14 +201,14 @@ export function AdminDepositsWorkspace() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {deposits.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-12 text-center text-fg-muted">
                     {isLoading ? 'Loading deposits…' : 'No deposits match this filter.'}
                   </td>
                 </tr>
               ) : (
-                filtered.map((d) => (
+                deposits.map((d) => (
                   <tr
                     key={d.id}
                     className="border-b border-white/[0.04] transition-colors last:border-0 hover:bg-white/[0.025]"
@@ -245,6 +250,7 @@ export function AdminDepositsWorkspace() {
             </tbody>
           </table>
         </div>
+        <AdminListPagination pagination={pagination} onPageChange={setPage} />
       </AdminPanel>
 
       <Sheet
@@ -350,7 +356,7 @@ export function AdminDepositsWorkspace() {
                 </Button>
                 <Button
                   size="sm"
-                  variant="danger"
+                  variant="ghost"
                   disabled={reviewDeposit.isPending}
                   onClick={() => void decide('REJECT', 'Deposit rejected')}
                 >
