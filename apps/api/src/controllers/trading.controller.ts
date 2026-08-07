@@ -268,10 +268,16 @@ export const tradingController = {
   }),
 
   adminPerformance: asyncHandler(async (_req, res) => {
+    const [summary, analytics, dailyReturns] = await Promise.all([
+      performanceService.summary(),
+      performanceService.analytics(),
+      distributionService.listDailyReturns(),
+    ])
     sendSuccess(res, {
-      summary: await performanceService.summary(),
-      analytics: await performanceService.analytics(),
-      dailyReturns: await distributionService.listDailyReturns(),
+      summary,
+      analytics,
+      // Frontend expects an array; listDailyReturns returns { items }.
+      dailyReturns: Array.isArray(dailyReturns) ? dailyReturns : (dailyReturns.items ?? []),
     })
   }),
 }

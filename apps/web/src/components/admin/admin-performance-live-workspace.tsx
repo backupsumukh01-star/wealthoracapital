@@ -22,18 +22,45 @@ function money(value: unknown) {
   return `$${String(value)}`
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+  return {}
+}
+
+function asRows(value: unknown): Array<Record<string, unknown>> {
+  if (Array.isArray(value)) return value as Array<Record<string, unknown>>
+  if (value && typeof value === 'object' && Array.isArray((value as { items?: unknown }).items)) {
+    return (value as { items: Array<Record<string, unknown>> }).items
+  }
+  return []
+}
+
+function safeDateTime(value: unknown) {
+  if (typeof value !== 'string' || !value.trim()) return null
+  try {
+    return formatDateTime(value)
+  } catch {
+    return value
+  }
+}
+
 export function AdminPerformanceLiveWorkspace() {
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['admin', 'performance', 'live'],
     queryFn: () => adminService.performance(),
     staleTime: 30_000,
+    retry: 1,
   })
 
-  const summary = (data?.summary ?? {}) as Record<string, unknown>
-  const analytics = (data?.analytics ?? {}) as Record<string, unknown>
-  const dailyReturns = data?.dailyReturns ?? []
-  const bestDay = summary.bestDay as { date?: string; profit?: string } | null | undefined
-  const worstDay = summary.worstDay as { date?: string; profit?: string } | null | undefined
+  const summary = asRecord(data?.summary)
+  const analytics = asRecord(data?.analytics)
+  const dailyReturns = asRows(data?.dailyReturns)
+  const bestDay = asRecord(summary.bestDay)
+  const worstDay = asRecord(summary.worstDay)
+  const hasBestDay = Boolean(summary.bestDay && typeof summary.bestDay === 'object')
+  const hasWorstDay = Boolean(summary.worstDay && typeof summary.worstDay === 'object')
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -42,7 +69,13 @@ export function AdminPerformanceLiveWorkspace() {
         description="Live programme metrics from daily return runs and profit distributions — not marketing CMS drafts."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button type="button" size="sm" variant="glass" onClick={() => void refetch()} disabled={isFetching}>
+            <Button
+              type="button"
+              size="sm"
+              variant="glass"
+              onClick={() => void refetch()}
+              disabled={isFetching}
+            >
               Refresh
             </Button>
             <Button asChild size="sm">
@@ -54,7 +87,8 @@ export function AdminPerformanceLiveWorkspace() {
 
       {isError ? (
         <AdminPanel className="p-4 text-caption text-danger sm:p-5">
-          Could not load live performance from the API.
+          Could not load live performance from the API. Publishing is still available via Daily
+          Return.
         </AdminPanel>
       ) : null}
 
@@ -73,8 +107,18 @@ export function AdminPerformanceLiveWorkspace() {
               ['Win rate', pct(summary.winRatePct)],
               ['Active days', String(summary.activeDays ?? '—')],
               ['This month profit', money(summary.thisMonthProfit)],
-              ['Best day', bestDay ? `${bestDay.date ?? '—'} · ${money(bestDay.profit)}` : '—'],
-              ['Worst day', worstDay ? `${worstDay.date ?? '—'} · ${money(worstDay.profit)}` : '—'],
+              [
+                'Best day',
+                hasBestDay
+                  ? `${String(bestDay.date ?? '—')} · ${money(bestDay.profit)}`
+                  : '—',
+              ],
+              [
+                'Worst day',
+                hasWorstDay
+                  ? `${String(worstDay.date ?? '—')} · ${money(worstDay.profit)}`
+                  : '—',
+              ],
             ] as const
           ).map(([label, value]) => (
             <div key={label} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
@@ -98,7 +142,11 @@ export function AdminPerformanceLiveWorkspace() {
                   <div key={k}>
                     <dt className="text-fg-subtle">{k}</dt>
                     <dd className="mt-0.5 font-medium tabular-nums text-fg">
-                      {typeof v === 'object' ? JSON.stringify(v) : String(v)}
+                      {v == null
+                        ? '—'
+                        : typeof v === 'object'
+                          ? JSON.stringify(v)
+                          : String(v)}
                     </dd>
                   </div>
                 ))
@@ -123,26 +171,35 @@ export function AdminPerformanceLiveWorkspace() {
               </li>
             ) : (
               dailyReturns.slice(0, 30).map((row, i) => {
-                const r = row as {
-                  id?: string
-                  date?: string
-                  returnPct?: string
-                  status?: string
-                  totalDistributed?: string
-                  completedAt?: string
-                }
+                const id = typeof row.id === 'string' ? row.id : undefined
+                const date = typeof row.date === 'string' ? row.date : '—'
+                const status = typeof row.status === 'string' ? row.status : '—'
+                const completedAt =
+                  typeof row.completedAt === 'string'
+                    ? row.completedAt
+                    : typeof row.updatedAt === 'string'
+                      ? row.updatedAt
+                      : null
+                const when = completedAt ? safeDateTime(completedAt) : null
                 return (
-                  <li key={r.id ?? `${r.date}-${i}`} className="flex items-center justify-between gap-3 px-4 py-2.5 sm:px-5">
+                  <li
+                    key={id ?? `${date}-${i}`}
+                    className="flex items-center justify-between gap-3 px-4 py-2.5 sm:px-5"
+                  >
                     <div>
-                      <p className="text-body-sm font-medium text-fg">{r.date ?? '—'}</p>
+                      <p className="text-body-sm font-medium text-fg">{date}</p>
                       <p className="text-[11px] text-fg-subtle">
-                        {r.status ?? '—'}
-                        {r.completedAt ? ` · ${formatDateTime(r.completedAt)}` : ''}
+                        {status}
+                        {when ? ` · ${when}` : ''}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-body-sm tabular-nums text-fg">{pct(r.returnPct)}</p>
-                      <p className="text-[11px] tabular-nums text-fg-subtle">{money(r.totalDistributed)}</p>
+                      <p className="text-body-sm tabular-nums text-fg">
+                        {pct(row.returnPct ?? row.netReturnPct ?? row.computedReturnPct)}
+                      </p>
+                      <p className="text-[11px] tabular-nums text-fg-subtle">
+                        {money(row.totalDistributed ?? row.profit ?? row.amount)}
+                      </p>
                     </div>
                   </li>
                 )
@@ -153,7 +210,11 @@ export function AdminPerformanceLiveWorkspace() {
       </div>
 
       <AdminPanel className="p-4 text-caption text-fg-muted sm:p-5">
-        Marketing headline stats for the landing page are edited under{' '}
+        Publish settlements from{' '}
+        <Link className="text-accent-300 hover:underline" href={ROUTES.admin.dailyReturn}>
+          Daily Return
+        </Link>
+        . Marketing headline stats are edited under{' '}
         <Link className="text-accent-300 hover:underline" href={ROUTES.admin.frontendManagement}>
           Frontend Management
         </Link>
