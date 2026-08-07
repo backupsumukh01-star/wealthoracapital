@@ -30,6 +30,22 @@ import { useAdminUsers } from '@/features/admin/hooks'
 
 type FilterChip = 'all' | 'verified' | 'pending' | 'suspended' | 'rejected'
 
+/** Admin list payload — live finance fields from API. */
+type AdminUserListItem = User & {
+  countryName?: string | null
+  city?: string | null
+  walletBalance?: MoneyString
+  totalDeposited?: MoneyString
+  totalWithdrawn?: MoneyString
+  totalProfit?: MoneyString
+  walletBalanceInr?: string
+  totalDepositedInr?: string
+  totalWithdrawnInr?: string
+  totalProfitInr?: string
+  walletsLabel?: string
+  lastLoginAt?: string | null
+}
+
 type UserRow = {
   userId: string
   username: string
@@ -45,6 +61,10 @@ type UserRow = {
   totalDeposited: MoneyString
   totalWithdrawn: MoneyString
   totalProfit: MoneyString
+  walletBalanceInr: string
+  totalDepositedInr: string
+  totalWithdrawnInr: string
+  totalProfitInr: string
   registeredAt: string
 }
 
@@ -72,24 +92,57 @@ function matchesFilter(row: UserRow, filter: FilterChip) {
   }
 }
 
-function mapUser(u: User): UserRow {
+function asMoney(v: string | null | undefined, fallback = '0.00'): MoneyString {
+  if (v == null || v === '') return fallback as MoneyString
+  return String(v) as MoneyString
+}
+
+function mapUser(u: AdminUserListItem): UserRow {
+  const countryLabel =
+    u.countryName?.trim() ||
+    (u.country?.toUpperCase() === 'IN' ? 'India' : null) ||
+    u.country?.trim() ||
+    'India'
   return {
     userId: u.id,
     username: u.email.split('@')[0] || u.id,
     firstName: u.firstName,
     lastName: u.lastName,
     email: u.email,
-    phone: u.phone ?? '—',
-    country: u.country ?? '—',
+    phone: u.phone?.trim() || '—',
+    country: countryLabel,
     avatarInitials: userInitials(u),
     kycStatus: mapKycStatus(u.kycStatus),
     accountStatus: mapAccountStatus(u.status, u.kycStatus),
-    walletBalance: '0.00' as MoneyString,
-    totalDeposited: '0.00' as MoneyString,
-    totalWithdrawn: '0.00' as MoneyString,
-    totalProfit: '0.00' as MoneyString,
+    walletBalance: asMoney(u.walletBalance),
+    totalDeposited: asMoney(u.totalDeposited),
+    totalWithdrawn: asMoney(u.totalWithdrawn),
+    totalProfit: asMoney(u.totalProfit),
+    walletBalanceInr: u.walletBalanceInr ?? '0',
+    totalDepositedInr: u.totalDepositedInr ?? '0',
+    totalWithdrawnInr: u.totalWithdrawnInr ?? '0',
+    totalProfitInr: u.totalProfitInr ?? '0',
     registeredAt: u.createdAt,
   }
+}
+
+function DualMoney({
+  usd,
+  inr,
+  signed = false,
+}: {
+  usd: MoneyString
+  inr: string
+  signed?: boolean
+}) {
+  return (
+    <span className="flex flex-col gap-0.5">
+      <Money value={inr as MoneyString} currency="INR" size="sm" signed={signed} />
+      <span className="text-[11px] text-fg-subtle">
+        (<Money value={usd} size="sm" signed={signed} className="text-fg-subtle" />
+      </span>
+    </span>
+  )
 }
 
 function Avatar({ initials }: { initials: string }) {
@@ -134,7 +187,10 @@ export function AdminUsersWorkspace() {
     }
   }, [q, filter, hydrated])
 
-  const rows = useMemo(() => (data?.items ?? []).map(mapUser), [data?.items])
+  const rows = useMemo(
+    () => ((data?.items ?? []) as AdminUserListItem[]).map(mapUser),
+    [data?.items],
+  )
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -262,16 +318,16 @@ export function AdminUsersWorkspace() {
                       <AdminAccountPill status={u.accountStatus} />
                     </td>
                     <td className="px-4 py-3">
-                      <Money value={u.walletBalance} size="sm" />
+                      <DualMoney usd={u.walletBalance} inr={u.walletBalanceInr} />
                     </td>
                     <td className="px-4 py-3">
-                      <Money value={u.totalDeposited} size="sm" />
+                      <DualMoney usd={u.totalDeposited} inr={u.totalDepositedInr} />
                     </td>
                     <td className="px-4 py-3">
-                      <Money value={u.totalWithdrawn} size="sm" />
+                      <DualMoney usd={u.totalWithdrawn} inr={u.totalWithdrawnInr} />
                     </td>
                     <td className="px-4 py-3">
-                      <Money value={u.totalProfit} size="sm" signed />
+                      <DualMoney usd={u.totalProfit} inr={u.totalProfitInr} signed />
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-fg-muted">
                       {formatDateTime(u.registeredAt)}

@@ -5,11 +5,37 @@ import { toPublicUser } from '../models/user.mapper.js'
 import { sessionRepository } from '../repositories/session.repository.js'
 import { userRepository, type UserListFilters } from '../repositories/user.repository.js'
 import { badRequest, forbidden, notFound } from '../utils/errors.js'
+import { moneyDisplay } from '../utils/money.js'
 import { storage } from './storage/index.js'
 import { activityService } from './activity.service.js'
 import { auditService } from './audit.service.js'
 import { notificationService } from './notification.service.js'
 import { opsAlertService } from './ops-alert.service.js'
+import {
+  batchUserFinance,
+  mapPayoutMethod,
+  singleUserFinance,
+} from './admin-users-finance.js'
+
+const DEFAULT_COUNTRY = 'IN'
+const COUNTRY_LABELS: Record<string, string> = {
+  IN: 'India',
+  US: 'United States',
+  GB: 'United Kingdom',
+  AE: 'United Arab Emirates',
+  SG: 'Singapore',
+  AU: 'Australia',
+  CA: 'Canada',
+}
+
+function resolveCountry(code: string | null | undefined, fallbackFromKyc?: string | null) {
+  const raw = (code || fallbackFromKyc || DEFAULT_COUNTRY).trim().toUpperCase()
+  const country = raw.length === 2 ? raw : DEFAULT_COUNTRY
+  return {
+    country,
+    countryName: COUNTRY_LABELS[country] ?? country,
+  }
+}
 
 function snapshotUser(user: User) {
   return {
@@ -55,6 +81,11 @@ function assertCanManageTarget(
   }
 }
 
+function formatAddress(parts: Array<string | null | undefined>) {
+  const cleaned = parts.map((p) => p?.trim()).filter(Boolean) as string[]
+  return cleaned.length ? cleaned.join(', ') : null
+}
+
 export const adminUsersService = {
   async list(input: {
     filters: UserListFilters
@@ -74,14 +105,65 @@ export const adminUsersService = {
       sortOrder: input.sortOrder,
     })
 
-    const mapped = items.map((user) => ({
-      ...toPublicUser(user),
-      staffRole: user.staffRole,
-      referralCode: user.referralCode,
-      lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
-      deletedAt: user.deletedAt?.toISOString() ?? null,
-      avatarUrl: user.avatarKey ? storage.getPublicUrl(user.avatarKey) : null,
-    }))
+    const userIds = items.map((u) => u.id)
+    const [financeMap, profiles, latestKyc] = await Promise.all([
+      batchUserFinance(userIds),
+      userIds.length
+        ? prisma.userProfile.findMany({
+            where: { userId: { in: userIds } },
+            select: { userId: true, city: true, addressLine1: true, addressLine2: true, state: true },
+          })
+        : Promise.resolve([]),
+      userIds.length
+        ? prisma.kycSubmission.findMany({
+            where: { userId: { in: userIds } },
+            orderBy: { updatedAt: 'desc' },
+            distinct: ['userId'],
+            select: {
+              userId: true,
+              country: true,
+              city: true,
+              occupation: true,
+              dateOfBirth: true,
+              addressLine1: true,
+            },
+          })
+        : Promise.resolve([]),
+    ])
+
+    const profileByUser = new Map(profiles.map((p) => [p.userId, p]))
+    const kycByUser = new Map(latestKyc.map((k) => [k.userId, k]))
+
+    const mapped = items.map((user) => {
+      const finance = financeMap.get(user.id)!
+      const profile = profileByUser.get(user.id)
+      const kyc = kycByUser.get(user.id)
+      const { country, countryName } = resolveCountry(user.country, kyc?.country)
+      return {
+        ...toPublicUser(user),
+        phone: user.phone,
+        country,
+        countryName,
+        city: profile?.city ?? kyc?.city ?? null,
+        address: formatAddress([
+          profile?.addressLine1 ?? kyc?.addressLine1,
+          profile?.addressLine2,
+          profile?.city ?? kyc?.city,
+          profile?.state,
+        ]),
+        occupation: kyc?.occupation ?? null,
+        dateOfBirth: kyc?.dateOfBirth ? kyc.dateOfBirth.toISOString().slice(0, 10) : null,
+        staffRole: user.staffRole,
+        referralCode: user.referralCode,
+        lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+        deletedAt: user.deletedAt?.toISOString() ?? null,
+        avatarUrl: user.avatarKey ? storage.getPublicUrl(user.avatarKey) : null,
+        ...finance,
+        walletsLabel: finance.hasWallet
+          ? `${finance.walletCount} wallet${finance.walletCount === 1 ? '' : 's'}`
+          : 'Missing',
+      }
+    })
 
     return {
       items: mapped,
@@ -101,8 +183,130 @@ export const adminUsersService = {
     if (!user) {
       throw notFound('User not found.')
     }
+
+    const [finance, profile, kyc, payoutMethods, deposits, withdrawals, profits, tickets, sessions, activities] =
+      await Promise.all([
+        singleUserFinance(id),
+        prisma.userProfile.findUnique({ where: { userId: id } }),
+        prisma.kycSubmission.findFirst({
+          where: { userId: id },
+          orderBy: { updatedAt: 'desc' },
+          include: {
+            documents: {
+              where: { deletedAt: null },
+              orderBy: { createdAt: 'desc' },
+              take: 20,
+            },
+          },
+        }),
+        prisma.payoutMethod.findMany({
+          where: { userId: id, deletedAt: null },
+          orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+        }),
+        prisma.deposit.findMany({
+          where: { userId: id },
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+          include: { paymentMethod: { select: { id: true, name: true, type: true } } },
+        }),
+        prisma.withdrawal.findMany({
+          where: { userId: id },
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+          include: { payoutMethod: { select: { id: true, label: true, type: true, maskedDetails: true } } },
+        }),
+        prisma.profitDistribution.findMany({
+          where: { userId: id, isReversed: false },
+          orderBy: { date: 'desc' },
+          take: 100,
+          select: {
+            id: true,
+            date: true,
+            amount: true,
+            returnPct: true,
+            eligibleBalance: true,
+            balanceAfter: true,
+            createdAt: true,
+            runId: true,
+          },
+        }),
+        prisma.supportTicket.findMany({
+          where: { userId: id },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+          select: {
+            id: true,
+            subject: true,
+            status: true,
+            priority: true,
+            category: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+        prisma.session.findMany({
+          where: { userId: id },
+          orderBy: { createdAt: 'desc' },
+          take: 30,
+          select: {
+            id: true,
+            ip: true,
+            userAgent: true,
+            createdAt: true,
+            lastUsedAt: true,
+            revokedAt: true,
+            expiresAt: true,
+          },
+        }),
+        prisma.activityLog.findMany({
+          where: { userId: id },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+          select: {
+            id: true,
+            kind: true,
+            title: true,
+            description: true,
+            createdAt: true,
+            ip: true,
+          },
+        }),
+      ])
+
+    const { country, countryName } = resolveCountry(user.country, kyc?.country)
+    const mappedPayouts = payoutMethods.map(mapPayoutMethod)
+    const bankAccounts = mappedPayouts.filter(
+      (p) => p.type === 'BANK_TRANSFER' || p.type === 'UPI' || Boolean(p.bankName || p.upi),
+    )
+    const cryptoWallets = mappedPayouts.filter(
+      (p) =>
+        p.type === 'CRYPTO' ||
+        p.type === 'USDT_TRC20' ||
+        p.type === 'USDT_BEP20' ||
+        p.type === 'BTC' ||
+        p.type === 'ETH' ||
+        Boolean(p.address && p.network),
+    )
+
     return {
       ...toPublicUser(user),
+      phone: user.phone,
+      country,
+      countryName,
+      city: profile?.city ?? kyc?.city ?? null,
+      state: profile?.state ?? null,
+      postalCode: profile?.postalCode ?? kyc?.postalCode ?? null,
+      address: formatAddress([
+        profile?.addressLine1 ?? kyc?.addressLine1,
+        profile?.addressLine2,
+        profile?.city ?? kyc?.city,
+        profile?.state,
+        profile?.postalCode ?? kyc?.postalCode,
+      ]),
+      addressLine1: profile?.addressLine1 ?? kyc?.addressLine1 ?? null,
+      addressLine2: profile?.addressLine2 ?? null,
+      occupation: kyc?.occupation ?? null,
+      dateOfBirth: kyc?.dateOfBirth ? kyc.dateOfBirth.toISOString().slice(0, 10) : null,
       staffRole: user.staffRole,
       referralCode: user.referralCode,
       referredById: user.referredById,
@@ -111,6 +315,86 @@ export const adminUsersService = {
       twoFactorEnabled: user.twoFactorEnabled,
       deletedAt: user.deletedAt?.toISOString() ?? null,
       avatarUrl: user.avatarKey ? storage.getPublicUrl(user.avatarKey) : null,
+      ...finance,
+      walletsLabel: finance.hasWallet
+        ? `${finance.walletCount} wallet${finance.walletCount === 1 ? '' : 's'}`
+        : 'Missing',
+      bankAccounts,
+      cryptoWallets,
+      payoutMethods: mappedPayouts,
+      kyc: kyc
+        ? {
+            id: kyc.id,
+            status: kyc.status,
+            country: kyc.country,
+            dateOfBirth: kyc.dateOfBirth.toISOString().slice(0, 10),
+            occupation: kyc.occupation,
+            city: kyc.city,
+            addressLine1: kyc.addressLine1,
+            postalCode: kyc.postalCode,
+            submittedAt: kyc.submittedAt?.toISOString() ?? null,
+            reviewedAt: kyc.reviewedAt?.toISOString() ?? null,
+            documentCount: kyc.documents.length,
+          }
+        : null,
+      deposits: deposits.map((dep) => ({
+        id: dep.id,
+        reference: dep.reference,
+        amount: moneyDisplay(dep.amount),
+        creditedAmount: dep.creditedAmount != null ? moneyDisplay(dep.creditedAmount) : null,
+        status: dep.status,
+        createdAt: dep.createdAt.toISOString(),
+        reviewedAt: dep.reviewedAt?.toISOString() ?? null,
+        paymentMethod: dep.paymentMethod,
+      })),
+      withdrawals: withdrawals.map((w) => ({
+        id: w.id,
+        reference: w.reference,
+        amount: moneyDisplay(w.amount),
+        netAmount: moneyDisplay(w.netAmount),
+        status: w.status,
+        createdAt: w.createdAt.toISOString(),
+        paidAt: w.paidAt?.toISOString() ?? null,
+        destinationLabel: w.destinationLabel,
+        payoutMethod: w.payoutMethod,
+      })),
+      profitDistributions: profits.map((p) => ({
+        id: p.id,
+        date: p.date.toISOString().slice(0, 10),
+        amount: moneyDisplay(p.amount),
+        returnPct: p.returnPct.toFixed(6),
+        eligibleBalance: moneyDisplay(p.eligibleBalance),
+        balanceAfter: moneyDisplay(p.balanceAfter),
+        createdAt: p.createdAt.toISOString(),
+        runId: p.runId,
+      })),
+      supportTickets: tickets.map((t) => ({
+        id: t.id,
+        subject: t.subject,
+        status: t.status,
+        priority: t.priority,
+        category: t.category,
+        createdAt: t.createdAt.toISOString(),
+        updatedAt: t.updatedAt.toISOString(),
+      })),
+      loginHistory: sessions.map((s) => ({
+        id: s.id,
+        ip: s.ip,
+        userAgent: s.userAgent,
+        createdAt: s.createdAt.toISOString(),
+        lastUsedAt: s.lastUsedAt.toISOString(),
+        revokedAt: s.revokedAt?.toISOString() ?? null,
+        expiresAt: s.expiresAt.toISOString(),
+        active: !s.revokedAt && s.expiresAt > new Date(),
+      })),
+      activityTimeline: activities.map((a) => ({
+        id: a.id,
+        kind: a.kind,
+        title: a.title,
+        description: a.description,
+        at: a.createdAt.toISOString(),
+        ip: a.ip,
+      })),
     }
   },
 

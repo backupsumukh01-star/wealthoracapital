@@ -64,6 +64,61 @@ export function AdminUserDetailWorkspace() {
   const [roleDraft, setRoleDraft] = useState<'USER' | 'ADMIN' | 'SUPER_ADMIN'>('USER')
   const [staffRoleDraft, setStaffRoleDraft] = useState<string>('')
 
+  type AdminUserDetail = NonNullable<typeof user> & {
+    countryName?: string | null
+    city?: string | null
+    address?: string | null
+    occupation?: string | null
+    dateOfBirth?: string | null
+    lastLoginAt?: string | null
+    walletBalance?: MoneyString
+    availableBalance?: MoneyString
+    lockedBalance?: MoneyString
+    totalDeposited?: MoneyString
+    totalWithdrawn?: MoneyString
+    totalProfit?: MoneyString
+    investedAmount?: MoneyString
+    walletBalanceInr?: string
+    availableBalanceInr?: string
+    totalDepositedInr?: string
+    totalWithdrawnInr?: string
+    totalProfitInr?: string
+    bankAccounts?: Array<Record<string, unknown>>
+    cryptoWallets?: Array<Record<string, unknown>>
+    profitDistributions?: Array<{
+      id: string
+      date: string
+      amount: string
+      returnPct: string
+    }>
+    supportTickets?: Array<{
+      id: string
+      subject: string
+      status: string
+      priority: string
+      createdAt: string
+    }>
+    loginHistory?: Array<{
+      id: string
+      ip: string | null
+      userAgent: string | null
+      createdAt: string
+      lastUsedAt: string
+      active: boolean
+    }>
+    activityTimeline?: Array<{
+      id: string
+      kind: string
+      title: string
+      description: string | null
+      at: string
+    }>
+    deposits?: AdminDepositRow[]
+    withdrawals?: AdminWithdrawalRow[]
+  }
+
+  const detail = user as AdminUserDetail | undefined
+
   useEffect(() => {
     if (!user) return
     setRoleDraft(user.role)
@@ -222,19 +277,28 @@ export function AdminUserDetailWorkspace() {
 
   const deposits = useMemo(() => {
     const items = (depositsData?.items ?? []) as AdminDepositRow[]
-    return items.filter((d) => d.user?.id === userId)
-  }, [depositsData, userId])
+    const filtered = items.filter((d) => d.user?.id === userId)
+    if (filtered.length) return filtered
+    return (detail?.deposits ?? []) as AdminDepositRow[]
+  }, [detail?.deposits, depositsData, userId])
 
   const withdrawals = useMemo(() => {
     const items = (withdrawalsData?.items ?? []) as AdminWithdrawalRow[]
-    return items.filter((w) => w.user?.id === userId)
-  }, [withdrawalsData, userId])
+    const filtered = items.filter((w) => w.user?.id === userId)
+    if (filtered.length) return filtered
+    return (detail?.withdrawals ?? []) as AdminWithdrawalRow[]
+  }, [detail?.withdrawals, withdrawalsData, userId])
 
-  const returns = returnsData?.items ?? []
+  const returns = detail?.profitDistributions?.length
+    ? detail.profitDistributions
+    : returnsData?.items ?? []
   const trades = tradesData?.items ?? []
-  const timeline = (activityData?.items ?? []).filter(
-    (e) => e.title.toLowerCase().includes(userId.toLowerCase()) || e.id.includes(userId),
-  )
+  const timeline =
+    detail?.activityTimeline?.length
+      ? detail.activityTimeline
+      : (activityData?.items ?? []).filter(
+          (e) => e.title.toLowerCase().includes(userId.toLowerCase()) || e.id.includes(userId),
+        )
 
   if (isLoading) {
     return (
@@ -259,7 +323,13 @@ export function AdminUserDetailWorkspace() {
   const accountStatus = mapAccountStatus(user.status, user.kycStatus)
   const showMarketLists = accountStatus === 'VERIFIED' || kycStatus === 'APPROVED'
   const username = user.email.split('@')[0] || user.id
-  const available = (walletRow?.availableBalance ?? walletRow?.balance ?? '0.00') as MoneyString
+  const available = (detail?.availableBalance ??
+    walletRow?.availableBalance ??
+    walletRow?.balance ??
+    '0.00') as MoneyString
+  const walletBalance = (detail?.walletBalance ?? available) as MoneyString
+  const lockedBalance = (detail?.lockedBalance ?? walletRow?.lockedBalance ?? '0.00') as MoneyString
+  const ledgerBalance = (walletRow?.balance ?? detail?.walletBalance ?? '0.00') as MoneyString
   const kycDocuments = (kycDetail?.documents ?? []) as Array<{
     id: string
     kind?: string
@@ -274,6 +344,11 @@ export function AdminUserDetailWorkspace() {
     status?: string
   }>
   const kycOwnerId = userId
+  const countryLabel =
+    detail?.countryName?.trim() ||
+    (user.country?.toUpperCase() === 'IN' ? 'India' : null) ||
+    user.country?.trim() ||
+    'India'
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -334,20 +409,30 @@ export function AdminUserDetailWorkspace() {
             {[
               {
                 label: 'Wallet balance',
-                node: <Money value={available} size="md" />,
+                node: (
+                  <span className="flex flex-col gap-0.5">
+                    <Money
+                      value={(detail?.walletBalanceInr ?? '0') as MoneyString}
+                      currency="INR"
+                      size="md"
+                    />
+                    <span className="text-caption text-fg-subtle">
+                      (<Money value={walletBalance} size="sm" className="text-fg-subtle" />)
+                    </span>
+                  </span>
+                ),
               },
               {
                 label: 'Locked balance',
                 node: (
-                  <Money
-                    value={(walletRow?.lockedBalance ?? '0.00') as MoneyString}
-                    size="md"
-                  />
+                  <span className="flex flex-col gap-0.5">
+                    <Money value={lockedBalance} size="md" />
+                  </span>
                 ),
               },
               {
                 label: 'Ledger balance',
-                node: <Money value={(walletRow?.balance ?? '0.00') as MoneyString} size="md" />,
+                node: <Money value={ledgerBalance} size="md" />,
               },
               {
                 label: 'Email verified',
@@ -373,11 +458,20 @@ export function AdminUserDetailWorkspace() {
                 ['Username', `@${username}`],
                 ['Email', user.email],
                 ['Phone', user.phone ?? '—'],
-                ['Country', user.country ?? '—'],
+                ['Country', countryLabel],
+                ['City', detail?.city ?? '—'],
+                ['Address', detail?.address ?? '—'],
+                ['Occupation', detail?.occupation ?? '—'],
+                ['Date of birth', detail?.dateOfBirth ?? '—'],
                 ['Timezone', user.timezone],
                 ['Role', user.role],
                 ['Staff role', user.staffRole ?? '—'],
                 ['Registered', formatDateTime(user.createdAt)],
+                ['Last login', detail?.lastLoginAt ? formatDateTime(detail.lastLoginAt) : '—'],
+                ['Total deposited', `${detail?.totalDepositedInr ?? '0'} INR / $${detail?.totalDeposited ?? '0.00'}`],
+                ['Total withdrawn', `${detail?.totalWithdrawnInr ?? '0'} INR / $${detail?.totalWithdrawn ?? '0.00'}`],
+                ['Total profit', `${detail?.totalProfitInr ?? '0'} INR / $${detail?.totalProfit ?? '0.00'}`],
+                ['Active investment', `$${detail?.investedAmount ?? '0.00'}`],
               ].map(([k, v]) => (
                 <div key={k}>
                   <dt className="text-fg-subtle">{k}</dt>
@@ -385,6 +479,96 @@ export function AdminUserDetailWorkspace() {
                 </div>
               ))}
             </dl>
+          </AdminPanel>
+
+          <AdminPanel>
+            <AdminPanelHeader title="Bank accounts" />
+            {(detail?.bankAccounts?.length ?? 0) === 0 ? (
+              <EmptyState title="No bank accounts" description="Investor has not saved bank or UPI payout methods." />
+            ) : (
+              <ul className="divide-y divide-white/[0.05] px-4 sm:px-5">
+                {detail!.bankAccounts!.map((b) => (
+                  <li key={String(b.id)} className="space-y-1 py-3 text-caption">
+                    <p className="font-medium text-fg">{String(b.label ?? b.bankName ?? 'Bank')}</p>
+                    <p className="text-fg-muted">
+                      {String(b.accountHolder ?? '—')} · {String(b.bankName ?? '—')}
+                    </p>
+                    <p className="tabular-nums text-fg">
+                      Account {String(b.accountNumber ?? b.accountNumberMasked ?? '—')}
+                    </p>
+                    <p className="text-fg-subtle">
+                      IFSC {String(b.ifsc ?? '—')}
+                      {b.upi ? ` · UPI ${String(b.upi)}` : ''}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </AdminPanel>
+
+          <AdminPanel>
+            <AdminPanelHeader title="Crypto wallets" />
+            {(detail?.cryptoWallets?.length ?? 0) === 0 ? (
+              <EmptyState title="No crypto wallets" description="Investor has not saved crypto payout addresses." />
+            ) : (
+              <ul className="divide-y divide-white/[0.05] px-4 sm:px-5">
+                {detail!.cryptoWallets!.map((c) => (
+                  <li key={String(c.id)} className="space-y-1 py-3 text-caption">
+                    <p className="font-medium text-fg">{String(c.label ?? c.coin ?? 'Wallet')}</p>
+                    <p className="text-fg-muted">
+                      {String(c.network ?? '—')} · {String(c.coin ?? '—')}
+                    </p>
+                    <p className="break-all font-mono text-[11px] text-fg">{String(c.address ?? '—')}</p>
+                    {typeof c.qrDataUrl === 'string' && c.qrDataUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={c.qrDataUrl} alt="Wallet QR" className="mt-2 size-24 rounded-md border border-white/10" />
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </AdminPanel>
+
+          <AdminPanel>
+            <AdminPanelHeader title="Support tickets" />
+            {(detail?.supportTickets?.length ?? 0) === 0 ? (
+              <EmptyState title="No tickets" description="No support tickets for this investor." />
+            ) : (
+              <ul className="divide-y divide-white/[0.05] px-4 sm:px-5">
+                {detail!.supportTickets!.map((t) => (
+                  <li key={t.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-caption">
+                    <div>
+                      <p className="font-medium text-fg">{t.subject}</p>
+                      <p className="text-fg-subtle">
+                        {t.status} · {t.priority}
+                      </p>
+                    </div>
+                    <p className="text-fg-subtle">{formatDateTime(t.createdAt)}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </AdminPanel>
+
+          <AdminPanel>
+            <AdminPanelHeader title="Login history" />
+            {(detail?.loginHistory?.length ?? 0) === 0 ? (
+              <EmptyState title="No sessions" description="No login sessions recorded yet." />
+            ) : (
+              <ul className="divide-y divide-white/[0.05] px-4 sm:px-5">
+                {detail!.loginHistory!.map((s) => (
+                  <li key={s.id} className="py-3 text-caption">
+                    <p className="font-medium text-fg">
+                      {s.ip ?? 'Unknown IP'} {s.active ? '· Active' : ''}
+                    </p>
+                    <p className="truncate text-fg-subtle">{s.userAgent ?? '—'}</p>
+                    <p className="mt-0.5 text-fg-subtle">
+                      Started {formatDateTime(s.createdAt)} · Last used {formatDateTime(s.lastUsedAt)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </AdminPanel>
         </TabsContent>
 
@@ -535,11 +719,12 @@ export function AdminUserDetailWorkspace() {
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[
               { label: 'Available balance', value: available },
+              { label: 'Locked balance', value: lockedBalance },
+              { label: 'Ledger balance', value: ledgerBalance },
               {
-                label: 'Locked balance',
-                value: (walletRow?.lockedBalance ?? '0.00') as MoneyString,
+                label: 'Computed wallet (dep+profit−wd)',
+                value: walletBalance,
               },
-              { label: 'Ledger balance', value: (walletRow?.balance ?? '0.00') as MoneyString },
             ].map((s) => (
               <AdminPanel key={s.label} className="p-4 sm:p-5" glow>
                 <p className="text-caption text-fg-muted">{s.label}</p>
@@ -554,8 +739,8 @@ export function AdminUserDetailWorkspace() {
         <TabsContent value="returns">
           <AdminPanel>
             <AdminPanelHeader
-              title="Return history"
-              description="Platform daily return runs (global). Investor-specific ledgers live in performance API."
+              title="Profit distribution history"
+              description="Approved return distributions credited to this investor."
             />
             {!showMarketLists || returns.length === 0 ? (
               <EmptyState
@@ -564,27 +749,44 @@ export function AdminUserDetailWorkspace() {
               />
             ) : (
               <ul className="divide-y divide-white/[0.05] px-4 sm:px-5">
-                {returns.map((r) => (
-                  <li
-                    key={r.id}
-                    className="flex flex-wrap items-center justify-between gap-3 py-3 text-caption"
-                  >
-                    <div>
-                      <p className="font-medium text-fg">{r.date}</p>
-                      <p className="text-fg-subtle">
-                        {r.status} · {r.processedWallets}/{r.eligibleWallets} wallets
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-profit">+{r.returnPct}%</p>
-                      <Money
-                        value={r.totalDistributed as MoneyString}
-                        size="sm"
-                        className="text-fg-muted"
-                      />
-                    </div>
-                  </li>
-                ))}
+                {returns.map((r) => {
+                  const row = r as {
+                    id: string
+                    date: string
+                    amount?: string
+                    returnPct?: string
+                    status?: string
+                    processedWallets?: number
+                    eligibleWallets?: number
+                    totalDistributed?: string
+                  }
+                  return (
+                    <li
+                      key={row.id}
+                      className="flex flex-wrap items-center justify-between gap-3 py-3 text-caption"
+                    >
+                      <div>
+                        <p className="font-medium text-fg">{row.date}</p>
+                        <p className="text-fg-subtle">
+                          {row.status
+                            ? `${row.status} · ${row.processedWallets}/${row.eligibleWallets} wallets`
+                            : `Distribution · ${row.returnPct ?? '—'}%`}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        {row.returnPct ? (
+                          <p className="text-profit">+{row.returnPct}%</p>
+                        ) : null}
+                        <Money
+                          value={(row.amount ?? row.totalDistributed ?? '0.00') as MoneyString}
+                          size="sm"
+                          className="text-fg-muted"
+                          signed
+                        />
+                      </div>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </AdminPanel>
@@ -802,16 +1004,26 @@ export function AdminUserDetailWorkspace() {
                       kind: 'ACCOUNT_CREATED',
                     },
                   ]
-              ).map((e) => (
-                <li key={e.id} className="relative pb-5 pl-6 last:pb-2">
+              ).map((e) => {
+                const row = e as {
+                  id: string
+                  at?: string
+                  createdAt?: string
+                  title: string
+                  kind: string
+                }
+                const when = row.at ?? row.createdAt ?? user.createdAt
+                return (
+                <li key={row.id} className="relative pb-5 pl-6 last:pb-2">
                   <span className="absolute -left-[5px] top-1.5 size-2.5 rounded-full bg-accent-400 ring-4 ring-base" />
-                  <p className="text-body-sm font-medium text-fg">{e.title}</p>
-                  <p className="text-caption text-fg-muted">{e.kind}</p>
+                  <p className="text-body-sm font-medium text-fg">{row.title}</p>
+                  <p className="text-caption text-fg-muted">{row.kind}</p>
                   <p className="mt-0.5 text-[11px] tabular-nums text-fg-subtle">
-                    {formatDateTime(e.at)}
+                    {formatDateTime(when)}
                   </p>
                 </li>
-              ))}
+                )
+              })}
             </ol>
           </AdminPanel>
         </TabsContent>
