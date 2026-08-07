@@ -7,6 +7,7 @@ import { Section } from '@/components/common/section'
 import { SectionHeader } from '@/components/common/page-header'
 import { HpcCharts } from '@/components/marketing/hpc-charts'
 import { HistoricalNote } from '@/components/marketing/historical-note'
+import { ReportPreviewModal } from '@/components/marketing/report-preview-modal'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { CountUp } from '@/components/motion/count-up'
 import { Badge } from '@/components/ui/badge'
@@ -363,6 +364,39 @@ function TradesInfinite() {
 
 function ReportDownloads() {
   const { data, isLoading, isError } = useDemoReportCatalog()
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewId, setPreviewId] = useState<string | null>(null)
+
+  const previewItems = useMemo(() => {
+    if (!data) return []
+    const fromReports = (data.reports ?? [])
+      .filter((r) => r.previewUrl || r.href.endsWith('.html'))
+      .map((r) => ({
+        id: r.id,
+        title: r.title.replace(/^Download\s+/i, ''),
+        previewUrl: r.previewUrl || r.href.replace(/\.pdf$/i, '.html'),
+        downloadUrl: r.href,
+        fileName: r.fileName || r.href.split('/').pop() || 'report.pdf',
+      }))
+    const fromPreviews = (data.previews ?? []).map((p) => ({
+      id: p.id,
+      title: p.title,
+      previewUrl: p.href,
+      downloadUrl: p.download,
+      fileName: p.download.split('/').pop() || 'report.pdf',
+    }))
+    // Prefer unique by preview URL; recent previews then library order for carousel
+    const map = new Map<string, (typeof fromReports)[number]>()
+    for (const item of [...fromPreviews, ...fromReports]) {
+      if (!map.has(item.previewUrl)) map.set(item.previewUrl, item)
+    }
+    return [...map.values()]
+  }, [data])
+
+  const openPreview = (id: string) => {
+    setPreviewId(id)
+    setPreviewOpen(true)
+  }
 
   if (isLoading) {
     return (
@@ -379,6 +413,13 @@ function ReportDownloads() {
 
   return (
     <div className="space-y-8">
+      <ReportPreviewModal
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        items={previewItems}
+        initialId={previewId}
+      />
+
       {data.previews?.length ? (
         <div>
           <h3 className="text-body-sm font-medium text-fg">Recent Reports</h3>
@@ -390,11 +431,9 @@ function ReportDownloads() {
               >
                 <p className="text-body-sm font-medium text-fg">{p.title}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <Button asChild size="sm" variant="glass">
-                    <a href={p.href} target="_blank" rel="noreferrer">
-                      <Eye aria-hidden />
-                      Preview
-                    </a>
+                  <Button type="button" size="sm" variant="glass" onClick={() => openPreview(p.id)}>
+                    <Eye aria-hidden />
+                    Preview
                   </Button>
                   <Button asChild size="sm" variant="secondary">
                     <a href={p.download} download>
@@ -410,28 +449,43 @@ function ReportDownloads() {
       ) : null}
 
       <ul className="grid gap-3 sm:grid-cols-2">
-        {data.reports.map((doc) => (
-          <li
-            key={doc.id}
-            className="flex h-full flex-col justify-between rounded-xl border border-white/10 bg-white/[0.03] p-4"
-          >
-            <div>
-              <p className="text-caption uppercase tracking-wider text-fg-subtle">
-                {doc.category || doc.format}
-              </p>
-              <h3 className="mt-1 text-body-sm font-medium text-fg">{doc.title}</h3>
-              <p className="mt-1 text-caption text-fg-muted">{doc.description}</p>
-            </div>
-            <div className="mt-3 flex justify-center sm:justify-start">
-              <Button asChild size="sm" variant="glass" className="w-full sm:w-auto">
-                <a href={doc.href} target="_blank" rel="noreferrer" download={doc.fileName}>
-                  <Download aria-hidden />
-                  Download
-                </a>
-              </Button>
-            </div>
-          </li>
-        ))}
+        {data.reports.map((doc) => {
+          const canPreview = Boolean(doc.previewUrl || doc.format !== 'csv')
+          return (
+            <li
+              key={doc.id}
+              className="flex h-full flex-col justify-between rounded-xl border border-white/10 bg-white/[0.03] p-4"
+            >
+              <div>
+                <p className="text-caption uppercase tracking-wider text-fg-subtle">
+                  {doc.category || doc.format}
+                </p>
+                <h3 className="mt-1 text-body-sm font-medium text-fg">{doc.title}</h3>
+                <p className="mt-1 text-caption text-fg-muted">{doc.description}</p>
+              </div>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-start">
+                {canPreview ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="glass"
+                    className="w-full sm:w-auto"
+                    onClick={() => openPreview(doc.id)}
+                  >
+                    <Eye aria-hidden />
+                    Preview
+                  </Button>
+                ) : null}
+                <Button asChild size="sm" variant="secondary" className="w-full sm:w-auto">
+                  <a href={doc.href} download={doc.fileName}>
+                    <Download aria-hidden />
+                    Download
+                  </a>
+                </Button>
+              </div>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )

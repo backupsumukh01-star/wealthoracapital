@@ -107,6 +107,8 @@ export interface DemoReportCatalogItem {
   href: string
   fileName: string
   category?: string
+  /** In-app HTML preview URL (never triggers download). */
+  previewUrl?: string
 }
 
 export interface DemoReportPreview {

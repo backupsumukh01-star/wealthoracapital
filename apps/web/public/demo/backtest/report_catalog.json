@@ -1,6 +1,7 @@
 {
-  "generatedAt": "2026-08-07T00:13:00.808Z",
+  "generatedAt": "2026-08-07T00:39:03.836Z",
   "seed": "growzy-3y-backtest-v1",
+  "version": "2.0.0",
   "range": {
     "startDate": "2023-08-07",
     "endDate": "2026-08-05"
@@ -10,9 +11,10 @@
     {
       "id": "daily-pdf",
       "title": "Download Daily Reports",
-      "description": "Latest daily desk summary",
+      "description": "Daily desk summary pack",
       "format": "pdf",
       "href": "/demo/backtest/reports/daily-report.pdf",
+      "previewUrl": "/demo/backtest/reports/daily-report.html",
       "fileName": "daily-report.pdf",
       "category": "Daily"
     },
@@ -22,6 +24,7 @@
       "description": "Weekly performance pack",
       "format": "pdf",
       "href": "/demo/backtest/reports/weekly-report.pdf",
+      "previewUrl": "/demo/backtest/reports/weekly-report.html",
       "fileName": "weekly-report.pdf",
       "category": "Weekly"
     },
@@ -31,6 +34,7 @@
       "description": "Latest month compound return",
       "format": "pdf",
       "href": "/demo/backtest/reports/monthly-report.pdf",
+      "previewUrl": "/demo/backtest/reports/monthly-report.html",
       "fileName": "monthly-report.pdf",
       "category": "Monthly"
     },
@@ -40,6 +44,7 @@
       "description": "Latest quarter compound return",
       "format": "pdf",
       "href": "/demo/backtest/reports/quarterly-report.pdf",
+      "previewUrl": "/demo/backtest/reports/quarterly-report.html",
       "fileName": "quarterly-report.pdf",
       "category": "Quarterly"
     },
@@ -49,6 +54,7 @@
       "description": "Latest year compound return",
       "format": "pdf",
       "href": "/demo/backtest/reports/yearly-report.pdf",
+      "previewUrl": "/demo/backtest/reports/yearly-report.html",
       "fileName": "yearly-report.pdf",
       "category": "Yearly"
     },
@@ -58,6 +64,7 @@
       "description": "Full programme summary",
       "format": "pdf",
       "href": "/demo/backtest/reports/complete-3year-report.pdf",
+      "previewUrl": "/demo/backtest/reports/complete-3year-report.html",
       "fileName": "complete-3year-report.pdf",
       "category": "Yearly"
     },
@@ -67,6 +74,7 @@
       "description": "Full trade blotter",
       "format": "csv",
       "href": "/demo/backtest/trades.csv",
+      "previewUrl": "/demo/backtest/reports/all-trades.html",
       "fileName": "trades.csv",
       "category": "Other"
     },
@@ -76,6 +84,7 @@
       "description": "Trade blotter summary",
       "format": "pdf",
       "href": "/demo/backtest/reports/all-trades.pdf",
+      "previewUrl": "/demo/backtest/reports/all-trades.html",
       "fileName": "all-trades.pdf",
       "category": "Other"
     },
@@ -85,6 +94,7 @@
       "description": "Headline KPIs",
       "format": "pdf",
       "href": "/demo/backtest/reports/performance-summary.pdf",
+      "previewUrl": "/demo/backtest/reports/performance-summary.html",
       "fileName": "performance-summary.pdf",
       "category": "Other"
     }
