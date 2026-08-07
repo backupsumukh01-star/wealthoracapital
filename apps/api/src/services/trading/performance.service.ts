@@ -165,6 +165,64 @@ export const performanceService = {
     return { range, points }
   },
 
+  /**
+   * Programme monthly compounds from published DailyReturn rows (desk settlements).
+   * Used for public marketing when DailyReturnRun rows are sparse/absent (e.g. seeded backtest).
+   */
+  async monthlyFromDailyReturns() {
+    const days = await prisma.dailyReturn.findMany({
+      where: { status: { in: ['PUBLISHED', 'DISTRIBUTED'] } },
+      orderBy: { date: 'asc' },
+      select: {
+        date: true,
+        netReturnPct: true,
+        computedReturnPct: true,
+        tradeCount: true,
+        winCount: true,
+        lossCount: true,
+      },
+    })
+    const byMonth = new Map<
+      string,
+      { pcts: string[]; tradeCount: number; tradingDays: number; wins: number; losses: number }
+    >()
+    for (const row of days) {
+      const key = dayKey(row.date).slice(0, 7)
+      const entry = byMonth.get(key) ?? {
+        pcts: [],
+        tradeCount: 0,
+        tradingDays: 0,
+        wins: 0,
+        losses: 0,
+      }
+      entry.pcts.push(String(row.netReturnPct ?? row.computedReturnPct ?? 0))
+      entry.tradeCount += row.tradeCount
+      entry.tradingDays += 1
+      entry.wins += row.winCount
+      entry.losses += row.lossCount
+      byMonth.set(key, entry)
+    }
+    return [...byMonth.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, v]) => {
+        const returnPct = compoundReturnPct(v.pcts)
+        return {
+          month,
+          returnPct: returnPct.toFixed(6),
+          profit: moneyDisplay(0),
+          tradingDays: v.tradingDays,
+          tradeCount: v.tradeCount,
+          winRatePct:
+            v.wins + v.losses > 0
+              ? d(v.wins)
+                  .div(v.wins + v.losses)
+                  .mul(100)
+                  .toFixed(2)
+              : '0.00',
+        }
+      })
+  },
+
   async monthly(userId?: string) {
     const profitByMonth = new Map<string, ReturnType<typeof d>>()
     const pctsByMonth = new Map<string, Array<string | number>>()
@@ -205,7 +263,7 @@ export const performanceService = {
     }
 
     const months = new Set([...profitByMonth.keys(), ...pctsByMonth.keys()])
-    return [...months]
+    let rows = [...months]
       .sort((a, b) => a.localeCompare(b))
       .map((month) => {
         const profit = profitByMonth.get(month) ?? d(0)
@@ -217,31 +275,173 @@ export const performanceService = {
           profit: moneyDisplay(profit),
         }
       })
+
+    // Public programme view: prefer published DailyReturn history when runs/distributions are thin.
+    if (!userId) {
+      const fromDays = await this.monthlyFromDailyReturns()
+      const liveSignal = rows.filter((r) => Math.abs(Number(r.returnPct)) > 0.0001).length
+      if (fromDays.length > liveSignal) {
+        rows = fromDays.map((r) => ({
+          month: r.month,
+          returnPct: r.returnPct,
+          profit: r.profit,
+        }))
+      }
+    }
+
+    return rows
   },
 
   async yearly(userId?: string) {
     const monthly = await this.monthly(userId)
+    const fromDays = !userId ? await this.monthlyFromDailyReturns() : []
+    const enrich = new Map(fromDays.map((r) => [r.month, r]))
+
     const profitByYear = new Map<string, ReturnType<typeof d>>()
     const pctsByYear = new Map<string, string[]>()
+    const daysByYear = new Map<string, number>()
+    const tradesByYear = new Map<string, number>()
+    const winsByYear = new Map<string, number>()
+    const lossesByYear = new Map<string, number>()
+
     for (const row of monthly) {
       const year = row.month.slice(0, 4)
       profitByYear.set(year, (profitByYear.get(year) ?? d(0)).plus(d(row.profit)))
       const list = pctsByYear.get(year) ?? []
       list.push(row.returnPct)
       pctsByYear.set(year, list)
+      const extra = enrich.get(row.month)
+      if (extra) {
+        daysByYear.set(year, (daysByYear.get(year) ?? 0) + extra.tradingDays)
+        tradesByYear.set(year, (tradesByYear.get(year) ?? 0) + extra.tradeCount)
+        // Approximate win/loss share from monthly winRate when available
+        const wr = Number(extra.winRatePct) / 100
+        const wins = Math.round(extra.tradeCount * wr)
+        winsByYear.set(year, (winsByYear.get(year) ?? 0) + wins)
+        lossesByYear.set(year, (lossesByYear.get(year) ?? 0) + (extra.tradeCount - wins))
+      }
     }
+
+    // Prefer exact trade counts from Trade table when public
+    if (!userId) {
+      const closed = await prisma.trade.findMany({
+        where: { status: 'CLOSED', isPublic: true },
+        select: { tradeDate: true, outcome: true },
+      })
+      daysByYear.clear()
+      tradesByYear.clear()
+      winsByYear.clear()
+      lossesByYear.clear()
+      // trading days from DailyReturn
+      const dayRows = await prisma.dailyReturn.findMany({
+        where: { status: { in: ['PUBLISHED', 'DISTRIBUTED'] } },
+        select: { date: true },
+      })
+      for (const row of dayRows) {
+        const year = dayKey(row.date).slice(0, 4)
+        daysByYear.set(year, (daysByYear.get(year) ?? 0) + 1)
+      }
+      for (const t of closed) {
+        const year = dayKey(t.tradeDate).slice(0, 4)
+        tradesByYear.set(year, (tradesByYear.get(year) ?? 0) + 1)
+        if (t.outcome === 'WIN') winsByYear.set(year, (winsByYear.get(year) ?? 0) + 1)
+        if (t.outcome === 'LOSS') lossesByYear.set(year, (lossesByYear.get(year) ?? 0) + 1)
+      }
+    }
+
     return [...profitByYear.keys()]
       .sort((a, b) => a.localeCompare(b))
       .map((year) => {
         const profit = profitByYear.get(year) ?? d(0)
         const pcts = pctsByYear.get(year) ?? []
         const returnPct = pcts.length > 0 ? compoundReturnPct(pcts) : d(0)
+        const trades = tradesByYear.get(year) ?? 0
+        const wins = winsByYear.get(year) ?? 0
+        const losses = lossesByYear.get(year) ?? 0
         return {
           year,
           returnPct: returnPct.toFixed(6),
           profit: moneyDisplay(profit),
+          tradingDays: daysByYear.get(year) ?? 0,
+          tradeCount: trades,
+          winRatePct:
+            wins + losses > 0
+              ? d(wins)
+                  .div(wins + losses)
+                  .mul(100)
+                  .toFixed(2)
+              : '0.00',
         }
       })
+  },
+
+  /** Public marketing track-record meta derived from DailyReturn + trades. */
+  async publicMeta() {
+    const days = await prisma.dailyReturn.findMany({
+      where: { status: { in: ['PUBLISHED', 'DISTRIBUTED'] } },
+      orderBy: { date: 'asc' },
+      select: { date: true, netReturnPct: true, computedReturnPct: true },
+    })
+    const monthly = await this.monthlyFromDailyReturns()
+    const closed = await prisma.trade.count({ where: { status: 'CLOSED', isPublic: true } })
+    const wins = await prisma.trade.count({
+      where: { status: 'CLOSED', isPublic: true, outcome: 'WIN' },
+    })
+
+    let equity = d(100)
+    let peak = d(100)
+    let maxDd = d(0)
+    for (const row of days) {
+      const pct = d(row.netReturnPct ?? row.computedReturnPct ?? 0)
+      equity = equity.mul(d(1).plus(pct.div(100)))
+      if (equity.gt(peak)) peak = equity
+      const dd = peak.gt(0) ? peak.minus(equity).div(peak).mul(100) : d(0)
+      if (dd.gt(maxDd)) maxDd = dd
+    }
+
+    const startDate = days[0] ? dayKey(days[0].date) : null
+    const endDate = days.length ? dayKey(days[days.length - 1]!.date) : null
+    let years = 3
+    if (startDate && endDate) {
+      const ms = Date.parse(endDate) - Date.parse(startDate)
+      years = Math.max(1 / 12, ms / (365.25 * 24 * 60 * 60 * 1000))
+    }
+    const totalReturnPct = equity.minus(100)
+    const cagr =
+      years > 0
+        ? d(Math.pow(Number(equity.div(100).toString()), 1 / years) - 1).mul(100)
+        : d(0)
+    const avgMonthly =
+      monthly.length > 0
+        ? monthly.reduce((acc, m) => acc.plus(d(m.returnPct)), d(0)).div(monthly.length)
+        : d(0)
+
+    let bestDay: { date: string; returnPct: string } | null = null
+    let worstDay: { date: string; returnPct: string } | null = null
+    for (const row of days) {
+      const pct = Number(row.netReturnPct ?? row.computedReturnPct ?? 0)
+      const point = { date: dayKey(row.date), returnPct: pct.toFixed(6) }
+      if (!bestDay || pct > Number(bestDay.returnPct)) bestDay = point
+      if (!worstDay || pct < Number(worstDay.returnPct)) worstDay = point
+    }
+
+    return {
+      tradingDayCount: days.length,
+      tradeCount: closed,
+      winRatePct: closed ? d(wins).div(closed).mul(100).toFixed(2) : '0.00',
+      monthCount: monthly.length,
+      startDate,
+      endDate,
+      startingEquity: '100',
+      endingEquity: equity.toFixed(4),
+      totalReturnPct: totalReturnPct.toFixed(2),
+      cagrPct: cagr.toFixed(2),
+      avgMonthlyReturnPct: avgMonthly.toFixed(2),
+      maxDrawdownPct: maxDd.toFixed(2),
+      bestDay,
+      worstDay,
+      yearsOfPerformance: Number(years.toFixed(2)),
+    }
   },
 
   async portfolio(userId: string) {

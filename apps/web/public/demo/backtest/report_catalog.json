@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-06T23:20:58.095Z",
+  "generatedAt": "2026-08-07T00:13:00.808Z",
   "seed": "growzy-3y-backtest-v1",
   "range": {
     "startDate": "2023-08-07",
@@ -8,20 +8,105 @@
   "disclaimer": "Synthetic demo data for UI presentation only. Not live trading history.",
   "reports": [
     {
-      "id": "backtest-summary-html",
-      "title": "3-Year Backtest Summary",
-      "description": "HTML overview of monthly returns and headline stats.",
-      "format": "html",
-      "href": "/demo/backtest/reports/backtest-summary.html",
-      "fileName": "backtest-summary.html"
+      "id": "daily-pdf",
+      "title": "Download Daily Report PDF",
+      "description": "Latest daily desk summary",
+      "format": "pdf",
+      "href": "/demo/backtest/reports/daily-report.pdf",
+      "fileName": "daily-report.pdf",
+      "category": "Daily"
     },
     {
-      "id": "backtest-summary-pdf",
-      "title": "3-Year Backtest Summary (PDF)",
-      "description": "Single-page PDF snapshot of the synthetic track record.",
+      "id": "weekly-pdf",
+      "title": "Download Weekly Report PDF",
+      "description": "Weekly performance pack",
       "format": "pdf",
-      "href": "/demo/backtest/reports/backtest-summary.pdf",
-      "fileName": "backtest-summary.pdf"
+      "href": "/demo/backtest/reports/weekly-report.pdf",
+      "fileName": "weekly-report.pdf",
+      "category": "Weekly"
+    },
+    {
+      "id": "monthly-pdf",
+      "title": "Download Monthly Report PDF",
+      "description": "Latest month compound return",
+      "format": "pdf",
+      "href": "/demo/backtest/reports/monthly-report.pdf",
+      "fileName": "monthly-report.pdf",
+      "category": "Monthly"
+    },
+    {
+      "id": "quarterly-pdf",
+      "title": "Download Quarterly Report PDF",
+      "description": "Latest quarter compound return",
+      "format": "pdf",
+      "href": "/demo/backtest/reports/quarterly-report.pdf",
+      "fileName": "quarterly-report.pdf",
+      "category": "Quarterly"
+    },
+    {
+      "id": "yearly-pdf",
+      "title": "Download Yearly Report PDF",
+      "description": "Latest year compound return",
+      "format": "pdf",
+      "href": "/demo/backtest/reports/yearly-report.pdf",
+      "fileName": "yearly-report.pdf",
+      "category": "Yearly"
+    },
+    {
+      "id": "complete-pdf",
+      "title": "Download Complete 3-Year Report",
+      "description": "Full programme summary",
+      "format": "pdf",
+      "href": "/demo/backtest/reports/complete-3year-report.pdf",
+      "fileName": "complete-3year-report.pdf",
+      "category": "Yearly"
+    },
+    {
+      "id": "trades-csv",
+      "title": "Download All Trades CSV",
+      "description": "Full trade blotter",
+      "format": "csv",
+      "href": "/demo/backtest/trades.csv",
+      "fileName": "trades.csv",
+      "category": "Other"
+    },
+    {
+      "id": "trades-pdf",
+      "title": "Download All Trades PDF",
+      "description": "Trade blotter summary",
+      "format": "pdf",
+      "href": "/demo/backtest/reports/all-trades.pdf",
+      "fileName": "all-trades.pdf",
+      "category": "Other"
+    },
+    {
+      "id": "summary-pdf",
+      "title": "Download Performance Summary",
+      "description": "Headline KPIs",
+      "format": "pdf",
+      "href": "/demo/backtest/reports/performance-summary.pdf",
+      "fileName": "performance-summary.pdf",
+      "category": "Other"
+    }
+  ],
+  "previews": [
+    {
+      "id": "preview-monthly",
+      "title": "Latest Monthly Report",
+      "href": "/demo/backtest/reports/monthly-report.html",
+      "download": "/demo/backtest/reports/monthly-report.pdf"
+    },
+    {
+      "id": "preview-quarterly",
+      "title": "Latest Quarterly Report",
+      "href": "/demo/backtest/reports/quarterly-report.html",
+      "download": "/demo/backtest/reports/quarterly-report.pdf"
+    },
+    {
+      "id": "preview-yearly",
+      "title": "Latest Yearly Report",
+      "href": "/demo/backtest/reports/yearly-report.html",
+      "download": "/demo/backtest/reports/yearly-report.pdf"
     }
   ]
 }

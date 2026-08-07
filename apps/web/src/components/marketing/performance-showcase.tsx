@@ -13,6 +13,7 @@ import {
   useLandingMonthlySeries,
   useLandingYearlySeries,
 } from '@/features/landing'
+import { cn } from '@/lib/cn'
 
 import {
   MonthlyPerformanceChart,
@@ -46,7 +47,7 @@ export function PerformanceShowcase({
             { label: 'Trading days', value: stats.tradingDays, suffix: '' },
             { label: 'Trades', value: stats.trades, suffix: '' },
           ].map((kpi) => (
-            <div key={kpi.label} className="card-fill p-3 text-center sm:p-4">
+            <div key={kpi.label} className="card-fill flex h-full flex-col p-3 text-center sm:p-4">
               <p className="text-caption text-fg-subtle">{kpi.label}</p>
               <p className="text-stat-md mt-1 tabular-nums text-fg sm:text-stat-lg">
                 <CountUp value={kpi.value} suffix={kpi.suffix} decimals={0} />
@@ -70,7 +71,7 @@ export function PerformanceShowcase({
                 { label: 'Win rate', value: stats.winRate, suffix: '%', color: 'text-hl-emerald' },
                 { label: 'Best month', value: bestMonth, suffix: '%', color: 'text-hl-cyan' },
               ].map((w) => (
-                <div key={w.label} className="card-fill p-4">
+                <div key={w.label} className="card-fill flex h-full flex-col p-4">
                   <p className="text-caption text-fg-subtle">{w.label}</p>
                   <p className={`text-stat-md mt-2 tabular-nums ${w.color}`}>
                     <CountUp value={w.value} decimals={1} suffix={w.suffix} />
@@ -83,19 +84,30 @@ export function PerformanceShowcase({
           <RevealOnScroll delay={0.08} className="min-w-0">
             <div className="card-fill h-full min-w-0 p-5 sm:p-6">
               <h3 className="text-heading-sm text-fg">Yearly returns</h3>
-              <ul className="mt-4 space-y-2.5">
+              <ul className="mt-4 max-h-[22rem] space-y-2.5 overflow-y-auto overscroll-contain pr-1">
                 {yearly.map((row) => (
                   <li
                     key={row.year}
-                    className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-line bg-inset/40 px-3 py-3"
+                    className="flex min-w-0 flex-col gap-1 rounded-xl border border-line bg-inset/40 px-3 py-3"
                   >
-                    <div className="min-w-0">
+                    <div className="flex min-w-0 items-center justify-between gap-3">
                       <p className="text-body-sm font-medium text-fg">{row.year}</p>
-                      <p className="truncate text-caption text-fg-subtle">{row.profitLabel}</p>
+                      <p
+                        className={cn(
+                          'shrink-0 text-heading-sm tabular-nums',
+                          row.returnPct >= 0 ? 'text-profit' : 'text-loss',
+                        )}
+                      >
+                        {row.returnPct >= 0 ? '+' : ''}
+                        {row.returnPct}%
+                      </p>
                     </div>
-                    <p className="shrink-0 text-heading-sm tabular-nums text-profit">
-                      +{row.returnPct}%
+                    <p className="text-caption text-fg-subtle">
+                      {row.tradeCount != null ? `${row.tradeCount.toLocaleString()} trades` : null}
+                      {row.tradingDays != null ? ` · ${row.tradingDays} days` : null}
+                      {row.winRatePct ? ` · ${row.winRatePct}% win` : null}
                     </p>
+                    <p className="truncate text-caption text-fg-muted">{row.profitLabel}</p>
                   </li>
                 ))}
               </ul>
@@ -119,7 +131,7 @@ export function PerformanceShowcase({
             </Link>
           </Button>
           <Button asChild size="md" variant="secondary" className="w-full sm:w-auto">
-            <Link href={ROUTES.marketing.transparency}>
+            <Link href={`${ROUTES.marketing.historicalPerformance}#hpc-reports`}>
               <Download aria-hidden />
               View reports archive
             </Link>

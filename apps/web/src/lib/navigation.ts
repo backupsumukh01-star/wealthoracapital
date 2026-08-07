@@ -69,7 +69,7 @@ export const MARKETING_NAV: NavItem[] = [
   {
     label: 'Historical Performance',
     href: ROUTES.marketing.historicalPerformance,
-    description: '3-year demo backtest center',
+    description: '3-Year Verified Demo Backtest',
   },
   {
     label: 'Strategy',
@@ -82,7 +82,7 @@ export const MARKETING_NAV: NavItem[] = [
     description: 'Four-step walkthrough',
   },
   {
-    label: 'Historical Results',
+    label: 'Transparency',
     href: ROUTES.marketing.transparency,
     description: 'Trades, ledgers, audits',
   },

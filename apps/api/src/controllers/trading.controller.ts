@@ -34,9 +34,30 @@ export const tradingController = {
     )
   }),
 
-  publicTrades: asyncHandler(async (_req, res) => {
-    const data = await tradeService.listPublic({})
-    sendSuccess(res, data.items)
+  publicTrades: asyncHandler(async (req, res) => {
+    const q = req.query as { cursor?: string; outcome?: string; limit?: string }
+    sendSuccess(
+      res,
+      await tradeService.listPublic({
+        cursor: q.cursor,
+        outcome: q.outcome,
+        limit: q.limit ? Number(q.limit) : 50,
+      }),
+    )
+  }),
+
+  publicStats: asyncHandler(async (_req, res) => {
+    const analytics = await performanceService.analytics()
+    const meta = await performanceService.publicMeta()
+    sendSuccess(res, {
+      winRatePct: meta.winRatePct || analytics.winRate,
+      tradeCount: meta.tradeCount || analytics.closedTrades,
+      avgReturnPct: analytics.averageTrade,
+      openTrades: analytics.openTrades,
+      closedTrades: analytics.closedTrades,
+      bestTradeReturnPct: analytics.bestTrade?.returnPct ?? null,
+      worstTradeReturnPct: analytics.worstTrade?.returnPct ?? null,
+    })
   }),
 
   getTrade: asyncHandler(async (req, res) => {
@@ -73,13 +94,46 @@ export const tradingController = {
   }),
 
   performancePublic: asyncHandler(async (_req, res) => {
-    const [summary, analytics, monthly, yearly] = await Promise.all([
+    const [summary, analytics, monthly, yearly, meta, monthlyDetail] = await Promise.all([
       performanceService.summary(),
       performanceService.analytics(),
       performanceService.monthly(),
       performanceService.yearly(),
+      performanceService.publicMeta(),
+      performanceService.monthlyFromDailyReturns(),
     ])
-    sendSuccess(res, { summary, analytics, monthly, yearly })
+    // Prefer DailyReturn-backed summary fields when distribution ledger is empty.
+    const mergedSummary =
+      summary.activeDays > 0
+        ? summary
+        : {
+            ...summary,
+            activeDays: meta.tradingDayCount,
+            winRatePct: meta.winRatePct,
+            avgDailyReturnPct:
+              meta.tradingDayCount > 0
+                ? (Number(meta.totalReturnPct) / meta.tradingDayCount).toFixed(6)
+                : summary.avgDailyReturnPct,
+            bestDay: meta.bestDay
+              ? { date: meta.bestDay.date, returnPct: meta.bestDay.returnPct, profit: '0' }
+              : summary.bestDay,
+            worstDay: meta.worstDay
+              ? { date: meta.worstDay.date, returnPct: meta.worstDay.returnPct, profit: '0' }
+              : summary.worstDay,
+            roiPct: meta.totalReturnPct,
+          }
+    sendSuccess(res, {
+      summary: mergedSummary,
+      analytics: {
+        ...analytics,
+        winRate: meta.winRatePct || analytics.winRate,
+        closedTrades: meta.tradeCount || analytics.closedTrades,
+      },
+      monthly,
+      yearly,
+      monthlyDetail,
+      meta,
+    })
   }),
 
   portfolio: asyncHandler(async (req, res) => {

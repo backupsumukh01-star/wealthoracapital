@@ -37,14 +37,14 @@ const SETTLED: TradeStatus[] = ['CLOSED', 'CANCELLED', 'ARCHIVED']
 
 export const tradeService = {
   async listPublic(query: { cursor?: string; outcome?: string; limit?: number }) {
-    const limit = Math.min(query.limit ?? 20, 100)
+    const limit = Math.min(Math.max(query.limit ?? 50, 1), 100)
     const items = await prisma.trade.findMany({
       where: {
         isPublic: true,
         status: { in: ['OPEN', 'RUNNING', 'CLOSED'] },
         ...(query.outcome ? { outcome: query.outcome as never } : {}),
       },
-      orderBy: [{ tradeDate: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ tradeDate: 'desc' }, { closeTime: 'desc' }, { createdAt: 'desc' }],
       take: limit,
       ...(query.cursor ? { skip: 1, cursor: { id: query.cursor } } : {}),
     })

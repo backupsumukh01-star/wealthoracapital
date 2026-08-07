@@ -2,7 +2,7 @@
 
 /** Trade hooks. Filters are part of the key so each filtered view caches separately. */
 
-import { useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import type { Trade } from '@meridian/shared'
 
 import { tradesApi } from './api'
@@ -15,6 +15,8 @@ export const tradeQueryKeys = {
   stats: (filters?: Record<string, unknown>) => [...tradeQueryKeys.all, 'stats', filters ?? {}] as const,
   pairs: () => [...tradeQueryKeys.all, 'pairs'] as const,
   public: () => [...tradeQueryKeys.all, 'public'] as const,
+  publicPage: (limit?: number) => [...tradeQueryKeys.all, 'public-page', limit ?? 50] as const,
+  publicStats: () => [...tradeQueryKeys.all, 'public-stats'] as const,
 }
 
 export function useTrades(query?: { cursor?: string; outcome?: string }, options?: QueryHookOptions) {
@@ -51,11 +53,42 @@ export function useTradeStats(options?: QueryHookOptions) {
   })
 }
 
-/** Marketing/track-record surface — no auth required. */
-export function usePublicTrades(options?: QueryHookOptions) {
+/** Public (unauthenticated) desk trade stats for marketing. */
+export function usePublicTradeStats(options?: QueryHookOptions) {
+  return useQuery({
+    queryKey: tradeQueryKeys.publicStats(),
+    queryFn: () => tradesApi.publicStats(),
+    enabled: options?.enabled,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+/** Marketing/track-record surface — no auth required (first page). */
+export function usePublicTrades(options?: QueryHookOptions & { limit?: number }) {
+  const limit = options?.limit ?? 50
   return useQuery<Trade[]>({
-    queryKey: tradeQueryKeys.public(),
-    queryFn: () => tradesApi.publicList(),
+    queryKey: [...tradeQueryKeys.public(), limit],
+    queryFn: async () => {
+      const page = await tradesApi.publicList({ limit })
+      return page.items
+    },
+    enabled: options?.enabled,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+/** Infinite public trade blotter for Historical Performance. */
+export function usePublicTradesInfinite(options?: QueryHookOptions & { limit?: number }) {
+  const limit = options?.limit ?? 40
+  return useInfiniteQuery({
+    queryKey: tradeQueryKeys.publicPage(limit),
+    queryFn: ({ pageParam }) =>
+      tradesApi.publicList({
+        limit,
+        cursor: typeof pageParam === 'string' ? pageParam : undefined,
+      }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.nextCursor,
     enabled: options?.enabled,
     staleTime: 5 * 60 * 1000,
   })

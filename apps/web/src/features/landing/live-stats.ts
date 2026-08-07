@@ -116,37 +116,54 @@ export function buildLandingLiveStats(input: {
   reportCount?: number
 }): LandingLiveStats {
   const { pub, demo, demoMeta, cms, reportCount = 0 } = input
-  const closed = pub?.analytics.closedTrades ?? 0
-  const apiTrades = closed > 0 ? closed : null
-  const trades = apiTrades ?? demo?.tradeCount ?? 2786
+  const meta = pub?.meta
+
+  const trades =
+    (meta?.tradeCount && meta.tradeCount > 0 ? meta.tradeCount : null) ??
+    (pub?.analytics.closedTrades && pub.analytics.closedTrades > 0
+      ? pub.analytics.closedTrades
+      : null) ??
+    demo?.tradeCount ??
+    2786
 
   const winRate =
+    clean(meta?.winRatePct) ??
     clean(pub?.analytics.winRate) ??
     clean(cms?.winRate) ??
     (demo ? fmt(demo.winRatePct, 1) : '79.5')
 
   const avgMonthly =
+    clean(meta?.avgMonthlyReturnPct) ??
     clean(cms?.avgMonthlyReturn) ??
     (demo ? fmt(demo.avgMonthlyReturnPct, 1) : '7.3')
 
   const bestDay =
+    clean(meta?.bestDay?.returnPct) ??
     clean(pub?.analytics.bestTrade?.returnPct) ??
     clean(cms?.bestDay) ??
     (demo ? fmt(demo.bestDay.returnPct, 1) : '3.7')
 
   const worstRaw =
+    clean(meta?.worstDay?.returnPct) ??
     clean(pub?.analytics.worstTrade?.returnPct) ??
     (demo ? String(demo.worstDay.returnPct) : '-1.1')
   const worstDayAbs = String(Math.abs(Number.parseFloat(worstRaw) || 0).toFixed(1))
 
   const totalReturn =
+    clean(meta?.totalReturnPct) ??
     (demoMeta?.totalReturnPct != null ? fmt(demoMeta.totalReturnPct, 0) : null) ??
     (demo ? fmt(demo.totalReturnPct, 0) : null) ??
     clean(pub?.summary?.roiPct) ??
     '1255'
 
-  const tradingDays = demo?.tradingDayCount ?? 783
-  const years = yearsFromRange(demoMeta?.startDate, demoMeta?.endDate)
+  const tradingDays = meta?.tradingDayCount ?? demo?.tradingDayCount ?? 783
+  const years =
+    meta?.yearsOfPerformance != null
+      ? Math.max(1, Math.round(meta.yearsOfPerformance))
+      : yearsFromRange(
+          meta?.startDate ?? demoMeta?.startDate,
+          meta?.endDate ?? demoMeta?.endDate,
+        )
 
   const distributedRaw = clean(pub?.analytics.totalPnl)
   const aum = pickMarketingValue(cms?.aum, LANDING_BASELINE.aumMillions)
@@ -166,8 +183,12 @@ export function buildLandingLiveStats(input: {
     totalDistributed: distributedRaw ? formatMoneyCompact(distributedRaw) : aum,
     totalDistributedRaw: distributedRaw ?? '',
     availableReports: reportCount,
-    yearlyReturn: demo ? fmt(demo.totalReturnPct / Math.max(years, 1), 1) : '54.8',
-    monthCount: String(demo?.monthCount ?? 37),
+    yearlyReturn: meta?.cagrPct
+      ? clean(meta.cagrPct) ?? meta.cagrPct
+      : demo
+        ? fmt(demo.totalReturnPct / Math.max(years, 1), 1)
+        : '54.8',
+    monthCount: String(meta?.monthCount ?? demo?.monthCount ?? 37),
   }
 }
 
@@ -195,7 +216,7 @@ export function distributedMoneyParts(stats: LandingLiveStats): {
   }
 }
 
-/** Prefer published API monthly series; otherwise demo/backtest monthly returns. */
+/** Prefer published API monthly series when it has a full history; else demo/backtest. */
 export function resolveMonthlySeries(
   apiMonthly: Array<{ month: string; returnPct: string | number }> | null | undefined,
   demoMonthly: DemoMonthlyReturn[] | null | undefined,
@@ -205,33 +226,53 @@ export function resolveMonthlySeries(
       month: m.month,
       returnPct: Number.parseFloat(String(m.returnPct)) || 0,
     })) ?? []
-  const liveUsable = live.length > 0 && live.some((m) => Math.abs(m.returnPct) > 0.0001)
-  if (liveUsable) return live
-
-  if (demoMonthly?.length) {
-    return demoMonthly.map((m) => ({
+  const liveUsable = live.filter((m) => Math.abs(m.returnPct) > 0.0001)
+  const demo =
+    demoMonthly?.map((m) => ({
       month: m.yearMonth,
       returnPct: m.returnPct,
       label: m.label,
-    }))
+    })) ?? []
+
+  // Never let a thin API sample (e.g. 1 month) hide the full 36+ month history.
+  if (liveUsable.length >= 12 || (liveUsable.length > 0 && liveUsable.length >= demo.length)) {
+    return live
   }
-  return []
+  if (demo.length > 0) return demo
+  return live
 }
 
 export function resolveYearlySeries(
-  apiYearly: Array<{ year: string; returnPct: string | number; profit?: string }> | null | undefined,
+  apiYearly: Array<{
+    year: string
+    returnPct: string | number
+    profit?: string
+    tradingDays?: number
+    tradeCount?: number
+    winRatePct?: string
+  }> | null | undefined,
   demoYearly: DemoYearlyReturn[] | null | undefined,
   demoMonthly: DemoMonthlyReturn[] | null | undefined,
-): Array<{ year: string; returnPct: number; profitLabel: string }> {
+): Array<{
+  year: string
+  returnPct: number
+  profitLabel: string
+  tradingDays?: number
+  tradeCount?: number
+  winRatePct?: string
+}> {
   const live =
     apiYearly?.map((y) => ({
       year: String(y.year),
       returnPct: Number.parseFloat(String(y.returnPct)) || 0,
       profitLabel: y.profit
         ? `$${Number(y.profit).toLocaleString('en-US', { maximumFractionDigits: 0 })} distributed`
-        : '',
+        : 'Programme compound return',
+      tradingDays: y.tradingDays,
+      tradeCount: y.tradeCount,
+      winRatePct: y.winRatePct,
     })) ?? []
-  if (live.some((y) => Math.abs(y.returnPct) > 0.0001)) return live
+  if (live.filter((y) => Math.abs(y.returnPct) > 0.0001).length >= 2) return live
 
   if (demoYearly?.length) {
     return demoYearly.map((y) => ({
@@ -241,7 +282,6 @@ export function resolveYearlySeries(
     }))
   }
 
-  // Derive yearly from monthly demo if yearly payload missing.
   if (demoMonthly?.length) {
     const byYear = new Map<number, number[]>()
     for (const m of demoMonthly) {
@@ -261,7 +301,7 @@ export function resolveYearlySeries(
       })
   }
 
-  return []
+  return live
 }
 
 export const DOWNLOAD_PERIODS = [

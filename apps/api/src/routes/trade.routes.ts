@@ -10,6 +10,7 @@ import { tradeIdParamSchema, tradeListQuerySchema } from '../validators/trading.
 export const tradeRouter = Router()
 
 tradeRouter.get('/public', tradingController.publicTrades)
+tradeRouter.get('/public/stats', tradingController.publicStats)
 
 tradeRouter.use(authenticate)
 

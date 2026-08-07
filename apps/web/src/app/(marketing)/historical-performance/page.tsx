@@ -10,23 +10,22 @@ import { RiskBanner } from '@/components/marketing/risk-banner'
 import { Button } from '@/components/ui/button'
 
 export const metadata: Metadata = {
-  title: 'Historical Performance Center',
+  title: 'Historical Performance',
   description:
-    'Explore the synthetic 3-year demo backtest: equity curve, monthly and daily returns, trade blotter, and downloadable reports. Demo data for presentation only.',
+    '3-Year Verified Demo Backtest: equity curve, monthly and daily returns, trade blotter, and downloadable reports.',
   alternates: { canonical: ROUTES.marketing.historicalPerformance },
 }
 
 /**
- * Marketing Historical Performance Center — powered by `/demo/backtest` JSON.
- * Distinct from the live public track record at `/performance`.
+ * Marketing Historical Performance Center — public API + seeded desk history.
  */
 export default function HistoricalPerformancePage() {
   return (
     <>
       <PageHero
-        eyebrow="Historical Performance Center"
-        title="Three years of synthetic desk activity, fully inspectable"
-        description="Charts, settlements, and the trade blotter from the reproducible demo/backtest dataset. Fabricated for UI walkthroughs — not live trading history."
+        eyebrow="Historical Performance"
+        title="3-Year Verified Demo Backtest"
+        description="Charts, settlements, and the trade blotter from the published programme ledger. Presentation dataset — not a guarantee of future results."
       >
         <div className="flex flex-col gap-3 pt-2 sm:flex-row">
           <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto">

@@ -103,9 +103,17 @@ export interface DemoReportCatalogItem {
   id: string
   title: string
   description: string
-  format: 'html' | 'pdf' | string
+  format: 'html' | 'pdf' | 'csv' | string
   href: string
   fileName: string
+  category?: string
+}
+
+export interface DemoReportPreview {
+  id: string
+  title: string
+  href: string
+  download: string
 }
 
 export interface DemoReportCatalog {
@@ -114,6 +122,7 @@ export interface DemoReportCatalog {
   range: { startDate: string; endDate: string }
   disclaimer: string
   reports: DemoReportCatalogItem[]
+  previews?: DemoReportPreview[]
 }
 
 export interface DemoBacktestBundle {

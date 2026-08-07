@@ -208,7 +208,39 @@ export type PublicPerformancePayload = {
     closedTrades: number
   }
   monthly?: Array<{ month: string; returnPct: string; profit: string }>
-  yearly?: Array<{ year: string; returnPct: string; profit: string }>
+  yearly?: Array<{
+    year: string
+    returnPct: string
+    profit: string
+    tradingDays?: number
+    tradeCount?: number
+    winRatePct?: string
+  }>
+  monthlyDetail?: Array<{
+    month: string
+    returnPct: string
+    profit: string
+    tradingDays: number
+    tradeCount: number
+    winRatePct: string
+  }>
+  meta?: {
+    tradingDayCount: number
+    tradeCount: number
+    winRatePct: string
+    monthCount: number
+    startDate: string | null
+    endDate: string | null
+    startingEquity: string
+    endingEquity: string
+    totalReturnPct: string
+    cagrPct: string
+    avgMonthlyReturnPct: string
+    maxDrawdownPct: string
+    bestDay: { date: string; returnPct: string } | null
+    worstDay: { date: string; returnPct: string } | null
+    yearsOfPerformance: number
+  }
 }
 
 export type PublicSettings = {

@@ -16,7 +16,7 @@ import { Money } from '@/components/common/money'
 import { Percent } from '@/components/common/percent'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { Button } from '@/components/ui/button'
-import { usePublicTrades, useTradeStats } from '@/features/trades/hooks'
+import { usePublicTrades, usePublicTradeStats } from '@/features/trades/hooks'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { cn } from '@/lib/cn'
 import type { Trade } from '@meridian/shared'
@@ -44,17 +44,18 @@ type FeedItem = {
 
 function buildFeedFromTrades(trades: Trade[]): FeedItem[] {
   if (!trades.length) return []
-  return trades.slice(0, 12).map((t, i) => {
-    const positive = !String(t.returnPct).startsWith('-')
+  return trades.slice(0, 24).map((t, i) => {
+    const pct = Number.parseFloat(String(t.returnPct ?? 0))
+    const positive = pct >= 0
     const dir = t.direction === 'SELL' ? 'SELL' : 'BUY'
     return {
       id: t.id,
       pair: t.pair,
       direction: dir as 'BUY' | 'SELL',
-      returnPct: String(t.returnPct).replace(/^\+/, ''),
-      amount: '—',
-      name: 'Published trade',
-      region: '—',
+      returnPct: String(t.returnPct ?? 0).replace(/^\+/, ''),
+      amount: t.entryPrice != null ? String(t.entryPrice) : '—',
+      name: t.date ? String(t.date).slice(0, 10) : 'Published trade',
+      region: 'Desk',
       kind: (positive ? 'profit' : 'loss') as FeedItem['kind'],
       secondsAgo: (i + 1) * 40,
     }
@@ -136,18 +137,24 @@ const TradeRow = memo(function TradeRow({ trade }: { trade: FeedItem }) {
 /** Fixed-height live desk feed — published trades from the public trade API. */
 export function LiveTradesPreview() {
   const prefersReducedMotion = usePrefersReducedMotion()
-  const { data: trades = [], isSuccess } = usePublicTrades()
-  const { data: stats } = useTradeStats()
+  const { data: trades = [], isSuccess } = usePublicTrades({ limit: 50 })
+  const { data: stats } = usePublicTradeStats()
   const feed = useMemo(() => buildFeedFromTrades(trades), [trades])
   const loop = useMemo(() => (feed.length ? [...feed, ...feed] : []), [feed])
 
   const statCards = [
-    { label: 'Win rate', value: stats?.winRatePct ? `${stats.winRatePct}%` : '—' },
+    {
+      label: 'Win rate',
+      value: stats?.winRatePct ? `${Number(stats.winRatePct).toFixed(1)}%` : '—',
+    },
     { label: 'Trade count', value: stats ? String(stats.tradeCount) : '—' },
-    { label: 'Avg return', value: stats?.avgReturnPct ? `${stats.avgReturnPct}%` : '—' },
+    {
+      label: 'Avg return',
+      value: stats?.avgReturnPct ? `${Number(stats.avgReturnPct).toFixed(2)}%` : '—',
+    },
     {
       label: 'Published',
-      value: isSuccess ? String(trades.length) : '—',
+      value: stats?.closedTrades != null ? String(stats.closedTrades) : isSuccess ? String(trades.length) : '—',
     },
   ]
 

@@ -65,7 +65,7 @@ function parseYearMonth(month: string): { year: number; monthIndex: number; key:
 /** Short axis label from `YYYY-MM` or demo labels like `Jan`. */
 function formatMonthLabel(month: string): string {
   const parsed = parseYearMonth(month)
-  if (parsed) return MONTH_SHORT[parsed.monthIndex] ?? month
+  if (parsed) return `${MONTH_SHORT[parsed.monthIndex] ?? month} ${String(parsed.year).slice(2)}`
   return month
 }
 
