@@ -12,11 +12,13 @@ export interface MarqueeProps {
   direction?: 'left' | 'right'
   pauseOnHover?: boolean
   className?: string
+  /** Tighter card gaps for compact tapes (e.g. market ticker). */
+  dense?: boolean
 }
 
 /**
  * Continuously scrolling strip via CSS keyframes so hover can pause cleanly.
- * Dual tracks + translate -50% keep the loop seamless without jumps.
+ * Dual tracks + translate -50% keep the loop seamless without jumps or blank gaps.
  */
 export function Marquee({
   children,
@@ -24,13 +26,15 @@ export function Marquee({
   direction = 'left',
   pauseOnHover = true,
   className,
+  dense = false,
 }: MarqueeProps) {
   const prefersReducedMotion = usePrefersReducedMotion()
   const items = Children.toArray(children)
+  const rowGap = dense ? 'gap-1.5 pr-1.5 sm:gap-2 sm:pr-2' : 'gap-2.5 pr-2.5 sm:gap-3 sm:pr-3'
 
   if (prefersReducedMotion) {
     return (
-      <div className={cn('no-scrollbar flex gap-2.5 overflow-x-auto sm:gap-3', className)}>
+      <div className={cn('no-scrollbar flex overflow-x-auto', dense ? 'gap-1.5' : 'gap-2.5 sm:gap-3', className)}>
         {items}
       </div>
     )
@@ -53,8 +57,8 @@ export function Marquee({
         )}
         style={{ animationDuration: `${speed}s` }}
       >
-        <div className="flex shrink-0 items-center gap-2.5 pr-2.5 sm:gap-3 sm:pr-3">{items}</div>
-        <div className="flex shrink-0 items-center gap-2.5 pr-2.5 sm:gap-3 sm:pr-3" aria-hidden>
+        <div className={cn('flex shrink-0 items-center', rowGap)}>{items}</div>
+        <div className={cn('flex shrink-0 items-center', rowGap)} aria-hidden>
           {items}
         </div>
       </div>

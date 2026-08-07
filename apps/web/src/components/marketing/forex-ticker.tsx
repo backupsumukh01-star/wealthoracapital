@@ -21,6 +21,7 @@ const DEMO_DISPLAY = {
   direction: 'left' as const,
   upColor: '#12D6A0',
   downColor: '#F87171',
+  neutralColor: '#9CA3AF',
 }
 
 function formatPrice(pair: string, value: number) {
@@ -29,6 +30,24 @@ function formatPrice(pair: string, value: number) {
   }
   if (Number(value) >= 100) return value.toFixed(2)
   return value.toFixed(4)
+}
+
+/** Normalize change to a signed number (never double signs). */
+function parseChange(raw: string): number {
+  const n = Number.parseFloat(String(raw).replace(/%/g, '').replace(/^\++/, '+').replace(/^-+/, '-'))
+  return Number.isFinite(n) ? n : 0
+}
+
+/** Display: +0.05% | -0.03% | 0.00% — never ++ or --. */
+function formatChangePct(raw: string): { text: string; tone: 'up' | 'down' | 'neutral' } {
+  const n = parseChange(raw)
+  if (Math.abs(n) < 0.005) {
+    return { text: '0.00%', tone: 'neutral' }
+  }
+  if (n > 0) {
+    return { text: `+${Math.abs(n).toFixed(2)}%`, tone: 'up' }
+  }
+  return { text: `-${Math.abs(n).toFixed(2)}%`, tone: 'down' }
 }
 
 function drift(ticks: Tick[]): Tick[] {
@@ -40,6 +59,14 @@ function drift(ticks: Tick[]): Tick[] {
     const change = ((delta / price) * 100).toFixed(2)
     return { ...t, price: formatPrice(t.pair, next), change }
   })
+}
+
+function changeColor(tone: 'up' | 'down' | 'neutral', forced?: 'up' | 'down' | 'auto') {
+  if (forced === 'up') return DEMO_DISPLAY.upColor
+  if (forced === 'down') return DEMO_DISPLAY.downColor
+  if (tone === 'up') return DEMO_DISPLAY.upColor
+  if (tone === 'down') return DEMO_DISPLAY.downColor
+  return DEMO_DISPLAY.neutralColor
 }
 
 /** Live market tape — Demo Mode fixtures with live drift (marketing display only). */
@@ -74,9 +101,9 @@ export function ForexTicker() {
 
   return (
     <div className="w-full min-w-0 overflow-hidden border-b border-white/[0.06] bg-[#07131C]/90 backdrop-blur-xl">
-      {/* ~20% narrower content band; mobile shows ~3–4 chips in the viewport */}
-      <div className="mx-auto flex h-9 w-full max-w-[80%] min-w-0 items-center gap-2 px-2 sm:h-10 sm:gap-2.5 sm:px-3 [mask-image:linear-gradient(90deg,transparent,black_3%,black_97%,transparent)]">
-        <span className="shrink-0 rounded-full bg-profit/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-profit sm:px-2 sm:text-[10px]">
+      {/* Full-bleed on mobile; light side padding only for Live badge breathing room */}
+      <div className="flex h-9 w-full min-w-0 items-center gap-1.5 px-0 sm:h-10 sm:gap-2 sm:px-1 [mask-image:linear-gradient(90deg,transparent,black_2%,black_98%,transparent)]">
+        <span className="ml-2 shrink-0 rounded-full bg-profit/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-profit sm:ml-3 sm:px-2 sm:text-[10px]">
           <span className="mr-1 inline-block size-1.5 animate-pulse rounded-full bg-profit" />
           Live
         </span>
@@ -85,35 +112,25 @@ export function ForexTicker() {
           direction={display.direction}
           className="min-w-0 flex-1"
           pauseOnHover
+          dense
         >
           {ticks.map((tick) => {
-            const forced =
-              tick.tone === 'up' ? true : tick.tone === 'down' ? false : !tick.change.startsWith('-')
+            const { text, tone } = formatChangePct(tick.change)
+            const color = changeColor(tone, tick.tone === 'auto' ? undefined : tick.tone)
             return (
               <span
                 key={tick.pair}
                 className={cn(
-                  'inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full border px-2 text-[10px] sm:h-7 sm:gap-2 sm:px-2.5 sm:text-[11px]',
+                  'inline-flex h-6 shrink-0 items-center gap-1 rounded-full border px-1.5 text-[11px] leading-none sm:h-7 sm:gap-1.5 sm:px-2 sm:text-[11px]',
                   tick.featured
                     ? 'border-accent-500/35 bg-accent-500/15'
                     : 'border-line bg-inset/50',
                 )}
               >
                 <span className="font-medium whitespace-nowrap text-fg">{tick.pair}</span>
-                <span className="min-w-[3.5rem] text-right tabular-nums text-fg-muted sm:min-w-[4rem]">
-                  {tick.price}
-                </span>
-                <span
-                  className="min-w-[2.75rem] text-right tabular-nums sm:min-w-[3rem]"
-                  style={{ color: forced ? display.upColor : display.downColor }}
-                >
-                  {forced && !tick.change.startsWith('+') && !tick.change.startsWith('-')
-                    ? '+'
-                    : ''}
-                  {tick.change.startsWith('-') || tick.change.startsWith('+')
-                    ? tick.change
-                    : `${forced ? '+' : '-'}${tick.change.replace(/^-/, '')}`}
-                  %
+                <span className="whitespace-nowrap tabular-nums text-fg-muted">{tick.price}</span>
+                <span className="whitespace-nowrap tabular-nums" style={{ color }}>
+                  {text}
                 </span>
               </span>
             )
