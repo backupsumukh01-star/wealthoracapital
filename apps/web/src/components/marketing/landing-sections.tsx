@@ -21,27 +21,46 @@ import { RiskBanner } from '@/components/marketing/risk-banner'
 import { StatsBand } from '@/components/marketing/stats-band'
 import { TrustStrip } from '@/components/marketing/trust-strip'
 import { WhyChooseUs } from '@/components/marketing/why-choose-us'
-import { CmsReportDownloads } from '@/components/marketing/cms-report-downloads'
 import { usePublishedFrontend } from '@/features/cms/frontend-hooks'
+import Link from 'next/link'
+import { ROUTES } from '@meridian/shared'
+import { ArrowRight } from 'lucide-react'
 
-function DownloadsBand() {
+import { Button } from '@/components/ui/button'
+
+function HistoryCtaBand() {
   const { getSection } = usePublishedFrontend()
   const section = getSection('downloads')
   return (
     <div className="container-page section-y">
       <div className="mx-auto max-w-3xl text-center">
         <p className="text-caption uppercase tracking-wider text-accent-300">
-          {section?.eyebrow || 'Resources'}
+          {section?.eyebrow || 'Historical Performance'}
         </p>
         <h2 className="mt-2 text-heading-md text-fg">
-          {section?.title || 'Reports & downloads'}
+          {section?.title || 'Explore the full 3-year track record'}
         </h2>
         {section?.description ? (
           <p className="mt-2 text-body-sm text-fg-muted">{section.description}</p>
-        ) : null}
-      </div>
-      <div className="mx-auto mt-8 max-w-4xl">
-        <CmsReportDownloads />
+        ) : (
+          <p className="mt-2 text-body-sm text-fg-muted">
+            Charts, trade blotter, and downloadable reports live on the Historical Performance page.
+          </p>
+        )}
+        <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+          <Button asChild size="lg" className="w-full sm:w-auto">
+            <Link href={ROUTES.marketing.historicalPerformance}>
+              Explore Historical Performance
+              <ArrowRight aria-hidden />
+            </Link>
+          </Button>
+          <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto">
+            <Link href={ROUTES.marketing.historicalPerformance}>
+              Browse Performance History
+              <ArrowRight aria-hidden />
+            </Link>
+          </Button>
+        </div>
       </div>
     </div>
   )
@@ -68,9 +87,8 @@ const TodaysMarkets = dynamic(
   () => import('@/components/marketing/todays-markets').then((m) => m.TodaysMarkets),
   { loading: () => <div className="section-y min-h-[20rem]" aria-hidden /> },
 )
-const TodaysTradingActivity = dynamic(
-  () =>
-    import('@/components/marketing/todays-trading-activity').then((m) => m.TodaysTradingActivity),
+const LiveTradesPreview = dynamic(
+  () => import('@/components/marketing/live-trades-preview').then((m) => m.LiveTradesPreview),
   { loading: () => <div className="section-y min-h-[24rem]" aria-hidden /> },
 )
 const PerformanceProof = dynamic(
@@ -149,7 +167,7 @@ export function LandingSections() {
 
       <Gate sectionKey="markets" visible={isSectionVisible}>
         <TodaysMarkets />
-        <TodaysTradingActivity />
+        <LiveTradesPreview />
       </Gate>
 
       <Gate sectionKey="performance" visible={isSectionVisible}>
@@ -166,7 +184,7 @@ export function LandingSections() {
       </Gate>
 
       <Gate sectionKey="downloads" visible={isSectionVisible}>
-        <DownloadsBand />
+        <HistoryCtaBand />
       </Gate>
 
       <RiskBanner />

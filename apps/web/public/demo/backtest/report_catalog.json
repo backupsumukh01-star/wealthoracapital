@@ -9,7 +9,7 @@
   "reports": [
     {
       "id": "daily-pdf",
-      "title": "Download Daily Report PDF",
+      "title": "Download Daily Reports",
       "description": "Latest daily desk summary",
       "format": "pdf",
       "href": "/demo/backtest/reports/daily-report.pdf",
@@ -18,7 +18,7 @@
     },
     {
       "id": "weekly-pdf",
-      "title": "Download Weekly Report PDF",
+      "title": "Download Weekly Reports",
       "description": "Weekly performance pack",
       "format": "pdf",
       "href": "/demo/backtest/reports/weekly-report.pdf",
@@ -27,7 +27,7 @@
     },
     {
       "id": "monthly-pdf",
-      "title": "Download Monthly Report PDF",
+      "title": "Download Monthly Reports",
       "description": "Latest month compound return",
       "format": "pdf",
       "href": "/demo/backtest/reports/monthly-report.pdf",
@@ -36,7 +36,7 @@
     },
     {
       "id": "quarterly-pdf",
-      "title": "Download Quarterly Report PDF",
+      "title": "Download Quarterly Reports",
       "description": "Latest quarter compound return",
       "format": "pdf",
       "href": "/demo/backtest/reports/quarterly-report.pdf",
@@ -45,7 +45,7 @@
     },
     {
       "id": "yearly-pdf",
-      "title": "Download Yearly Report PDF",
+      "title": "Download Annual Reports",
       "description": "Latest year compound return",
       "format": "pdf",
       "href": "/demo/backtest/reports/yearly-report.pdf",
@@ -63,7 +63,7 @@
     },
     {
       "id": "trades-csv",
-      "title": "Download All Trades CSV",
+      "title": "Download CSV",
       "description": "Full trade blotter",
       "format": "csv",
       "href": "/demo/backtest/trades.csv",
@@ -72,7 +72,7 @@
     },
     {
       "id": "trades-pdf",
-      "title": "Download All Trades PDF",
+      "title": "Download PDF",
       "description": "Trade blotter summary",
       "format": "pdf",
       "href": "/demo/backtest/reports/all-trades.pdf",

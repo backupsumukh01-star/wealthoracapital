@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ROUTES } from '@meridian/shared'
-import { ArrowRight, Download } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 
 import { CtaBand } from '@/components/marketing/cta-band'
 import { InvestmentCalculator } from '@/components/marketing/investment-calculator'
@@ -32,9 +32,9 @@ export default function PerformancePage() {
       >
         <div className="flex flex-col gap-3 pt-2 sm:flex-row">
           <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto">
-            <Link href={ROUTES.marketing.transparency}>
-              <Download aria-hidden />
-              View reports archive
+            <Link href={ROUTES.marketing.historicalPerformance}>
+              Explore Historical Performance
+              <ArrowRight aria-hidden />
             </Link>
           </Button>
           <Button asChild size="lg" variant="glass" className="w-full sm:w-auto">

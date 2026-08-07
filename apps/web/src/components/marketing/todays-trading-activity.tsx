@@ -264,13 +264,16 @@ export function TodaysTradingActivity() {
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
         <Button asChild size="lg" className="w-full sm:w-auto">
-          <Link href={ROUTES.marketing.performance}>
-            View complete performance
+          <Link href={ROUTES.marketing.historicalPerformance}>
+            Explore Historical Performance
             <ArrowRight aria-hidden />
           </Link>
         </Button>
         <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto">
-          <Link href={ROUTES.marketing.transparency}>Download history</Link>
+          <Link href={ROUTES.marketing.historicalPerformance}>
+            Browse Performance History
+            <ArrowRight aria-hidden />
+          </Link>
         </Button>
       </div>
       <HistoricalNote className="mt-5 text-center" />

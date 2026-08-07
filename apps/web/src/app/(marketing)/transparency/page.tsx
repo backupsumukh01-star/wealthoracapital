@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ROUTES } from '@meridian/shared'
-import { ArrowRight, Download, FileSearch, History, ListTree, ShieldCheck } from 'lucide-react'
+import { ArrowRight, FileSearch, History, ListTree, ShieldCheck } from 'lucide-react'
 
 import { Section } from '@/components/common/section'
 import { CtaBand } from '@/components/marketing/cta-band'
@@ -53,9 +53,9 @@ export default function TransparencyPage() {
       >
         <div className="flex flex-col gap-3 pt-2 sm:flex-row">
           <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto">
-            <Link href={ROUTES.marketing.performance}>
-              <Download aria-hidden />
-              View performance archive
+            <Link href={ROUTES.marketing.historicalPerformance}>
+              Explore Historical Performance
+              <ArrowRight aria-hidden />
             </Link>
           </Button>
           <Button asChild size="lg" variant="glass" className="w-full sm:w-auto">

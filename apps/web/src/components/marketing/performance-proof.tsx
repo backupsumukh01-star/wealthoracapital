@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { ROUTES } from '@meridian/shared'
-import { ArrowRight, Download, FileDown } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 
 import { Section } from '@/components/common/section'
 import { CountUp } from '@/components/motion/count-up'
@@ -106,20 +106,14 @@ export function PerformanceProof() {
       <RevealOnScroll className="mx-auto mt-8 flex max-w-2xl flex-col items-stretch gap-3 sm:flex-row sm:justify-center">
         <Button asChild size="lg" className="w-full sm:w-auto">
           <Link href={ROUTES.marketing.historicalPerformance}>
-            View complete performance
+            Explore Historical Performance
             <ArrowRight aria-hidden />
           </Link>
         </Button>
         <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto">
-          <Link href={ROUTES.marketing.transparency}>
-            <Download aria-hidden />
-            Download history
-          </Link>
-        </Button>
-        <Button asChild size="lg" variant="glass" className="w-full sm:w-auto">
-          <Link href={ROUTES.marketing.transparency}>
-            <FileDown aria-hidden />
-            CSV / PDF export
+          <Link href={ROUTES.marketing.historicalPerformance}>
+            Browse Performance History
+            <ArrowRight aria-hidden />
           </Link>
         </Button>
       </RevealOnScroll>

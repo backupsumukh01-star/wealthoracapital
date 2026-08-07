@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { ROUTES } from '@meridian/shared'
-import { ArrowRight, Download } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 
 import { Section } from '@/components/common/section'
 import { CountUp } from '@/components/motion/count-up'
@@ -126,14 +126,14 @@ export function PerformanceShowcase({
         <RevealOnScroll className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:mt-8 sm:flex-row sm:items-center">
           <Button asChild size="md" className="w-full sm:w-auto">
             <Link href={ROUTES.marketing.historicalPerformance}>
-              View full performance
+              Explore Historical Performance
               <ArrowRight aria-hidden />
             </Link>
           </Button>
           <Button asChild size="md" variant="secondary" className="w-full sm:w-auto">
-            <Link href={`${ROUTES.marketing.historicalPerformance}#hpc-reports`}>
-              <Download aria-hidden />
-              View reports archive
+            <Link href={ROUTES.marketing.historicalPerformance}>
+              Browse Performance History
+              <ArrowRight aria-hidden />
             </Link>
           </Button>
         </RevealOnScroll>
