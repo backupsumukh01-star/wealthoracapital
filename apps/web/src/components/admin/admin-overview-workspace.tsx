@@ -97,6 +97,40 @@ function ChartTip({
   )
 }
 
+function ExecutiveKpiCard({
+  label,
+  kind,
+  value,
+  href,
+}: {
+  label: string
+  kind: 'count' | 'money' | 'percent'
+  value: string
+  href: string
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        'group relative block overflow-hidden rounded-2xl border border-white/[0.08]',
+        'bg-white/[0.03] p-4 backdrop-blur-xl transition-all duration-200',
+        'hover:border-accent-500/35 hover:bg-white/[0.055] hover:shadow-[0_0_40px_-12px_rgba(16,185,129,0.35)]',
+      )}
+    >
+      <p className="text-[11px] font-medium uppercase tracking-wide text-fg-muted">{label}</p>
+      <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-fg sm:text-3xl">
+        {kind === 'money' ? (
+          <Money value={value} />
+        ) : kind === 'percent' ? (
+          `${Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })}%`
+        ) : (
+          Number(value).toLocaleString('en-US')
+        )}
+      </p>
+    </Link>
+  )
+}
+
 function LiveCard({
   label,
   count,
@@ -240,7 +274,7 @@ export function AdminOverviewWorkspace() {
               )}
             >
               <span className="size-1.5 animate-pulse rounded-full bg-current" />
-              {isFetching ? 'Refreshing…' : 'Live · 15s'}
+              {isFetching ? 'Refreshing…' : 'Live · 30s'}
             </span>
             {dataUpdatedAt ? (
               <span className="hidden sm:inline">
@@ -267,6 +301,145 @@ export function AdminOverviewWorkspace() {
           })}
         </div>
       </div>
+
+      {/* Executive KPI rows — live ledger aggregates */}
+      <section className="space-y-5">
+        <h2 className="text-overline text-fg-subtle">Executive KPIs</h2>
+        {isLoading && !data ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-24 animate-pulse rounded-2xl border border-white/[0.06] bg-white/[0.03]"
+              />
+            ))}
+          </div>
+        ) : (
+          (data?.executiveKpis ?? []).map((row) => (
+            <div key={row.id} className="space-y-2">
+              <h3 className="text-[11px] font-medium uppercase tracking-wide text-fg-muted">
+                {row.title}
+              </h3>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {row.cards.map((card) => (
+                  <ExecutiveKpiCard key={card.id} {...card} />
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </section>
+
+      {/* Executive charts — 30-day live series */}
+      <section className="grid gap-4 lg:grid-cols-2">
+        <AdminPanel>
+          <AdminPanelHeader title="Deposit vs Withdrawal" description="Last 30 days · approved / paid" />
+          <div className="h-56 p-4 pt-0 sm:p-5 sm:pt-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={charts?.depositVsWithdrawal ?? []}>
+                <defs>
+                  <linearGradient id="execDepFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#34d399" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="execWdrFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#f87171" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="#f87171" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
+                <XAxis dataKey="day" tick={{ fill: '#8b9cb3', fontSize: 11 }} axisLine={false} />
+                <YAxis tick={{ fill: '#8b9cb3', fontSize: 11 }} axisLine={false} width={48} />
+                <Tooltip content={<ChartTip />} />
+                <Area
+                  type="monotone"
+                  dataKey="deposits"
+                  name="Deposits"
+                  stroke="#34d399"
+                  fill="url(#execDepFill)"
+                  strokeWidth={2}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="withdrawals"
+                  name="Withdrawals"
+                  stroke="#f87171"
+                  fill="url(#execWdrFill)"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </AdminPanel>
+
+        <AdminPanel>
+          <AdminPanelHeader title="New User Registrations" description="Last 30 days" />
+          <div className="h-56 p-4 pt-0 sm:p-5 sm:pt-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={charts?.newUsers ?? []}>
+                <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
+                <XAxis dataKey="day" tick={{ fill: '#8b9cb3', fontSize: 11 }} axisLine={false} />
+                <YAxis tick={{ fill: '#8b9cb3', fontSize: 11 }} axisLine={false} width={32} />
+                <Tooltip content={<ChartTip />} />
+                <Bar dataKey="value" name="Users" fill="#60a5fa" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </AdminPanel>
+
+        <AdminPanel>
+          <AdminPanelHeader title="Daily Profit Distribution" description="Last 30 days · non-reversed" />
+          <div className="h-56 p-4 pt-0 sm:p-5 sm:pt-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={charts?.profitDistributed ?? []}>
+                <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
+                <XAxis dataKey="day" tick={{ fill: '#8b9cb3', fontSize: 11 }} axisLine={false} />
+                <YAxis tick={{ fill: '#8b9cb3', fontSize: 11 }} axisLine={false} width={48} />
+                <Tooltip content={<ChartTip />} />
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  name="Profit"
+                  stroke="#a78bfa"
+                  fill="rgba(167,139,250,0.2)"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </AdminPanel>
+
+        <AdminPanel>
+          <AdminPanelHeader
+            title="Active Investors Growth"
+            description="Cumulative funded investors · last 30 days"
+          />
+          <div className="h-56 p-4 pt-0 sm:p-5 sm:pt-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={charts?.activeInvestorsGrowth ?? []}>
+                <defs>
+                  <linearGradient id="execInvFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#2dd4bf" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#2dd4bf" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
+                <XAxis dataKey="day" tick={{ fill: '#8b9cb3', fontSize: 11 }} axisLine={false} />
+                <YAxis tick={{ fill: '#8b9cb3', fontSize: 11 }} axisLine={false} width={40} />
+                <Tooltip content={<ChartTip />} />
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  name="Investors"
+                  stroke="#2dd4bf"
+                  fill="url(#execInvFill)"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </AdminPanel>
+      </section>
 
       {/* Section 1 — Live overview cards */}
       <section>

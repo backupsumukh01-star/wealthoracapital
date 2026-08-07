@@ -57,8 +57,8 @@ export function useAdminOpsDashboard(options?: QueryHookOptions) {
     queryKey: adminQueryKeys.ops(),
     queryFn: () => adminApi.dashboardOps(),
     enabled: options?.enabled,
-    staleTime: 10_000,
-    refetchInterval: options?.refetchInterval ?? 15_000,
+    staleTime: 20_000,
+    refetchInterval: options?.refetchInterval ?? 30_000,
     refetchOnWindowFocus: true,
   })
 }

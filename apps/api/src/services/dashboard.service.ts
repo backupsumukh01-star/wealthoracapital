@@ -177,13 +177,28 @@ export type OpsLiveCard = {
   href: string
 }
 
+export type ExecutiveKpi = {
+  id: string
+  label: string
+  kind: 'count' | 'money' | 'percent'
+  /** Formatted display value (count as integer string, money as decimal string, percent as e.g. "2.45"). */
+  value: string
+  href: string
+}
+
+export type ExecutiveKpiRow = {
+  id: string
+  title: string
+  cards: ExecutiveKpi[]
+}
+
 export const dashboardService = {
   /**
    * Live operations snapshot for the Admin home dashboard.
-   * Short TTL cache (10s) — UI polls every 15s.
+   * Short TTL cache (10s) — UI polls every 30s.
    */
   async getOpsSnapshot() {
-    const cacheKey = 'admin:dashboard:ops-v2'
+    const cacheKey = 'admin:dashboard:ops-v3'
     const cached = await cache.get<Awaited<ReturnType<typeof this.buildOpsSnapshot>>>(cacheKey)
     if (cached) return cached
     const data = await this.buildOpsSnapshot()
@@ -195,7 +210,8 @@ export const dashboardService = {
     const today = utcDayStart(0)
     const tomorrow = utcDayStart(1)
     const yesterday = utcDayStart(-1)
-    const weekAgo = utcDayStart(-6)
+    const monthAgo = utcDayStart(-29)
+    const monthRange = rangeFor('month')
 
     const [
       todayUsers,
@@ -228,6 +244,12 @@ export const dashboardService = {
       periods,
       series,
       totals,
+      monthDepStats,
+      monthWdrStats,
+      monthProfit,
+      activeInvestorCount,
+      openSupportTickets,
+      avgMonthlyReturnPct,
     ] = await Promise.all([
       prisma.user.count({
         where: { createdAt: { gte: today, lt: tomorrow }, deletedAt: null, role: 'USER' },
@@ -356,8 +378,26 @@ export const dashboardService = {
           periodFinancials(p),
         ),
       ),
-      this.buildChartSeries(weekAgo, tomorrow),
+      this.buildChartSeries(monthAgo, tomorrow),
       this.buildLifetimeTotals(),
+      depositStats(monthRange.from, monthRange.to),
+      withdrawalStats(monthRange.from, monthRange.to),
+      profitDistributed(monthRange.from, monthRange.to),
+      prisma.wallet.count({
+        where: {
+          kind: 'INVESTMENT',
+          user: { deletedAt: null, role: 'USER' },
+          OR: [
+            { availableBalance: { gt: 0 } },
+            { investedAmount: { gt: 0 } },
+            { balance: { gt: 0 } },
+          ],
+        },
+      }),
+      prisma.supportTicket.count({
+        where: { status: { in: ['OPEN', 'PENDING'] } },
+      }),
+      this.averageMonthlyReturnPct(),
     ])
 
     const liveCards: OpsLiveCard[] = [
@@ -465,6 +505,185 @@ export const dashboardService = {
       },
     ]
 
+    const aum = moneyDisplay(
+      d(totals.wallets.available)
+        .plus(d(totals.wallets.locked))
+        .plus(d(totals.wallets.invested)),
+    )
+
+    const executiveKpis: ExecutiveKpiRow[] = [
+      {
+        id: 'users-aum',
+        title: 'Users & AUM',
+        cards: [
+          {
+            id: 'total-registered-users',
+            label: 'Total Registered Users',
+            kind: 'count',
+            value: String(totals.users.total),
+            href: '/admin/users',
+          },
+          {
+            id: 'active-investors-balance',
+            label: 'Active Investors',
+            kind: 'count',
+            value: String(activeInvestorCount),
+            href: '/admin/users',
+          },
+          {
+            id: 'total-aum',
+            label: 'Total Assets Under Management',
+            kind: 'money',
+            value: aum,
+            href: '/admin/wallets',
+          },
+          {
+            id: 'available-wallet-balance',
+            label: 'Available Wallet Balance',
+            kind: 'money',
+            value: totals.wallets.available,
+            href: '/admin/wallets',
+          },
+        ],
+      },
+      {
+        id: 'deposits',
+        title: 'Deposits',
+        cards: [
+          {
+            id: 'deposits-today',
+            label: "Today's Deposits",
+            kind: 'money',
+            value: todayDepStats.approvedAmount,
+            href: '/admin/deposits',
+          },
+          {
+            id: 'deposits-month',
+            label: 'This Month Deposits',
+            kind: 'money',
+            value: monthDepStats.approvedAmount,
+            href: '/admin/deposits',
+          },
+          {
+            id: 'deposits-lifetime',
+            label: 'Lifetime Deposits',
+            kind: 'money',
+            value: totals.deposits.approvedAmount,
+            href: '/admin/deposits',
+          },
+          {
+            id: 'deposits-pending',
+            label: 'Pending Deposit Requests',
+            kind: 'count',
+            value: String(totals.deposits.pending),
+            href: '/admin/deposits',
+          },
+        ],
+      },
+      {
+        id: 'withdrawals',
+        title: 'Withdrawals',
+        cards: [
+          {
+            id: 'withdrawals-today',
+            label: "Today's Withdrawals",
+            kind: 'money',
+            value: todayWdrStats.paidAmount,
+            href: '/admin/withdrawals',
+          },
+          {
+            id: 'withdrawals-month',
+            label: 'This Month Withdrawals',
+            kind: 'money',
+            value: monthWdrStats.paidAmount,
+            href: '/admin/withdrawals',
+          },
+          {
+            id: 'withdrawals-lifetime',
+            label: 'Lifetime Withdrawals',
+            kind: 'money',
+            value: totals.withdrawals.paidAmount,
+            href: '/admin/withdrawals',
+          },
+          {
+            id: 'withdrawals-pending',
+            label: 'Pending Withdrawal Requests',
+            kind: 'count',
+            value: String(totals.withdrawals.pending),
+            href: '/admin/withdrawals',
+          },
+        ],
+      },
+      {
+        id: 'profit',
+        title: 'Profit',
+        cards: [
+          {
+            id: 'profit-lifetime',
+            label: 'Total Profit Distributed',
+            kind: 'money',
+            value: totals.profit.lifetime,
+            href: '/admin/daily-return',
+          },
+          {
+            id: 'profit-today',
+            label: 'Today Profit Distributed',
+            kind: 'money',
+            value: todayProfit.amount,
+            href: '/admin/daily-return',
+          },
+          {
+            id: 'profit-month',
+            label: 'Monthly Profit Distributed',
+            kind: 'money',
+            value: monthProfit.amount,
+            href: '/admin/daily-return',
+          },
+          {
+            id: 'avg-monthly-return',
+            label: 'Average Monthly Return',
+            kind: 'percent',
+            value: avgMonthlyReturnPct,
+            href: '/admin/performance',
+          },
+        ],
+      },
+      {
+        id: 'ops',
+        title: 'KYC & Support',
+        cards: [
+          {
+            id: 'kyc-pending',
+            label: 'Pending KYC',
+            kind: 'count',
+            value: String(totals.kyc.pending),
+            href: '/admin/kyc',
+          },
+          {
+            id: 'kyc-approved',
+            label: 'Approved KYC',
+            kind: 'count',
+            value: String(totals.kyc.approved),
+            href: '/admin/kyc',
+          },
+          {
+            id: 'kyc-rejected',
+            label: 'Rejected KYC',
+            kind: 'count',
+            value: String(totals.kyc.rejected),
+            href: '/admin/kyc',
+          },
+          {
+            id: 'support-open',
+            label: 'Open Support Tickets',
+            kind: 'count',
+            value: String(openSupportTickets),
+            href: '/admin/support',
+          },
+        ],
+      },
+    ]
+
     const activity = await activityService.list({
       page: 1,
       limit: 25,
@@ -474,6 +693,7 @@ export const dashboardService = {
     return {
       generatedAt: new Date().toISOString(),
       liveCards,
+      executiveKpis,
       periods: Object.fromEntries(periods.map((p) => [p.period, p])),
       charts: series,
       totals,
@@ -533,13 +753,48 @@ export const dashboardService = {
     }
   },
 
+  async averageMonthlyReturnPct() {
+    const from = new Date()
+    from.setUTCMonth(from.getUTCMonth() - 12)
+    from.setUTCHours(0, 0, 0, 0)
+
+    const runs = await prisma.dailyReturnRun.findMany({
+      where: { status: 'COMPLETED', date: { gte: from } },
+      select: { date: true, returnPct: true },
+      orderBy: { date: 'asc' },
+    })
+
+    if (runs.length === 0) return '0.00'
+
+    const byMonth = new Map<string, Array<ReturnType<typeof d>>>()
+    for (const run of runs) {
+      const key = run.date.toISOString().slice(0, 7)
+      const bucket = byMonth.get(key) ?? []
+      bucket.push(d(run.returnPct))
+      byMonth.set(key, bucket)
+    }
+
+    const monthly: ReturnType<typeof d>[] = []
+    for (const pcts of byMonth.values()) {
+      let factor = d(1)
+      for (const pct of pcts) {
+        factor = factor.mul(d(1).plus(pct.div(100)))
+      }
+      monthly.push(factor.minus(1).mul(100))
+    }
+
+    if (monthly.length === 0) return '0.00'
+    const sum = monthly.reduce((acc, n) => acc.plus(n), d(0))
+    return sum.div(monthly.length).toFixed(2)
+  },
+
   async buildChartSeries(from: Date, to: Date) {
     const days: string[] = []
     for (let t = from.getTime(); t < to.getTime(); t += 86_400_000) {
       days.push(new Date(t).toISOString().slice(0, 10))
     }
 
-    const [deposits, withdrawals, users, profits, kycApproved] = await Promise.all([
+    const [deposits, withdrawals, users, profits, kycApproved, firstFunded] = await Promise.all([
       prisma.deposit.findMany({
         where: { createdAt: { gte: from, lt: to }, status: 'APPROVED' },
         select: { createdAt: true, amount: true },
@@ -563,6 +818,11 @@ export const dashboardService = {
         where: { status: 'APPROVED', reviewedAt: { gte: from, lt: to } },
         select: { reviewedAt: true },
       }),
+      prisma.deposit.groupBy({
+        by: ['userId'],
+        where: { status: 'APPROVED' },
+        _min: { createdAt: true },
+      }),
     ])
 
     const bucket = (iso: string) => iso.slice(0, 10)
@@ -573,6 +833,7 @@ export const dashboardService = {
     const usr = empty()
     const prf = empty()
     const kyc = empty()
+    const fundedPerDay = empty()
 
     for (const row of deposits) {
       const k = bucket(row.createdAt.toISOString())
@@ -596,17 +857,41 @@ export const dashboardService = {
       if (k in kyc) kyc[k] = (kyc[k] ?? 0) + 1
     }
 
+    let fundedBeforeWindow = 0
+    for (const row of firstFunded) {
+      const firstAt = row._min.createdAt
+      if (!firstAt) continue
+      const k = bucket(firstAt.toISOString())
+      if (firstAt < from) {
+        fundedBeforeWindow += 1
+        continue
+      }
+      if (k in fundedPerDay) fundedPerDay[k] = (fundedPerDay[k] ?? 0) + 1
+    }
+
+    let cumulativeInvestors = fundedBeforeWindow
+    const activeInvestorsGrowth = days.map((day) => {
+      cumulativeInvestors += fundedPerDay[day] ?? 0
+      return { day: day.slice(5), value: cumulativeInvestors }
+    })
+
     return {
       depositsPerDay: days.map((day) => ({ day: day.slice(5), value: Number((dep[day] ?? 0).toFixed(2)) })),
       withdrawalsPerDay: days.map((day) => ({
         day: day.slice(5),
         value: Number((wdr[day] ?? 0).toFixed(2)),
       })),
+      depositVsWithdrawal: days.map((day) => ({
+        day: day.slice(5),
+        deposits: Number((dep[day] ?? 0).toFixed(2)),
+        withdrawals: Number((wdr[day] ?? 0).toFixed(2)),
+      })),
       newUsers: days.map((day) => ({ day: day.slice(5), value: usr[day] ?? 0 })),
       profitDistributed: days.map((day) => ({
         day: day.slice(5),
         value: Number((prf[day] ?? 0).toFixed(2)),
       })),
+      activeInvestorsGrowth,
       kycApprovals: days.map((day) => ({ day: day.slice(5), value: kyc[day] ?? 0 })),
     }
   },

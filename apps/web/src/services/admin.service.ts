@@ -27,6 +27,17 @@ export const adminService = {
         changePct: number
         href: string
       }>
+      executiveKpis: Array<{
+        id: string
+        title: string
+        cards: Array<{
+          id: string
+          label: string
+          kind: 'count' | 'money' | 'percent'
+          value: string
+          href: string
+        }>
+      }>
       periods: Record<
         string,
         {
@@ -45,8 +56,10 @@ export const adminService = {
       charts: {
         depositsPerDay: Array<{ day: string; value: number }>
         withdrawalsPerDay: Array<{ day: string; value: number }>
+        depositVsWithdrawal: Array<{ day: string; deposits: number; withdrawals: number }>
         newUsers: Array<{ day: string; value: number }>
         profitDistributed: Array<{ day: string; value: number }>
+        activeInvestorsGrowth: Array<{ day: string; value: number }>
         kycApprovals: Array<{ day: string; value: number }>
       }
       totals: {
