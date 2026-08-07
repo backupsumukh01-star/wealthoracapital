@@ -74,9 +74,10 @@ export function ForexTicker() {
 
   return (
     <div className="w-full min-w-0 overflow-hidden border-b border-white/[0.06] bg-[#07131C]/90 backdrop-blur-xl">
-      <div className="flex h-10 min-w-0 items-center gap-2 px-3 sm:h-11 sm:gap-3 sm:px-4 [mask-image:linear-gradient(90deg,transparent,black_2%,black_98%,transparent)]">
-        <span className="shrink-0 rounded-full bg-profit/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-profit">
-          <span className="mr-1.5 inline-block size-1.5 animate-pulse rounded-full bg-profit" />
+      {/* ~20% narrower content band; mobile shows ~3–4 chips in the viewport */}
+      <div className="mx-auto flex h-9 w-full max-w-[80%] min-w-0 items-center gap-2 px-2 sm:h-10 sm:gap-2.5 sm:px-3 [mask-image:linear-gradient(90deg,transparent,black_3%,black_97%,transparent)]">
+        <span className="shrink-0 rounded-full bg-profit/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-profit sm:px-2 sm:text-[10px]">
+          <span className="mr-1 inline-block size-1.5 animate-pulse rounded-full bg-profit" />
           Live
         </span>
         <Marquee
@@ -92,18 +93,18 @@ export function ForexTicker() {
               <span
                 key={tick.pair}
                 className={cn(
-                  'inline-flex h-7 shrink-0 items-center gap-2 rounded-full border px-2.5 text-[11px] sm:px-3 sm:text-caption',
+                  'inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full border px-2 text-[10px] sm:h-7 sm:gap-2 sm:px-2.5 sm:text-[11px]',
                   tick.featured
                     ? 'border-accent-500/35 bg-accent-500/15'
                     : 'border-line bg-inset/50',
                 )}
               >
                 <span className="font-medium whitespace-nowrap text-fg">{tick.pair}</span>
-                <span className="min-w-[4.25rem] text-right tabular-nums text-fg-muted">
+                <span className="min-w-[3.5rem] text-right tabular-nums text-fg-muted sm:min-w-[4rem]">
                   {tick.price}
                 </span>
                 <span
-                  className="min-w-[3.25rem] text-right tabular-nums"
+                  className="min-w-[2.75rem] text-right tabular-nums sm:min-w-[3rem]"
                   style={{ color: forced ? display.upColor : display.downColor }}
                 >
                   {forced && !tick.change.startsWith('+') && !tick.change.startsWith('-')

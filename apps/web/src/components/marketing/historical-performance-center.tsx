@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Download, Eye, Search } from 'lucide-react'
 
 import { Section } from '@/components/common/section'
@@ -23,14 +23,11 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useHpcDeskMetrics, useHpcTrades, type HpcTradeRow } from '@/features/hpc/use-hpc-data'
 import { useLandingLiveStats, useLandingMonthlySeries, useLandingYearlySeries } from '@/features/landing'
 import { usePublicPerformance } from '@/features/performance/hooks'
-import { usePublicTradeStats, usePublicTradesInfinite } from '@/features/trades/hooks'
 import { useDemoReportCatalog } from '@/lib/demo-backtest'
 import { cn } from '@/lib/cn'
-import type { Trade } from '@meridian/shared'
-
-type PublicTrade = Trade & { reference?: string; status?: string }
 
 function formatPct(n: number, digits = 2) {
   const sign = n > 0 ? '+' : ''
@@ -52,22 +49,25 @@ function StatTiles() {
     )
   }
 
+  const endingEquity =
+    meta?.endingEquity && Number(meta.endingEquity) > 0
+      ? meta.endingEquity
+      : (() => {
+          const tr = Number.parseFloat(stats.totalReturn)
+          return Number.isFinite(tr) ? String((100 * (1 + tr / 100)).toFixed(1)) : '100'
+        })()
+
   const tiles = [
     { label: 'Trading days', value: stats.tradingDays, decimals: 0, suffix: '' },
     { label: 'Trades', value: stats.trades, decimals: 0, suffix: '' },
     { label: 'Win rate', value: stats.winRate, decimals: 1, suffix: '%' },
     { label: 'Avg monthly', value: stats.avgMonthlyReturn, decimals: 1, suffix: '%' },
     { label: 'Total return', value: stats.totalReturn, decimals: 0, suffix: '%' },
-    {
-      label: 'Ending equity',
-      value: meta?.endingEquity ?? '1355',
-      decimals: 1,
-      suffix: '',
-    },
+    { label: 'Ending equity', value: endingEquity, decimals: 1, suffix: '' },
     { label: 'CAGR', value: meta?.cagrPct ?? stats.yearlyReturn, decimals: 1, suffix: '%' },
     {
       label: 'Max drawdown',
-      value: meta?.maxDrawdownPct ?? '0',
+      value: meta?.maxDrawdownPct && Number(meta.maxDrawdownPct) > 0 ? meta.maxDrawdownPct : '0',
       decimals: 1,
       suffix: '%',
       loss: true,
@@ -183,180 +183,294 @@ function YearlyCards() {
   )
 }
 
+function fmtMetricPct(n: number | null | undefined, digits = 2) {
+  if (n == null || !Number.isFinite(n)) return '—'
+  return formatPct(n, digits)
+}
+
 function TradeStatsStrip() {
-  const { data: stats } = usePublicTradeStats()
-  const { data: pub } = usePublicPerformance()
-  const { data: monthly = [] } = useLandingMonthlySeries()
-  const bestMonth = monthly.length
-    ? Math.max(...monthly.map((m) => m.returnPct))
-    : null
-  const worstMonth = monthly.length
-    ? Math.min(...monthly.map((m) => m.returnPct))
-    : null
+  const { metrics, isLoading } = useHpcDeskMetrics()
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <Skeleton key={i} className="h-20 rounded-xl" />
+        ))}
+      </div>
+    )
+  }
 
   const cards = [
-    { label: 'Win rate', value: stats?.winRatePct ? `${Number(stats.winRatePct).toFixed(1)}%` : '—' },
-    { label: 'Trade count', value: stats ? String(stats.tradeCount) : '—' },
-    {
-      label: 'Average return',
-      value: stats?.avgReturnPct ? `${Number(stats.avgReturnPct).toFixed(2)}%` : '—',
-    },
-    {
-      label: 'Published',
-      value: stats?.closedTrades != null ? String(stats.closedTrades) : '—',
-    },
-    {
-      label: 'Largest win',
-      value: stats?.bestTradeReturnPct
-        ? `${Number(stats.bestTradeReturnPct).toFixed(2)}%`
-        : pub?.analytics.bestTrade?.returnPct
-          ? `${Number(pub.analytics.bestTrade.returnPct).toFixed(2)}%`
-          : '—',
-    },
-    {
-      label: 'Largest loss',
-      value: stats?.worstTradeReturnPct
-        ? `${Number(stats.worstTradeReturnPct).toFixed(2)}%`
-        : pub?.analytics.worstTrade?.returnPct
-          ? `${Number(pub.analytics.worstTrade.returnPct).toFixed(2)}%`
-          : '—',
-    },
-    {
-      label: 'Best month',
-      value: bestMonth != null ? formatPct(bestMonth, 1) : '—',
-    },
-    {
-      label: 'Worst month',
-      value: worstMonth != null ? formatPct(worstMonth, 1) : '—',
-    },
+    { label: 'Win rate', value: `${metrics.winRatePct.toFixed(1)}%` },
+    { label: 'Trade count', value: metrics.tradeCount.toLocaleString() },
+    { label: 'Average return', value: fmtMetricPct(metrics.avgReturnPct, 3) },
+    { label: 'Published trades', value: metrics.publishedTrades.toLocaleString() },
+    { label: 'Largest win', value: fmtMetricPct(metrics.largestWinPct, 2) },
+    { label: 'Largest loss', value: fmtMetricPct(metrics.largestLossPct, 2) },
+    { label: 'Best month', value: fmtMetricPct(metrics.bestMonthPct, 1) },
+    { label: 'Worst month', value: fmtMetricPct(metrics.worstMonthPct, 1) },
+    { label: 'Avg monthly return', value: fmtMetricPct(metrics.avgMonthlyReturnPct, 2) },
+    { label: 'Avg daily return', value: fmtMetricPct(metrics.avgDailyReturnPct, 3) },
+    { label: 'Longest win streak', value: String(metrics.longestWinStreak) },
+    { label: 'Longest loss streak', value: String(metrics.longestLossStreak) },
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
       {cards.map((c) => (
-        <div key={c.label} className="card-fill flex h-full flex-col p-4">
+        <div key={c.label} className="card-fill flex h-full min-w-0 flex-col p-3 sm:p-4">
           <p className="text-caption text-fg-subtle">{c.label}</p>
-          <p className="mt-2 text-body-sm font-medium tabular-nums text-fg">{c.value}</p>
+          <p className="mt-2 truncate text-body-sm font-medium tabular-nums text-fg">{c.value}</p>
         </div>
       ))}
     </div>
   )
 }
 
-function TradesInfinite() {
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
-    usePublicTradesInfinite({ limit: 40 })
-  const [query, setQuery] = useState('')
-  const sentinel = useRef<HTMLDivElement | null>(null)
+type SortKey = 'date' | 'pair' | 'returnPct' | 'direction'
+type SideFilter = 'ALL' | 'BUY' | 'SELL'
+type OutcomeFilter = 'ALL' | 'WIN' | 'LOSS'
 
-  const trades = useMemo(() => data?.pages.flatMap((p) => p.items) ?? [], [data])
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return trades
-    return trades.filter((t) => {
-      const row = t as PublicTrade
-      return (
-        (row.reference ?? '').toLowerCase().includes(q) ||
-        row.pair.toLowerCase().includes(q) ||
-        String(row.date).includes(q) ||
-        String(row.direction).toLowerCase().includes(q)
-      )
-    })
-  }, [trades, query])
+function TradesInfinite() {
+  const {
+    trades,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    needsMore,
+  } = useHpcTrades()
+  const [query, setQuery] = useState('')
+  const [side, setSide] = useState<SideFilter>('ALL')
+  const [outcome, setOutcome] = useState<OutcomeFilter>('ALL')
+  const [sortKey, setSortKey] = useState<SortKey>('date')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [page, setPage] = useState(1)
+  const pageSize = 40
 
   useEffect(() => {
-    const el = sentinel.current
-    if (!el) return
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          void fetchNextPage()
-        }
-      },
-      { rootMargin: '240px' },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+    if (needsMore) void fetchNextPage()
+  }, [needsMore, fetchNextPage])
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    let rows = trades
+    if (side !== 'ALL') rows = rows.filter((t) => t.direction === side)
+    if (outcome !== 'ALL') {
+      rows = rows.filter((t) =>
+        outcome === 'WIN' ? t.returnPct > 0 || t.outcome === 'WIN' : t.returnPct < 0 || t.outcome === 'LOSS',
+      )
+    }
+    if (q) {
+      rows = rows.filter(
+        (t) =>
+          t.reference.toLowerCase().includes(q) ||
+          t.pair.toLowerCase().includes(q) ||
+          t.date.includes(q) ||
+          t.direction.toLowerCase().includes(q) ||
+          t.status.toLowerCase().includes(q),
+      )
+    }
+    const sorted = [...rows].sort((a, b) => {
+      let cmp = 0
+      if (sortKey === 'date') cmp = a.date.localeCompare(b.date)
+      else if (sortKey === 'pair') cmp = a.pair.localeCompare(b.pair)
+      else if (sortKey === 'direction') cmp = a.direction.localeCompare(b.direction)
+      else cmp = a.returnPct - b.returnPct
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+    return sorted
+  }, [trades, query, side, outcome, sortKey, sortDir])
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const safePage = Math.min(page, pageCount)
+  const pageRows = filtered.slice((safePage - 1) * pageSize, safePage * pageSize)
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, HpcTradeRow[]>()
+    for (const row of pageRows) {
+      const list = map.get(row.monthKey) ?? []
+      list.push(row)
+      map.set(row.monthKey, list)
+    }
+    return [...map.entries()]
+  }, [pageRows])
+
+  useEffect(() => {
+    setPage(1)
+  }, [query, side, outcome, sortKey, sortDir])
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    else {
+      setSortKey(key)
+      setSortDir(key === 'date' ? 'desc' : 'asc')
+    }
+  }
 
   if (isLoading) return <Skeleton className="h-80 rounded-2xl" />
 
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 space-y-3">
       <TradeStatsStrip />
-      <div className="relative max-w-md">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-subtle" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search pair, date, side, or reference"
-          className="pl-9"
-          aria-label="Filter trades"
-        />
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="relative min-w-0 flex-1 sm:max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-subtle" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search pair, date, side, or reference"
+            className="pl-9"
+            aria-label="Search trades"
+          />
+        </div>
+        <select
+          className="h-10 rounded-lg border border-line bg-inset px-3 text-caption text-fg"
+          value={side}
+          onChange={(e) => setSide(e.target.value as SideFilter)}
+          aria-label="Filter by side"
+        >
+          <option value="ALL">All sides</option>
+          <option value="BUY">Buy</option>
+          <option value="SELL">Sell</option>
+        </select>
+        <select
+          className="h-10 rounded-lg border border-line bg-inset px-3 text-caption text-fg"
+          value={outcome}
+          onChange={(e) => setOutcome(e.target.value as OutcomeFilter)}
+          aria-label="Filter by outcome"
+        >
+          <option value="ALL">All outcomes</option>
+          <option value="WIN">Wins</option>
+          <option value="LOSS">Losses</option>
+        </select>
       </div>
-      <div className="card-fill overflow-x-auto p-0">
+
+      <div className="card-fill max-w-full overflow-x-auto p-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Pair</TableHead>
-              <TableHead>Side</TableHead>
+              <TableHead>
+                <button type="button" className="font-medium" onClick={() => toggleSort('date')}>
+                  Date {sortKey === 'date' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                </button>
+              </TableHead>
+              <TableHead>
+                <button type="button" className="font-medium" onClick={() => toggleSort('pair')}>
+                  Pair {sortKey === 'pair' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                </button>
+              </TableHead>
+              <TableHead>
+                <button type="button" className="font-medium" onClick={() => toggleSort('direction')}>
+                  Buy/Sell {sortKey === 'direction' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                </button>
+              </TableHead>
               <TableHead className="text-right">Entry</TableHead>
               <TableHead className="text-right">Exit</TableHead>
-              <TableHead className="text-right">Return</TableHead>
+              <TableHead className="text-right">
+                <button type="button" className="font-medium" onClick={() => toggleSort('returnPct')}>
+                  Return % {sortKey === 'returnPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                </button>
+              </TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="hidden md:table-cell">Reference</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((t) => {
-              const row = t as PublicTrade
-              const pct = Number.parseFloat(String(row.returnPct ?? 0))
-              return (
-                <TableRow key={row.id}>
-                  <TableCell className="tabular-nums">{String(row.date).slice(0, 10)}</TableCell>
-                  <TableCell className="font-medium">{row.pair}</TableCell>
-                  <TableCell>
-                    <Badge tone={row.direction === 'BUY' ? 'info' : 'neutral'} size="sm">
-                      {row.direction}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums text-fg-muted">
-                    {row.entryPrice ?? '—'}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums text-fg-muted">
-                    {row.exitPrice ?? '—'}
-                  </TableCell>
-                  <TableCell
-                    className={cn(
-                      'text-right tabular-nums',
-                      pct >= 0 ? 'text-profit' : 'text-loss',
-                    )}
-                  >
-                    {formatPct(pct, 3)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge tone={row.status === 'CLOSED' || row.outcome ? 'success' : 'neutral'} size="sm">
-                      {row.status ?? row.outcome ?? 'PUBLISHED'}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
+            {grouped.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="py-8 text-center text-fg-muted">
+                  No trades match these filters.
+                </TableCell>
+              </TableRow>
+            ) : (
+              grouped.map(([month, rows]) => (
+                <Fragment key={`m-${month}`}>
+                  <TableRow className="bg-white/[0.04]">
+                    <TableCell colSpan={8} className="py-2 text-caption font-medium text-fg-subtle">
+                      {rows[0]?.monthLabel ?? month}
+                    </TableCell>
+                  </TableRow>
+                  {rows.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell className="whitespace-nowrap tabular-nums">{row.date}</TableCell>
+                      <TableCell className="font-medium">{row.pair}</TableCell>
+                      <TableCell>
+                        <Badge tone={row.direction === 'BUY' ? 'info' : 'neutral'} size="sm">
+                          {row.direction === 'BUY' ? 'Buy' : row.direction === 'SELL' ? 'Sell' : row.direction}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-fg-muted">
+                        {row.entryPrice}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-fg-muted">
+                        {row.exitPrice}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          'text-right tabular-nums',
+                          row.returnPct >= 0 ? 'text-profit' : 'text-loss',
+                        )}
+                      >
+                        {formatPct(row.returnPct, 3)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge tone="success" size="sm">
+                          {row.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden max-w-[9rem] truncate text-caption text-fg-subtle md:table-cell">
+                        {row.reference}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </Fragment>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
-      <div ref={sentinel} className="flex justify-center py-3">
-        {isFetchingNextPage ? (
-          <p className="text-caption text-fg-subtle">Loading more trades…</p>
-        ) : hasNextPage ? (
-          <Button type="button" size="sm" variant="glass" onClick={() => void fetchNextPage()}>
-            Load more
+
+      <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+        <p className="text-caption text-fg-subtle">
+          Showing {pageRows.length.toLocaleString()} of {filtered.length.toLocaleString()} trades
+          {filtered.length !== trades.length ? ` (filtered from ${trades.length.toLocaleString()})` : ''}
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="glass"
+            disabled={safePage <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Previous
           </Button>
-        ) : (
-          <p className="text-caption text-fg-subtle">
-            Showing {filtered.length.toLocaleString()} trades
-          </p>
-        )}
+          <span className="text-caption tabular-nums text-fg-subtle">
+            Page {safePage} / {pageCount}
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="glass"
+            disabled={safePage >= pageCount}
+            onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+          >
+            Next
+          </Button>
+          {hasNextPage ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              disabled={isFetchingNextPage}
+              onClick={() => void fetchNextPage()}
+            >
+              {isFetchingNextPage ? 'Loading…' : 'Load more from API'}
+            </Button>
+          ) : null}
+        </div>
       </div>
     </div>
   )
@@ -548,7 +662,7 @@ export function HistoricalPerformanceCenter() {
           <TabsContent value="trades" className="mt-4">
             <SectionHeader
               title="Trade blotter"
-              description="Newest published tickets first — scroll for more."
+              description="Search, filter, sort, and paginate the full published desk history."
               as="h3"
             />
             <TradesInfinite />

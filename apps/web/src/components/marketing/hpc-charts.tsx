@@ -184,7 +184,7 @@ export function HpcCharts() {
         </ResponsiveContainer>
       </ChartFrame>
 
-      <ChartFrame title="Monthly returns" description="Synthetic calendar-month net returns.">
+      <ChartFrame title="Monthly returns" description="Calendar-month net returns from the published programme history.">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={monthlySeries} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
             <CartesianGrid stroke="rgb(255 255 255 / 0.04)" vertical={false} />

@@ -30,7 +30,7 @@ export function Marquee({
 
   if (prefersReducedMotion) {
     return (
-      <div className={cn('no-scrollbar flex gap-4 overflow-x-auto sm:gap-6', className)}>
+      <div className={cn('no-scrollbar flex gap-2.5 overflow-x-auto sm:gap-3', className)}>
         {items}
       </div>
     )
@@ -53,8 +53,8 @@ export function Marquee({
         )}
         style={{ animationDuration: `${speed}s` }}
       >
-        <div className="flex shrink-0 items-center gap-4 pr-4 sm:gap-6 sm:pr-6">{items}</div>
-        <div className="flex shrink-0 items-center gap-4 pr-4 sm:gap-6 sm:pr-6" aria-hidden>
+        <div className="flex shrink-0 items-center gap-2.5 pr-2.5 sm:gap-3 sm:pr-3">{items}</div>
+        <div className="flex shrink-0 items-center gap-2.5 pr-2.5 sm:gap-3 sm:pr-3" aria-hidden>
           {items}
         </div>
       </div>
