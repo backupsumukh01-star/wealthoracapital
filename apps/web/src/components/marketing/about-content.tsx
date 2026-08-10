@@ -7,7 +7,6 @@ import { Section } from '@/components/common/section'
 import { CtaBand } from '@/components/marketing/cta-band'
 import { OperatingModel } from '@/components/marketing/operating-model'
 import { PageHero } from '@/components/marketing/page-hero'
-import { RiskBanner } from '@/components/marketing/risk-banner'
 import { TeamRoster } from '@/components/marketing/team-roster'
 import { StaggerGroup, StaggerItem } from '@/components/motion/stagger-group'
 import { Card } from '@/components/ui/card'
@@ -88,8 +87,6 @@ export function AboutContent() {
       <Section eyebrow="Operations" title="How the desk is run day to day">
         <OperatingModel />
       </Section>
-
-      <RiskBanner />
       <CtaBand />
     </>
   )

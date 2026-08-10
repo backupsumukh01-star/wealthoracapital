@@ -5,7 +5,6 @@ import { Section } from '@/components/common/section'
 import { CtaBand } from '@/components/marketing/cta-band'
 import { CORE_FAQS, FaqAccordion, type FaqEntry } from '@/components/marketing/faq-accordion'
 import { PageHero } from '@/components/marketing/page-hero'
-import { RiskBanner } from '@/components/marketing/risk-banner'
 
 export const metadata: Metadata = {
   title: 'Frequently asked questions',
@@ -70,8 +69,6 @@ export default function FaqPage() {
       <Section title="Money in and out">
         <FaqAccordion items={MONEY_FAQS} />
       </Section>
-
-      <RiskBanner />
       <CtaBand />
     </>
   )

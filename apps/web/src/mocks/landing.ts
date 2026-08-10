@@ -394,6 +394,7 @@ export const TESTIMONIALS = [
 ] as const
 
 /** Floating FX tape — presentation only, values drift client-side. */
+/** @deprecated Not for LIVE UI. Marketing market prices use GET /markets/quotes. Kept for Admin OS seed fixtures only. */
 export const FOREX_TICKER = [
   { pair: 'EUR/USD', price: '1.0864', change: '0.12' },
   { pair: 'GBP/USD', price: '1.2731', change: '-0.08' },

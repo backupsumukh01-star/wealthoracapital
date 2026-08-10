@@ -3,7 +3,6 @@ import { ROUTES } from '@meridian/shared'
 
 import { CtaBand } from '@/components/marketing/cta-band'
 import { PageHero } from '@/components/marketing/page-hero'
-import { RiskBanner } from '@/components/marketing/risk-banner'
 import { TradingSystemSection } from '@/components/marketing/trading-system'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -38,7 +37,6 @@ export default function OurTradingSystemPage() {
       </PageHero>
 
       <TradingSystemSection showIntro={false} />
-      <RiskBanner />
       <CtaBand />
     </>
   )

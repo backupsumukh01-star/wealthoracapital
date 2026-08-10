@@ -12,6 +12,7 @@ import { emailTrackingRouter } from './email-tracking.routes.js'
 import { filesRouter } from './files.routes.js'
 import { healthRouter } from './health.routes.js'
 import { kycRouter } from './kyc.routes.js'
+import { marketRouter } from './market.routes.js'
 import { notificationRouter } from './notification.routes.js'
 import { paymentWebhookRouter } from './payment-webhook.routes.js'
 import { performanceRouter } from './performance.routes.js'
@@ -50,6 +51,7 @@ export function createApiRouter(): Router {
   router.use('/v1/profile', profileRouter)
   router.use('/v1/activity', activityRouter)
   router.use('/v1/kyc', kycRouter)
+  router.use('/v1/markets', marketRouter)
   router.use('/v1/wallet', walletRouter)
   router.use('/v1/deposits', depositRouter)
   router.use('/v1/withdrawals', withdrawalRouter)

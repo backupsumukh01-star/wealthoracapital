@@ -1,14 +1,13 @@
 import { AlertTriangle } from 'lucide-react'
+import Link from 'next/link'
+import { ROUTES } from '@meridian/shared'
 
 import { RISK_DISCLOSURE } from '@/lib/constants'
 import { cn } from '@/lib/cn'
 
 /**
- * The risk statement, rendered from one constant.
- *
- * It appears on the landing page, above the deposit form, and in the footer. Having a single
- * source means the wording cannot drift between surfaces, which matters because this is a
- * compliance obligation rather than marketing copy (docs/00 §8).
+ * Full risk statement — used on the dedicated Risk Disclosure legal page and deposit flow.
+ * Marketing pages use footer links + short past-performance note instead of repeating this card.
  */
 export function RiskDisclosure({
   variant = 'block',
@@ -19,7 +18,15 @@ export function RiskDisclosure({
 }) {
   if (variant === 'inline') {
     return (
-      <p className={cn('text-caption text-fg-subtle', className)}>{RISK_DISCLOSURE}</p>
+      <p className={cn('text-caption text-fg-subtle', className)}>
+        Past performance does not guarantee future results.{' '}
+        <Link
+          href={ROUTES.marketing.legal.riskDisclosure}
+          className="underline decoration-line underline-offset-2 hover:text-fg"
+        >
+          Risk Disclosure
+        </Link>
+      </p>
     )
   }
 

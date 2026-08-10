@@ -9,7 +9,6 @@ import { InvestmentTimeline } from '@/components/marketing/investment-timeline'
 import { LiveTradesPreview } from '@/components/marketing/live-trades-preview'
 import { PageHero } from '@/components/marketing/page-hero'
 import { PerformanceShowcase } from '@/components/marketing/performance-showcase'
-import { RiskBanner } from '@/components/marketing/risk-banner'
 import { Button } from '@/components/ui/button'
 
 export const metadata: Metadata = {
@@ -50,8 +49,6 @@ export default function PerformancePage() {
       <LiveTradesPreview />
       <InvestmentCalculator />
       <InvestmentTimeline />
-
-      <RiskBanner />
       <CtaBand />
     </>
   )

@@ -7,7 +7,6 @@ import { Section } from '@/components/common/section'
 import { CtaBand } from '@/components/marketing/cta-band'
 import { LiveTradesPreview } from '@/components/marketing/live-trades-preview'
 import { PageHero } from '@/components/marketing/page-hero'
-import { RiskBanner } from '@/components/marketing/risk-banner'
 import { WhyWePublish } from '@/components/marketing/trading-system/why-publish'
 import { PerformanceTransparency } from '@/components/marketing/trading-system/performance-transparency'
 import { StaggerGroup, StaggerItem } from '@/components/motion/stagger-group'
@@ -96,8 +95,6 @@ export default function TransparencyPage() {
       <div className="container-page section-y pt-0">
         <PerformanceTransparency />
       </div>
-
-      <RiskBanner />
       <CtaBand />
     </>
   )

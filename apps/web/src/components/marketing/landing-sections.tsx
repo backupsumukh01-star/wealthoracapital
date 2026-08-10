@@ -17,7 +17,6 @@ import { HowItWorks } from '@/components/marketing/how-it-works'
 import { InvestmentTimeline } from '@/components/marketing/investment-timeline'
 import { OperatingModel } from '@/components/marketing/operating-model'
 import { PerformanceHighlights } from '@/components/marketing/performance-highlights'
-import { RiskBanner } from '@/components/marketing/risk-banner'
 import { StatsBand } from '@/components/marketing/stats-band'
 import { TrustStrip } from '@/components/marketing/trust-strip'
 import { WhyChooseUs } from '@/components/marketing/why-choose-us'
@@ -186,8 +185,6 @@ export function LandingSections() {
       <Gate sectionKey="downloads" visible={isSectionVisible}>
         <HistoryCtaBand />
       </Gate>
-
-      <RiskBanner />
       <Gate sectionKey="cta" visible={isSectionVisible}>
         <CtaBand />
       </Gate>

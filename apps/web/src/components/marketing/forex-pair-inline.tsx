@@ -1,23 +1,18 @@
 'use client'
 
+import { formatMarketChangePct, useMarketQuotes } from '@/features/markets/hooks'
 import { cn } from '@/lib/cn'
 
-import { MiniSparkline } from './mini-sparkline'
-
-const SPARKS = [
-  [30, 32, 31, 35, 38, 36, 40, 42, 41, 45, 48, 47, 50, 52],
-  [50, 48, 49, 46, 44, 45, 42, 40, 41, 38, 36, 37, 34, 33],
-  [28, 30, 33, 32, 36, 39, 38, 42, 45, 44, 48, 50, 49, 53],
-  [40, 42, 40, 44, 43, 47, 50, 48, 52, 55, 54, 58, 60, 59],
-]
-
-/** Compact pair cards used inside the feature mosaic (replaces plain pills). */
+/** Compact pair cards — prices from centralized market feed when available. */
 export function ForexPairCardsInline({ pairs }: { pairs: string[] }) {
+  const { data } = useMarketQuotes()
+  const bySymbol = new Map((data?.quotes ?? []).map((q) => [q.symbol, q]))
+
   return (
     <div className="grid grid-cols-2 gap-2">
-      {pairs.map((pair, i) => {
-        const up = i % 2 === 0
-        const change = up ? `+${(0.12 + i * 0.07).toFixed(2)}` : `-${(0.08 + i * 0.04).toFixed(2)}`
+      {pairs.map((pair) => {
+        const quote = bySymbol.get(pair)
+        const { text, tone } = formatMarketChangePct(quote?.changePercent ?? '0')
         return (
           <div
             key={pair}
@@ -25,16 +20,24 @@ export function ForexPairCardsInline({ pairs }: { pairs: string[] }) {
           >
             <div className="flex items-center justify-between gap-2">
               <span className="text-caption font-medium text-fg">{pair}</span>
-              <span
-                className={cn(
-                  'text-[11px] tabular-nums font-medium',
-                  up ? 'text-profit' : 'text-loss',
-                )}
-              >
-                {change}%
-              </span>
+              {quote ? (
+                <span
+                  className={cn(
+                    'text-[11px] tabular-nums font-medium',
+                    tone === 'up' && 'text-profit',
+                    tone === 'down' && 'text-loss',
+                    tone === 'neutral' && 'text-fg-subtle',
+                  )}
+                >
+                  {text}
+                </span>
+              ) : (
+                <span className="text-[11px] text-fg-subtle">—</span>
+              )}
             </div>
-            <MiniSparkline values={SPARKS[i % SPARKS.length]!} positive={up} className="mt-1 h-7" />
+            <p className="mt-1 text-caption tabular-nums text-fg-muted">
+              {quote?.price ?? '—'}
+            </p>
           </div>
         )
       })}

@@ -3,9 +3,9 @@
 import { useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import { ROUTES } from '@meridian/shared'
 
 import { Logo } from '@/components/common/logo'
-import { RiskDisclosure } from '@/components/common/risk-disclosure'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { usePublishedLanding } from '@/features/cms/site'
@@ -136,11 +136,15 @@ export function Footer() {
         </div>
 
         <div className="mt-12 space-y-4 border-t border-line/70 pt-8">
-          {landing?.riskDisclosure ? (
-            <p className="text-caption leading-relaxed text-fg-subtle">{landing.riskDisclosure}</p>
-          ) : (
-            <RiskDisclosure className="text-caption text-fg-subtle" />
-          )}
+          <p className="text-caption leading-relaxed text-fg-subtle">
+            Past performance does not guarantee future results.{' '}
+            <Link
+              href={ROUTES.marketing.legal.riskDisclosure}
+              className="underline decoration-line underline-offset-2 hover:text-fg"
+            >
+              Risk Disclosure
+            </Link>
+          </p>
           <p className="text-caption text-fg-subtle">
             © {year} {landing.companyName || 'Growzy Capital'}. All rights reserved.
           </p>

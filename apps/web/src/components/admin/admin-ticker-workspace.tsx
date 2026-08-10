@@ -1,279 +1,124 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { ArrowDown, ArrowUp, Plus, Star, Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
-
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
-import { ConfirmActionDialog } from '@/components/admin/confirm-action-dialog'
 import { PageHeader } from '@/components/common/page-header'
-import { Button } from '@/components/ui/button'
-import { FormField } from '@/components/ui/form-field'
-import { Input } from '@/components/ui/input'
-import { adminOsId, type TickerPair } from '@/lib/admin-os-store'
+import {
+  formatMarketChangePct,
+  marketStatusBadge,
+  useMarketQuotes,
+} from '@/features/markets/hooks'
 import { cn } from '@/lib/cn'
-import { useAdminOs } from '@/providers/admin-os-provider'
 
+/** Admin view of the same centralized market feed used by public/investor UI. */
 export function AdminTickerWorkspace() {
-  const { state, upsertTicker, removeTicker, reorderTicker, updateTickerDisplay } = useAdminOs()
-  const display = state.tickerDisplay
-  const sorted = useMemo(
-    () => [...state.ticker].sort((a, b) => a.order - b.order),
-    [state.ticker],
-  )
-  const [draft, setDraft] = useState({
-    pair: '',
-    price: '',
-    change: '0.00',
-    tone: 'auto' as TickerPair['tone'],
-  })
-  const [removeId, setRemoveId] = useState<string | null>(null)
-
-  function move(id: string, dir: -1 | 1) {
-    const ids = sorted.map((t) => t.id)
-    const i = ids.indexOf(id)
-    const j = i + dir
-    if (i < 0 || j < 0 || j >= ids.length) return
-    ;[ids[i], ids[j]] = [ids[j]!, ids[i]!]
-    reorderTicker(ids)
-  }
-
-  function addPair() {
-    if (!draft.pair.trim()) return
-    const pair: TickerPair = {
-      id: adminOsId('TK'),
-      pair: draft.pair.trim().toUpperCase(),
-      price: draft.price || '0.00',
-      change: draft.change || '0.00',
-      enabled: true,
-      featured: false,
-      order: sorted.length,
-      tone: draft.tone,
-    }
-    upsertTicker(pair)
-    setDraft({ pair: '', price: '', change: '0.00', tone: 'auto' })
-    toast.success('Pair added — landing ticker updates live')
-  }
+  const { data, isLoading, isFetching, dataUpdatedAt, refetch, isError } = useMarketQuotes()
+  const quotes = data?.quotes ?? []
+  const badge = marketStatusBadge(data?.status)
 
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="Live Market Ticker"
-        description="Control pairs, colours, scroll speed, and refresh — homepage tape updates automatically."
+        description="Same market-data feed as the public header ticker and investor dashboard. Prices are never edited here."
+        actions={
+          <button
+            type="button"
+            className="rounded-lg border border-line bg-inset/60 px-3 py-2 text-caption text-fg-muted hover:text-fg"
+            onClick={() => void refetch()}
+          >
+            Refresh{isFetching ? '…' : ''}
+          </button>
+        }
       />
 
       <AdminPanel>
-        <AdminPanelHeader title="Tape display" description="Global ticker behaviour on marketing pages." />
-        <div className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3 sm:p-5">
-          <label className="flex items-center gap-2 text-caption text-fg-muted sm:col-span-2 lg:col-span-3">
-            <input
-              type="checkbox"
-              checked={display.enabled}
-              onChange={(e) => {
-                updateTickerDisplay({ enabled: e.target.checked })
-                toast.message(e.target.checked ? 'Ticker enabled' : 'Ticker disabled')
-              }}
-            />
-            Enable live market ticker
-          </label>
-          <FormField label="Auto-scroll speed (sec)">
-            <Input
-              type="number"
-              min={8}
-              max={120}
-              value={display.scrollSpeed}
-              onChange={(e) => updateTickerDisplay({ scrollSpeed: Number(e.target.value) || 40 })}
-            />
-          </FormField>
-          <FormField label="Refresh rate (ms)">
-            <Input
-              type="number"
-              min={1000}
-              step={500}
-              value={display.refreshMs}
-              onChange={(e) => updateTickerDisplay({ refreshMs: Number(e.target.value) || 8000 })}
-            />
-          </FormField>
-          <FormField label="Scroll direction">
-            <select
-              className="h-10 w-full rounded-lg border border-white/10 bg-inset/60 px-3 text-body-sm text-fg"
-              value={display.direction}
-              onChange={(e) =>
-                updateTickerDisplay({ direction: e.target.value as 'left' | 'right' })
-              }
-            >
-              <option value="left">Left</option>
-              <option value="right">Right</option>
-            </select>
-          </FormField>
-          <FormField label="Up / green colour">
-            <Input
-              type="color"
-              value={display.upColor}
-              onChange={(e) => updateTickerDisplay({ upColor: e.target.value })}
-            />
-          </FormField>
-          <FormField label="Down / red colour">
-            <Input
-              type="color"
-              value={display.downColor}
-              onChange={(e) => updateTickerDisplay({ downColor: e.target.value })}
-            />
-          </FormField>
+        <AdminPanelHeader
+          title="Feed status"
+          description="LIVE only when the provider request succeeds with fresh data."
+        />
+        <div className="flex flex-wrap items-center gap-3 p-4 sm:p-5">
+          <span
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide',
+              badge.live
+                ? 'border-profit/30 bg-profit/10 text-profit'
+                : data?.status === 'DELAYED'
+                  ? 'border-warning/30 bg-warning/10 text-warning'
+                  : 'border-line bg-inset/60 text-fg-subtle',
+            )}
+          >
+            {badge.label}
+          </span>
+          {data?.updatedAt ? (
+            <span className="text-caption tabular-nums text-fg-subtle">
+              Updated {new Date(data.updatedAt).toISOString().slice(11, 19)} UTC
+            </span>
+          ) : null}
+          {data?.asOfLabel ? (
+            <span className="text-caption text-fg-subtle">{data.asOfLabel}</span>
+          ) : null}
+          {data?.message ? (
+            <span className="text-caption text-fg-muted">{data.message}</span>
+          ) : null}
+          {isError ? (
+            <span className="text-caption text-loss">Request failed — not showing LIVE.</span>
+          ) : null}
         </div>
       </AdminPanel>
 
       <AdminPanel>
-        <AdminPanelHeader title="Add pair" />
-        <div className="grid gap-3 p-4 sm:grid-cols-5 sm:p-5">
-          <FormField label="Pair">
-            <Input
-              placeholder="EUR/USD"
-              value={draft.pair}
-              onChange={(e) => setDraft((d) => ({ ...d, pair: e.target.value }))}
-            />
-          </FormField>
-          <FormField label="Price">
-            <Input
-              value={draft.price}
-              onChange={(e) => setDraft((d) => ({ ...d, price: e.target.value }))}
-            />
-          </FormField>
-          <FormField label="Change %">
-            <Input
-              value={draft.change}
-              onChange={(e) => setDraft((d) => ({ ...d, change: e.target.value }))}
-            />
-          </FormField>
-          <FormField label="Tone">
-            <select
-              className="h-10 w-full rounded-lg border border-white/10 bg-inset/60 px-3 text-body-sm text-fg"
-              value={draft.tone}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, tone: e.target.value as TickerPair['tone'] }))
-              }
-            >
-              <option value="auto">Auto</option>
-              <option value="up">Green</option>
-              <option value="down">Red</option>
-            </select>
-          </FormField>
-          <div className="flex items-end">
-            <Button type="button" className="w-full" onClick={addPair}>
-              <Plus aria-hidden />
-              Add
-            </Button>
+        <AdminPanelHeader
+          title="Current quotes"
+          description={`${quotes.length} symbols · shared with marketing + dashboard`}
+        />
+        {isLoading && quotes.length === 0 ? (
+          <p className="p-4 text-body-sm text-fg-subtle sm:p-5">Loading market data…</p>
+        ) : quotes.length === 0 ? (
+          <p className="p-4 text-body-sm text-fg-subtle sm:p-5">
+            {data?.message || 'Market data unavailable'}
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[32rem] text-left text-body-sm">
+              <thead className="border-b border-line text-caption text-fg-subtle">
+                <tr>
+                  <th className="px-4 py-3 font-medium sm:px-5">Symbol</th>
+                  <th className="px-4 py-3 font-medium sm:px-5">Type</th>
+                  <th className="px-4 py-3 font-medium sm:px-5">Price</th>
+                  <th className="px-4 py-3 font-medium sm:px-5">Change</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line/60">
+                {quotes.map((q) => {
+                  const { text, tone } = formatMarketChangePct(q.changePercent)
+                  return (
+                    <tr key={q.symbol}>
+                      <td className="px-4 py-3 font-medium text-fg sm:px-5">{q.symbol}</td>
+                      <td className="px-4 py-3 capitalize text-fg-muted sm:px-5">{q.type}</td>
+                      <td className="px-4 py-3 tabular-nums text-fg sm:px-5">{q.price}</td>
+                      <td
+                        className={cn(
+                          'px-4 py-3 tabular-nums sm:px-5',
+                          tone === 'up' && 'text-profit',
+                          tone === 'down' && 'text-loss',
+                          tone === 'neutral' && 'text-fg-subtle',
+                        )}
+                      >
+                        {text}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
-        </div>
+        )}
+        {dataUpdatedAt ? (
+          <p className="border-t border-line/60 px-4 py-3 text-[10px] tabular-nums text-fg-subtle sm:px-5">
+            Client cache refreshed {new Date(dataUpdatedAt).toISOString().slice(11, 19)} UTC
+          </p>
+        ) : null}
       </AdminPanel>
-
-      <AdminPanel>
-        <AdminPanelHeader title="Pairs" description={`${sorted.length} configured`} />
-        <ul className="divide-y divide-white/[0.04]">
-          {sorted.map((t) => (
-            <li
-              key={t.id}
-              className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5"
-            >
-              <div className="min-w-0">
-                <p className="font-medium text-fg">
-                  {t.pair}{' '}
-                  {t.featured ? (
-                    <Star className="ml-1 inline size-3.5 text-amber-300" aria-label="Featured" />
-                  ) : null}
-                </p>
-                <p className="text-caption tabular-nums text-fg-muted">
-                  {t.price} · {t.change}% · tone {t.tone ?? 'auto'}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button type="button" size="sm" variant="ghost" onClick={() => move(t.id, -1)}>
-                  <ArrowUp aria-hidden />
-                </Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => move(t.id, 1)}>
-                  <ArrowDown aria-hidden />
-                </Button>
-                <select
-                  className="h-8 rounded-lg border border-white/10 bg-inset/60 px-2 text-caption text-fg"
-                  value={t.tone ?? 'auto'}
-                  onChange={(e) => {
-                    upsertTicker({ ...t, tone: e.target.value as TickerPair['tone'] })
-                    toast.message('Tone updated')
-                  }}
-                >
-                  <option value="auto">Auto</option>
-                  <option value="up">Green</option>
-                  <option value="down">Red</option>
-                </select>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="glass"
-                  onClick={() => {
-                    const price = window.prompt('Update price', t.price)
-                    if (price == null) return
-                    upsertTicker({ ...t, price })
-                    toast.success('Price updated')
-                  }}
-                >
-                  Price
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="glass"
-                  onClick={() => {
-                    const change = window.prompt('Update % change', t.change)
-                    if (change == null) return
-                    upsertTicker({ ...t, change })
-                    toast.success('% updated')
-                  }}
-                >
-                  %
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="glass"
-                  onClick={() => upsertTicker({ ...t, featured: !t.featured })}
-                >
-                  {t.featured ? 'Unfeature' : 'Feature'}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="glass"
-                  className={cn(!t.enabled && 'opacity-60')}
-                  onClick={() => {
-                    upsertTicker({ ...t, enabled: !t.enabled })
-                    toast.message(t.enabled ? 'Pair disabled' : 'Pair enabled')
-                  }}
-                >
-                  {t.enabled ? 'Enabled' : 'Disabled'}
-                </Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => setRemoveId(t.id)}>
-                  <Trash2 aria-hidden />
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </AdminPanel>
-
-      <ConfirmActionDialog
-        open={Boolean(removeId)}
-        onOpenChange={(o) => !o && setRemoveId(null)}
-        title="Delete pair?"
-        description="This removes the pair from the live marketing ticker immediately."
-        confirmLabel="Delete"
-        danger
-        onConfirm={() => {
-          if (!removeId) return
-          removeTicker(removeId)
-          toast.success('Pair removed')
-          setRemoveId(null)
-        }}
-      />
     </div>
   )
 }

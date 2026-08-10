@@ -6,7 +6,6 @@ import { Section } from '@/components/common/section'
 import { ContactForm } from '@/components/marketing/contact-form'
 import { CtaBand } from '@/components/marketing/cta-band'
 import { PageHero } from '@/components/marketing/page-hero'
-import { RiskBanner } from '@/components/marketing/risk-banner'
 import { Card } from '@/components/ui/card'
 import { SITE } from '@/lib/constants'
 
@@ -63,8 +62,6 @@ export default function ContactPage() {
           </div>
         </div>
       </Section>
-
-      <RiskBanner />
       <CtaBand />
     </>
   )

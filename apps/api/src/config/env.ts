@@ -109,6 +109,11 @@ const envSchema = z.object({
 
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
+  /** Market quotes: `public` = free delayed sources; `finnhub` needs MARKET_DATA_API_KEY. */
+  MARKET_DATA_PROVIDER: z.enum(['public', 'finnhub']).default('public'),
+  MARKET_DATA_API_KEY: z.string().optional().default(''),
+  MARKET_DATA_CACHE_TTL_MS: z.coerce.number().int().positive().default(20_000),
+
   UPLOAD_ROOT: z.string().min(1).default('./uploads'),
   STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
   S3_BUCKET: z.string().optional().default(''),

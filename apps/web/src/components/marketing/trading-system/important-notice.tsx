@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+import { ROUTES } from '@meridian/shared'
 import { AlertTriangle } from 'lucide-react'
 import { motion } from 'framer-motion'
 
@@ -7,13 +9,7 @@ import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 
 import { SubHeading } from './glass-card'
 
-const POINTS = [
-  'Trading carries risk. Markets can move against open and closed positions.',
-  'Returns vary with market conditions, liquidity, and execution quality.',
-  'Past performance does not guarantee future results.',
-  'Capital is exposed to market risk and may decline in value.',
-]
-
+/** Compact notice — full legal text lives on the Risk Disclosure page. */
 export function ImportantNotice() {
   const prefersReducedMotion = usePrefersReducedMotion()
 
@@ -29,32 +25,21 @@ export function ImportantNotice() {
         role="note"
         aria-label="Risk important notice"
       >
-        <div
-          className="pointer-events-none absolute -right-16 -top-16 size-56 rounded-full bg-hl-amber/15 blur-3xl"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-20 left-10 size-48 rounded-full bg-accent-500/10 blur-3xl"
-          aria-hidden
-        />
-
-        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start">
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start">
           <span className="grid size-12 shrink-0 place-items-center rounded-2xl border border-hl-amber/40 bg-hl-amber/10 text-hl-amber shadow-glow-soft">
             <AlertTriangle className="size-5" aria-hidden />
           </span>
           <div className="min-w-0">
-            <p className="text-heading-md text-fg">Read before you allocate capital</p>
-            <ul className="mt-4 space-y-3">
-              {POINTS.map((point) => (
-                <li key={point} className="flex gap-3 text-body-sm text-fg-muted sm:text-body-md">
-                  <span className="mt-2 size-1.5 shrink-0 rounded-full bg-hl-amber" aria-hidden />
-                  <span>{point}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-5 text-caption text-fg-subtle">
-              Growzy does not guarantee profits or fixed returns. Illustrations on this page are
-              demonstrative only.
+            <p className="text-heading-md text-fg">Trading involves risk</p>
+            <p className="mt-3 text-body-sm text-fg-muted sm:text-body-md">
+              Past performance does not guarantee future results. Read the full{' '}
+              <Link
+                href={ROUTES.marketing.legal.riskDisclosure}
+                className="font-medium text-accent-200 underline decoration-accent-500/40 underline-offset-2 hover:text-accent-100"
+              >
+                Risk Disclosure
+              </Link>{' '}
+              before you allocate capital.
             </p>
           </div>
         </div>

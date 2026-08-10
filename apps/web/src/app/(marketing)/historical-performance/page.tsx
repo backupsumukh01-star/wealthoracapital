@@ -6,7 +6,6 @@ import { ArrowRight, LineChart } from 'lucide-react'
 import { CtaBand } from '@/components/marketing/cta-band'
 import { HistoricalPerformanceCenter } from '@/components/marketing/historical-performance-center'
 import { PageHero } from '@/components/marketing/page-hero'
-import { RiskBanner } from '@/components/marketing/risk-banner'
 import { Button } from '@/components/ui/button'
 
 export const metadata: Metadata = {
@@ -44,8 +43,6 @@ export default function HistoricalPerformancePage() {
       </PageHero>
 
       <HistoricalPerformanceCenter />
-
-      <RiskBanner />
       <CtaBand />
     </>
   )

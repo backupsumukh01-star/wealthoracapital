@@ -173,6 +173,10 @@ export const API_ROUTES = {
     root: '/activity',
   },
   transactions: { root: '/transactions' },
+  markets: {
+    quotes: '/markets/quotes',
+    status: '/markets/status',
+  },
   trades: {
     root: '/trades',
     pairs: '/trades/pairs',

@@ -9,7 +9,6 @@ import { FeatureMosaic } from '@/components/marketing/feature-mosaic'
 import { ForexPairCards } from '@/components/marketing/forex-pair-cards'
 import { LiveMarketWidget } from '@/components/marketing/live-market-widget'
 import { PageHero } from '@/components/marketing/page-hero'
-import { RiskBanner } from '@/components/marketing/risk-banner'
 import { StrategyEngine } from '@/components/marketing/trading-system/strategies'
 import { TechnologyStack } from '@/components/marketing/trading-system/tech-stack'
 import { TradeLifecycle } from '@/components/marketing/trading-system/lifecycle'
@@ -66,8 +65,6 @@ export default function TechnologyPage() {
           </p>
         </div>
       </Section>
-
-      <RiskBanner />
       <CtaBand />
     </>
   )

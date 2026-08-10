@@ -16,7 +16,6 @@ import { CmsReportDownloads } from '@/components/marketing/cms-report-downloads'
 import { CtaBand } from '@/components/marketing/cta-band'
 import { FaqAccordion } from '@/components/marketing/faq-accordion'
 import { PageHero } from '@/components/marketing/page-hero'
-import { RiskBanner } from '@/components/marketing/risk-banner'
 import { StaggerGroup, StaggerItem } from '@/components/motion/stagger-group'
 import { Button } from '@/components/ui/button'
 import { LANDING_FAQS } from '@/lib/landing-data'
@@ -126,8 +125,6 @@ export default function ResourcesPage() {
           </Button>
         </div>
       </Section>
-
-      <RiskBanner />
       <CtaBand />
     </>
   )

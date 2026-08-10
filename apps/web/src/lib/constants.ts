@@ -16,8 +16,8 @@ export const SITE = {
 } as const
 
 /**
- * Shown on the landing page and above the deposit form. Required by the compliance posture
- * in docs/00 §8 — it is never softened and never hidden in the footer.
+ * Full risk statement for the dedicated legal page and deposit confirmation surfaces.
+ * Marketing chrome uses a short past-performance note + Risk Disclosure footer link.
  */
 export const RISK_DISCLOSURE =
   'Trading involves risk and can result in the loss of your capital. Historical performance ' +

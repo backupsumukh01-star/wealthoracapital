@@ -8,7 +8,6 @@ import { CtaBand } from '@/components/marketing/cta-band'
 import { HowItWorks } from '@/components/marketing/how-it-works'
 import { DailySettlementFlow, MoneyMovementFlows } from '@/components/marketing/money-flows'
 import { PageHero } from '@/components/marketing/page-hero'
-import { RiskBanner } from '@/components/marketing/risk-banner'
 import { Button } from '@/components/ui/button'
 
 export const metadata: Metadata = {
@@ -52,8 +51,6 @@ export default function HowItWorksPage() {
       >
         <MoneyMovementFlows />
       </Section>
-
-      <RiskBanner />
       <CtaBand />
     </>
   )

@@ -8,7 +8,6 @@ import { AdvantagesGrid } from '@/components/marketing/advantages-grid'
 import { CtaBand } from '@/components/marketing/cta-band'
 import { DistributionsStrip } from '@/components/marketing/distributions-strip'
 import { PageHero } from '@/components/marketing/page-hero'
-import { RiskBanner } from '@/components/marketing/risk-banner'
 import { StatsBand } from '@/components/marketing/stats-band'
 import { Testimonials } from '@/components/marketing/testimonials'
 import { TrustLogos } from '@/components/marketing/trust-logos'
@@ -53,8 +52,6 @@ export default function InvestorsPage() {
           </Link>
         </Button>
       </Section>
-
-      <RiskBanner />
       <CtaBand />
     </>
   )

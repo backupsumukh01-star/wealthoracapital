@@ -6,7 +6,6 @@ import { ArrowRight, Clock3 } from 'lucide-react'
 import { Section } from '@/components/common/section'
 import { CtaBand } from '@/components/marketing/cta-band'
 import { PageHero } from '@/components/marketing/page-hero'
-import { RiskBanner } from '@/components/marketing/risk-banner'
 import { CapitalProtection } from '@/components/marketing/trading-system/capital-protection'
 import { ImportantNotice } from '@/components/marketing/trading-system/important-notice'
 import { RiskManagementPanel } from '@/components/marketing/trading-system/risk-management'
@@ -77,8 +76,6 @@ export default function SecurityPage() {
       <div className="container-page pb-10">
         <ImportantNotice />
       </div>
-
-      <RiskBanner />
       <CtaBand />
     </>
   )
