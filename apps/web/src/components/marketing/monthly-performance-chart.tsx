@@ -1,18 +1,19 @@
 'use client'
 
-import { useCallback, useId, useMemo, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { Fragment, useMemo, useState } from 'react'
 
+import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { useLandingLiveStats, useLandingMonthlySeries } from '@/features/landing'
-import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
+import { buildGrowthOf100Rows } from '@/features/landing/live-stats'
 import { cn } from '@/lib/cn'
-
-type Point = {
-  key: string
-  label: string
-  fullLabel: string
-  value: number
-}
 
 const MONTH_SHORT = [
   'Jan',
@@ -44,6 +45,15 @@ const FULL_MONTHS = [
   'December',
 ] as const
 
+const COLLAPSED_ROWS = 12
+
+type GrowthRow = {
+  month: string
+  label: string
+  returnPct: number
+  portfolioValue: number
+}
+
 function formatMonthParts(month: string): { key: string; label: string; fullLabel: string } {
   const match = /^(\d{4})-(\d{2})$/.exec(month)
   if (match) {
@@ -61,8 +71,51 @@ function formatMonthParts(month: string): { key: string; label: string; fullLabe
   return { key: month, label: month, fullLabel: month }
 }
 
+function formatMonthLabel(month: string, fallback?: string) {
+  if (fallback) return fallback
+  const match = /^(\d{4})-(\d{2})$/.exec(month)
+  if (!match) return month
+  const year = match[1]!
+  const idx = Number(match[2]) - 1
+  const short = MONTH_SHORT[idx] ?? match[2]
+  return `${short} ${year}`
+}
+
+function formatPct(n: number, digits = 2) {
+  const sign = n > 0 ? '+' : ''
+  return `${sign}${n.toFixed(digits)}%`
+}
+
+function formatUsd(n: number, digits = 2) {
+  return `$${n.toLocaleString('en-US', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  })}`
+}
+
+function yearFromMonthKey(month: string) {
+  const match = /^(\d{4})-/.exec(month)
+  return match?.[1] ?? month.slice(0, 4)
+}
+
+function groupRowsByYear(rows: GrowthRow[]) {
+  const groups: Array<{ year: string; rows: GrowthRow[] }> = []
+  for (const row of rows) {
+    const year = yearFromMonthKey(row.month)
+    const last = groups.at(-1)
+    if (last && last.year === year) {
+      last.rows.push(row)
+    } else {
+      groups.push({ year, rows: [row] })
+    }
+  }
+  return groups
+}
+
 /** Cumulative growth path from monthly returns starting at 100. */
-function buildGrowth(points: Point[]) {
+function buildGrowth(
+  points: Array<{ key: string; label: string; fullLabel: string; value: number }>,
+) {
   let bal = 100
   return points.map((p) => {
     const start = bal
@@ -76,18 +129,12 @@ function buildGrowth(points: Point[]) {
   })
 }
 
-function maxDrawdown(balances: number[]) {
-  let peak = balances[0] ?? 100
-  let maxDd = 0
-  for (const b of balances) {
-    if (b > peak) peak = b
-    const dd = peak > 0 ? ((peak - b) / peak) * 100 : 0
-    if (dd > maxDd) maxDd = dd
-  }
-  return maxDd
-}
-
-function useMonthlySeries(): Point[] {
+function useMonthlySeries(): Array<{
+  key: string
+  label: string
+  fullLabel: string
+  value: number
+}> {
   const { data: monthly } = useLandingMonthlySeries()
   return useMemo(
     () =>
@@ -105,72 +152,49 @@ function useMonthlySeries(): Point[] {
 }
 
 /**
- * Custom SVG monthly performance chart — full multi-year series with horizontal scroll.
+ * Growth of $100 — summary + monthly performance table/cards.
+ * Replaces the compressed SVG equity line that could not be inspected on mobile.
  */
 export function MonthlyPerformanceChart() {
-  const prefersReducedMotion = usePrefersReducedMotion()
-  const gid = useId()
-  const series = useMonthlySeries()
+  const { data: monthly = [], isLoading } = useLandingMonthlySeries()
   const { stats: live } = useLandingLiveStats()
-  const data = useMemo(() => buildGrowth(series), [series])
-  const [active, setActive] = useState<number | null>(null)
-  const svgRef = useRef<SVGSVGElement>(null)
+  const [expanded, setExpanded] = useState(false)
 
-  const slot = 56
-  const H = 240
-  const pad = { t: 20, r: 24, b: 36, l: 44 }
-  const W = Math.max(640, pad.l + pad.r + Math.max(data.length - 1, 1) * slot)
-  const innerW = W - pad.l - pad.r
-  const innerH = H - pad.t - pad.b
-
-  const min = data.length ? Math.min(...data.map((d) => d.endBalance)) * 0.96 : 0
-  const max = data.length ? Math.max(...data.map((d) => d.endBalance)) * 1.02 : 1
-
-  const coords = data.map((d, i) => {
-    const x = pad.l + (i / Math.max(data.length - 1, 1)) * innerW
-    const y = pad.t + (1 - (d.endBalance - min) / (max - min || 1)) * innerH
-    return { x, y, ...d }
-  })
-
-  const final = data.at(-1)
-  const totalPct = final ? final.endBalance - 100 : 0
-  const avgMonthly =
-    data.length > 0 ? data.reduce((a, d) => a + d.value, 0) / data.length : 0
-  const years = Math.max(data.length / 12, 1 / 12)
-  const cagr = final
-    ? (Math.pow(final.endBalance / 100, 1 / years) - 1) * 100
-    : Number(live.yearlyReturn) || 0
-  const mdd = maxDrawdown(data.map((d) => d.endBalance))
-
-  const pickFromEvent = useCallback(
-    (clientX: number) => {
-      const svg = svgRef.current
-      if (!svg) return
-      const rect = svg.getBoundingClientRect()
-      const x = ((clientX - rect.left) / rect.width) * W
-      let best = 0
-      let bestDist = Infinity
-      coords.forEach((c, i) => {
-        const dist = Math.abs(c.x - x)
-        if (dist < bestDist) {
-          bestDist = dist
-          best = i
-        }
-      })
-      setActive(best)
-    },
-    [coords, W],
+  const chronological = useMemo(
+    () =>
+      [...monthly]
+        .map((m) => ({
+          month: m.month,
+          returnPct: m.returnPct,
+          label: m.label || formatMonthLabel(m.month),
+        }))
+        .sort((a, b) => a.month.localeCompare(b.month)),
+    [monthly],
   )
 
-  if (data.length === 0) {
-    return (
-      <p className="text-body-sm text-fg-muted">Loading monthly performance history…</p>
-    )
-  }
+  const rows = useMemo(() => buildGrowthOf100Rows(chronological), [chronological])
 
-  const line = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`).join(' ')
-  const area = `${line} L ${coords.at(-1)!.x} ${pad.t + innerH} L ${coords[0]!.x} ${pad.t + innerH} Z`
-  const tip = active !== null ? coords[active] : null
+  const summary = useMemo(() => {
+    const last = rows.at(-1)
+    const current = last?.portfolioValue ?? 100
+    const totalGrowthPct = ((current - 100) / 100) * 100
+    const avgMonthly =
+      rows.length > 0 ? rows.reduce((acc, r) => acc + r.returnPct, 0) / rows.length : null
+    const yearSpan = rows.length > 0 ? rows.length / 12 : 0
+    const cagr =
+      yearSpan > 0 ? (Math.pow(current / 100, 1 / yearSpan) - 1) * 100 : null
+    return { current, totalGrowthPct, avgMonthly, months: rows.length, cagr }
+  }, [rows])
+
+  const visible = useMemo(
+    () => (expanded ? rows : rows.slice(-COLLAPSED_ROWS)),
+    [expanded, rows],
+  )
+  const yearGroups = useMemo(() => groupRowsByYear(visible), [visible])
+
+  if (isLoading || rows.length === 0) {
+    return <p className="text-body-sm text-fg-muted">Loading monthly performance history…</p>
+  }
 
   return (
     <div className="relative w-full min-w-0 overflow-hidden">
@@ -178,177 +202,188 @@ export function MonthlyPerformanceChart() {
         <div className="min-w-0">
           <p className="text-caption text-fg-subtle">Growth of $100</p>
           <p className="text-stat-md mt-0.5 tabular-nums text-fg sm:text-stat-lg">
-            ${final!.endBalance.toFixed(0)}{' '}
+            {formatUsd(summary.current, 0)}{' '}
             <span className="text-body-sm font-normal text-profit">
-              +{totalPct.toFixed(0)}%
+              +{summary.totalGrowthPct.toFixed(0)}%
             </span>
           </p>
         </div>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-right text-[11px] text-fg-subtle sm:grid-cols-4 sm:text-caption">
           <p>
             CAGR{' '}
-            <span className="tabular-nums text-fg">{cagr.toFixed(1)}%</span>
+            <span className="tabular-nums text-fg">
+              {(summary.cagr ?? (Number(live.yearlyReturn) || 0)).toFixed(1)}%
+            </span>
           </p>
           <p>
             Avg mo.{' '}
-            <span className="tabular-nums text-fg">{avgMonthly.toFixed(1)}%</span>
+            <span className="tabular-nums text-fg">
+              {(summary.avgMonthly ?? (Number(live.avgMonthlyReturn) || 0)).toFixed(1)}%
+            </span>
           </p>
           <p>
-            Max DD{' '}
-            <span className="tabular-nums text-loss">−{mdd.toFixed(1)}%</span>
+            Starting{' '}
+            <span className="tabular-nums text-fg">$100.00</span>
           </p>
           <p>
             Months{' '}
-            <span className="tabular-nums text-fg">{data.length}</span>
+            <span className="tabular-nums text-fg">{summary.months}</span>
           </p>
         </div>
       </div>
 
-      <div className="h-[220px] w-full min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain touch-pan-x sm:h-[280px] lg:h-[360px]">
-        <svg
-          ref={svgRef}
-          viewBox={`0 0 ${W} ${H}`}
-          width={W}
-          height="100%"
-          className="min-h-[220px] touch-pan-x sm:min-h-[280px]"
-          preserveAspectRatio="xMidYMid meet"
-          role="img"
-          aria-label="Monthly performance growth chart across all historical months"
-          onPointerDown={(e) => {
-            ;(e.target as Element).setPointerCapture?.(e.pointerId)
-            pickFromEvent(e.clientX)
-          }}
-          onPointerMove={(e) => {
-            if (e.buttons === 0 && e.pointerType === 'mouse') pickFromEvent(e.clientX)
-            else if (e.buttons > 0) pickFromEvent(e.clientX)
-          }}
-          onPointerLeave={() => {
-            if (typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches) {
-              setActive(null)
-            }
-          }}
-        >
-          <defs>
-            <linearGradient id={`${gid}-fill`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#12D6A0" stopOpacity="0.45" />
-              <stop offset="100%" stopColor="#12D6A0" stopOpacity="0" />
-            </linearGradient>
-            <linearGradient id={`${gid}-stroke`} x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#5EF2C4" />
-              <stop offset="55%" stopColor="#12D6A0" />
-              <stop offset="100%" stopColor="#2AE8FF" />
-            </linearGradient>
-            <filter id={`${gid}-glow`} x="-20%" y="-40%" width="140%" height="180%">
-              <feGaussianBlur stdDeviation="3" result="b" />
-              <feMerge>
-                <feMergeNode in="b" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
+      <dl className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="min-w-0">
+          <dt className="text-caption text-fg-subtle">Starting value</dt>
+          <dd className="mt-1 text-body-sm font-medium tabular-nums text-fg">$100.00</dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-caption text-fg-subtle">Current value</dt>
+          <dd className="mt-1 text-body-sm font-medium tabular-nums text-fg">
+            {formatUsd(summary.current, 0)}
+          </dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-caption text-fg-subtle">Total growth</dt>
+          <dd className="mt-1 text-body-sm font-medium tabular-nums text-profit">
+            +{summary.totalGrowthPct.toFixed(0)}%
+          </dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-caption text-fg-subtle">Average monthly return</dt>
+          <dd className="mt-1 text-body-sm font-medium tabular-nums text-fg">
+            {summary.avgMonthly != null ? `${summary.avgMonthly.toFixed(1)}%` : '—'}
+          </dd>
+        </div>
+        <div className="min-w-0 col-span-2 sm:col-span-1">
+          <dt className="text-caption text-fg-subtle">CAGR</dt>
+          <dd className="mt-1 text-body-sm font-medium tabular-nums text-fg">
+            {summary.cagr != null ? `${summary.cagr.toFixed(1)}%` : '—'}
+          </dd>
+        </div>
+      </dl>
 
-          {[0, 0.25, 0.5, 0.75, 1].map((t) => {
-            const y = pad.t + t * innerH
-            return (
-              <line
-                key={t}
-                x1={pad.l}
-                x2={W - pad.r}
-                y1={y}
-                y2={y}
-                stroke="var(--border-subtle)"
-                strokeOpacity="0.7"
-              />
-            )
-          })}
+      <div className="min-w-0">
+        <h4 className="text-heading-sm text-fg">Monthly Performance</h4>
+        <p className="mt-1 text-caption text-fg-subtle">
+          {expanded
+            ? `All ${summary.months} months from the published programme history.`
+            : `Latest ${Math.min(COLLAPSED_ROWS, summary.months)} months · compound growth of $100.`}
+        </p>
 
-          <motion.path
-            d={area}
-            fill={`url(#${gid}-fill)`}
-            initial={prefersReducedMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          />
-          <motion.path
-            d={line}
-            fill="none"
-            stroke={`url(#${gid}-stroke)`}
-            strokeWidth="2.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            filter={`url(#${gid}-glow)`}
-            initial={prefersReducedMotion ? false : { pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
-          />
-
-          {coords.map((c, i) => (
-            <g key={c.key}>
-              <circle
-                cx={c.x}
-                cy={c.y}
-                r={active === i ? 5.5 : 3}
-                fill={active === i ? '#5EF2C4' : '#12D6A0'}
-                stroke="#07131C"
-                strokeWidth="1.5"
-              />
-              {(i % Math.ceil(data.length / 12) === 0 || i === data.length - 1) && (
-                <text
-                  x={c.x}
-                  y={H - 10}
-                  textAnchor="middle"
-                  fill="var(--text-tertiary)"
-                  fontSize="10"
-                >
-                  {c.label}
-                </text>
-              )}
-            </g>
-          ))}
-
-          {tip ? (
-            <g>
-              <line
-                x1={tip.x}
-                x2={tip.x}
-                y1={pad.t}
-                y2={pad.t + innerH}
-                stroke="#5EF2C4"
-                strokeOpacity="0.35"
-                strokeDasharray="3 4"
-              />
-              <foreignObject
-                x={Math.min(Math.max(tip.x - 84, 4), W - 176)}
-                y={Math.max(tip.y - 92, 4)}
-                width="168"
-                height="88"
-              >
-                <div className="rounded-xl border border-glass-line bg-overlay/95 px-2.5 py-2 text-[11px] shadow-e3 backdrop-blur-md">
-                  <p className="font-medium text-fg">{tip.fullLabel}</p>
-                  <p
-                    className={cn(
-                      'mt-0.5 tabular-nums',
-                      tip.value >= 0 ? 'text-profit' : 'text-loss',
-                    )}
+        {/* Mobile: stacked month cards — no horizontal page scroll */}
+        <div className="mt-4 space-y-4 sm:hidden">
+          {yearGroups.map((group) => (
+            <div key={group.year} className="min-w-0">
+              <div className="mb-2 flex items-baseline justify-between gap-2">
+                <p className="text-caption font-medium uppercase tracking-wide text-fg-subtle">
+                  {group.year}
+                </p>
+                <p className="text-caption tabular-nums text-fg-muted">
+                  {group.rows.length} {group.rows.length === 1 ? 'month' : 'months'}
+                </p>
+              </div>
+              <ul className="space-y-2">
+                {group.rows.map((row) => (
+                  <li
+                    key={row.month}
+                    className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-3"
                   >
-                    Monthly {tip.value >= 0 ? '+' : ''}
-                    {tip.value.toFixed(2)}%
-                  </p>
-                  <p className="mt-1 tabular-nums text-fg-muted">
-                    ${tip.startBalance.toFixed(2)} → ${tip.endBalance.toFixed(2)}
-                  </p>
-                  <p className="tabular-nums text-fg-subtle">
-                    Profit {tip.profit >= 0 ? '+' : ''}${tip.profit.toFixed(2)}
-                  </p>
-                </div>
-              </foreignObject>
-            </g>
-          ) : null}
-        </svg>
+                    <p className="text-body-sm font-medium tracking-wide text-fg">
+                      {formatMonthLabel(row.month, row.label).toUpperCase()}
+                    </p>
+                    <dl className="mt-2 space-y-1.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <dt className="text-caption text-fg-subtle">Monthly return</dt>
+                        <dd
+                          className={cn(
+                            'text-body-sm tabular-nums',
+                            row.returnPct >= 0 ? 'text-profit' : 'text-loss',
+                          )}
+                        >
+                          {formatPct(row.returnPct, 2)}
+                        </dd>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <dt className="text-caption text-fg-subtle">Growth of $100</dt>
+                        <dd className="text-body-sm tabular-nums text-fg">
+                          {formatUsd(row.portfolioValue, 2)}
+                        </dd>
+                      </div>
+                    </dl>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop / tablet: clean table */}
+        <div className="mt-4 hidden min-w-0 overflow-x-auto overscroll-contain sm:block">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead className="hidden md:table-cell">Year</TableHead>
+                <TableHead className="text-right">Monthly Return</TableHead>
+                <TableHead className="text-right">Growth of $100</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {yearGroups.map((group) => (
+                <Fragment key={group.year}>
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell
+                      colSpan={4}
+                      className="bg-white/[0.02] py-2 text-caption font-medium uppercase tracking-wide text-fg-subtle"
+                    >
+                      {group.year}
+                      <span className="ml-2 font-normal normal-case tracking-normal text-fg-muted">
+                        {group.rows.length} {group.rows.length === 1 ? 'month' : 'months'}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                  {group.rows.map((row) => (
+                    <TableRow key={row.month}>
+                      <TableCell className="font-medium">
+                        {formatMonthLabel(row.month, row.label)}
+                      </TableCell>
+                      <TableCell className="hidden tabular-nums text-fg-muted md:table-cell">
+                        {group.year}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          'text-right tabular-nums',
+                          row.returnPct >= 0 ? 'text-profit' : 'text-loss',
+                        )}
+                      >
+                        {formatPct(row.returnPct, 2)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-fg">
+                        {formatUsd(row.portfolioValue, 2)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </Fragment>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
-      <p className="mt-2 text-center text-[11px] text-fg-subtle">
-        Scroll or drag to inspect all {data.length} months
-      </p>
+
+      {rows.length > COLLAPSED_ROWS ? (
+        <div className="mt-4 flex justify-center">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {expanded ? 'Show less ↑' : `Show all ${rows.length} months ↓`}
+          </Button>
+        </div>
+      ) : null}
     </div>
   )
 }
