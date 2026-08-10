@@ -43,7 +43,10 @@ export function CountUp({
   const [display, setDisplay] = useState(isNumeric ? 0 : Number.NaN)
 
   useEffect(() => {
-    if (!isNumeric) return
+    if (!isNumeric) {
+      setDisplay(Number.NaN)
+      return
+    }
     if (prefersReducedMotion) {
       setDisplay(target)
       return
@@ -59,12 +62,18 @@ export function CountUp({
     return () => controls.stop()
   }, [isInView, isNumeric, prefersReducedMotion, target, durationMs])
 
-  const formatted = isNumeric
-    ? new Intl.NumberFormat(locale, {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals,
-      }).format(display)
-    : '—'
+  const formatted =
+    isNumeric && Number.isFinite(display)
+      ? new Intl.NumberFormat(locale, {
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals,
+        }).format(display)
+      : isNumeric
+        ? new Intl.NumberFormat(locale, {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals,
+          }).format(target)
+        : '—'
 
   return (
     <span ref={ref} data-numeric className={cn('tabular-nums', className)}>

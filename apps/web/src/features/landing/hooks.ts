@@ -29,7 +29,13 @@ export function useLandingLiveStats(): {
   const { data: pub, isLoading: pubLoading } = usePublicPerformance()
   const { data: demo, isLoading: demoLoading } = useDemoDashboardStats()
   const { data: charts } = useDemoCharts()
+  const { data: demoMonthly } = useDemoMonthlyReturns()
   const { data: reports } = usePublishedDownloads()
+
+  const monthlySeries = useMemo(
+    () => resolveMonthlySeries(pub?.monthly, demoMonthly),
+    [pub?.monthly, demoMonthly],
+  )
 
   const stats = useMemo(
     () =>
@@ -46,14 +52,15 @@ export function useLandingLiveStats(): {
           bestDay: cms.bestDay,
         },
         reportCount: reports?.length ?? 0,
+        monthCount: monthlySeries.length,
       }),
-    [pub, demo, charts?.meta, cms, reports?.length],
+    [pub, demo, charts?.meta, cms, reports?.length, monthlySeries.length],
   )
 
   return {
     stats,
     isLoading: cmsLoading || pubLoading || demoLoading,
-    isReady: Boolean(demo) || Boolean(pub),
+    isReady: Boolean(demo) || Boolean(pub) || monthlySeries.length > 0,
   }
 }
 

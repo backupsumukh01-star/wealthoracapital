@@ -110,6 +110,41 @@ export function yearsFromRange(startDate?: string | null, endDate?: string | nul
   return years >= 2.5 ? Math.round(years) : Number(years.toFixed(2))
 }
 
+/** Completed programme years from calendar-month count (37 → 3). */
+export function yearsFromMonthCount(monthCount?: number | null): number | null {
+  if (monthCount == null || !Number.isFinite(monthCount) || monthCount <= 0) return null
+  if (monthCount >= 12) return Math.max(1, Math.round(monthCount / 12))
+  return Number((monthCount / 12).toFixed(2))
+}
+
+/**
+ * Single years-of-performance resolver used by KPI cards, CAGR, and summaries.
+ * Prefers real date span, then month count, then explicit meta — never invents 1/—.
+ */
+export function resolveYearsOfPerformance(input: {
+  startDate?: string | null
+  endDate?: string | null
+  monthCount?: number | null
+  metaYears?: number | null
+  tradingDayCount?: number | null
+}): number | null {
+  const fromDates = yearsFromRange(input.startDate, input.endDate)
+  if (fromDates != null) return fromDates
+
+  const fromMonths = yearsFromMonthCount(input.monthCount)
+  if (fromMonths != null) return fromMonths
+
+  if (input.metaYears != null && Number.isFinite(input.metaYears) && input.metaYears >= 1) {
+    return input.metaYears >= 2.5 ? Math.round(input.metaYears) : Number(input.metaYears.toFixed(2))
+  }
+
+  // ~252 trading days / year — last resort when only day count exists.
+  const days = input.tradingDayCount
+  if (days != null && days >= 252) return Math.max(1, Math.round(days / 252))
+
+  return null
+}
+
 function metaHistoryUsable(
   meta: PublicPerformancePayload['meta'] | undefined,
 ): meta is NonNullable<PublicPerformancePayload['meta']> {
@@ -117,18 +152,37 @@ function metaHistoryUsable(
   return (meta.tradingDayCount ?? 0) >= MIN_TRUSTED_TRADING_DAYS
 }
 
-function pickRicherCount(
+/** Prefer a full API history; fall back to demo when API meta is a thin stub. */
+function pickHistoryCount(
   apiCount: number | null | undefined,
   demoCount: number | null | undefined,
 ): number | null {
   const api = typeof apiCount === 'number' && apiCount > 0 ? apiCount : null
   const demo = typeof demoCount === 'number' && demoCount > 0 ? demoCount : null
-  if (api != null && demo != null) {
-    // Prefer the fuller history when API meta is a thin stub (e.g. 1 day).
-    if (api < MIN_TRUSTED_TRADING_DAYS && demo >= MIN_TRUSTED_TRADING_DAYS) return demo
-    return Math.max(api, demo)
-  }
+  if (api != null && api >= MIN_TRUSTED_TRADING_DAYS) return api
+  if (demo != null && demo >= MIN_TRUSTED_TRADING_DAYS) return demo
   return api ?? demo
+}
+
+/** Compound $100 through monthly returns — shared by Growth of $100 table + summaries. */
+export function buildGrowthOf100Rows(
+  months: Array<{ month: string; returnPct: number; label?: string }>,
+): Array<{
+  month: string
+  label: string
+  returnPct: number
+  portfolioValue: number
+}> {
+  let value = 100
+  return months.map((m) => {
+    value = value * (1 + m.returnPct / 100)
+    return {
+      month: m.month,
+      label: m.label || m.month,
+      returnPct: m.returnPct,
+      portfolioValue: Number(value.toFixed(4)),
+    }
+  })
 }
 
 export function buildLandingLiveStats(input: {
@@ -144,8 +198,10 @@ export function buildLandingLiveStats(input: {
     bestDay?: string
   } | null
   reportCount?: number
+  /** Monthly series length when API meta.monthCount is missing / thin. */
+  monthCount?: number
 }): LandingLiveStats {
-  const { pub, demo, demoMeta, cms, reportCount = 0 } = input
+  const { pub, demo, demoMeta, cms, reportCount = 0, monthCount: monthCountHint } = input
   const meta = pub?.meta
   const historyOk = metaHistoryUsable(meta)
 
@@ -184,17 +240,20 @@ export function buildLandingLiveStats(input: {
     (demo ? fmt(demo.totalReturnPct, 0) : null) ??
     clean(pub?.summary?.roiPct)
 
-  const tradingDays = pickRicherCount(meta?.tradingDayCount, demo?.tradingDayCount)
+  const tradingDays = pickHistoryCount(meta?.tradingDayCount, demo?.tradingDayCount)
 
-  const yearsFromMeta =
-    historyOk && meta.yearsOfPerformance != null && meta.yearsOfPerformance >= 1
-      ? meta.yearsOfPerformance >= 2.5
-        ? Math.round(meta.yearsOfPerformance)
-        : meta.yearsOfPerformance
-      : null
-  const years =
-    yearsFromMeta ??
-    yearsFromRange(meta?.startDate ?? demoMeta?.startDate, meta?.endDate ?? demoMeta?.endDate)
+  const resolvedMonthCount =
+    (historyOk && meta.monthCount > 0 ? meta.monthCount : null) ??
+    (typeof monthCountHint === 'number' && monthCountHint > 0 ? monthCountHint : null) ??
+    (demo?.monthCount && demo.monthCount > 0 ? demo.monthCount : null)
+
+  const years = resolveYearsOfPerformance({
+    startDate: meta?.startDate ?? demoMeta?.startDate,
+    endDate: meta?.endDate ?? demoMeta?.endDate,
+    monthCount: resolvedMonthCount,
+    metaYears: meta?.yearsOfPerformance,
+    tradingDayCount: tradingDays,
+  })
 
   const distributedRaw = clean(pub?.analytics.totalPnl)
   const aum = pickMarketingValue(cms?.aum, LANDING_BASELINE.aumMillions)
@@ -202,32 +261,37 @@ export function buildLandingLiveStats(input: {
   const cagr =
     (historyOk ? clean(meta?.cagrPct) : null) ??
     (demo && years
-      ? fmt(demo.totalReturnPct / Math.max(Number(years), 1), 1)
+      ? fmt(
+          (Math.pow(1 + Number(demo.totalReturnPct) / 100, 1 / Math.max(Number(years), 1 / 12)) -
+            1) *
+            100,
+          1,
+        )
       : null)
+
+  const empty = '—'
 
   return {
     investors: pickMarketingValue(cms?.investorCount, LANDING_BASELINE.investors),
     aumMillions: aum,
     countries: pickMarketingValue(cms?.countries, LANDING_BASELINE.countries),
-    avgMonthlyReturn: avgMonthly ?? '—',
-    winRate: winRate ?? '—',
+    avgMonthlyReturn: avgMonthly ?? empty,
+    winRate: winRate ?? empty,
     bestDay: bestDayRaw
       ? String(Math.abs(Number.parseFloat(bestDayRaw) || 0).toFixed(1))
-      : '—',
+      : empty,
     worstDayAbs: worstRaw
       ? String(Math.abs(Number.parseFloat(worstRaw) || 0).toFixed(1))
-      : '—',
-    totalReturn: totalReturn ?? '—',
-    tradingDays: tradingDays != null ? String(tradingDays) : '—',
-    trades: trades != null ? String(trades) : '—',
-    yearsOfPerformance: years != null ? String(years) : '—',
+      : empty,
+    totalReturn: totalReturn ?? empty,
+    tradingDays: tradingDays != null ? String(tradingDays) : empty,
+    trades: trades != null ? String(trades) : empty,
+    yearsOfPerformance: years != null ? String(years) : empty,
     totalDistributed: distributedRaw ? formatMoneyCompact(distributedRaw) : aum,
     totalDistributedRaw: distributedRaw ?? '',
     availableReports: reportCount,
-    yearlyReturn: cagr ?? '—',
-    monthCount: String(
-      (historyOk ? meta.monthCount : null) ?? demo?.monthCount ?? '—',
-    ),
+    yearlyReturn: cagr ?? empty,
+    monthCount: resolvedMonthCount != null ? String(resolvedMonthCount) : empty,
   }
 }
 

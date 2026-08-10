@@ -23,8 +23,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useHpcDeskMetrics, useHpcTrades, type HpcTradeRow } from '@/features/hpc/use-hpc-data'
-import { useLandingLiveStats, useLandingMonthlySeries, useLandingYearlySeries } from '@/features/landing'
+import { useHpcDeskMetrics, useHpcMonthlySeries, useHpcProgrammeStats, useHpcTrades, type HpcTradeRow } from '@/features/hpc/use-hpc-data'
+import { useLandingYearlySeries } from '@/features/landing'
 import { usePublicPerformance } from '@/features/performance/hooks'
 import { useDemoReportCatalog } from '@/lib/demo-backtest'
 import { cn } from '@/lib/cn'
@@ -35,30 +35,46 @@ function formatPct(n: number, digits = 2) {
 }
 
 function StatTiles() {
-  const { stats, isLoading } = useLandingLiveStats()
+  const { stats, isLoading, isReady } = useHpcProgrammeStats()
   const { data: pub } = usePublicPerformance()
   const meta = pub?.meta
 
-  if (isLoading && !meta) {
+  if (isLoading && !isReady) {
     return (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 11 }).map((_, i) => (
+        {Array.from({ length: 12 }).map((_, i) => (
           <Skeleton key={i} className="h-24 rounded-2xl" />
         ))}
       </div>
     )
   }
 
+  const hasHistory =
+    stats.tradingDays !== '—' ||
+    stats.monthCount !== '—' ||
+    (meta?.tradingDayCount ?? 0) > 0
+
+  if (!hasHistory && !isLoading) {
+    return (
+      <p className="text-body-sm text-fg-muted">No historical performance data available.</p>
+    )
+  }
+
+  const endingFromGrowth =
+    stats.totalReturn !== '—'
+      ? String((100 * (1 + Number.parseFloat(stats.totalReturn) / 100)).toFixed(1))
+      : null
+
   const endingEquity =
-    meta?.endingEquity && Number(meta.endingEquity) > 0
-      ? meta.endingEquity
-      : (() => {
-          const tr = Number.parseFloat(stats.totalReturn)
-          return Number.isFinite(tr) ? String((100 * (1 + tr / 100)).toFixed(1)) : '100'
-        })()
+    endingFromGrowth ??
+    (meta?.endingEquity && Number(meta.endingEquity) > 0 ? meta.endingEquity : null)
 
   const maxDd =
     meta?.maxDrawdownPct && Number(meta.maxDrawdownPct) > 0 ? meta.maxDrawdownPct : null
+
+  const cagrValue =
+    (stats.yearlyReturn !== '—' ? stats.yearlyReturn : null) ??
+    (meta?.cagrPct && Number(meta.cagrPct) !== 0 ? meta.cagrPct : null)
 
   const tiles = [
     { label: 'Trading days', value: stats.tradingDays, decimals: 0, suffix: '' },
@@ -74,9 +90,20 @@ function StatTiles() {
       loss: true,
     },
     { label: 'Years of performance', value: stats.yearsOfPerformance, decimals: 0, suffix: '' },
+    { label: 'Months', value: stats.monthCount, decimals: 0, suffix: '' },
     { label: 'Total return', value: stats.totalReturn, decimals: 0, suffix: '%' },
-    { label: 'Ending equity', value: endingEquity, decimals: 1, suffix: '' },
-    { label: 'CAGR', value: meta?.cagrPct ?? stats.yearlyReturn, decimals: 1, suffix: '%' },
+    {
+      label: 'Ending equity',
+      value: endingEquity ?? '—',
+      decimals: 1,
+      suffix: '',
+    },
+    {
+      label: 'CAGR',
+      value: cagrValue ?? '—',
+      decimals: 1,
+      suffix: cagrValue ? '%' : '',
+    },
     {
       label: 'Max drawdown',
       value: maxDd ?? '—',
@@ -113,10 +140,16 @@ function StatTiles() {
 }
 
 function MonthlyTable() {
-  const { data: months = [], isLoading } = useLandingMonthlySeries()
+  const { data: months = [], isLoading } = useHpcMonthlySeries()
   const [open, setOpen] = useState<string | null>(null)
 
   if (isLoading) return <Skeleton className="h-64 rounded-2xl" />
+
+  if (months.length === 0) {
+    return (
+      <p className="text-body-sm text-fg-muted">No historical performance data available.</p>
+    )
+  }
 
   return (
     <div className="card-fill overflow-hidden p-0">

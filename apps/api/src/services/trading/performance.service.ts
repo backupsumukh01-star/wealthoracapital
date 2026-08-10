@@ -447,12 +447,24 @@ export const performanceService = {
       const ms = Date.parse(endDate) - Date.parse(startDate)
       years = Math.max(0, ms / (365.25 * 24 * 60 * 60 * 1000))
     }
-    // Round display years to whole programme years when span is ~3y backtest.
-    const yearsOfPerformance =
+    const monthSpan = Math.max(monthly.length, calendarPoints.length > 0
+      ? new Set(calendarPoints.map((p) => p.date.slice(0, 7))).size
+      : 0)
+    // Prefer date-span years; if thin, derive from month count (37 months → 3).
+    let yearsOfPerformance =
       years >= 2.5 ? Math.round(years) : years > 0 ? Number(years.toFixed(2)) : 0
+    if (yearsOfPerformance < 1 && monthSpan >= 12) {
+      yearsOfPerformance = Math.max(1, Math.round(monthSpan / 12))
+    } else if (yearsOfPerformance < 1 && monthSpan > 0) {
+      yearsOfPerformance = Number((monthSpan / 12).toFixed(2))
+    }
+    // Keep CAGR / display years consistent with month span when dates say ~3y.
+    if (monthSpan >= 30 && yearsOfPerformance < 2) {
+      yearsOfPerformance = Math.max(1, Math.round(monthSpan / 12))
+    }
 
     const totalReturnPct = equity.minus(100)
-    const cagrYears = Math.max(years, 1 / 12)
+    const cagrYears = Math.max(years > 0 ? years : Number(yearsOfPerformance) || 0, 1 / 12)
     const cagr =
       calendarPoints.length > 0
         ? d(Math.pow(Number(equity.div(100).toString()), 1 / cagrYears) - 1).mul(100)

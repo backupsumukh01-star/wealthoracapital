@@ -2,20 +2,28 @@
 
 /**
  * Historical Performance Center data layer.
- * Prefer live public APIs; when the API returns empty/zero payloads, fall back to
- * the published demo/backtest JSON (same imported history — not regenerated).
+ * The HPC presents the imported 3-year programme track record.
+ * Prefer the published demo/backtest programme when it has a full history;
+ * fall back to the public API when that import is missing or thin.
  */
 
 import { useMemo } from 'react'
 import type { Trade } from '@meridian/shared'
 
-import { useLandingLiveStats, useLandingMonthlySeries } from '@/features/landing'
+import { useLandingLiveStats } from '@/features/landing'
+import {
+  buildLandingLiveStats,
+  resolveMonthlySeries,
+  type LandingLiveStats,
+  type LandingMonthlyPoint,
+} from '@/features/landing/live-stats'
 import { usePublicPerformance } from '@/features/performance/hooks'
 import { usePublicTradeStats, usePublicTradesInfinite } from '@/features/trades/hooks'
 import {
   useDemoCharts,
   useDemoDashboardStats,
   useDemoDailyReturns,
+  useDemoMonthlyReturns,
   useDemoTrades,
 } from '@/lib/demo-backtest'
 import type { DemoTrade } from '@/lib/demo-backtest'
@@ -50,6 +58,88 @@ export type HpcDeskMetrics = {
   longestLossStreak: number
   tradingDays: number
   source: 'api' | 'demo'
+}
+
+/**
+ * Monthly programme series for HPC — prefer the imported backtest when full (≥12 months).
+ */
+export function useHpcMonthlySeries(): {
+  data: LandingMonthlyPoint[]
+  isLoading: boolean
+  source: 'demo' | 'api' | 'none'
+} {
+  const { data: pub, isLoading: pubLoading } = usePublicPerformance()
+  const { data: demoMonthly, isLoading: demoLoading } = useDemoMonthlyReturns()
+
+  const demoPoints = useMemo(
+    () =>
+      (demoMonthly ?? []).map((m) => ({
+        month: m.yearMonth,
+        returnPct: m.returnPct,
+        label: m.label,
+      })),
+    [demoMonthly],
+  )
+
+  const apiPoints = useMemo(
+    () => resolveMonthlySeries(pub?.monthly, undefined),
+    [pub?.monthly],
+  )
+
+  const demoUsable = demoPoints.filter((m) => Math.abs(m.returnPct) > 0.0001)
+  const apiUsable = apiPoints.filter((m) => Math.abs(m.returnPct) > 0.0001)
+
+  if (demoUsable.length >= 12) {
+    return { data: demoPoints, isLoading: demoLoading, source: 'demo' }
+  }
+  if (apiUsable.length >= 12) {
+    return { data: apiPoints, isLoading: pubLoading, source: 'api' }
+  }
+  const fallback = resolveMonthlySeries(pub?.monthly, demoMonthly)
+  return {
+    data: fallback,
+    isLoading: pubLoading || demoLoading,
+    source: fallback.length ? (demoUsable.length >= apiUsable.length ? 'demo' : 'api') : 'none',
+  }
+}
+
+/**
+ * Headline programme KPIs for HPC — same imported dataset as monthly / growth table.
+ */
+export function useHpcProgrammeStats(): {
+  stats: LandingLiveStats
+  isLoading: boolean
+  isReady: boolean
+} {
+  const { data: pub, isLoading: pubLoading } = usePublicPerformance()
+  const { data: demo, isLoading: demoLoading } = useDemoDashboardStats()
+  const { data: charts } = useDemoCharts()
+  const { data: months, isLoading: monthsLoading } = useHpcMonthlySeries()
+  const landing = useLandingLiveStats()
+
+  const stats = useMemo(() => {
+    const demoFull = Boolean(demo && demo.tradingDayCount >= 30 && demo.monthCount >= 12)
+    if (demoFull) {
+      return buildLandingLiveStats({
+        pub: null,
+        demo,
+        demoMeta: charts?.meta,
+        monthCount: Math.max(demo!.monthCount, months.length),
+      })
+    }
+    return buildLandingLiveStats({
+      pub,
+      demo,
+      demoMeta: charts?.meta,
+      monthCount: months.length,
+    })
+  }, [pub, demo, charts?.meta, months.length])
+
+  return {
+    stats,
+    isLoading: pubLoading || demoLoading || monthsLoading || landing.isLoading,
+    isReady: Boolean(demo) || Boolean(pub) || months.length > 0,
+  }
 }
 
 function monthKeyFromDate(date: string) {
@@ -145,22 +235,23 @@ export function useHpcTrades() {
     [demo.data],
   )
 
-  const usingApi = apiItems.length > 0
-  const trades = usingApi ? apiItems : demoItems
+  const usingDemo = demoItems.length >= 1000
+  const usingApi = !usingDemo && apiItems.length > 0
+  const trades = usingDemo ? demoItems : usingApi ? apiItems : demoItems
 
-  // Keep pulling API pages when the API has data
+  // Keep pulling API pages when the API has data and we're not on the imported blotter
   const needsMore =
     usingApi && Boolean(api.hasNextPage) && !api.isFetchingNextPage && apiItems.length < 500
 
   return {
     trades,
-    source: (usingApi ? 'api' : 'demo') as 'api' | 'demo',
-    isLoading: api.isLoading || (!usingApi && demo.isLoading),
+    source: (usingDemo || !usingApi ? 'demo' : 'api') as 'api' | 'demo',
+    isLoading: demo.isLoading || (!usingDemo && api.isLoading),
     isFetchingNextPage: api.isFetchingNextPage,
     hasNextPage: usingApi ? api.hasNextPage : false,
     fetchNextPage: api.fetchNextPage,
     needsMore,
-    totalHint: usingApi ? apiItems.length : demoItems.length,
+    totalHint: usingDemo ? demoItems.length : usingApi ? apiItems.length : demoItems.length,
   }
 }
 
@@ -173,14 +264,19 @@ export function useHpcDeskMetrics(): {
   const { data: pub, isLoading: pubLoading } = usePublicPerformance()
   const { data: demo, isLoading: demoLoading } = useDemoDashboardStats()
   const { data: daily = [] } = useDemoDailyReturns()
-  const { data: monthly = [] } = useLandingMonthlySeries()
-  const { stats: landing } = useLandingLiveStats()
+  const { data: monthly = [] } = useHpcMonthlySeries()
+  const { stats: landing } = useHpcProgrammeStats()
   const { trades } = useHpcTrades()
 
   const metrics = useMemo((): HpcDeskMetrics => {
-    const apiTradeCount = apiStats?.tradeCount ?? pub?.meta?.tradeCount ?? 0
-    const apiWin = usablePct(apiStats?.winRatePct ?? pub?.meta?.winRatePct)
-    const apiHasData = usableTradeCount(apiTradeCount) && apiWin != null
+    const demoFull = Boolean(demo && demo.tradingDayCount >= 30 && demo.monthCount >= 12)
+    const apiTradeCount = demoFull
+      ? demo!.tradeCount
+      : (apiStats?.tradeCount ?? pub?.meta?.tradeCount ?? 0)
+    const apiWin = demoFull
+      ? demo!.winRatePct
+      : usablePct(apiStats?.winRatePct ?? pub?.meta?.winRatePct)
+    const apiHasData = demoFull || (usableTradeCount(apiTradeCount) && apiWin != null)
 
     const chronoSorted = [...trades].sort((a, b) => a.date.localeCompare(b.date))
     const wins = trades.filter((t) => t.returnPct > 0 || t.outcome === 'WIN')
@@ -203,33 +299,36 @@ export function useHpcDeskMetrics(): {
 
     if (apiHasData) {
       return {
-        winRatePct: apiWin!,
+        winRatePct: Number(apiWin),
         tradeCount: apiTradeCount,
         avgReturnPct: Number.parseFloat(String(apiStats?.avgReturnPct ?? 0)) || sumRet / Math.max(trades.length, 1),
-        publishedTrades: apiStats?.closedTrades ?? apiTradeCount,
+        publishedTrades: demoFull ? demo!.tradeCount : (apiStats?.closedTrades ?? apiTradeCount),
         largestWinPct:
-          usablePct(apiStats?.bestTradeReturnPct) ??
+          usablePct(demoFull ? demo!.bestDay.returnPct : apiStats?.bestTradeReturnPct) ??
           usablePct(pub?.analytics.bestTrade?.returnPct) ??
           largestWin,
         largestLossPct:
-          usablePct(apiStats?.worstTradeReturnPct) ??
+          usablePct(demoFull ? demo!.worstDay.returnPct : apiStats?.worstTradeReturnPct) ??
           usablePct(pub?.analytics.worstTrade?.returnPct) ??
           largestLoss,
         bestMonthPct: bestMonth,
         worstMonthPct: worstMonth,
-        avgMonthlyReturnPct: usablePct(pub?.meta?.avgMonthlyReturnPct) ?? avgMonthly,
+        avgMonthlyReturnPct: demoFull
+          ? demo!.avgMonthlyReturnPct
+          : usablePct(pub?.meta?.avgMonthlyReturnPct) ?? avgMonthly,
         avgDailyReturnPct: avgDaily,
         longestWinStreak: longestStreak(chronoSorted, true),
         longestLossStreak: longestStreak(chronoSorted, false),
-        tradingDays: (() => {
-          const apiDays = pub?.meta?.tradingDayCount ?? 0
-          const landingDays = Number(landing.tradingDays) || 0
-          const demoDays = demo?.tradingDayCount ?? 0
-          // Prefer the fuller calendar when API meta is a thin stub (e.g. 1 day).
-          if (apiDays >= 30) return apiDays
-          return Math.max(apiDays, landingDays, demoDays, daily.length)
-        })(),
-        source: 'api',
+        tradingDays: demoFull
+          ? demo!.tradingDayCount
+          : (() => {
+              const apiDays = pub?.meta?.tradingDayCount ?? 0
+              const landingDays = Number(landing.tradingDays) || 0
+              const demoDays = demo?.tradingDayCount ?? 0
+              if (apiDays >= 30) return apiDays
+              return Math.max(apiDays, landingDays, demoDays, daily.length)
+            })(),
+        source: demoFull ? 'demo' : 'api',
       }
     }
 
@@ -266,7 +365,7 @@ export function useHpcChartSources() {
   const { data: pub } = usePublicPerformance()
   const { data: charts, isLoading: chartsLoading, isError: chartsError } = useDemoCharts()
   const { data: daily = [], isLoading: dailyLoading } = useDemoDailyReturns()
-  const { data: monthly = [] } = useLandingMonthlySeries()
+  const { data: monthly = [] } = useHpcMonthlySeries()
 
   return {
     charts,
