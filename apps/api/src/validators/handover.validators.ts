@@ -12,6 +12,7 @@ export const handoverResetSchema = z.object({
   mode: handoverModeSchema,
   confirmationPhrase: z.string().min(1),
   confirm: z.literal(true),
+  backupAcknowledged: z.literal(true),
 })
 
 export type HandoverPreviewInput = z.infer<typeof handoverPreviewSchema>

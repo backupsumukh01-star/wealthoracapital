@@ -11,6 +11,78 @@ import {
 import { apiClient } from './http'
 import type { AdminHealthSnapshot, PlatformCmsDocument, SearchHit } from '@/types/domain'
 
+export type AdminHandoverMode = 'TEST_DATA_RESET' | 'FULL_HANDOVER_RESET'
+
+export type AdminHandoverPreview = {
+  mode: AdminHandoverMode
+  remove: {
+    users: number
+    wallets: number
+    deposits: number
+    withdrawals: number
+    ledgerEntries: number
+    transactions: number
+    balances: number
+    kycRecords: number
+    notifications: number
+    supportTickets: number
+    sessions: number
+    otherUserGenerated: number
+  }
+  preserve: {
+    staffUsers: number
+    historicalTrades: number
+    historicalDailyReturns: number
+    historicalMonths: number
+    yearsOfPerformance: number
+    historicalPeriodLabel: string
+    cmsDocuments: number
+    platformSettings: number
+    paymentMethods: number
+  }
+  alreadyClean: boolean
+  actorPreserved: true
+  warning: string
+}
+
+export type AdminHandoverVerification = {
+  customerCountsZero: boolean
+  orphanFinanceFks: Record<string, number>
+  orphanFinanceFksZero: boolean
+  actorStillPrivileged: boolean
+  staffUsersRemaining: number
+  historicalTradesUnchanged: boolean
+  historicalDailyReturnsUnchanged: boolean
+  historicalMonthsUnchanged: boolean
+  cmsDocumentsPreserved: boolean
+  platformSettingsPreserved: boolean
+  paymentMethodsPreserved: boolean
+  fullResetArtifacts: {
+    reportJobs: number
+    reconciliationRuns: number
+    orphanEmailOutbox: number
+    orphanWebhookEvents: number
+  } | null
+}
+
+export type AdminHandoverResetResult = {
+  mode: AdminHandoverMode
+  message: string
+  alreadyClean: boolean
+  backupPath: string | null
+  removed: AdminHandoverPreview['remove']
+  preserved: AdminHandoverPreview['preserve']
+  after: AdminHandoverPreview['remove']
+  historicalPerformance: {
+    years: number
+    tradingDays: number
+    trades: number
+    months: number
+    periodLabel: string
+  }
+  verification: AdminHandoverVerification
+}
+
 export const adminService = {
   health: () => apiClient<AdminHealthSnapshot>(API_ROUTES.admin.health),
 
@@ -424,54 +496,19 @@ export const adminService = {
   createBackup: (scope: string) =>
     apiClient<{ id: string }>(API_ROUTES.admin.backups, { method: 'POST', body: { scope } }),
 
-  handoverPreview: (mode: 'TEST_DATA_RESET' | 'FULL_HANDOVER_RESET') =>
-    apiClient<{
-      mode: 'TEST_DATA_RESET' | 'FULL_HANDOVER_RESET'
-      remove: {
-        users: number
-        wallets: number
-        deposits: number
-        withdrawals: number
-        ledgerEntries: number
-        transactions: number
-        kycRecords: number
-        notifications: number
-        supportTickets: number
-        otherUserGenerated: number
-      }
-      preserve: {
-        staffUsers: number
-        historicalTrades: number
-        historicalDailyReturns: number
-        historicalMonths: number
-        yearsOfPerformance: number
-        cmsDocuments: number
-        platformSettings: number
-        paymentMethods: number
-      }
-      actorPreserved: true
-      warning: string
-    }>(API_ROUTES.admin.handoverPreview, { method: 'POST', body: { mode } }),
+  handoverPreview: (mode: AdminHandoverMode) =>
+    apiClient<AdminHandoverPreview>(API_ROUTES.admin.handoverPreview, {
+      method: 'POST',
+      body: { mode },
+    }),
 
   handoverReset: (body: {
-    mode: 'TEST_DATA_RESET' | 'FULL_HANDOVER_RESET'
+    mode: AdminHandoverMode
     confirmationPhrase: string
     confirm: true
+    backupAcknowledged: true
   }) =>
-    apiClient<{
-      mode: string
-      message: string
-      backupPath: string
-      removed: Record<string, number>
-      preserved: Record<string, number>
-      after: Record<string, number>
-      historicalPerformance: {
-        years: number
-        tradingDays: number
-        trades: number
-        months: number
-      }
-    }>(API_ROUTES.admin.handoverReset, { method: 'POST', body }),
+    apiClient<AdminHandoverResetResult>(API_ROUTES.admin.handoverReset, { method: 'POST', body }),
 
   getPlatformCms: () => apiClient<PlatformCmsDocument>(API_ROUTES.cms.platform),
 

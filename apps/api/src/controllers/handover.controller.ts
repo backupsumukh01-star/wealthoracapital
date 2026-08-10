@@ -24,6 +24,7 @@ export const handoverController = {
       actorId: req.user!.id,
       confirmationPhrase: body.confirmationPhrase,
       confirm: body.confirm,
+      backupAcknowledged: body.backupAcknowledged,
       ctx: { ip: ctx.ip, userAgent: ctx.userAgent },
     })
     sendSuccess(res, data)
