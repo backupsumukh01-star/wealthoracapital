@@ -124,6 +124,7 @@ export const ROUTES = {
       security: '/admin/settings/security',
       roles: '/admin/settings/roles',
       global: '/admin/settings/global',
+      handover: '/admin/settings/handover',
     },
   },
 } as const
@@ -263,6 +264,8 @@ export const API_ROUTES = {
     roles: '/admin/roles',
     media: '/admin/media',
     backups: '/admin/backups',
+    handoverPreview: '/admin/handover/reset/preview',
+    handoverReset: '/admin/handover/reset',
     emails: '/admin/emails',
     emailTemplates: '/admin/email-templates',
     broadcasts: '/admin/broadcasts',

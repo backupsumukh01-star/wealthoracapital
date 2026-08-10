@@ -40,6 +40,7 @@ export const PERMISSIONS = [
   'reports.manage',
   'broadcasts.manage',
   'settings.manage',
+  'settings.handover',
   'notifications.view',
 ] as const
 

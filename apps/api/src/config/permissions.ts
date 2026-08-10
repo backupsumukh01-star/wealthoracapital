@@ -43,6 +43,8 @@ export const PERMISSIONS = {
   'reports.manage': 'reports.manage',
   'broadcasts.manage': 'broadcasts.manage',
   'settings.manage': 'settings.manage',
+  /** Destructive client-handover / production operational reset. Super Admin + Admin only. */
+  'settings.handover': 'settings.handover',
   'notifications.view': 'notifications.view',
 } as const
 
@@ -132,6 +134,11 @@ const STAFF_PERMISSION_MAP: Record<StaffRole, Permission[]> = {
     PERMISSIONS['notifications.view'],
   ],
 }
+
+/**
+ * settings.handover is intentionally excluded from FINANCE/SUPPORT/KYC/CONTENT/VIEWER.
+ * SUPER_ADMIN + ADMIN maps use ALL_PERMISSIONS (includes settings.handover).
+ */
 
 const INVESTOR_PERMISSIONS: Permission[] = [
   PERMISSIONS['profile.view'],

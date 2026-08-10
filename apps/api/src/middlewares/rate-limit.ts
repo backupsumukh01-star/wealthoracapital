@@ -147,3 +147,23 @@ export const webhookRateLimiter = rateLimit({
     })
   },
 })
+
+/** Strict limiter for destructive client-handover reset. */
+export const handoverResetRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate,
+  ...(optionalRedisStore('rl:handover:') ? { store: optionalRedisStore('rl:handover:') } : {}),
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: {
+        code: ERROR_CODES.RATE_LIMITED,
+        message: 'Too many handover reset attempts. Please try again later.',
+      },
+      meta: createMeta(req.requestId),
+    })
+  },
+})

@@ -12,6 +12,7 @@ import { adminAnnouncementsRouter } from './admin-announcements.routes.js'
 import { adminBroadcastsRouter } from './admin-broadcasts.routes.js'
 import { adminEmailsRouter } from './admin-emails.routes.js'
 import { adminFinanceRouter } from './admin-finance.routes.js'
+import { adminHandoverRouter } from './admin-handover.routes.js'
 import { adminKycRouter } from './admin-kyc.routes.js'
 import { adminMediaRouter } from './admin-media.routes.js'
 import { adminReportsRouter } from './admin-reports.routes.js'
@@ -173,6 +174,7 @@ adminRouter.use(adminTradingRouter)
 adminRouter.use('/media', adminMediaRouter)
 adminRouter.use('/support', adminSupportRouter)
 adminRouter.use(adminSettingsRouter)
+adminRouter.use(adminHandoverRouter)
 adminRouter.use('/reports', adminReportsRouter)
 adminRouter.use('/broadcasts', adminBroadcastsRouter)
 adminRouter.use('/announcements', adminAnnouncementsRouter)

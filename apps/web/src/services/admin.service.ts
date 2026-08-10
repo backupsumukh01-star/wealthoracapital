@@ -424,6 +424,55 @@ export const adminService = {
   createBackup: (scope: string) =>
     apiClient<{ id: string }>(API_ROUTES.admin.backups, { method: 'POST', body: { scope } }),
 
+  handoverPreview: (mode: 'TEST_DATA_RESET' | 'FULL_HANDOVER_RESET') =>
+    apiClient<{
+      mode: 'TEST_DATA_RESET' | 'FULL_HANDOVER_RESET'
+      remove: {
+        users: number
+        wallets: number
+        deposits: number
+        withdrawals: number
+        ledgerEntries: number
+        transactions: number
+        kycRecords: number
+        notifications: number
+        supportTickets: number
+        otherUserGenerated: number
+      }
+      preserve: {
+        staffUsers: number
+        historicalTrades: number
+        historicalDailyReturns: number
+        historicalMonths: number
+        yearsOfPerformance: number
+        cmsDocuments: number
+        platformSettings: number
+        paymentMethods: number
+      }
+      actorPreserved: true
+      warning: string
+    }>(API_ROUTES.admin.handoverPreview, { method: 'POST', body: { mode } }),
+
+  handoverReset: (body: {
+    mode: 'TEST_DATA_RESET' | 'FULL_HANDOVER_RESET'
+    confirmationPhrase: string
+    confirm: true
+  }) =>
+    apiClient<{
+      mode: string
+      message: string
+      backupPath: string
+      removed: Record<string, number>
+      preserved: Record<string, number>
+      after: Record<string, number>
+      historicalPerformance: {
+        years: number
+        tradingDays: number
+        trades: number
+        months: number
+      }
+    }>(API_ROUTES.admin.handoverReset, { method: 'POST', body }),
+
   getPlatformCms: () => apiClient<PlatformCmsDocument>(API_ROUTES.cms.platform),
 
   publishPlatformCms: (body: PlatformCmsDocument) =>

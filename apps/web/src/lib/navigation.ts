@@ -1,5 +1,6 @@
 import {
   Activity,
+  AlertTriangle,
   ArrowDownToLine,
   ArrowUpFromLine,
   BadgeCheck,
@@ -488,6 +489,13 @@ export const ADMIN_SETTINGS_NAV: NavItem[] = [
     icon: Users,
     badge: 'super-admin',
     permission: 'users.edit',
+  },
+  {
+    label: 'Client Handover',
+    href: ROUTES.admin.settings.handover,
+    icon: AlertTriangle,
+    badge: 'super-admin',
+    permission: 'settings.handover',
   },
 ]
 
