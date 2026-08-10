@@ -2,11 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 
-import {
-  formatMarketChangePct,
-  marketStatusBadge,
-  useMarketQuotes,
-} from '@/features/markets/hooks'
+import { formatMarketChangePct, useMarketQuotes } from '@/features/markets/hooks'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { cn } from '@/lib/cn'
 
@@ -17,7 +13,6 @@ export function HeroMarketCards() {
   const pausedRef = useRef(false)
   const { data, isLoading } = useMarketQuotes()
   const cards = (data?.quotes ?? []).slice(0, 3)
-  const badge = marketStatusBadge(data?.status)
 
   useEffect(() => {
     if (prefersReducedMotion || cards.length === 0) return
@@ -99,7 +94,7 @@ export function HeroMarketCards() {
         })}
       </div>
       <p className="mt-2 text-center text-[11px] text-fg-subtle">
-        {badge.label} market prices
+        Last price
         {data?.updatedAt
           ? ` · Updated ${new Date(data.updatedAt).toISOString().slice(11, 19)} UTC`
           : ''}

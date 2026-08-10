@@ -3,11 +3,7 @@
 import { motion } from 'framer-motion'
 
 import { Section } from '@/components/common/section'
-import {
-  formatMarketChangePct,
-  marketStatusBadge,
-  useMarketQuotes,
-} from '@/features/markets/hooks'
+import { formatMarketChangePct, useMarketQuotes } from '@/features/markets/hooks'
 import { cn } from '@/lib/cn'
 
 import { HistoricalNote } from './historical-note'
@@ -27,7 +23,6 @@ const TAGS: Record<string, string> = {
 export function TodaysMarkets() {
   const { data, isLoading } = useMarketQuotes()
   const rows = data?.quotes ?? []
-  const badge = marketStatusBadge(data?.status)
 
   return (
     <Section
@@ -80,7 +75,7 @@ export function TodaysMarkets() {
         </div>
       )}
       <p className="mt-4 text-center text-caption text-fg-subtle">
-        {badge.label}
+        Last price · ± day change
         {data?.updatedAt
           ? ` · Updated ${new Date(data.updatedAt).toISOString().slice(11, 19)} UTC`
           : ''}

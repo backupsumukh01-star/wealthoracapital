@@ -2,18 +2,13 @@
 
 import { Section } from '@/components/common/section'
 import { StaggerGroup, StaggerItem } from '@/components/motion/stagger-group'
-import {
-  formatMarketChangePct,
-  marketStatusBadge,
-  useMarketQuotes,
-} from '@/features/markets/hooks'
+import { formatMarketChangePct, useMarketQuotes } from '@/features/markets/hooks'
 import { cn } from '@/lib/cn'
 
 /** Pair cards — live prices from centralized market feed (spreads removed as static demo). */
 export function ForexPairCards() {
   const { data, isLoading } = useMarketQuotes()
   const pairs = data?.quotes ?? []
-  const badge = marketStatusBadge(data?.status)
 
   return (
     <Section
@@ -57,7 +52,7 @@ export function ForexPairCards() {
         </StaggerGroup>
       )}
       <p className="mt-4 text-center text-caption text-fg-subtle">
-        {badge.label}
+        Last price · ± day change
         {data?.updatedAt
           ? ` · Updated ${new Date(data.updatedAt).toISOString().slice(11, 19)} UTC`
           : ''}

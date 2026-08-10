@@ -28,7 +28,37 @@ function forexChangePercent(symbol: string, price: number): number {
 }
 
 type FrankfurterResponse = {
+  date?: string
   rates?: Record<string, number>
+}
+
+function toPairPrice(rate: number, invert: boolean): number {
+  return invert ? 1 / rate : rate
+}
+
+function dayChangePercent(current: number, previous: number | undefined): number {
+  if (!isFiniteNumber(previous) || previous <= 0) return 0
+  return ((current - previous) / previous) * 100
+}
+
+async function fetchFrankfurterPrevious(
+  dateIso: string | undefined,
+): Promise<FrankfurterResponse | null> {
+  if (!dateIso) return null
+  const current = new Date(`${dateIso}T12:00:00.000Z`)
+  if (Number.isNaN(current.getTime())) return null
+
+  // Walk back up to 4 calendar days to skip weekends/holidays.
+  for (let i = 1; i <= 4; i += 1) {
+    const d = new Date(current)
+    d.setUTCDate(d.getUTCDate() - i)
+    const key = d.toISOString().slice(0, 10)
+    const prev = await fetchJson<FrankfurterResponse>(
+      `https://api.frankfurter.app/${key}?from=USD&to=EUR,GBP,JPY,AUD,NZD`,
+    )
+    if (prev?.rates && prev.date && prev.date !== dateIso) return prev
+  }
+  return null
 }
 
 async function fetchForexQuotes(): Promise<ProviderQuote[]> {
@@ -36,6 +66,8 @@ async function fetchForexQuotes(): Promise<ProviderQuote[]> {
     'https://api.frankfurter.app/latest?from=USD&to=EUR,GBP,JPY,AUD,NZD',
   )
   if (!data?.rates) return []
+
+  const previous = await fetchFrankfurterPrevious(data.date)
 
   const quotes: ProviderQuote[] = []
   const pairs: Array<{ symbol: string; quoteCurrency: string; invert: boolean }> = [
@@ -51,13 +83,25 @@ async function fetchForexQuotes(): Promise<ProviderQuote[]> {
     const rate = data.rates[pair.quoteCurrency]
     if (!config || !isFiniteNumber(rate) || rate <= 0) continue
 
-    const price = pair.invert ? 1 / rate : rate
+    const price = toPairPrice(rate, pair.invert)
     if (!isFiniteNumber(price) || price <= 0) continue
+
+    const prevRate = previous?.rates?.[pair.quoteCurrency]
+    const prevPrice =
+      isFiniteNumber(prevRate) && prevRate > 0
+        ? toPairPrice(prevRate, pair.invert)
+        : undefined
+
+    const changePercent = dayChangePercent(price, prevPrice)
+    // Keep session fallback only when previous-day rates are unavailable.
+    const resolvedChange =
+      previous?.rates != null ? changePercent : forexChangePercent(pair.symbol, price)
 
     quotes.push({
       symbol: pair.symbol,
       price,
-      changePercent: forexChangePercent(pair.symbol, price),
+      changePercent: resolvedChange,
+      previousClose: prevPrice,
       type: config.type,
       decimals: config.decimals,
     })
