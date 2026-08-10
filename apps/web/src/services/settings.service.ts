@@ -28,6 +28,7 @@ export const settingsService = {
     minWithdrawal?: string
     maxWithdrawal?: string
     usdInrRate?: string
+    currencyRates?: Record<string, string>
   }) =>
     apiClient<PlatformSettings>(API_ROUTES.admin.settings, { method: 'PUT', body }),
 

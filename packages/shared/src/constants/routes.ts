@@ -201,6 +201,11 @@ export const API_ROUTES = {
     read: (id: string) => `/notifications/${id}/read`,
   },
   settings: { public: '/settings/public', me: '/settings/me' },
+  currency: {
+    rates: '/currency/rates',
+    convert: '/currency/convert',
+    me: '/currency/me',
+  },
   profile: {
     root: '/profile',
     avatar: '/profile/avatar',

@@ -494,37 +494,51 @@ export function WithdrawWorkspace() {
                       title: 'Crypto (USDT)',
                       desc: 'USDT, BTC, ETH',
                       icon: Wallet,
+                      soon: false,
                     },
                     {
                       id: 'BANK' as const,
                       title: 'Bank (INR)',
-                      desc: 'IMPS / NEFT / RTGS',
+                      desc: 'Coming Soon',
                       icon: Building2,
+                      soon: true,
                     },
                     {
                       id: 'UPI' as const,
                       title: 'UPI (INR)',
-                      desc: 'UPI ID payout',
+                      desc: 'Coming Soon',
                       icon: Smartphone,
+                      soon: true,
                     },
                   ] as const
-                ).map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setRail(item.id)}
-                    className={cn(
-                      'border-line/70 bg-inset/40 flex flex-col gap-2 rounded-2xl border p-4 text-left transition',
-                      rail === item.id
-                        ? 'border-accent/60 bg-accent/10 ring-accent/30 ring-1'
-                        : 'hover:border-accent/40',
-                    )}
-                  >
-                    <item.icon className="text-accent-300 size-5" aria-hidden />
-                    <span className="text-body-sm text-fg font-medium">{item.title}</span>
-                    <span className="text-caption text-fg-subtle">{item.desc}</span>
-                  </button>
-                ))}
+                ).map((item) =>
+                  item.soon ? (
+                    <div
+                      key={item.id}
+                      className="border-line/70 bg-inset/40 flex flex-col gap-2 rounded-2xl border p-4 text-left opacity-80"
+                    >
+                      <item.icon className="text-accent-300 size-5" aria-hidden />
+                      <span className="text-body-sm text-fg font-medium">{item.title}</span>
+                      <span className="text-caption text-warning">{item.desc}</span>
+                    </div>
+                  ) : (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setRail(item.id)}
+                      className={cn(
+                        'border-line/70 bg-inset/40 flex flex-col gap-2 rounded-2xl border p-4 text-left transition',
+                        rail === item.id
+                          ? 'border-accent/60 bg-accent/10 ring-accent/30 ring-1'
+                          : 'hover:border-accent/40',
+                      )}
+                    >
+                      <item.icon className="text-accent-300 size-5" aria-hidden />
+                      <span className="text-body-sm text-fg font-medium">{item.title}</span>
+                      <span className="text-caption text-fg-subtle">{item.desc}</span>
+                    </button>
+                  ),
+                )}
               </div>
             </div>
 

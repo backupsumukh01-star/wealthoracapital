@@ -18,6 +18,8 @@ export const profileRepository = {
         state: typeof data.state === 'string' ? data.state : null,
         postalCode: typeof data.postalCode === 'string' ? data.postalCode : null,
         language: typeof data.language === 'string' ? data.language : 'en',
+        displayCurrency:
+          typeof data.displayCurrency === 'string' ? data.displayCurrency : 'USD',
         bio: typeof data.bio === 'string' ? data.bio : null,
       },
       update: data,

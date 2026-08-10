@@ -92,6 +92,12 @@ export function mapDeposit(deposit: DepositWithMethod) {
     rejectionReason: deposit.rejectionReason,
     createdAt: deposit.createdAt.toISOString(),
     reviewedAt: deposit.reviewedAt?.toISOString() ?? null,
+    lockDays: deposit.lockDays,
+    fundsUnlockAt: deposit.fundsUnlockAt?.toISOString() ?? null,
+    fundsLocked:
+      deposit.status === 'APPROVED' &&
+      deposit.fundsUnlockAt != null &&
+      deposit.fundsUnlockAt.getTime() > Date.now(),
   }
 }
 

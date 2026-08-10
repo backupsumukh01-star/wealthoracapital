@@ -250,6 +250,9 @@ export type PublicSettings = {
   maintenanceMode: boolean
   /** Live desk USD→INR rate (decimal string). */
   usdInrRate: string
+  /** Units of each currency per 1 USD (display conversion only). */
+  currencyRates?: Record<string, string>
+  supportedCurrencies?: string[]
   featureFlags: Record<string, boolean>
   limits: {
     minDeposit: string

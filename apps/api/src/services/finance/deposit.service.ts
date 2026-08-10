@@ -20,6 +20,10 @@ import { buildDepositProofImageUrl, mapDeposit } from './finance.mappers.js'
 import { mapPaymentMethodDetailed } from './payment-method.mapper.js'
 import { ledgerService } from './ledger.service.js'
 import { paymentMethodService } from './payment-method.service.js'
+import {
+  DEPOSIT_LOCK_DAYS_DEFAULT,
+  computeFundsUnlockAt,
+} from './currency.service.js'
 
 type Ctx = { ip?: string | null; userAgent?: string | null }
 
@@ -658,6 +662,11 @@ export const depositService = {
             creditedAmount: moneyString(credit),
             reviewedById: actorId,
             reviewedAt: new Date(),
+            lockDays: current.lockDays || DEPOSIT_LOCK_DAYS_DEFAULT,
+            fundsUnlockAt: computeFundsUnlockAt(
+              new Date(),
+              current.lockDays || DEPOSIT_LOCK_DAYS_DEFAULT,
+            ),
             internalNotes: body.internalNotes ?? current.internalNotes,
             rejectionReason: null,
           },
@@ -945,6 +954,11 @@ export const depositService = {
           status: 'APPROVED',
           creditedAmount: moneyString(credit),
           reviewedAt: new Date(),
+          lockDays: current.lockDays || DEPOSIT_LOCK_DAYS_DEFAULT,
+          fundsUnlockAt: computeFundsUnlockAt(
+            new Date(),
+            current.lockDays || DEPOSIT_LOCK_DAYS_DEFAULT,
+          ),
           txHash: input.txHash?.slice(0, 120) ?? current.txHash,
           internalNotes: `Provider confirmed ${input.eventId}`,
           rejectionReason: null,

@@ -520,26 +520,18 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
               </button>
             ) : null}
             {railsAvailable.BANK ? (
-              <button
-                type="button"
-                onClick={() => chooseRail('BANK')}
-                className="border-line/70 bg-inset/40 hover:border-accent/50 hover:bg-accent/5 flex flex-col gap-2 rounded-2xl border p-4 text-left transition"
-              >
+              <div className="border-line/70 bg-inset/40 flex flex-col gap-2 rounded-2xl border p-4 text-left opacity-80">
                 <Building2 className="text-accent-300 size-5" aria-hidden />
                 <span className="text-body-sm text-fg font-medium">INR Bank</span>
-                <span className="text-caption text-fg-subtle">IMPS / NEFT / RTGS</span>
-              </button>
+                <span className="text-caption text-warning">Coming Soon</span>
+              </div>
             ) : null}
             {railsAvailable.UPI ? (
-              <button
-                type="button"
-                onClick={() => chooseRail('UPI')}
-                className="border-line/70 bg-inset/40 hover:border-accent/50 hover:bg-accent/5 flex flex-col gap-2 rounded-2xl border p-4 text-left transition"
-              >
+              <div className="border-line/70 bg-inset/40 flex flex-col gap-2 rounded-2xl border p-4 text-left opacity-80">
                 <Smartphone className="text-accent-300 size-5" aria-hidden />
                 <span className="text-body-sm text-fg font-medium">UPI</span>
-                <span className="text-caption text-fg-subtle">UPI ID + QR</span>
-              </button>
+                <span className="text-caption text-warning">Coming Soon</span>
+              </div>
             ) : null}
           </div>
         ) : null}

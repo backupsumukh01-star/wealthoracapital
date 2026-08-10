@@ -1,9 +1,16 @@
 import { z } from 'zod'
+import { DISPLAY_CURRENCIES } from '@meridian/shared'
+
+const positiveRate = z
+  .string()
+  .regex(/^\d+(\.\d{1,8})?$/, 'Exchange rate must be a positive decimal.')
+  .refine((v) => Number(v) > 0, 'Exchange rate must be greater than zero.')
 
 export const updateMySettingsSchema = z.object({
   timezone: z.string().trim().min(1).max(64).optional(),
   language: z.string().trim().min(2).max(10).optional(),
   marketingOptIn: z.boolean().optional(),
+  displayCurrency: z.enum(DISPLAY_CURRENCIES).optional(),
 })
 
 export const adminSettingsUpdateSchema = z.object({
@@ -19,12 +26,10 @@ export const adminSettingsUpdateSchema = z.object({
   maxDeposit: z.string().optional(),
   minWithdrawal: z.string().optional(),
   maxWithdrawal: z.string().optional(),
-  /** Desk USD→INR rate; must be a positive decimal string. */
-  usdInrRate: z
-    .string()
-    .regex(/^\d+(\.\d{1,8})?$/, 'Exchange rate must be a positive decimal.')
-    .refine((v) => Number(v) > 0, 'Exchange rate must be greater than zero.')
-    .optional(),
+  /** Desk USD→INR rate; must be a positive decimal string. Synced into currencyRates.INR. */
+  usdInrRate: positiveRate.optional(),
+  /** Full display-rate map (units of currency per 1 USD). Does not rewrite history. */
+  currencyRates: z.record(z.string(), positiveRate).optional(),
 })
 
 export const featureFlagsUpdateSchema = z.record(z.string(), z.boolean())

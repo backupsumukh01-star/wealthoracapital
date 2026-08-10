@@ -1,12 +1,21 @@
 import type { Prisma } from '@prisma/client'
+import {
+  DEFAULT_CURRENCY_RATES,
+  DEFAULT_DISPLAY_CURRENCY,
+  DISPLAY_CURRENCIES,
+  isDisplayCurrency,
+  normalizeCurrencyRates,
+  type CurrencyRatesMap,
+} from '@meridian/shared'
 
 import { prisma } from '../database/prisma.js'
 import { moneyDisplay } from '../utils/money.js'
 import { DEFAULT_USD_INR_RATE, rateDisplay } from '../utils/fx.js'
 import { userRepository } from '../repositories/user.repository.js'
 import { profileRepository } from '../repositories/profile.repository.js'
-import { notFound } from '../utils/errors.js'
+import { notFound, badRequest } from '../utils/errors.js'
 import { auditService } from './audit.service.js'
+import { parseCurrencyRatesJson } from './finance/currency.service.js'
 
 type Ctx = { ip?: string | null; userAgent?: string | null }
 
@@ -27,7 +36,13 @@ function mapSettings(row: {
   minWithdrawal: Prisma.Decimal
   maxWithdrawal: Prisma.Decimal
   usdInrRate: Prisma.Decimal
+  currencyRates: Prisma.JsonValue
 }) {
+  const rates = normalizeCurrencyRates({
+    ...parseCurrencyRatesJson(row.currencyRates),
+    INR: rateDisplay(row.usdInrRate ?? DEFAULT_USD_INR_RATE),
+  })
+
   return {
     companyName: row.companyName,
     supportEmail: row.supportEmail,
@@ -37,7 +52,9 @@ function mapSettings(row: {
     maintenanceMode: row.maintenanceMode,
     networks: Array.isArray(row.networks) ? (row.networks as string[]) : DEFAULT_NETWORKS,
     coins: Array.isArray(row.coins) ? (row.coins as string[]) : DEFAULT_COINS,
-    usdInrRate: rateDisplay(row.usdInrRate ?? DEFAULT_USD_INR_RATE),
+    usdInrRate: rates.INR,
+    currencyRates: rates,
+    supportedCurrencies: [...DISPLAY_CURRENCIES],
     limits: {
       minDeposit: moneyDisplay(row.minDeposit),
       maxDeposit: moneyDisplay(row.maxDeposit),
@@ -47,15 +64,45 @@ function mapSettings(row: {
   }
 }
 
+function mergeRatesUpdate(
+  existing: Prisma.JsonValue,
+  usdInrRate: string | undefined,
+  currencyRates: CurrencyRatesMap | undefined,
+): { rates: Record<string, string>; usdInr: string } {
+  const current = normalizeCurrencyRates(parseCurrencyRatesJson(existing))
+  const next = normalizeCurrencyRates({
+    ...current,
+    ...(currencyRates ?? {}),
+    ...(usdInrRate !== undefined ? { INR: usdInrRate } : {}),
+  })
+  return { rates: next, usdInr: next.INR }
+}
+
 export const settingsService = {
   async getOrInitPlatformSettings() {
     const existing = await prisma.platformSetting.findFirst()
-    if (existing) return existing
+    if (existing) {
+      // Backfill empty currencyRates from usdInrRate without rewriting history.
+      const parsed = parseCurrencyRatesJson(existing.currencyRates)
+      if (Object.keys(parsed).length === 0) {
+        const rates = normalizeCurrencyRates({
+          ...DEFAULT_CURRENCY_RATES,
+          INR: rateDisplay(existing.usdInrRate ?? DEFAULT_USD_INR_RATE),
+        })
+        return prisma.platformSetting.update({
+          where: { id: existing.id },
+          data: { currencyRates: rates },
+        })
+      }
+      return existing
+    }
+    const rates = normalizeCurrencyRates(DEFAULT_CURRENCY_RATES)
     return prisma.platformSetting.create({
       data: {
         networks: DEFAULT_NETWORKS,
         coins: DEFAULT_COINS,
-        usdInrRate: DEFAULT_USD_INR_RATE.toFixed(8),
+        usdInrRate: rates.INR,
+        currencyRates: rates,
       },
     })
   },
@@ -72,6 +119,8 @@ export const settingsService = {
       defaultCurrency: mapped.defaultCurrency,
       maintenanceMode: mapped.maintenanceMode,
       usdInrRate: mapped.usdInrRate,
+      currencyRates: mapped.currencyRates,
+      supportedCurrencies: mapped.supportedCurrencies,
       featureFlags: Object.fromEntries(flags.map((f) => [f.key, f.enabled])),
       limits: mapped.limits,
     }
@@ -81,9 +130,13 @@ export const settingsService = {
     const user = await userRepository.findById(userId)
     if (!user) throw notFound('User not found.')
     const profile = await profileRepository.ensure(userId)
+    const displayCurrency = isDisplayCurrency(profile.displayCurrency)
+      ? profile.displayCurrency
+      : DEFAULT_DISPLAY_CURRENCY
     return {
       timezone: user.timezone,
       language: profile.language,
+      displayCurrency,
       marketingOptIn: user.marketingOptIn,
       twoFactorEnabled: user.twoFactorEnabled,
       emailNotifications: true,
@@ -92,15 +145,28 @@ export const settingsService = {
 
   async updateMySettings(
     userId: string,
-    body: Partial<{ timezone: string; language: string; marketingOptIn: boolean }>,
+    body: Partial<{
+      timezone: string
+      language: string
+      marketingOptIn: boolean
+      displayCurrency: string
+    }>,
     context: Ctx,
   ) {
     await userRepository.update(userId, {
       ...(body.timezone !== undefined ? { timezone: body.timezone } : {}),
       ...(body.marketingOptIn !== undefined ? { marketingOptIn: body.marketingOptIn } : {}),
     })
-    if (body.language !== undefined) {
-      await profileRepository.upsert(userId, { language: body.language })
+    const profilePatch: Prisma.UserProfileUpdateInput = {}
+    if (body.language !== undefined) profilePatch.language = body.language
+    if (body.displayCurrency !== undefined) {
+      if (!isDisplayCurrency(body.displayCurrency)) {
+        throw badRequest('Unsupported display currency.')
+      }
+      profilePatch.displayCurrency = body.displayCurrency
+    }
+    if (Object.keys(profilePatch).length > 0) {
+      await profileRepository.upsert(userId, profilePatch)
     }
     await auditService.record({
       actorId: userId,
@@ -133,10 +199,17 @@ export const settingsService = {
       minWithdrawal: string
       maxWithdrawal: string
       usdInrRate: string
+      currencyRates: CurrencyRatesMap
     }>,
     context: Ctx,
   ) {
     const existing = await this.getOrInitPlatformSettings()
+    const { rates, usdInr } = mergeRatesUpdate(
+      existing.currencyRates,
+      body.usdInrRate,
+      body.currencyRates,
+    )
+
     const updated = await prisma.platformSetting.update({
       where: { id: existing.id },
       data: {
@@ -152,7 +225,9 @@ export const settingsService = {
         ...(body.maxDeposit !== undefined ? { maxDeposit: body.maxDeposit } : {}),
         ...(body.minWithdrawal !== undefined ? { minWithdrawal: body.minWithdrawal } : {}),
         ...(body.maxWithdrawal !== undefined ? { maxWithdrawal: body.maxWithdrawal } : {}),
-        ...(body.usdInrRate !== undefined ? { usdInrRate: body.usdInrRate } : {}),
+        ...(body.usdInrRate !== undefined || body.currencyRates !== undefined
+          ? { usdInrRate: usdInr, currencyRates: rates }
+          : {}),
         updatedById: actorId,
       },
     })

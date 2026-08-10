@@ -12,6 +12,11 @@ import { DEFAULT_USD_INR_RATE, inrStorage, usdToInr } from '../../utils/fx.js'
 import { settingsService } from '../settings.service.js'
 import { mapPayoutMethod, mapWithdrawal } from './finance.mappers.js'
 import { ledgerService } from './ledger.service.js'
+import {
+  getLatestQualifyingDepositRail,
+  getWithdrawalEligibility,
+  payoutRailFromType,
+} from './currency.service.js'
 
 type Ctx = { ip?: string | null; userAgent?: string | null }
 
@@ -88,6 +93,8 @@ export const withdrawalService = {
       _sum: { amount: true },
     })
     const used = d(withdrawnToday._sum.amount ?? 0)
+    const eligibility = await getWithdrawalEligibility(userId)
+    const latestRail = await getLatestQualifyingDepositRail(userId)
     return {
       min: moneyDisplay(DEFAULT_MIN),
       max: moneyDisplay(DEFAULT_MAX),
@@ -95,6 +102,10 @@ export const withdrawalService = {
       feePct: moneyDisplay(DEFAULT_FEE_PCT),
       availableBalance: moneyDisplay(wallet.availableBalance),
       lockedBalance: moneyDisplay(wallet.lockedBalance),
+      depositLockedAmount: eligibility.lockedAmount,
+      eligibleAmount: eligibility.eligibleAmount,
+      nextUnlockAt: eligibility.nextUnlockAt,
+      requiredPayoutRail: latestRail?.rail ?? null,
     }
   },
 
@@ -379,6 +390,33 @@ export const withdrawalService = {
     })
     if (!payout) throw badRequest('Payout method not found.')
 
+    // Rail rule foundation: latest approved deposit rail must match payout rail when known.
+    const latestRail = await getLatestQualifyingDepositRail(userId)
+    if (latestRail && (latestRail.rail === 'INR' || latestRail.rail === 'CRYPTO')) {
+      const payoutRail = payoutRailFromType(payout.type)
+      if (payoutRail !== latestRail.rail) {
+        throw badRequest(
+          latestRail.rail === 'CRYPTO'
+            ? 'Your latest deposit was via crypto. Withdrawals must use a crypto payout method.'
+            : 'Your latest deposit was via INR. Withdrawals must use an INR payout method.',
+          {
+            requiredRail: latestRail.rail,
+            payoutRail,
+          },
+        )
+      }
+    }
+
+    const eligibility = await getWithdrawalEligibility(userId)
+    if (amount.gt(d(eligibility.eligibleAmount))) {
+      throw badRequest('Some funds are still within the required 10-day holding period.', {
+        availableAmount: eligibility.eligibleAmount,
+        lockedAmount: eligibility.lockedAmount,
+        nextUnlockAt: eligibility.nextUnlockAt,
+        walletAvailable: eligibility.availableBalance,
+      })
+    }
+
     const platform = await settingsService.getOrInitPlatformSettings()
     const rate = d(platform.usdInrRate ?? DEFAULT_USD_INR_RATE)
     // Always derive INR server-side — never trust client amountInr (forgery / rate tampering).
@@ -422,6 +460,16 @@ export const withdrawalService = {
         const freshWallet = await tx.wallet.findUniqueOrThrow({ where: { id: wallet.id } })
         if (amount.gt(d(freshWallet.availableBalance))) {
           throw badRequest('Amount exceeds available balance or limits.')
+        }
+
+        // Re-check deposit lock inside the transaction so concurrent requests cannot bypass.
+        const lockedEligibility = await getWithdrawalEligibility(userId, tx)
+        if (amount.gt(d(lockedEligibility.eligibleAmount))) {
+          throw badRequest('Some funds are still within the required 10-day holding period.', {
+            availableAmount: lockedEligibility.eligibleAmount,
+            lockedAmount: lockedEligibility.lockedAmount,
+            nextUnlockAt: lockedEligibility.nextUnlockAt,
+          })
         }
 
         const created = await tx.withdrawal.create({

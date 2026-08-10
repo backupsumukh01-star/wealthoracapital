@@ -480,6 +480,8 @@ model UserProfile {
   state        String?  @db.VarChar(80)
   postalCode   String?  @map("postal_code") @db.VarChar(24)
   language     String   @default("en") @db.VarChar(10)
+  /** Display preference only — ledger remains USD. */
+  displayCurrency String @default("USD") @map("display_currency") @db.Char(3)
   bio          String?  @db.VarChar(500)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -872,6 +874,13 @@ model Deposit {
   fee             Decimal       @default(0) @db.Decimal(20, 8)
   creditedAmount  Decimal?      @map("credited_amount") @db.Decimal(20, 8)
   currency        String        @default("USD") @db.Char(3)
+  /** Holding period in days applied when the deposit is approved. */
+  lockDays        Int           @default(10) @map("lock_days")
+  /**
+   * When credited funds become eligible for withdrawal.
+   * Null = no lock (legacy / not yet approved). Set on APPROVED = reviewedAt + lockDays.
+   */
+  fundsUnlockAt   DateTime?     @map("funds_unlock_at")
   status          DepositStatus @default(PENDING)
   userReference   String?       @map("user_reference") @db.VarChar(120)
   txHash          String?       @map("tx_hash") @db.VarChar(120)
@@ -1706,8 +1715,13 @@ model PlatformSetting {
   maxDeposit      Decimal  @default(1000000) @map("max_deposit") @db.Decimal(20, 8)
   minWithdrawal   Decimal  @default(20) @map("min_withdrawal") @db.Decimal(20, 8)
   maxWithdrawal   Decimal  @default(1000000) @map("max_withdrawal") @db.Decimal(20, 8)
-  /** Live desk USD→INR rate (admin-editable). Ledger remains USD. */
+  /** Live desk USD→INR rate (admin-editable). Ledger remains USD. Kept in sync with currencyRates.INR. */
   usdInrRate      Decimal  @default(93) @map("usd_inr_rate") @db.Decimal(20, 8)
+  /**
+   * Units of each currency per 1 USD (admin-editable). Example: { "USD":"1", "INR":"93", "EUR":"0.92" }.
+   * Display conversion only — never rewrites historical ledger/deposit/withdrawal amounts.
+   */
+  currencyRates   Json     @default("{}") @map("currency_rates")
   updatedById     String?  @map("updated_by_id") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")

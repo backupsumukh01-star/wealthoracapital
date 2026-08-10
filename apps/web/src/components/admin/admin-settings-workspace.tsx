@@ -143,6 +143,7 @@ function PlatformSection() {
   const [minWithdraw, setMinWithdraw] = useState('')
   const [maxWithdraw, setMaxWithdraw] = useState('')
   const [usdInrRate, setUsdInrRate] = useState('')
+  const [currencyRates, setCurrencyRates] = useState<Record<string, string>>({})
   const [maintenance, setMaintenance] = useState(false)
   const [hydrated, setHydrated] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -154,6 +155,11 @@ function PlatformSection() {
     setMinWithdraw(data.limits.minWithdrawal)
     setMaxWithdraw(data.limits.maxWithdrawal)
     setUsdInrRate(data.usdInrRate ?? '93')
+    setCurrencyRates({
+      ...(data.currencyRates ?? {}),
+      INR: data.usdInrRate ?? data.currencyRates?.INR ?? '93',
+      USD: '1',
+    })
     setMaintenance(data.maintenanceMode)
     setHydrated(true)
   }, [data, hydrated])
@@ -161,12 +167,18 @@ function PlatformSection() {
   async function save() {
     setSaving(true)
     try {
+      const nextRates = {
+        ...currencyRates,
+        USD: '1',
+        INR: usdInrRate.trim() || currencyRates.INR || '93',
+      }
       await settingsService.adminUpdate({
         minDeposit: minDeposit.trim(),
         maxDeposit: maxDeposit.trim(),
         minWithdrawal: minWithdraw.trim(),
         maxWithdrawal: maxWithdraw.trim(),
-        usdInrRate: usdInrRate.trim(),
+        usdInrRate: nextRates.INR,
+        currencyRates: nextRates,
         maintenanceMode: maintenance,
       })
       toast.success('Platform settings saved')
@@ -176,6 +188,8 @@ function PlatformSection() {
       setSaving(false)
     }
   }
+
+  const extraCodes = ['EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'AED', 'SGD'] as const
 
   return (
     <div className="space-y-5">
@@ -197,10 +211,38 @@ function PlatformSection() {
               inputMode="decimal"
               value={usdInrRate}
               disabled={isLoading || !hydrated}
-              onChange={(e) => setUsdInrRate(e.target.value.replace(/[^\d.]/g, ''))}
+              onChange={(e) => {
+                const v = e.target.value.replace(/[^\d.]/g, '')
+                setUsdInrRate(v)
+                setCurrencyRates((prev) => ({ ...prev, INR: v, USD: '1' }))
+              }}
               placeholder="93"
             />
           </FormField>
+        </div>
+      </AdminPanel>
+      <AdminPanel>
+        <AdminPanelHeader
+          title="Display currency rates"
+          description="Units of each currency per 1 USD. Display only — does not rewrite history."
+        />
+        <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
+          <FormField label="USD (base)">
+            <Input value="1" disabled />
+          </FormField>
+          {extraCodes.map((code) => (
+            <FormField key={code} label={`1 USD = ? ${code}`}>
+              <Input
+                inputMode="decimal"
+                value={currencyRates[code] ?? ''}
+                disabled={isLoading || !hydrated}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^\d.]/g, '')
+                  setCurrencyRates((prev) => ({ ...prev, [code]: v, USD: '1' }))
+                }}
+              />
+            </FormField>
+          ))}
         </div>
       </AdminPanel>
       <AdminPanel>

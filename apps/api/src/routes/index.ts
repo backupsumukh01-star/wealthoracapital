@@ -22,6 +22,7 @@ import { profileRouter } from './profile.routes.js'
 import { reportRouter } from './report.routes.js'
 import { returnsRouter } from './returns.routes.js'
 import { settingsRouter } from './settings.routes.js'
+import { currencyRouter } from './currency.routes.js'
 import { supportRouter } from './support.routes.js'
 import { tradeRouter } from './trade.routes.js'
 import { transactionRouter } from './transaction.routes.js'
@@ -64,6 +65,7 @@ export function createApiRouter(): Router {
   router.use('/v1/notifications', notificationRouter)
   router.use('/v1/support', supportRouter)
   router.use('/v1/settings', settingsRouter)
+  router.use('/v1/currency', currencyRouter)
   router.use('/v1/reports', reportRouter)
   router.use('/v1/cms', cmsRouter)
   router.use('/v1/cms/downloads', cmsDownloadRouter)

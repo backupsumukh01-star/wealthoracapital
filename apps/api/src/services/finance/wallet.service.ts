@@ -53,7 +53,11 @@ export const walletService = {
     ])
 
     const { performanceService } = await import('../trading/performance.service.js')
-    const extras = await performanceService.walletSummaryExtras(userId)
+    const { getWithdrawalEligibility } = await import('./currency.service.js')
+    const [extras, withdrawalEligibility] = await Promise.all([
+      performanceService.walletSummaryExtras(userId),
+      getWithdrawalEligibility(userId),
+    ])
     return {
       wallet,
       today: extras.today,
@@ -67,6 +71,7 @@ export const walletService = {
         depositAmount: moneyDisplay(pendingDepositSum._sum.amount ?? 0),
         withdrawalAmount: moneyDisplay(pendingWithdrawalSum._sum.amount ?? 0),
       },
+      withdrawalEligibility,
       unreadNotifications,
     }
   },
