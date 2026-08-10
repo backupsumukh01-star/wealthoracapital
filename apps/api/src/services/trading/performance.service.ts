@@ -28,14 +28,29 @@ export const performanceService = {
     })
 
     const totalProfit = distributions.reduce((acc, row) => acc.plus(d(row.amount)), d(0))
-    const invested = userId
-      ? d(
+
+    // Historical % metrics must NOT depend on current investedAmount / availableBalance.
+    // Withdrawals (pending lock or paid) change financial state only — never erase track record.
+    // Prefer lifetime deposits as the money ROI denominator; compound stored daily returnPcts when present.
+    const wallet = userId
+      ? await prisma.wallet.findUnique({
+          where: { userId_kind: { userId, kind: 'INVESTMENT' } },
+          select: { investedAmount: true, totalDeposited: true },
+        })
+      : null
+    const deposited = userId
+      ? d(wallet?.totalDeposited ?? 0)
+      : d(
           (
-            await prisma.wallet.findUnique({
-              where: { userId_kind: { userId, kind: 'INVESTMENT' } },
+            await prisma.wallet.aggregate({
+              where: { kind: 'INVESTMENT' },
+              _sum: { totalDeposited: true },
             })
-          )?.investedAmount ?? 0,
+          )._sum.totalDeposited ?? 0,
         )
+    // Fallback capital basis if deposits were never bumped (legacy/adjust-only accounts).
+    const invested = userId
+      ? d(wallet?.investedAmount ?? 0)
       : d(
           (
             await prisma.wallet.aggregate({
@@ -44,32 +59,68 @@ export const performanceService = {
             })
           )._sum.investedAmount ?? 0,
         )
+    const capitalBasis = deposited.gt(0) ? deposited : invested
 
-    const roiPct = invested.gt(0) ? totalProfit.div(invested).mul(100) : d(0)
-
-    const byDay = new Map<string, ReturnType<typeof d>>()
+    type DayAgg = { profit: ReturnType<typeof d>; pcts: string[] }
+    const byDay = new Map<string, DayAgg>()
     for (const row of distributions) {
       const key = dayKey(row.date)
-      byDay.set(key, (byDay.get(key) ?? d(0)).plus(d(row.amount)))
+      const entry = byDay.get(key) ?? { profit: d(0), pcts: [] }
+      entry.profit = entry.profit.plus(d(row.amount))
+      entry.pcts.push(row.returnPct.toString())
+      byDay.set(key, entry)
     }
-    const dayEntries = [...byDay.entries()]
+
+    const dayEntries = [...byDay.entries()].map(([date, agg]) => {
+      const returnPct =
+        agg.pcts.length > 0
+          ? compoundReturnPct(agg.pcts)
+          : capitalBasis.gt(0)
+            ? agg.profit.div(capitalBasis).mul(100)
+            : d(0)
+      return { date, profit: agg.profit, returnPct }
+    })
+
     let bestDay: { date: string; returnPct: string; profit: string } | null = null
     let worstDay: { date: string; returnPct: string; profit: string } | null = null
-    for (const [date, profit] of dayEntries) {
-      const point = { date, returnPct: '0.000000', profit: moneyDisplay(profit) }
-      if (!bestDay || profit.gt(d(bestDay.profit))) bestDay = point
-      if (!worstDay || profit.lt(d(worstDay.profit))) worstDay = point
+    for (const row of dayEntries) {
+      const point = {
+        date: row.date,
+        returnPct: row.returnPct.toFixed(6),
+        profit: moneyDisplay(row.profit),
+      }
+      if (!bestDay || row.returnPct.gt(d(bestDay.returnPct))) bestDay = point
+      if (!worstDay || row.returnPct.lt(d(worstDay.returnPct))) worstDay = point
     }
 
     const now = new Date()
     const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
     const lastMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
-    const thisMonthProfit = distributions
-      .filter((r) => r.date >= monthStart)
-      .reduce((acc, r) => acc.plus(d(r.amount)), d(0))
-    const lastMonthProfit = distributions
-      .filter((r) => r.date >= lastMonthStart && r.date < monthStart)
-      .reduce((acc, r) => acc.plus(d(r.amount)), d(0))
+    const thisMonthDays = dayEntries.filter((r) => r.date >= dayKey(monthStart))
+    const lastMonthDays = dayEntries.filter(
+      (r) => r.date >= dayKey(lastMonthStart) && r.date < dayKey(monthStart),
+    )
+    const thisMonthProfit = thisMonthDays.reduce((acc, r) => acc.plus(r.profit), d(0))
+    const lastMonthProfit = lastMonthDays.reduce((acc, r) => acc.plus(r.profit), d(0))
+
+    const lifetimePcts = dayEntries.map((r) => r.returnPct)
+    const roiFromHistory =
+      lifetimePcts.length > 0 ? compoundReturnPct(lifetimePcts) : null
+    const roiFromMoney = capitalBasis.gt(0) ? totalProfit.div(capitalBasis).mul(100) : d(0)
+    const roiPct = roiFromHistory ?? roiFromMoney
+
+    const thisMonthReturnPct =
+      thisMonthDays.length > 0
+        ? compoundReturnPct(thisMonthDays.map((r) => r.returnPct))
+        : capitalBasis.gt(0)
+          ? thisMonthProfit.div(capitalBasis).mul(100)
+          : d(0)
+    const lastMonthReturnPct =
+      lastMonthDays.length > 0
+        ? compoundReturnPct(lastMonthDays.map((r) => r.returnPct))
+        : capitalBasis.gt(0)
+          ? lastMonthProfit.div(capitalBasis).mul(100)
+          : d(0)
 
     const closedTrades = await prisma.trade.count({
       where: { status: 'CLOSED', ...(userId ? {} : {}) },
@@ -78,21 +129,27 @@ export const performanceService = {
       where: { status: 'CLOSED', outcome: 'WIN' },
     })
 
+    // Prefer programme trade win-rate; if no trades, use share of positive distribution days.
+    const positiveDays = dayEntries.filter((r) => r.returnPct.gt(0)).length
+    const winRatePct = closedTrades
+      ? d(wins).div(closedTrades).mul(100).toFixed(2)
+      : dayEntries.length
+        ? d(positiveDays).div(dayEntries.length).mul(100).toFixed(2)
+        : '0.00'
+
     const avgDaily =
       dayEntries.length > 0
-        ? dayEntries
-            .reduce((acc, [, p]) => acc.plus(p), d(0))
-            .div(dayEntries.length)
+        ? dayEntries.reduce((acc, r) => acc.plus(r.returnPct), d(0)).div(dayEntries.length)
         : d(0)
 
     return {
       roiPct: roiPct.toFixed(6),
       thisMonthProfit: moneyDisplay(thisMonthProfit),
-      thisMonthReturnPct: invested.gt(0) ? thisMonthProfit.div(invested).mul(100).toFixed(6) : '0.000000',
-      lastMonthReturnPct: invested.gt(0) ? lastMonthProfit.div(invested).mul(100).toFixed(6) : '0.000000',
+      thisMonthReturnPct: thisMonthReturnPct.toFixed(6),
+      lastMonthReturnPct: lastMonthReturnPct.toFixed(6),
       bestDay,
       worstDay,
-      winRatePct: closedTrades ? d(wins).div(closedTrades).mul(100).toFixed(2) : '0.00',
+      winRatePct,
       activeDays: dayEntries.length,
       avgDailyReturnPct: avgDaily.toFixed(6),
     }
@@ -659,17 +716,37 @@ export const performanceService = {
 
   async investorAnalyticsCharts(userId: string, range = '90d') {
     const equitySeries = await this.series(userId, range)
-    const invested = d(
-      (
-        await prisma.wallet.findUnique({
-          where: { userId_kind: { userId, kind: 'INVESTMENT' } },
-        })
-      )?.investedAmount ?? 0,
-    )
+
+    // Historical day return % from stored distribution rows — independent of current wallet balances.
+    const dists = await prisma.profitDistribution.findMany({
+      where: { userId, isReversed: false },
+      orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
+      select: { date: true, returnPct: true, amount: true },
+    })
+    const pctByDay = new Map<string, string[]>()
+    for (const row of dists) {
+      const key = dayKey(row.date)
+      const list = pctByDay.get(key) ?? []
+      list.push(row.returnPct.toString())
+      pctByDay.set(key, list)
+    }
+    const wallet = await prisma.wallet.findUnique({
+      where: { userId_kind: { userId, kind: 'INVESTMENT' } },
+      select: { totalDeposited: true, investedAmount: true },
+    })
+    const capitalBasis = d(wallet?.totalDeposited ?? 0).gt(0)
+      ? d(wallet?.totalDeposited ?? 0)
+      : d(wallet?.investedAmount ?? 0)
 
     const dailyProfit = equitySeries.points.map((point) => {
       const profit = d(point.profit)
-      const returnPct = invested.gt(0) ? profit.div(invested).mul(100) : d(0)
+      const stored = pctByDay.get(point.date) ?? []
+      const returnPct =
+        stored.length > 0
+          ? compoundReturnPct(stored)
+          : capitalBasis.gt(0)
+            ? profit.div(capitalBasis).mul(100)
+            : d(0)
       return {
         date: point.date,
         label: point.date.slice(5),
@@ -680,20 +757,17 @@ export const performanceService = {
       }
     })
 
+    // monthly() already compounds stored distribution returnPct — do not re-scale by current invested.
     const monthly = await this.monthly(userId)
     return {
       range: equitySeries.range,
       equity: equitySeries.points,
       dailyProfit,
-      monthly: monthly.map((row) => {
-        const profit = d(row.profit)
-        const returnPct = invested.gt(0) ? profit.div(invested).mul(100) : d(0)
-        return {
-          month: row.month,
-          profit: row.profit,
-          returnPct: returnPct.toFixed(6),
-        }
-      }),
+      monthly: monthly.map((row) => ({
+        month: row.month,
+        profit: row.profit,
+        returnPct: row.returnPct,
+      })),
     }
   },
 
