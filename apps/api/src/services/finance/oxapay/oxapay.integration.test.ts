@@ -85,8 +85,8 @@ describe('OxaPay gateway deposits', () => {
 
   beforeEach(async () => {
     env.OXAPAY_MERCHANT_API_KEY = MERCHANT_KEY
-    // Production posture: never auto-confirm. OxaPay also ignores this flag and never credits.
-    env.PAYMENT_AUTO_CONFIRM_DEPOSITS = false
+    // Production OxaPay posture: verified paid webhooks auto-credit.
+    env.PAYMENT_AUTO_CONFIRM_DEPOSITS = true
     env.OXAPAY_SANDBOX = true
     const { oxapayClient } = await import('./oxapay.client.js')
     vi.mocked(oxapayClient.createInvoice).mockReset()
@@ -219,7 +219,7 @@ describe('OxaPay gateway deposits', () => {
     expect(after.creditedAmount).toBeNull()
   })
 
-  it('paid webhook queues UNDER_REVIEW with no credit; Admin approve credits once + 10-day lock', async () => {
+  it('paid webhook with autoConfirm verifies and credits once + 10-day lock; duplicates do not re-credit', async () => {
     const { userId, methodId, prisma } = await bootstrapCryptoInvestor()
     const { depositService } = await import('../deposit.service.js')
     const { oxapayWebhookService } = await import('./oxapay-webhook.service.js')
@@ -250,6 +250,10 @@ describe('OxaPay gateway deposits', () => {
       data: { userReference: trackId },
     })
 
+    // Browser return alone — still PENDING, no credit
+    expect(deposit.status).toBe('PENDING')
+    expect(deposit.creditedAmount).toBeNull()
+
     vi.mocked(oxapayClient.getPayment).mockResolvedValue({
       track_id: trackId,
       amount: 100,
@@ -278,24 +282,32 @@ describe('OxaPay gateway deposits', () => {
       context: {},
     })
     expect(first.duplicate).toBe(false)
-    expect((first as { action?: string }).action).toBe('queued_for_admin')
+    expect((first as { action?: string }).action).toBe('auto_confirmed')
 
-    const reviewed = await prisma.deposit.findUniqueOrThrow({ where: { id: deposit.id } })
-    expect(reviewed.status).toBe('UNDER_REVIEW')
-    expect(reviewed.creditedAmount).toBeNull()
-    expect(reviewed.fundsUnlockAt).toBeNull()
+    const approved = await prisma.deposit.findUniqueOrThrow({ where: { id: deposit.id } })
+    expect(approved.status).toBe('APPROVED')
+    expect(Number(approved.creditedAmount)).toBe(100)
+    expect(approved.fundsUnlockAt).toBeTruthy()
+    const unlockMs = approved.fundsUnlockAt!.getTime() - approved.reviewedAt!.getTime()
+    expect(unlockMs).toBeGreaterThanOrEqual(10 * 24 * 3600_000 - 5_000)
+    expect(unlockMs).toBeLessThanOrEqual(10 * 24 * 3600_000 + 5_000)
 
-    const creditsBeforeApprove = await prisma.ledgerEntry.count({
+    const credits = await prisma.ledgerEntry.count({
       where: { idempotencyKey: `deposit:${deposit.id}:approve:available` },
     })
-    expect(creditsBeforeApprove).toBe(0)
+    expect(credits).toBe(1)
 
-    const walletAfterWebhook = await prisma.wallet.findFirstOrThrow({
+    const walletAfter = await prisma.wallet.findFirstOrThrow({
       where: { userId, kind: 'INVESTMENT' },
     })
-    expect(walletAfterWebhook.availableBalance.toString()).toBe(walletBefore.availableBalance.toString())
+    expect(Number(walletAfter.availableBalance)).toBe(Number(walletBefore.availableBalance) + 100)
 
-    // Duplicate paid webhook — still no credit
+    expect(approved.transactionId).toBeTruthy()
+    expect(
+      await prisma.transaction.count({ where: { userId, id: approved.transactionId! } }),
+    ).toBe(1)
+
+    // Duplicate paid webhook — no second credit
     const second = await oxapayWebhookService.ingest({
       rawBody: raw,
       body: payload,
@@ -307,55 +319,61 @@ describe('OxaPay gateway deposits', () => {
       await prisma.ledgerEntry.count({
         where: { idempotencyKey: `deposit:${deposit.id}:approve:available` },
       }),
-    ).toBe(0)
+    ).toBe(1)
+    const walletAfterDup = await prisma.wallet.findFirstOrThrow({
+      where: { userId, kind: 'INVESTMENT' },
+    })
+    expect(walletAfterDup.availableBalance.toString()).toBe(walletAfter.availableBalance.toString())
+  })
 
-    // Admin Approve is the only credit path
-    const approvedMapped = await depositService.review(
+  it('does not credit when order_id does not match deposit reference', async () => {
+    const { userId, methodId, prisma } = await bootstrapCryptoInvestor()
+    const { depositService } = await import('../deposit.service.js')
+    const { oxapayWebhookService } = await import('./oxapay-webhook.service.js')
+    const { oxapayClient } = await import('./oxapay.client.js')
+    const trackId = `track-ord-${randomUUID().slice(0, 8)}`
+
+    const deposit = await depositService.create(
       userId,
-      deposit.id,
-      { decision: 'APPROVE', reason: 'OxaPay verified payment approved' },
+      {
+        amount: '50.00',
+        methodId,
+        idempotencyKey: `oxa-${randomUUID()}`,
+        submissionDetails: { gateway: 'oxapay', oxapayTrackId: trackId },
+      },
       {},
     )
-    expect(approvedMapped.status).toBe('APPROVED')
-
-    const approved = await prisma.deposit.findUniqueOrThrow({ where: { id: deposit.id } })
-    expect(approved.status).toBe('APPROVED')
-    expect(approved.fundsUnlockAt).toBeTruthy()
-    const unlockMs = approved.fundsUnlockAt!.getTime() - approved.reviewedAt!.getTime()
-    expect(unlockMs).toBeGreaterThanOrEqual(10 * 24 * 3600_000 - 5_000)
-    expect(unlockMs).toBeLessThanOrEqual(10 * 24 * 3600_000 + 5_000)
-
-    const credits = await prisma.ledgerEntry.count({
-      where: { idempotencyKey: `deposit:${deposit.id}:approve:available` },
+    await prisma.deposit.update({
+      where: { id: deposit.id },
+      data: { userReference: trackId },
     })
-    expect(credits).toBe(1)
 
-    const walletAfterApprove = await prisma.wallet.findFirstOrThrow({
-      where: { userId, kind: 'INVESTMENT' },
+    vi.mocked(oxapayClient.getPayment).mockResolvedValue({
+      track_id: trackId,
+      amount: 50,
+      currency: 'USD',
+      status: 'Paid',
+      order_id: 'DEP-WRONG-ORDER',
+      txs: [],
     })
-    expect(Number(walletAfterApprove.availableBalance)).toBe(
-      Number(walletBefore.availableBalance) + 100,
-    )
 
-    const txCount = await prisma.transaction.count({
-      where: { userId, id: approved.transactionId ?? undefined },
+    const payload = {
+      track_id: trackId,
+      status: 'Paid',
+      type: 'invoice',
+      order_id: deposit.reference,
+    }
+    const raw = JSON.stringify(payload)
+    const result = await oxapayWebhookService.ingest({
+      rawBody: raw,
+      body: payload,
+      hmacHeader: oxapayHmacSha512Hex(raw, MERCHANT_KEY),
+      context: {},
     })
-    expect(approved.transactionId).toBeTruthy()
-    expect(txCount).toBe(1)
-
-    // Second admin approve is a no-op for ledger / wallet
-    await depositService.review(userId, deposit.id, { decision: 'APPROVE' }, {})
-    expect(
-      await prisma.ledgerEntry.count({
-        where: { idempotencyKey: `deposit:${deposit.id}:approve:available` },
-      }),
-    ).toBe(1)
-    const walletAfterSecondApprove = await prisma.wallet.findFirstOrThrow({
-      where: { userId, kind: 'INVESTMENT' },
-    })
-    expect(walletAfterSecondApprove.availableBalance.toString()).toBe(
-      walletAfterApprove.availableBalance.toString(),
-    )
+    expect((result as { action?: string }).action).toBe('verification_failed')
+    const after = await prisma.deposit.findUniqueOrThrow({ where: { id: deposit.id } })
+    expect(after.status).not.toBe('APPROVED')
+    expect(after.creditedAmount).toBeNull()
   })
 
   it('does not credit wrong amount / wrong currency / expired', async () => {
@@ -456,7 +474,7 @@ describe('OxaPay gateway deposits', () => {
     expect(expired.status).toBe('REJECTED')
   })
 
-  it('HTTP paid webhook returns plain ok and does not credit without Admin approval', async () => {
+  it('HTTP paid webhook returns plain ok and auto-credits when verified (browser return alone does not)', async () => {
     const { userId, methodId, prisma } = await bootstrapCryptoInvestor()
     const { depositService } = await import('../deposit.service.js')
     const { oxapayClient } = await import('./oxapay.client.js')
@@ -509,13 +527,53 @@ describe('OxaPay gateway deposits', () => {
     expect(res.status).toBe(200)
     expect(res.text).toBe('ok')
 
-    const underReview = await prisma.deposit.findUniqueOrThrow({ where: { id: deposit.id } })
-    expect(underReview.status).toBe('UNDER_REVIEW')
-    expect(underReview.creditedAmount).toBeNull()
+    const approved = await prisma.deposit.findUniqueOrThrow({ where: { id: deposit.id } })
+    expect(approved.status).toBe('APPROVED')
+    expect(approved.creditedAmount).not.toBeNull()
     expect(
       await prisma.ledgerEntry.count({
         where: { idempotencyKey: `deposit:${deposit.id}:approve:available` },
       }),
-    ).toBe(0)
+    ).toBe(1)
+  })
+
+  it('manual (non-OxaPay) deposits still require Admin approval even with autoConfirm=true', async () => {
+    const { userId, methodId, prisma } = await bootstrapCryptoInvestor()
+    const { depositService } = await import('../deposit.service.js')
+
+    const deposit = await depositService.create(
+      userId,
+      {
+        amount: '25.00',
+        methodId,
+        idempotencyKey: `manual-${randomUUID()}`,
+        submissionDetails: { network: 'TRC20', coin: 'USDT' },
+      },
+      {},
+    )
+    expect(deposit.status).toBe('PENDING')
+    expect(deposit.creditedAmount).toBeNull()
+
+    const before = await prisma.wallet.findFirstOrThrow({
+      where: { userId, kind: 'INVESTMENT' },
+    })
+
+    // No webhook path for manual — still uncredited until Admin
+    const row = await prisma.deposit.findUniqueOrThrow({ where: { id: deposit.id } })
+    expect(row.status).toBe('PENDING')
+    expect(row.creditedAmount).toBeNull()
+
+    const approved = await depositService.review(
+      userId,
+      deposit.id,
+      { decision: 'APPROVE', reason: 'Manual proof verified' },
+      {},
+    )
+    expect(approved.status).toBe('APPROVED')
+
+    const after = await prisma.wallet.findFirstOrThrow({
+      where: { userId, kind: 'INVESTMENT' },
+    })
+    expect(Number(after.availableBalance)).toBe(Number(before.availableBalance) + 25)
   })
 })

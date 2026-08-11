@@ -47,7 +47,7 @@ function OxapayReturnInner() {
     <div className="space-y-6">
       <PageHeader
         title="Crypto payment status"
-        description="This page never credits your balance. Funds update only after Admin approval."
+        description="This page never credits your balance. Funds update only after OxaPay server confirmation."
       />
       <Card variant="glass" className="mx-auto max-w-lg space-y-4 p-6">
         {isLoading && !deposit ? (
@@ -60,9 +60,9 @@ function OxapayReturnInner() {
           </p>
         ) : confirmed ? (
           <>
-            <p className="text-body-sm text-fg font-medium">Deposit approved</p>
+            <p className="text-body-sm text-fg font-medium">Deposit confirmed</p>
             <p className="text-caption text-fg-subtle">
-              {deposit.reference} · {deposit.amount} USD credited after Admin approval.
+              {deposit.reference} · {deposit.amount} USD credited after provider verification.
             </p>
             <StatusPill status={deposit.status} />
           </>
@@ -76,12 +76,9 @@ function OxapayReturnInner() {
           </>
         ) : underReview ? (
           <>
-            <p className="text-body-sm text-fg font-medium">
-              Payment received and is under review
-            </p>
+            <p className="text-body-sm text-fg font-medium">Payment under review</p>
             <p className="text-caption text-fg-subtle">
-              Your balance will be updated after approval. This browser return does not credit
-              funds.
+              Verification needs attention. This browser return does not credit funds.
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <StatusPill status={deposit.status} />
@@ -97,7 +94,8 @@ function OxapayReturnInner() {
               Payment received / processing
             </p>
             <p className="text-caption text-fg-subtle">
-              Payment received and is under review. Your balance will be updated after approval.
+              Your balance will update after payment confirmation. Do not treat this browser return
+              as a successful credit.
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <StatusPill status={deposit.status} />
