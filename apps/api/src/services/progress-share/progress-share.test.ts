@@ -105,12 +105,45 @@ describe('Progress share image content', () => {
     expect(svg).toContain('Growzy Capital')
     expect(svg).toContain('EARNINGS TILL DATE')
     expect(svg).toContain('INR')
+    expect(svg).toContain('width="1080"')
+    expect(svg).toContain('height="780"')
     expect(svg).not.toContain('@')
     expect(svg).not.toContain('userId')
     expect(svg).not.toContain('wallet')
     expect(svg).not.toContain('0x')
     expect(svg).not.toContain('KYC')
     expect(svg).not.toContain('referral')
+  })
+
+  it('resolves share display names without privacy placeholders', () => {
+    expect(
+      progressShareService.displayNameFromUser({
+        firstName: 'Aisha',
+        lastName: 'Khan',
+        email: 'aisha@example.com',
+      }),
+    ).toBe('Aisha Khan')
+    expect(
+      progressShareService.displayNameFromUser({
+        firstName: 'Unknown',
+        lastName: 'Incognito',
+        email: 'priya.nair@example.com',
+      }),
+    ).toBe('priya.nair')
+    expect(
+      progressShareService.displayNameFromUser({
+        firstName: 'Unknown',
+        lastName: 'Incognito',
+        email: 'unknown@example.com',
+      }),
+    ).toBe('Investor')
+    expect(
+      progressShareService.displayNameFromUser({
+        firstName: 'Priya',
+        lastName: 'Incognito',
+        email: 'x@example.com',
+      }),
+    ).toBe('Priya')
   })
 
   it.each([

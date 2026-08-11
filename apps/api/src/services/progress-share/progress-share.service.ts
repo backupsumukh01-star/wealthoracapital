@@ -23,9 +23,38 @@ import {
 } from './progress-share.token.js'
 import type { ProgressShareLink, ProgressShareSnapshot } from './progress-share.types.js'
 
-function displayNameFromUser(user: { firstName: string; lastName: string }): string {
-  const full = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim()
-  return full || 'Investor'
+/** Browser / privacy placeholders that should not appear on share cards. */
+const PLACEHOLDER_TOKEN =
+  /^(unknown|user|investor|incognito|anonymous|guest|n\/?a|null|undefined|test)$/i
+const PLACEHOLDER_PHRASE =
+  /^(unknown(\s+|[-_])+incognito|anonymous(\s+|[-_])+user|test(\s+|[-_])+user)$/i
+
+function isUsableNamePart(value: string | null | undefined): value is string {
+  const trimmed = (value ?? '').trim()
+  return trimmed.length > 0 && !PLACEHOLDER_TOKEN.test(trimmed)
+}
+
+/**
+ * Share-card display name priority:
+ * 1) first + last (display name; skipping placeholder tokens)
+ * 2) email local-part as username
+ * 3) "Investor"
+ */
+export function displayNameFromUser(user: {
+  firstName?: string | null
+  lastName?: string | null
+  email?: string | null
+}): string {
+  const parts = [user.firstName, user.lastName].filter(isUsableNamePart)
+  const joined = parts.join(' ').trim()
+  if (joined && !PLACEHOLDER_PHRASE.test(joined)) return joined
+
+  const local = user.email?.split('@')[0]?.trim()
+  if (local && local.length >= 2 && !PLACEHOLDER_TOKEN.test(local)) {
+    return local.slice(0, 40)
+  }
+
+  return 'Investor'
 }
 
 function convertUsdField(amountUsd: string, currency: DisplayCurrency, rates: Record<string, string>) {
@@ -43,6 +72,7 @@ export async function buildProgressShareSnapshot(userId: string): Promise<Progre
     where: { id: userId },
     select: {
       id: true,
+      email: true,
       firstName: true,
       lastName: true,
       profile: { select: { displayCurrency: true } },
@@ -130,4 +160,5 @@ export const progressShareService = {
   renderImage: renderProgressShareImageForUser,
   verifyToken: verifyProgressShareToken,
   signToken: signProgressShareToken,
+  displayNameFromUser,
 }

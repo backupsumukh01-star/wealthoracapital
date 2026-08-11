@@ -11,10 +11,12 @@ import type { ProgressShareSnapshot } from './progress-share.types.js'
 /**
  * Server-side PNG renderer for branded progress share cards.
  * Dependency: `@resvg/resvg-js` (SVG → PNG; mature native binding used in Node production).
- * Visual language mirrors apps/web opengraph-image (Growzy dark finance gradient).
+ *
+ * Canvas is content-tight (1080×780) so messengers show the graphic edge-to-edge
+ * without large unused letterbox regions inside the PNG itself.
  */
 
-export const PROGRESS_SHARE_SIZE = { width: 1080, height: 1080 } as const
+export const PROGRESS_SHARE_SIZE = { width: 1080, height: 780 } as const
 
 function escapeXml(value: string): string {
   return value
@@ -25,7 +27,7 @@ function escapeXml(value: string): string {
     .replace(/'/g, '&apos;')
 }
 
-function truncateName(name: string, max = 28): string {
+function truncateName(name: string, max = 26): string {
   const trimmed = name.trim() || 'Investor'
   if (trimmed.length <= max) return trimmed
   return `${trimmed.slice(0, max - 1)}…`
@@ -48,13 +50,14 @@ export function buildProgressShareSvg(snapshot: ProgressShareSnapshot): string {
   const perf = escapeXml(formatPercent(snapshot.performancePct, { decimals: 2, signed: true }))
   const asOf = escapeXml(snapshot.asOfDate)
   const brand = escapeXml(snapshot.brandName)
+  const { width: W, height: H } = PROGRESS_SHARE_SIZE
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#07131C"/>
-      <stop offset="55%" stop-color="#0C1C28"/>
+      <stop offset="50%" stop-color="#0C1C28"/>
       <stop offset="100%" stop-color="#0A2420"/>
     </linearGradient>
     <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
@@ -63,45 +66,49 @@ export function buildProgressShareSvg(snapshot: ProgressShareSnapshot): string {
       <stop offset="100%" stop-color="#2AE8FF"/>
     </linearGradient>
     <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#102433" stop-opacity="0.92"/>
-      <stop offset="100%" stop-color="#0B1A24" stop-opacity="0.88"/>
+      <stop offset="0%" stop-color="#122A3A" stop-opacity="0.96"/>
+      <stop offset="100%" stop-color="#0B1A24" stop-opacity="0.94"/>
     </linearGradient>
   </defs>
 
-  <rect width="1080" height="1080" fill="url(#bg)"/>
-  <circle cx="920" cy="160" r="220" fill="#12D6A0" fill-opacity="0.08"/>
-  <circle cx="140" cy="960" r="260" fill="#2AE8FF" fill-opacity="0.06"/>
+  <rect width="${W}" height="${H}" fill="url(#bg)"/>
+  <circle cx="980" cy="70" r="140" fill="#12D6A0" fill-opacity="0.09"/>
+  <circle cx="70" cy="800" r="130" fill="#2AE8FF" fill-opacity="0.07"/>
 
-  <g transform="translate(72,72)">
-    <rect width="88" height="88" rx="24" fill="url(#mark)"/>
-    <text x="44" y="60" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="44" font-weight="700" fill="#07131C">G</text>
-    <text x="112" y="58" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="40" font-weight="650" fill="#F4F8FB">${brand}</text>
+  <g transform="translate(36,28)">
+    <rect width="52" height="52" rx="13" fill="url(#mark)"/>
+    <text x="26" y="35" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="26" font-weight="700" fill="#07131C">G</text>
+    <text x="68" y="35" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="26" font-weight="650" fill="#F4F8FB">${brand}</text>
   </g>
 
-  <text x="72" y="240" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22" letter-spacing="0.12em" fill="#8B9BB0">MY INVESTMENT PROGRESS</text>
-  <text x="72" y="310" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="52" font-weight="700" fill="#F4F8FB">${name}</text>
-  <text x="72" y="358" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22" fill="#9AA4B5">Display currency · ${currency}</text>
+  <text x="36" y="118" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="15" letter-spacing="0.14em" fill="#8B9BB0">MY INVESTMENT PROGRESS</text>
+  <text x="36" y="166" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="38" font-weight="700" fill="#F4F8FB">${name}</text>
+  <text x="36" y="198" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="17" fill="#9AA4B5">Display currency · ${currency}</text>
 
-  <rect x="72" y="410" width="936" height="420" rx="28" fill="url(#panel)" stroke="#1E3A4A" stroke-width="2"/>
+  <rect x="36" y="222" width="1008" height="520" rx="22" fill="url(#panel)" stroke="#1E3A4A" stroke-width="2"/>
 
-  <text x="110" y="480" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="20" letter-spacing="0.08em" fill="#8B9BB0">TOTAL INVESTMENT</text>
-  <text x="110" y="548" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="56" font-weight="700" fill="#F4F8FB">${investment}</text>
+  <text x="72" y="278" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" letter-spacing="0.1em" fill="#8B9BB0">TOTAL INVESTMENT</text>
+  <text x="72" y="336" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="46" font-weight="700" fill="#F4F8FB">${investment}</text>
 
-  <text x="110" y="630" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="20" letter-spacing="0.08em" fill="#8B9BB0">TOTAL EARNINGS</text>
-  <text x="110" y="698" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="48" font-weight="700" fill="#5EF2C4">${earnings}</text>
+  <line x1="72" y1="368" x2="1008" y2="368" stroke="#1E3A4A" stroke-width="2"/>
 
-  <text x="560" y="630" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="20" letter-spacing="0.08em" fill="#8B9BB0">EARNINGS TILL DATE</text>
-  <text x="560" y="698" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="48" font-weight="700" fill="#5EF2C4">${tillDate}</text>
+  <text x="72" y="418" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" letter-spacing="0.1em" fill="#8B9BB0">TOTAL EARNINGS</text>
+  <text x="72" y="474" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="38" font-weight="700" fill="#5EF2C4">${earnings}</text>
 
-  <text x="110" y="780" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="20" letter-spacing="0.08em" fill="#8B9BB0">PERFORMANCE</text>
-  <text x="110" y="840" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="40" font-weight="700" fill="#2AE8FF">${perf}</text>
+  <text x="548" y="418" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" letter-spacing="0.1em" fill="#8B9BB0">EARNINGS TILL DATE</text>
+  <text x="548" y="474" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="38" font-weight="700" fill="#5EF2C4">${tillDate}</text>
 
-  <text x="72" y="980" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22" fill="#9AA4B5">As of ${asOf}</text>
-  <text x="1008" y="980" text-anchor="end" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="#5EF2C4">growzycapital.com</text>
+  <line x1="72" y1="514" x2="1008" y2="514" stroke="#1E3A4A" stroke-width="2"/>
+
+  <text x="72" y="564" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" letter-spacing="0.1em" fill="#8B9BB0">PERFORMANCE</text>
+  <text x="72" y="624" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="42" font-weight="700" fill="#2AE8FF">${perf}</text>
+
+  <text x="72" y="700" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="17" fill="#9AA4B5">As of ${asOf}</text>
+  <text x="1008" y="700" text-anchor="end" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="17" font-weight="600" fill="#5EF2C4">growzycapital.com</text>
 </svg>`
 }
 
-/** Render a 1080×1080 PNG buffer from a progress snapshot. Read-only — no ledger writes. */
+/** Render a content-tight PNG buffer from a progress snapshot. Read-only — no ledger writes. */
 export function renderProgressSharePng(snapshot: ProgressShareSnapshot): Buffer {
   const svg = buildProgressShareSvg(snapshot)
   const resvg = new Resvg(svg, {

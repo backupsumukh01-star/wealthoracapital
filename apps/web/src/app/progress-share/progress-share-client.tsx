@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { ROUTES } from '@meridian/shared'
+import { API_ROUTES, ROUTES } from '@meridian/shared'
 import { Copy, Download, Share2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -33,7 +33,7 @@ export default function ProgressSharePage() {
 
   const imageUrl = useMemo(() => {
     if (!token) return null
-    return `${env.NEXT_PUBLIC_API_URL}/progress-share/image?t=${encodeURIComponent(token)}`
+    return `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.progressShare.image}?t=${encodeURIComponent(token)}`
   }, [token])
 
   const shareUrl =
@@ -129,18 +129,18 @@ export default function ProgressSharePage() {
   }
 
   return (
-    <main className="min-h-dvh bg-[radial-gradient(circle_at_top,#0C1C28_0%,#07131C_55%,#050D14_100%)] px-4 py-10 text-[#F4F8FB] sm:px-6">
-      <div className="mx-auto w-full max-w-lg space-y-6">
-        <div>
-          <p className="text-xs font-semibold tracking-[0.14em] text-[#5EF2C4]">GROWZY CAPITAL</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Share My Progress</h1>
-          <p className="mt-2 text-sm text-[#9AA4B5]">
-            A branded snapshot of investment progress — no sensitive account details.
-          </p>
-        </div>
+    <main className="min-h-dvh bg-[radial-gradient(circle_at_top,#0C1C28_0%,#07131C_55%,#050D14_100%)] px-4 py-5 text-[#F4F8FB] sm:px-6 sm:py-8">
+      <div className="mx-auto w-full max-w-md space-y-4 sm:max-w-lg sm:space-y-5">
+        <header className="space-y-1.5">
+          <p className="text-[11px] font-semibold tracking-[0.14em] text-[#5EF2C4]">GROWZY CAPITAL</p>
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Share My Progress</h1>
+        </header>
 
         {loading ? (
-          <div className="aspect-square animate-pulse rounded-2xl bg-white/5" />
+          <div
+            className="w-full animate-pulse rounded-2xl bg-white/5"
+            style={{ aspectRatio: '1080 / 780' }}
+          />
         ) : error ? (
           <div className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
             <p className="text-sm text-[#FFB4B4]">{error}</p>
@@ -162,14 +162,20 @@ export default function ProgressSharePage() {
                     ? `${snapshot.displayName} investment progress on Growzy Capital`
                     : 'Growzy Capital progress'
                 }
-                className="aspect-square w-full rounded-2xl border border-white/10 bg-[#0B1A24] object-cover"
+                className="block h-auto w-full max-w-full rounded-2xl border border-white/10 shadow-[0_12px_40px_-16px_rgba(0,0,0,0.65)]"
+                style={{ objectFit: 'contain', display: 'block', width: '100%', height: 'auto' }}
                 width={1080}
-                height={1080}
+                height={780}
+                decoding="async"
               />
             ) : null}
 
+            <p className="px-1 text-center text-[15px] leading-snug text-[#C5D0DC] sm:text-base">
+              My investment progress on Growzy Capital.
+            </p>
+
             {snapshot ? (
-              <p className="text-sm text-[#9AA4B5]">
+              <p className="text-center text-xs text-[#6B7C90]">
                 {snapshot.displayName} · {snapshot.displayCurrency} · as of {snapshot.asOfDate}
               </p>
             ) : null}
@@ -191,7 +197,7 @@ export default function ProgressSharePage() {
           </>
         )}
 
-        <p className="text-center text-xs text-[#6B7C90]">
+        <p className="pt-1 text-center text-xs text-[#6B7C90]">
           <Link href={ROUTES.dashboard.root} className="text-[#5EF2C4] underline-offset-2 hover:underline">
             Open dashboard
           </Link>
