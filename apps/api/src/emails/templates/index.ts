@@ -421,7 +421,9 @@ export function renderEmailTemplate(
     case 'daily-roi':
       return {
         subject: `Today's trading return +${v.returnPct ?? '0.00'}% · Profit $${v.profit ?? '0.00'}`,
-        text: `Hi ${v.firstName},\n\nReturn: ${v.returnPct}%\nProfit: $${v.profit}\nInvestment: $${v.investmentValue}\nNew available balance: $${v.closingBalance}\nSettlement date: ${v.date}\nReference: ${v.reference}`,
+        text: `Hi ${v.firstName},\n\nReturn: ${v.returnPct}%\nProfit: $${v.profit}\nInvestment: $${v.investmentValue}\nNew available balance: $${v.closingBalance}\nSettlement date: ${v.date}\nReference: ${v.reference}${
+          v.shareProgressUrl ? `\nShare My Progress: ${v.shareProgressUrl}` : ''
+        }`,
         html: emailLayout({
           category: 'Investment',
           title: 'Daily trading return',
@@ -438,11 +440,24 @@ export function renderEmailTemplate(
             ['Investment', v.investmentValue ? `$${v.investmentValue}` : '—'],
             ["Today's %", v.returnPct ? `+${v.returnPct}%` : '—'],
             ['Profit earned', v.profit ? `$${v.profit}` : '—'],
+            [
+              'Earnings Till Date',
+              v.earningsTillDate
+                ? `$${v.earningsTillDate}`
+                : v.totalProfit
+                  ? `$${v.totalProfit}`
+                  : '—',
+            ],
             ['New available balance', v.closingBalance ? `$${v.closingBalance}` : '—'],
             ['Settlement date', v.date ?? ''],
             ['Settlement reference', v.reference ?? '—'],
           ])}`,
-          ctas: [{ label: 'View dashboard', href: dashboardUrl() }],
+          ctas: [
+            { label: 'View dashboard', href: dashboardUrl() },
+            ...(v.shareProgressUrl
+              ? [{ label: 'Share My Progress', href: v.shareProgressUrl }]
+              : []),
+          ],
         }),
       }
     case 'investment-created':

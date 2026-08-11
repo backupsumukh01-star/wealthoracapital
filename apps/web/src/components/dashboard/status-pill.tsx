@@ -10,6 +10,11 @@ const TONE: Record<string, string> = {
   REJECTED: 'bg-loss/15 text-loss border-loss/30',
   CANCELLED: 'bg-hover text-fg-muted border-line',
   CREDITED: 'bg-profit/15 text-profit border-profit/30',
+  LOCKED: 'bg-warning/15 text-warning border-warning/30',
+  AVAILABLE: 'bg-profit/15 text-profit border-profit/30',
+  REDEEMED: 'bg-info/15 text-info border-info/30',
+  ACTIVE: 'bg-profit/15 text-profit border-profit/30',
+  INACTIVE: 'bg-hover text-fg-muted border-line',
 }
 
 export function StatusPill({

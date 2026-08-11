@@ -188,10 +188,12 @@ export interface EmailService {
     closingBalance?: string
     portfolioValue?: string
     totalProfit?: string
+    earningsTillDate?: string
     investmentValue?: string
     monthlyProfit?: string
     date?: string
     reference?: string
+    shareProgressUrl?: string
   }): Promise<void>
 
   sendInvestmentCreated(input: {

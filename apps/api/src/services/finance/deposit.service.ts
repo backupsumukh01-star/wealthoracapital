@@ -24,6 +24,7 @@ import { buildDepositProofImageUrl, mapDeposit } from './finance.mappers.js'
 import { mapPaymentMethodDetailed } from './payment-method.mapper.js'
 import { ledgerService } from './ledger.service.js'
 import { paymentMethodService } from './payment-method.service.js'
+import { referralService } from './referral.service.js'
 import { DEPOSIT_LOCK_DAYS_DEFAULT, computeFundsUnlockAt } from './currency.service.js'
 
 type Ctx = { ip?: string | null; userAgent?: string | null }
@@ -715,6 +716,18 @@ export const depositService = {
             internalNotes: body.internalNotes ?? null,
           },
         })
+
+        const approvedAt = new Date()
+        await referralService.createForApprovedDeposit(tx, {
+          id: current.id,
+          userId: current.userId,
+          status: 'APPROVED',
+          amount: current.amount,
+          creditedAmount: credit,
+          reference: current.reference,
+          reviewedAt: approvedAt,
+        })
+
         return tx.deposit.findUniqueOrThrow({
           where: { id: current.id },
           include: { paymentMethod: { select: { id: true, name: true, type: true } } },
@@ -749,12 +762,20 @@ export const depositService = {
         body: `Deposit ${deposit.reference} was approved for ${moneyDisplay(credit)}.`,
         metadata: { type: 'DEPOSIT_APPROVED', depositId: deposit.id },
       })
-      await transactionalMailer.depositApproved(deposit.userId, {
-        reference: deposit.reference,
-        amount: moneyDisplay(credit),
-      })
-      return mapDeposit(updated)
-    }
+    await transactionalMailer.depositApproved(deposit.userId, {
+      reference: deposit.reference,
+      amount: moneyDisplay(credit),
+    })
+    void import('./referral-notification.service.js').then(({ referralNotificationService }) => {
+      void referralNotificationService.onEligibleAfterFirstApprovedDeposit(deposit.userId)
+      void prisma.referralReward
+        .findUnique({ where: { sourceDepositId: deposit.id }, select: { id: true } })
+        .then((row) => {
+          if (row) void referralNotificationService.onRewardCreated(row.id)
+        })
+    })
+    return mapDeposit(updated)
+  }
 
     if (body.decision === 'REJECT' || body.decision === 'FORCE_CANCEL') {
       if (!body.reason && body.decision === 'REJECT') {
@@ -1018,6 +1039,18 @@ export const depositService = {
           message: `Deposit ${current.reference} confirmed by payment provider`,
         },
       })
+
+      const approvedAt = new Date()
+      await referralService.createForApprovedDeposit(tx, {
+        id: current.id,
+        userId: current.userId,
+        status: 'APPROVED',
+        amount: current.amount,
+        creditedAmount: credit,
+        reference: current.reference,
+        reviewedAt: approvedAt,
+      })
+
       return tx.deposit.findUniqueOrThrow({
         where: { id: current.id },
         include: { paymentMethod: { select: { id: true, name: true, type: true } } },
@@ -1052,6 +1085,15 @@ export const depositService = {
     await transactionalMailer.depositApproved(deposit.userId, {
       reference: deposit.reference,
       amount: moneyDisplay(credit),
+      autoConfirmed: true,
+    })
+    void import('./referral-notification.service.js').then(({ referralNotificationService }) => {
+      void referralNotificationService.onEligibleAfterFirstApprovedDeposit(deposit.userId)
+      void prisma.referralReward
+        .findUnique({ where: { sourceDepositId: deposit.id }, select: { id: true } })
+        .then((row) => {
+          if (row) void referralNotificationService.onRewardCreated(row.id)
+        })
     })
 
     return moneyDisplay(credit)

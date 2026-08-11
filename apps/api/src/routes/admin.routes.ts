@@ -15,6 +15,7 @@ import { adminFinanceRouter } from './admin-finance.routes.js'
 import { adminHandoverRouter } from './admin-handover.routes.js'
 import { adminKycRouter } from './admin-kyc.routes.js'
 import { adminMediaRouter } from './admin-media.routes.js'
+import { adminReferralRouter } from './admin-referral.routes.js'
 import { adminReportsRouter } from './admin-reports.routes.js'
 import { adminSettingsRouter } from './admin-settings.routes.js'
 import { adminSupportRouter } from './admin-support.routes.js'
@@ -170,6 +171,7 @@ adminRouter.get(
 
 adminRouter.use('/kyc', adminKycRouter)
 adminRouter.use(adminFinanceRouter)
+adminRouter.use('/referrals', adminReferralRouter)
 adminRouter.use(adminTradingRouter)
 adminRouter.use('/media', adminMediaRouter)
 adminRouter.use('/support', adminSupportRouter)

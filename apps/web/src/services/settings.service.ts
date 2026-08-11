@@ -29,6 +29,9 @@ export const settingsService = {
     maxWithdrawal?: string
     usdInrRate?: string
     currencyRates?: Record<string, string>
+    referralPercent?: string
+    referralUnlockDays?: number
+    referralEnabled?: boolean
   }) =>
     apiClient<PlatformSettings>(API_ROUTES.admin.settings, { method: 'PUT', body }),
 

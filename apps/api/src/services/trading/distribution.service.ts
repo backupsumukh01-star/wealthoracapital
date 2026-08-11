@@ -355,6 +355,7 @@ export const distributionService = {
 
         const openingAvailable = d(line.wallet.availableBalance)
         let balanceAfter = openingAvailable
+        let earningsTillDate = moneyDisplay(line.wallet.totalProfit)
         let ledgerTxnId: string | null = null
 
         await prisma.$transaction(async (tx) => {
@@ -376,6 +377,7 @@ export const distributionService = {
             const inv = await tx.wallet.findUniqueOrThrow({ where: { id: line.wallet.id } })
             ledgerTxnId = txn.id
             balanceAfter = d(inv.availableBalance)
+            earningsTillDate = moneyDisplay(inv.totalProfit)
             logger.info(
               {
                 userId,
@@ -389,6 +391,7 @@ export const distributionService = {
           } else {
             // Negative day: record only — do not force ledger debit (capital protection)
             balanceAfter = openingAvailable
+            earningsTillDate = moneyDisplay(line.wallet.totalProfit)
           }
 
           const existingDist = await tx.profitDistribution.findUnique({
@@ -455,6 +458,7 @@ export const distributionService = {
           openingBalance: moneyDisplay(openingAvailable),
           closingBalance: moneyDisplay(balanceAfter),
           reference: run.id,
+          earningsTillDate,
         })
         logger.info({ userId }, 'Email Sent')
 

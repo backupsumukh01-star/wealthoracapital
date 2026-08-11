@@ -61,6 +61,8 @@ export const ROUTES = {
     transactions: '/transactions',
     notifications: '/notifications',
     referrals: '/referrals',
+    /** Public progress-share landing (requires signed token query). */
+    progressShare: '/progress-share',
     support: '/support',
     settings: {
       profile: '/settings/profile',
@@ -81,6 +83,7 @@ export const ROUTES = {
     emails: '/admin/emails',
     deposits: '/admin/deposits',
     deposit: (depositId: string) => `/admin/deposits/${depositId}`,
+    referrals: '/admin/referrals',
     withdrawals: '/admin/withdrawals',
     withdrawal: (withdrawalId: string) => `/admin/withdrawals/${withdrawalId}`,
     trades: '/admin/trades',
@@ -215,6 +218,16 @@ export const API_ROUTES = {
     avatar: '/profile/avatar',
     sessions: '/profile/sessions',
   },
+  referrals: {
+    summary: '/referrals/summary',
+    rewards: '/referrals/rewards',
+    redeem: (id: string) => `/referrals/rewards/${id}/redeem`,
+  },
+  progressShare: {
+    link: '/progress-share/link',
+    snapshot: '/progress-share/snapshot',
+    image: '/progress-share/image',
+  },
   kyc: {
     root: '/kyc',
     me: '/kyc/me',
@@ -255,6 +268,12 @@ export const API_ROUTES = {
     kyc: '/admin/kyc',
     deposits: '/admin/deposits',
     depositProof: (id: string) => `/admin/deposits/${id}/proof`,
+    referrals: {
+      summary: '/admin/referrals/summary',
+      rewards: '/admin/referrals/rewards',
+      reward: (id: string) => `/admin/referrals/rewards/${id}`,
+      relationships: '/admin/referrals/relationships',
+    },
     withdrawals: '/admin/withdrawals',
     wallets: '/admin/wallets',
     paymentMethods: '/admin/payment-methods',

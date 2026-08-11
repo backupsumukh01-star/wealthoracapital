@@ -423,6 +423,8 @@ model User {
   portfolioSnapshots     PortfolioSnapshot[]
   supportTickets         SupportTicket[]      @relation("SupportUser")
   supportTicketsAssigned SupportTicket[]      @relation("SupportAssignee")
+  referralRewardsEarned  ReferralReward[]      @relation("ReferralReferrer")
+  referralRewardsGenerated ReferralReward[]   @relation("ReferralReferee")
 
   @@index([status])
   @@index([role])
@@ -716,6 +718,8 @@ model Transaction {
   history    TransactionHistory[]
   deposit    Deposit?
   withdrawal Withdrawal?
+  referralCredits  ReferralReward[] @relation("ReferralCreditTxn")
+  referralRedeems  ReferralReward[] @relation("ReferralRedeemTxn")
 
   @@index([userId, createdAt])
   @@index([type, status])
@@ -902,12 +906,47 @@ model Deposit {
   reviews FinanceReview[]
   queue   ApprovalQueue?
   webhookEvents PaymentWebhookEvent[]
+  referralReward ReferralReward?
 
   @@unique([txHash])
   @@index([userId, status])
   @@index([status, createdAt])
   @@index([proofChecksum])
   @@map("deposits")
+}
+
+enum ReferralRewardStatus {
+  LOCKED
+  AVAILABLE
+  REDEEMED
+  CANCELLED
+}
+
+/// Per-deposit referral commission for the referrer. Unlock dates are per-row (not wallet aggregates).
+model ReferralReward {
+  id                     String               @id @default(uuid()) @db.Uuid
+  referrerId             String               @map("referrer_id") @db.Uuid
+  referrer               User                 @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  refereeId              String               @map("referee_id") @db.Uuid
+  referee                User                 @relation("ReferralReferee", fields: [refereeId], references: [id], onDelete: Cascade)
+  sourceDepositId        String               @unique @map("source_deposit_id") @db.Uuid
+  sourceDeposit          Deposit              @relation(fields: [sourceDepositId], references: [id], onDelete: Restrict)
+  sourceAmount           Decimal              @map("source_amount") @db.Decimal(20, 8)
+  rewardAmount           Decimal              @map("reward_amount") @db.Decimal(20, 8)
+  percentApplied         Decimal              @map("percent_applied") @db.Decimal(10, 4)
+  status                 ReferralRewardStatus @default(LOCKED)
+  unlockAt               DateTime             @map("unlock_at")
+  creditedTransactionId  String?              @map("credited_transaction_id") @db.Uuid
+  creditedTransaction    Transaction?         @relation("ReferralCreditTxn", fields: [creditedTransactionId], references: [id], onDelete: SetNull)
+  redeemedTransactionId  String?              @unique @map("redeemed_transaction_id") @db.Uuid
+  redeemedTransaction    Transaction?         @relation("ReferralRedeemTxn", fields: [redeemedTransactionId], references: [id], onDelete: SetNull)
+  redeemedAt             DateTime?            @map("redeemed_at")
+  createdAt              DateTime             @default(now()) @map("created_at")
+  updatedAt              DateTime             @updatedAt @map("updated_at")
+
+  @@index([referrerId, status])
+  @@index([unlockAt, status])
+  @@map("referral_rewards")
 }
 
 model Withdrawal {
@@ -1642,6 +1681,18 @@ model EmailOutbox {
   @@map("email_outbox")
 }
 
+/** Side-effect delivery dedupe (Telegram / referral emails). Separate from ledger idempotency. */
+model OpsNotificationDelivery {
+  id        String   @id @default(uuid()) @db.Uuid
+  channel   String   @db.VarChar(40)
+  eventKey  String   @map("event_key") @db.VarChar(220)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([channel, eventKey])
+  @@index([createdAt])
+  @@map("ops_notification_deliveries")
+}
+
 model SupportTicket {
   id            String              @id @default(uuid()) @db.Uuid
   reference     String              @unique @db.VarChar(32)
@@ -1722,6 +1773,12 @@ model PlatformSetting {
    * Display conversion only — never rewrites historical ledger/deposit/withdrawal amounts.
    */
   currencyRates   Json     @default("{}") @map("currency_rates")
+  /** Referral commission percent of each approved referred deposit (snapshot onto each reward). */
+  referralPercent     Decimal @default(5) @map("referral_percent") @db.Decimal(10, 4)
+  /** Per-reward unlock period in days after the source deposit is approved. */
+  referralUnlockDays  Int     @default(30) @map("referral_unlock_days")
+  /** Master switch — rewards are not created while false. */
+  referralEnabled     Boolean @default(false) @map("referral_enabled")
   updatedById     String?  @map("updated_by_id") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")

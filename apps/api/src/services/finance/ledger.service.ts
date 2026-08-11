@@ -194,6 +194,13 @@ export const ledgerService = {
     })
   },
 
+  async getReferralWallet(userId: string, client: TxClient | typeof prisma = prisma) {
+    await this.ensureWalletsForUser(userId, client)
+    return client.wallet.findUniqueOrThrow({
+      where: { userId_kind: { userId, kind: 'REFERRAL' } },
+    })
+  },
+
   /** Credit available balance (deposit approve / adjustment). */
   async creditAvailable(
     tx: TxClient,
@@ -608,6 +615,123 @@ export const ledgerService = {
       where: { id: walletId },
       data: { pendingBalance: moneyString(next), version: { increment: 1 } },
     })
+  },
+
+  /**
+   * Move available funds between two wallets of the same user (e.g. REFERRAL → INVESTMENT redeem).
+   * Idempotent via transaction.idempotencyKey.
+   */
+  async transferAvailable(
+    tx: TxClient,
+    params: {
+      userId: string
+      fromWalletId: string
+      toWalletId: string
+      amount: Decimal
+      description: string
+      referenceType: string
+      referenceId: string
+      createdById?: string | null
+      idempotencyKey: string
+      transactionType?: TransactionType
+      entryType?: LedgerEntryType
+      bumpInvestedOnDestination?: boolean
+    },
+  ) {
+    assertPositive(params.amount)
+    if (params.fromWalletId === params.toWalletId) {
+      throw badRequest('Transfer source and destination must differ.')
+    }
+
+    // Lock wallets in stable id order to avoid deadlocks under concurrency.
+    const [firstId, secondId] =
+      params.fromWalletId < params.toWalletId
+        ? [params.fromWalletId, params.toWalletId]
+        : [params.toWalletId, params.fromWalletId]
+    await lockWallet(tx, firstId)
+    await lockWallet(tx, secondId)
+
+    const fromWallet = await tx.wallet.findUniqueOrThrow({ where: { id: params.fromWalletId } })
+    const toWallet = await tx.wallet.findUniqueOrThrow({ where: { id: params.toWalletId } })
+    if (fromWallet.userId !== params.userId || toWallet.userId !== params.userId) {
+      throw badRequest('Wallet ownership mismatch.')
+    }
+    if (d(fromWallet.availableBalance).lt(params.amount)) {
+      throw conflict('Insufficient available balance.')
+    }
+
+    const fromAccounts = await ensureUserAccounts(tx, fromWallet)
+    const toAccounts = await ensureUserAccounts(tx, toWallet)
+    const fromBefore = d(fromWallet.balance)
+    const fromAfter = fromBefore.minus(params.amount)
+    const fromAvailableAfter = d(fromWallet.availableBalance).minus(params.amount)
+    const toBefore = d(toWallet.balance)
+    const toAfter = toBefore.plus(params.amount)
+    const toAvailableAfter = d(toWallet.availableBalance).plus(params.amount)
+    const entryType = params.entryType ?? 'TRANSFER'
+    const transactionType = params.transactionType ?? 'TRANSFER'
+
+    const { transaction: posted, created } = await postBalanced(tx, {
+      userId: params.userId,
+      type: transactionType,
+      amount: params.amount,
+      description: params.description,
+      createdById: params.createdById,
+      idempotencyKey: params.idempotencyKey,
+      auditRef: `${params.referenceType}:${params.referenceId}`,
+      lines: [
+        {
+          accountId: fromAccounts.available.id,
+          walletId: fromWallet.id,
+          direction: 'DEBIT',
+          amount: params.amount,
+          signedAmount: params.amount.neg(),
+          entryType,
+          balanceBefore: fromBefore,
+          balanceAfter: fromAfter,
+          referenceType: params.referenceType,
+          referenceId: params.referenceId,
+          idempotencyKey: `${params.idempotencyKey}:from`,
+        },
+        {
+          accountId: toAccounts.available.id,
+          walletId: toWallet.id,
+          direction: 'CREDIT',
+          amount: params.amount,
+          signedAmount: params.amount,
+          entryType,
+          balanceBefore: toBefore,
+          balanceAfter: toAfter,
+          referenceType: params.referenceType,
+          referenceId: params.referenceId,
+          idempotencyKey: `${params.idempotencyKey}:to`,
+        },
+      ],
+    })
+
+    if (!created) return posted
+
+    await tx.wallet.update({
+      where: { id: fromWallet.id },
+      data: {
+        balance: moneyString(fromAfter),
+        availableBalance: moneyString(fromAvailableAfter),
+        version: { increment: 1 },
+      },
+    })
+    await tx.wallet.update({
+      where: { id: toWallet.id },
+      data: {
+        balance: moneyString(toAfter),
+        availableBalance: moneyString(toAvailableAfter),
+        version: { increment: 1 },
+        ...(params.bumpInvestedOnDestination
+          ? { investedAmount: moneyString(d(toWallet.investedAmount).plus(params.amount)) }
+          : {}),
+      },
+    })
+
+    return posted
   },
 
   /** Debit available balance (admin adjustment). */

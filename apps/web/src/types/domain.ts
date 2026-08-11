@@ -267,6 +267,11 @@ export type PlatformSettings = PublicSettings & {
   supportPhone?: string
   networks: string[]
   coins: string[]
+  referral?: {
+    enabled: boolean
+    percent: string
+    unlockDays: number
+  }
 }
 
 export type SearchHit = {

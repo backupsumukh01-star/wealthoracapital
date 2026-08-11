@@ -130,10 +130,12 @@ const FIXTURES: Record<string, Record<string, string>> = {
     closingBalance: '5,042.50 USD',
     portfolioValue: '5,042.50 USD',
     totalProfit: '542.50 USD',
+    earningsTillDate: '542.50 USD',
     investmentValue: '5,000.00 USD',
     monthlyProfit: '312.00 USD',
     date: '2026-08-05',
     sparkline: '0.3,0.5,0.4,0.7,0.6,0.9,0.85',
+    shareProgressUrl: 'https://growzycapital.com/progress-share?t=test-share-token',
   },
   'investment-created': {
     firstName: 'Aisha',
@@ -256,7 +258,12 @@ describe('Production email system V2', () => {
     expect(rendered.html).toContain('0.85')
     expect(rendered.html).toContain('Investment')
     expect(rendered.html).toContain('New available balance')
+    expect(rendered.html).toContain('Earnings Till Date')
+    expect(rendered.html).toContain('542.50')
     expect(rendered.html).toContain('View dashboard')
+    expect(rendered.html).toContain('Share My Progress')
+    expect(rendered.html).toContain('progress-share?t=test-share-token')
+    expect(rendered.text).toContain('Share My Progress')
   })
 
   it('dispatches every production email through the transport contract', async () => {

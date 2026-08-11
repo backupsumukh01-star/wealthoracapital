@@ -74,6 +74,9 @@ function mapOAuthError(err: unknown): string {
     if (err.code === 'ACCOUNT_SUSPENDED') return 'account_suspended'
     if (err.statusCode === 403) return 'forbidden'
     if (err.statusCode === 401) return 'invalid_state'
+    if (err.statusCode === 400 && /invalid referral code/i.test(err.message)) {
+      return 'invalid_referral'
+    }
     return 'oauth_failed'
   }
   return 'oauth_failed'
@@ -170,11 +173,21 @@ export const authController = {
       return
     }
     const redirect = typeof req.query.redirect === 'string' ? req.query.redirect : undefined
-    const { url, stateCookie, stateCookieMaxAgeMs } = googleOAuthService.createAuthorizationRedirect({
-      redirect,
-    })
-    res.cookie(COOKIE_NAMES.oauthState, stateCookie, oauthStateCookieOptions(stateCookieMaxAgeMs))
-    res.redirect(302, url)
+    const referralCode = typeof req.query.ref === 'string' ? req.query.ref : undefined
+    try {
+      const { url, stateCookie, stateCookieMaxAgeMs } = googleOAuthService.createAuthorizationRedirect({
+        redirect,
+        referralCode,
+      })
+      res.cookie(COOKIE_NAMES.oauthState, stateCookie, oauthStateCookieOptions(stateCookieMaxAgeMs))
+      res.redirect(302, url)
+    } catch (err) {
+      if (err instanceof AppError && /invalid referral code/i.test(err.message)) {
+        res.redirect(302, oauthFailureRedirect('invalid_referral'))
+        return
+      }
+      throw err
+    }
   }),
 
   /** GET /auth/google/callback — exchange code, set JWT cookies, redirect to web. */
@@ -207,7 +220,8 @@ export const authController = {
         return
       }
 
-      frontendRedirect = googleOAuthService.parseAndValidateState(state, nonceCookie)
+      const parsed = googleOAuthService.parseAndValidateState(state, nonceCookie)
+      frontendRedirect = parsed.redirect
       try {
         adminIntent = new URL(frontendRedirect).searchParams.get('next') === 'admin'
       } catch {
@@ -222,7 +236,7 @@ export const authController = {
           ip: clientIp(req),
           userAgent: req.get('user-agent') ?? null,
         },
-        { adminIntent },
+        { adminIntent, referralCode: parsed.referralCode },
       )
 
       setAuthCookies(res, tokens)

@@ -9,7 +9,7 @@ import {
 } from '@meridian/shared'
 
 import { prisma } from '../database/prisma.js'
-import { moneyDisplay } from '../utils/money.js'
+import { moneyDisplay, d } from '../utils/money.js'
 import { DEFAULT_USD_INR_RATE, rateDisplay } from '../utils/fx.js'
 import { userRepository } from '../repositories/user.repository.js'
 import { profileRepository } from '../repositories/profile.repository.js'
@@ -37,6 +37,9 @@ function mapSettings(row: {
   maxWithdrawal: Prisma.Decimal
   usdInrRate: Prisma.Decimal
   currencyRates: Prisma.JsonValue
+  referralPercent: Prisma.Decimal
+  referralUnlockDays: number
+  referralEnabled: boolean
 }) {
   const rates = normalizeCurrencyRates({
     ...parseCurrencyRatesJson(row.currencyRates),
@@ -60,6 +63,11 @@ function mapSettings(row: {
       maxDeposit: moneyDisplay(row.maxDeposit),
       minWithdrawal: moneyDisplay(row.minWithdrawal),
       maxWithdrawal: moneyDisplay(row.maxWithdrawal),
+    },
+    referral: {
+      enabled: row.referralEnabled,
+      percent: d(row.referralPercent).toFixed(4),
+      unlockDays: row.referralUnlockDays,
     },
   }
 }
@@ -200,6 +208,9 @@ export const settingsService = {
       maxWithdrawal: string
       usdInrRate: string
       currencyRates: CurrencyRatesMap
+      referralPercent: string
+      referralUnlockDays: number
+      referralEnabled: boolean
     }>,
     context: Ctx,
   ) {
@@ -228,6 +239,11 @@ export const settingsService = {
         ...(body.usdInrRate !== undefined || body.currencyRates !== undefined
           ? { usdInrRate: usdInr, currencyRates: rates }
           : {}),
+        ...(body.referralPercent !== undefined ? { referralPercent: body.referralPercent } : {}),
+        ...(body.referralUnlockDays !== undefined
+          ? { referralUnlockDays: body.referralUnlockDays }
+          : {}),
+        ...(body.referralEnabled !== undefined ? { referralEnabled: body.referralEnabled } : {}),
         updatedById: actorId,
       },
     })

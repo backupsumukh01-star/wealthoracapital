@@ -19,6 +19,8 @@ import { performanceRouter } from './performance.routes.js'
 import { portfolioRouter } from './portfolio.routes.js'
 import { activityRouter } from './activity.routes.js'
 import { profileRouter } from './profile.routes.js'
+import { progressShareRouter } from './progress-share.routes.js'
+import { referralRouter } from './referral.routes.js'
 import { reportRouter } from './report.routes.js'
 import { returnsRouter } from './returns.routes.js'
 import { settingsRouter } from './settings.routes.js'
@@ -50,6 +52,8 @@ export function createApiRouter(): Router {
   router.use('/v1/auth', authRouter)
   router.use('/v1/users', usersRouter)
   router.use('/v1/profile', profileRouter)
+  router.use('/v1/progress-share', progressShareRouter)
+  router.use('/v1/referrals', referralRouter)
   router.use('/v1/activity', activityRouter)
   router.use('/v1/kyc', kycRouter)
   router.use('/v1/markets', marketRouter)

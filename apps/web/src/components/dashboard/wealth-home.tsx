@@ -15,6 +15,7 @@ import { MarketWidget } from '@/components/dashboard/market-widget'
 import { PortfolioAllocation } from '@/components/dashboard/portfolio-allocation'
 import { PortfolioHero } from '@/components/dashboard/portfolio-hero'
 import { PremiumProfileCard } from '@/components/dashboard/premium-profile-card'
+import { ProgressShareControls } from '@/components/dashboard/progress-share-controls'
 import { TradeCards } from '@/components/dashboard/trade-cards'
 import { WalletFab } from '@/components/dashboard/wallet-fab'
 import { WealthQuickActions } from '@/components/dashboard/wealth-quick-actions'
@@ -77,6 +78,10 @@ export function WealthHome() {
         ) : null}
 
         <PortfolioHero onDeposit={tryDeposit} onWithdraw={tryWithdraw} />
+
+        <RevealOnScroll y={14} amount={0.1}>
+          <ProgressShareControls />
+        </RevealOnScroll>
 
         <RevealOnScroll y={18} amount={0.12}>
           <LivePerformanceChart />

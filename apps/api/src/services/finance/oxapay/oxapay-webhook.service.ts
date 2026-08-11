@@ -573,6 +573,22 @@ export const oxapayWebhookService = {
         where: { id: webhookEventId },
         data: { status: 'PROCESSED', processedAt: new Date() },
       })
+      await opsAlertService.notify({
+        event: 'DEPOSIT_PROVIDER_VERIFIED',
+        title: 'OxaPay payment verified',
+        action: 'OxaPay paid+verified; awaiting admin approval (auto-confirm off)',
+        userId: deposit.userId,
+        amount: moneyDisplay(deposit.amount),
+        reference: deposit.reference,
+        ip: context.ip,
+        adminPath: `/admin/deposits/${deposit.id}`,
+        idempotencyKey: `deposit.oxapay.verified:${deposit.id}:${trackId}`,
+        details: {
+          'OxaPay track ID': trackId,
+          'Transaction hash': creditTxHash ?? null,
+          'Auto-confirmed': 'no',
+        },
+      })
       return {
         action: 'queued_for_admin' as const,
         depositId: deposit.id,

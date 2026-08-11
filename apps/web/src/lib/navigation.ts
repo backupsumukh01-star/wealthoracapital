@@ -297,6 +297,12 @@ export const ADMIN_NAV: NavSection[] = [
         permission: 'finance.review',
       },
       {
+        label: 'Referrals',
+        href: ROUTES.admin.referrals,
+        icon: Sparkles,
+        permission: 'finance.view',
+      },
+      {
         label: 'Users',
         href: ROUTES.admin.users,
         icon: Users,

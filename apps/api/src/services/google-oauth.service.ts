@@ -33,6 +33,8 @@ type OAuthStatePayload = {
   n: string
   r: string
   e: number
+  /** Optional referral code captured at OAuth start (HMAC-signed; never trust callback query alone). */
+  rc?: string
 }
 
 function oauthConfigured(): boolean {
@@ -158,16 +160,33 @@ function splitName(given?: string | null, family?: string | null, email?: string
   return { firstName, lastName }
 }
 
+function normalizeOAuthReferralCode(raw: string | undefined): string | undefined {
+  if (!raw) return undefined
+  const code = raw.trim().toUpperCase()
+  if (!code) return undefined
+  if (code.length < 4 || code.length > 16) {
+    throw badRequest('Invalid referral code.')
+  }
+  return code
+}
+
 export const googleOAuthService = {
   isConfigured: oauthConfigured,
 
   createAuthorizationRedirect(input: {
     redirect?: string
+    referralCode?: string
   }): { url: string; stateCookie: string; stateCookieMaxAgeMs: number } {
     assertOAuthConfigured()
     const nonce = randomBytes(24).toString('base64url')
     const redirect = sanitizeOAuthRedirect(input.redirect)
-    const state = signState({ n: nonce, r: redirect, e: Date.now() + STATE_TTL_MS })
+    const rc = normalizeOAuthReferralCode(input.referralCode)
+    const state = signState({
+      n: nonce,
+      r: redirect,
+      e: Date.now() + STATE_TTL_MS,
+      ...(rc ? { rc } : {}),
+    })
     const params = new URLSearchParams({
       client_id: env.GOOGLE_CLIENT_ID,
       redirect_uri: defaultCallbackUrl(),
@@ -238,7 +257,10 @@ export const googleOAuthService = {
     }
   },
 
-  parseAndValidateState(state: string | undefined, nonceCookie: string | undefined): string {
+  parseAndValidateState(
+    state: string | undefined,
+    nonceCookie: string | undefined,
+  ): { redirect: string; referralCode?: string } {
     if (!state || !nonceCookie) throw unauthorized('Missing OAuth state.')
     const payload = verifyState(state)
     const a = Buffer.from(payload.n)
@@ -246,10 +268,16 @@ export const googleOAuthService = {
     if (a.length !== b.length || !timingSafeEqual(a, b)) {
       throw unauthorized('OAuth state mismatch.')
     }
-    return sanitizeOAuthRedirect(payload.r)
+    return {
+      redirect: sanitizeOAuthRedirect(payload.r),
+      referralCode: typeof payload.rc === 'string' ? payload.rc : undefined,
+    }
   },
 
-  async upsertUserFromGoogle(profile: GoogleProfile): Promise<User> {
+  async upsertUserFromGoogle(
+    profile: GoogleProfile,
+    options: { referralCode?: string } = {},
+  ): Promise<User> {
     if (!profile.emailVerified) {
       throw forbidden('Google account email is not verified.')
     }
@@ -283,6 +311,16 @@ export const googleOAuthService = {
       })
     }
 
+    let referredById: string | null = null
+    const incomingReferral = normalizeOAuthReferralCode(options.referralCode)
+    if (incomingReferral) {
+      const referrer = await userRepository.findByReferralCode(incomingReferral)
+      if (!referrer) {
+        throw badRequest('Invalid referral code.')
+      }
+      referredById = referrer.id
+    }
+
     const { firstName, lastName } = splitName(profile.givenName, profile.familyName, profile.email)
     const referralCode = await allocateReferralCode()
     const now = new Date()
@@ -296,6 +334,7 @@ export const googleOAuthService = {
       status: 'ACTIVE',
       emailVerifiedAt: now,
       referralCode,
+      ...(referredById ? { referredBy: { connect: { id: referredById } } } : {}),
       termsAcceptedAt: now,
       riskAcceptedAt: now,
     })
@@ -329,9 +368,9 @@ export const googleOAuthService = {
   async completeLogin(
     profile: GoogleProfile,
     context: SessionContext,
-    options: { adminIntent?: boolean } = {},
+    options: { adminIntent?: boolean; referralCode?: string } = {},
   ): Promise<{ user: User; tokens: AuthTokens }> {
-    let user = await this.upsertUserFromGoogle(profile)
+    let user = await this.upsertUserFromGoogle(profile, { referralCode: options.referralCode })
     user = await applyGoogleStaffAllowlist(user, {
       adminIntent: Boolean(options.adminIntent),
     })

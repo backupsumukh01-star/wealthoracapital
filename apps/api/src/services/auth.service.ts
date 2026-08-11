@@ -239,9 +239,10 @@ export const authService = {
     let referredById: string | null = null
     if (input.referralCode) {
       const referrer = await userRepository.findByReferralCode(input.referralCode.toUpperCase())
-      if (referrer) {
-        referredById = referrer.id
+      if (!referrer) {
+        throw badRequest('Invalid referral code.')
       }
+      referredById = referrer.id
     }
 
     const passwordHash = await passwordService.hash(input.password)
@@ -285,6 +286,16 @@ export const authService = {
     })
 
     logger.info({ userId: user.id, emailSent }, 'User registered')
+    if (referredById) {
+      void import('./finance/referral-notification.service.js').then(
+        ({ referralNotificationService }) => {
+          void referralNotificationService.onReferredUserRegistered({
+            referrerId: referredById!,
+            refereeId: user.id,
+          })
+        },
+      )
+    }
     await activityService.record({
       userId: user.id,
       actorId: user.id,

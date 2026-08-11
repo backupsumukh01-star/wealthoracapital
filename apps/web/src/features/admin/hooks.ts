@@ -13,6 +13,10 @@ import type { AuditLogEntry, DailyReturnRun, Deposit, Trade, User, Withdrawal } 
 
 import { adminApi } from './api'
 import type { AdminHealthSnapshot, SearchHit } from '@/types/domain'
+import type {
+  AdminReferralRelationshipRow,
+  AdminReferralRewardRow,
+} from '@/services/admin.service'
 import type { QueryHookOptions } from '@/lib/query-client'
 
 export const adminQueryKeys = {
@@ -38,6 +42,12 @@ export const adminQueryKeys = {
     [...adminQueryKeys.all, 'audit-log', filters ?? {}] as const,
   reports: (filters?: Record<string, unknown>) =>
     [...adminQueryKeys.all, 'reports', filters ?? {}] as const,
+  referralsSummary: () => [...adminQueryKeys.all, 'referrals', 'summary'] as const,
+  referralRewards: (filters?: Record<string, unknown>) =>
+    [...adminQueryKeys.all, 'referrals', 'rewards', filters ?? {}] as const,
+  referralReward: (id: string) => [...adminQueryKeys.all, 'referrals', 'reward', id] as const,
+  referralRelationships: (filters?: Record<string, unknown>) =>
+    [...adminQueryKeys.all, 'referrals', 'relationships', filters ?? {}] as const,
 }
 
 /** System health snapshot for the ops dashboard. Auto-refreshes every 30s. */
@@ -290,5 +300,81 @@ export function usePublishReturn() {
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.ops() })
       queryClient.invalidateQueries({ queryKey: adminQueryKeys.users() })
     },
+  })
+}
+
+export function useAdminReferralSummary(options?: QueryHookOptions) {
+  return useQuery({
+    queryKey: adminQueryKeys.referralsSummary(),
+    queryFn: () => adminApi.referralSummary(),
+    enabled: options?.enabled,
+    staleTime: 20_000,
+    refetchOnMount: 'always',
+  })
+}
+
+export function useAdminReferralRewards(
+  query?: {
+    q?: string
+    status?: string
+    from?: string
+    to?: string
+    page?: number
+    limit?: number
+  },
+  options?: QueryHookOptions,
+) {
+  return useQuery<{
+    items: AdminReferralRewardRow[]
+    pagination?: {
+      page: number
+      limit: number
+      total: number
+      totalPages: number
+      hasNext?: boolean
+    }
+  }>({
+    queryKey: adminQueryKeys.referralRewards(query),
+    queryFn: () => adminApi.referralRewards(query),
+    enabled: options?.enabled,
+    staleTime: 20_000,
+    refetchOnMount: 'always',
+  })
+}
+
+export function useAdminReferralReward(id: string | null, options?: QueryHookOptions) {
+  return useQuery<AdminReferralRewardRow>({
+    queryKey: adminQueryKeys.referralReward(id ?? 'none'),
+    queryFn: () => adminApi.referralReward(id!),
+    enabled: Boolean(id) && options?.enabled !== false,
+    staleTime: 15_000,
+  })
+}
+
+export function useAdminReferralRelationships(
+  query?: {
+    q?: string
+    from?: string
+    to?: string
+    page?: number
+    limit?: number
+  },
+  options?: QueryHookOptions,
+) {
+  return useQuery<{
+    items: AdminReferralRelationshipRow[]
+    pagination?: {
+      page: number
+      limit: number
+      total: number
+      totalPages: number
+      hasNext?: boolean
+    }
+  }>({
+    queryKey: adminQueryKeys.referralRelationships(query),
+    queryFn: () => adminApi.referralRelationships(query),
+    enabled: options?.enabled,
+    staleTime: 20_000,
+    refetchOnMount: 'always',
   })
 }

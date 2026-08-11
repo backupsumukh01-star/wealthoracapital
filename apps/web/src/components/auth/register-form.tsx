@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { API_ROUTES, ROUTES } from '@meridian/shared'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
@@ -16,15 +16,23 @@ import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
 import { useRegister } from '@/features/auth/hooks'
 import { ApiError } from '@/lib/api-client'
-import { registerSchema, type RegisterInput } from '@/lib/auth-schemas'
+import {
+  normalizeReferralRefParam,
+  registerSchema,
+  type RegisterInput,
+} from '@/lib/auth-schemas'
 import { env } from '@/lib/env'
 
 export function RegisterForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const registerMutation = useRegister()
+  const refFromQuery = normalizeReferralRefParam(searchParams.get('ref'))
+
   const {
     register,
     handleSubmit,
+    watch,
     control,
     formState: { errors, isSubmitting },
   } = useForm<RegisterInput>({
@@ -36,13 +44,23 @@ export function RegisterForm() {
       phone: '',
       password: '',
       confirmPassword: '',
+      referralCode: refFromQuery,
       acceptTerms: false,
     },
   })
 
+  const referralCodeValue = watch('referralCode')
+
   function handleGoogle() {
     const redirectTo = `${env.NEXT_PUBLIC_SITE_URL}${ROUTES.auth.oauthCallback}`
-    window.location.href = `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.auth.google}?redirect=${encodeURIComponent(redirectTo)}`
+    const params = new URLSearchParams({
+      redirect: redirectTo,
+    })
+    const code = normalizeReferralRefParam(
+      typeof referralCodeValue === 'string' ? referralCodeValue : refFromQuery,
+    )
+    if (code) params.set('ref', code)
+    window.location.href = `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.auth.google}?${params.toString()}`
   }
 
   async function onSubmit(values: RegisterInput) {
@@ -53,6 +71,7 @@ export function RegisterForm() {
         email: values.email.trim().toLowerCase(),
         phone: values.phone.trim(),
         password: values.password,
+        ...(values.referralCode ? { referralCode: values.referralCode } : {}),
         acceptTerms: true,
         acceptRisk: true,
       })
@@ -128,6 +147,21 @@ export function RegisterForm() {
 
         <FormField label="Confirm password" required error={errors.confirmPassword?.message}>
           <PasswordField autoComplete="new-password" {...register('confirmPassword')} />
+        </FormField>
+
+        <FormField
+          label="Referral code"
+          hint="Optional. Enter a friend’s code if you have one."
+          error={errors.referralCode?.message}
+        >
+          <Input
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            placeholder="Optional"
+            className="uppercase tracking-wide"
+            {...register('referralCode')}
+          />
         </FormField>
 
         <Controller

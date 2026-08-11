@@ -30,6 +30,19 @@ export const adminSettingsUpdateSchema = z.object({
   usdInrRate: positiveRate.optional(),
   /** Full display-rate map (units of currency per 1 USD). Does not rewrite history. */
   currencyRates: z.record(z.string(), positiveRate).optional(),
+  referralPercent: z
+    .string()
+    .regex(/^\d+(\.\d{1,4})?$/, 'Referral percent must be a decimal with up to 4 places.')
+    .refine((v) => {
+      // Decimal-safe bounds check without floating-point drift on common percents.
+      const [whole, frac = ''] = v.split('.')
+      const padded = `${whole}.${frac.padEnd(4, '0')}`
+      const asInt = Number.parseInt(padded.replace('.', ''), 10)
+      return Number.isFinite(asInt) && asInt >= 0 && asInt <= 100_0000
+    }, 'Referral percent must be between 0 and 100.')
+    .optional(),
+  referralUnlockDays: z.coerce.number().int().min(1).max(3650).optional(),
+  referralEnabled: z.boolean().optional(),
 })
 
 export const featureFlagsUpdateSchema = z.record(z.string(), z.boolean())

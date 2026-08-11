@@ -69,6 +69,14 @@ const envSchema = z.object({
   /** Comma-separated ops inboxes for deposit/withdrawal/KYC admin alerts */
   ADMIN_ALERT_EMAILS: z.string().optional().default(''),
 
+  /** Telegram ops bots — optional; when unset, Telegram alerts are no-ops. Never log tokens. */
+  TELEGRAM_KYC_BOT_TOKEN: z.string().optional().default(''),
+  TELEGRAM_KYC_CHAT_ID: z.string().optional().default(''),
+  TELEGRAM_DEPOSIT_BOT_TOKEN: z.string().optional().default(''),
+  TELEGRAM_DEPOSIT_CHAT_ID: z.string().optional().default(''),
+  TELEGRAM_WITHDRAWAL_BOT_TOKEN: z.string().optional().default(''),
+  TELEGRAM_WITHDRAWAL_CHAT_ID: z.string().optional().default(''),
+
   // Google OAuth — leave blank to disable social login endpoints
   GOOGLE_CLIENT_ID: z.string().optional().default(''),
   GOOGLE_CLIENT_SECRET: z.string().optional().default(''),

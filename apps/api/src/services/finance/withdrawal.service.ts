@@ -637,6 +637,11 @@ export const withdrawalService = {
       ip: context.ip,
       userAgent: context.userAgent,
     })
+    await transactionalMailer.withdrawalCancelled(userId, {
+      reference: row.reference,
+      amount: moneyDisplay(row.amount),
+      ip: context.ip,
+    })
 
     return mapWithdrawal(updated)
   },
@@ -941,6 +946,11 @@ export const withdrawalService = {
         body: `Withdrawal ${row.reference} has been paid.`,
         metadata: { type: 'WITHDRAWAL_PAID', withdrawalId: row.id },
       })
+      await transactionalMailer.withdrawalPaid(row.userId, {
+        reference: row.reference,
+        amount: moneyDisplay(row.amount),
+        ip: context.ip,
+      })
       return mapWithdrawal(updated)
     }
 
@@ -1185,6 +1195,14 @@ export const withdrawalService = {
       title: 'Withdrawal paid',
       body: `Withdrawal ${row.reference} has been paid.`,
       metadata: { type: 'WITHDRAWAL_PAID', withdrawalId: row.id },
+    })
+    await transactionalMailer.withdrawalPaid(row.userId, {
+      reference: row.reference,
+      amount: moneyDisplay(row.amount),
+      ip: input.context.ip,
+      details: input.transactionRef
+        ? { 'Transaction hash': String(input.transactionRef).slice(0, 120) }
+        : undefined,
     })
     return mapWithdrawal(updated)
   },

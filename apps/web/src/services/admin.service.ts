@@ -563,4 +563,119 @@ export const adminService = {
 
   deleteWalletAddress: (id: string) =>
     apiClient(`${API_ROUTES.admin.walletAddresses}/${id}`, { method: 'DELETE' }),
+
+  referralSummary: () =>
+    apiClient<{
+      referralEnabled: boolean
+      referralPercent: string
+      referralUnlockDays: number
+      rewardCount: number
+      totalRewardCount: number
+      cancelledRewardCount: number
+      totalRewardAmount: string
+      lockedAmount: string
+      availableAmount: string
+      redeemedAmount: string
+      relationshipCount: number
+      referredUserCount: number
+      activeReferrerCount: number
+      referralDepositCount: number
+    }>(API_ROUTES.admin.referrals.summary),
+
+  referralRewards: (query?: {
+    q?: string
+    status?: string
+    from?: string
+    to?: string
+    page?: number
+    limit?: number
+  }) => {
+    const params = new URLSearchParams()
+    if (query?.q) params.set('q', query.q)
+    if (query?.status) params.set('status', query.status)
+    if (query?.from) params.set('from', query.from)
+    if (query?.to) params.set('to', query.to)
+    if (query?.page) params.set('page', String(query.page))
+    if (query?.limit) params.set('limit', String(query.limit))
+    const qs = params.toString()
+    return apiClient<{
+      items: AdminReferralRewardRow[]
+      pagination?: {
+        page: number
+        limit: number
+        total: number
+        totalPages: number
+        hasNext?: boolean
+      }
+    }>(`${API_ROUTES.admin.referrals.rewards}${qs ? `?${qs}` : ''}`)
+  },
+
+  referralReward: (id: string) =>
+    apiClient<AdminReferralRewardRow>(API_ROUTES.admin.referrals.reward(id)),
+
+  referralRelationships: (query?: {
+    q?: string
+    from?: string
+    to?: string
+    page?: number
+    limit?: number
+  }) => {
+    const params = new URLSearchParams()
+    if (query?.q) params.set('q', query.q)
+    if (query?.from) params.set('from', query.from)
+    if (query?.to) params.set('to', query.to)
+    if (query?.page) params.set('page', String(query.page))
+    if (query?.limit) params.set('limit', String(query.limit))
+    const qs = params.toString()
+    return apiClient<{
+      items: AdminReferralRelationshipRow[]
+      pagination?: {
+        page: number
+        limit: number
+        total: number
+        totalPages: number
+        hasNext?: boolean
+      }
+    }>(`${API_ROUTES.admin.referrals.relationships}${qs ? `?${qs}` : ''}`)
+  },
+}
+
+export type AdminReferralParty = {
+  id: string
+  email: string
+  firstName: string
+  lastName: string
+  referralCode: string | null
+  registeredAt?: string
+}
+
+export type AdminReferralRewardRow = {
+  id: string
+  status: 'LOCKED' | 'AVAILABLE' | 'REDEEMED' | 'CANCELLED'
+  sourceAmount: string
+  rewardAmount: string
+  percentApplied: string
+  unlockAt: string
+  redeemedAt: string | null
+  createdAt: string
+  creditedTransactionId: string | null
+  redeemedTransactionId: string | null
+  sourceDeposit: {
+    id: string
+    reference: string
+    amount: string
+    status: string
+  }
+  referrer: AdminReferralParty
+  referee: AdminReferralParty
+}
+
+export type AdminReferralRelationshipRow = {
+  id: string
+  status: 'ACTIVE' | 'INACTIVE'
+  referredUser: AdminReferralParty & { registeredAt: string }
+  referrer: AdminReferralParty | null
+  depositCount: number
+  rewardCount: number
+  totalGeneratedReward: string
 }

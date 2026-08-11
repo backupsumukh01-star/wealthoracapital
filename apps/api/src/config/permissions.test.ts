@@ -15,13 +15,20 @@ describe('RBAC permissions', () => {
     expect(perms.length).toBe(Object.values(PERMISSIONS).length)
   })
 
-  it('investor cannot manage finance or cms', () => {
+  it('investor cannot manage finance, cms, settings, or admin referrals', () => {
     const perms = resolvePermissions({ role: 'USER', staffRole: null })
     expect(hasPermission({ role: 'USER', staffRole: null }, 'wallet.view')).toBe(true)
     expect(hasPermission({ role: 'USER', staffRole: null }, 'finance.adjust')).toBe(false)
+    expect(hasPermission({ role: 'USER', staffRole: null }, 'finance.view')).toBe(false)
     expect(hasPermission({ role: 'USER', staffRole: null }, 'cms.manage')).toBe(false)
+    expect(hasPermission({ role: 'USER', staffRole: null }, 'settings.manage')).toBe(false)
     expect(perms).toContain('kyc.submit')
     expect(perms).toContain('deposits.create')
+  })
+
+  it('FINANCE staff can view referrals but cannot manage settings', () => {
+    expect(hasPermission({ role: 'ADMIN', staffRole: 'FINANCE' }, 'finance.view')).toBe(true)
+    expect(hasPermission({ role: 'ADMIN', staffRole: 'FINANCE' }, 'settings.manage')).toBe(false)
   })
 
   it('FINANCE staff has finance permissions but not cms.manage', () => {

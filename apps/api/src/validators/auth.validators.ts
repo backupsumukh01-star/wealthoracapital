@@ -25,7 +25,13 @@ export const registerSchema = z.object({
     .length(2, 'Country must be an ISO 3166-1 alpha-2 code.')
     .transform((value) => value.toUpperCase())
     .optional(),
-  referralCode: z.string().trim().min(4).max(16).optional(),
+  referralCode: z.preprocess((val) => {
+    if (val === undefined || val === null) return undefined
+    if (typeof val !== 'string') return val
+    const trimmed = val.trim()
+    if (!trimmed) return undefined
+    return trimmed.toUpperCase()
+  }, z.string().min(4, 'Invalid referral code.').max(16, 'Invalid referral code.').optional()),
   acceptTerms: z.boolean().optional(),
   acceptRisk: z.boolean().optional(),
 })

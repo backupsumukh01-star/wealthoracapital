@@ -12,6 +12,7 @@ export const ADMIN_ROUTE_PERMISSIONS: Record<string, Permission | Permission[]> 
   [ROUTES.admin.search]: 'users.view',
   [ROUTES.admin.deposits]: 'finance.review',
   [ROUTES.admin.withdrawals]: 'finance.review',
+  [ROUTES.admin.referrals]: 'finance.view',
   [ROUTES.admin.users]: 'users.view',
   [ROUTES.admin.kyc]: 'kyc.review',
   [ROUTES.admin.wallets]: 'finance.adjust',

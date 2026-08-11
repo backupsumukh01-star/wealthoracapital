@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ROUTES } from '@meridian/shared'
 import { toast } from 'sonner'
 
@@ -134,6 +134,7 @@ function GeneralSection() {
 }
 
 function PlatformSection() {
+  const queryClient = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ['admin', 'settings', 'platform'],
     queryFn: () => settingsService.adminGet(),
@@ -145,8 +146,12 @@ function PlatformSection() {
   const [usdInrRate, setUsdInrRate] = useState('')
   const [currencyRates, setCurrencyRates] = useState<Record<string, string>>({})
   const [maintenance, setMaintenance] = useState(false)
+  const [referralEnabled, setReferralEnabled] = useState(false)
+  const [referralPercent, setReferralPercent] = useState('5')
+  const [referralUnlockDays, setReferralUnlockDays] = useState('30')
   const [hydrated, setHydrated] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [savingReferral, setSavingReferral] = useState(false)
 
   useEffect(() => {
     if (!data || hydrated) return
@@ -161,6 +166,9 @@ function PlatformSection() {
       USD: '1',
     })
     setMaintenance(data.maintenanceMode)
+    setReferralEnabled(data.referral?.enabled ?? false)
+    setReferralPercent(data.referral?.percent?.replace(/\.?0+$/, '') || '5')
+    setReferralUnlockDays(String(data.referral?.unlockDays ?? 30))
     setHydrated(true)
   }, [data, hydrated])
 
@@ -182,10 +190,41 @@ function PlatformSection() {
         maintenanceMode: maintenance,
       })
       toast.success('Platform settings saved')
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'settings', 'platform'] })
     } catch {
       toast.error('Could not save settings')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function saveReferral() {
+    const days = Number.parseInt(referralUnlockDays, 10)
+    if (!Number.isInteger(days) || days < 1 || days > 3650) {
+      toast.error('Lock period must be an integer between 1 and 3650 days.')
+      return
+    }
+    const percent = referralPercent.trim()
+    if (!/^\d+(\.\d{1,4})?$/.test(percent)) {
+      toast.error('Referral commission must be a decimal with up to 4 places.')
+      return
+    }
+    setSavingReferral(true)
+    try {
+      const updated = await settingsService.adminUpdate({
+        referralEnabled,
+        referralPercent: percent,
+        referralUnlockDays: days,
+      })
+      setReferralEnabled(updated.referral?.enabled ?? referralEnabled)
+      setReferralPercent(updated.referral?.percent?.replace(/\.?0+$/, '') || percent)
+      setReferralUnlockDays(String(updated.referral?.unlockDays ?? days))
+      toast.success('Referral programme settings saved')
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'settings', 'platform'] })
+    } catch {
+      toast.error('Could not save referral settings')
+    } finally {
+      setSavingReferral(false)
     }
   }
 
@@ -197,6 +236,44 @@ function PlatformSection() {
         Changing a limit does not alter requests already submitted. Exchange-rate changes apply to
         new deposits and withdrawals only — existing snapshots stay as recorded.
       </Alert>
+      <AdminPanel>
+        <AdminPanelHeader
+          title="Referral programme"
+          description="Commission and lock period apply to future approved deposits only. Existing rewards keep their snapshot percent and unlock date."
+        />
+        <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
+          <label className="flex items-center justify-between gap-3 text-body-sm text-fg sm:col-span-2">
+            Referral programme
+            <button
+              type="button"
+              onClick={() => setReferralEnabled((v) => !v)}
+              className="shrink-0"
+              disabled={isLoading || !hydrated}
+            >
+              <Toggle checked={referralEnabled} label="Referral programme" />
+            </button>
+          </label>
+          <FormField label="Referral commission (%)" hint="0–100. Snapshot stored per reward.">
+            <Input
+              inputMode="decimal"
+              value={referralPercent}
+              disabled={isLoading || !hydrated}
+              onChange={(e) => setReferralPercent(e.target.value.replace(/[^\d.]/g, ''))}
+              placeholder="5"
+            />
+          </FormField>
+          <FormField label="Referral lock period (days)" hint="Positive integer. Snapshot stored per reward.">
+            <Input
+              inputMode="numeric"
+              value={referralUnlockDays}
+              disabled={isLoading || !hydrated}
+              onChange={(e) => setReferralUnlockDays(e.target.value.replace(/[^\d]/g, ''))}
+              placeholder="30"
+            />
+          </FormField>
+        </div>
+        <SaveBar onSave={() => void saveReferral()} disabled={savingReferral || isLoading} />
+      </AdminPanel>
       <AdminPanel>
         <AdminPanelHeader
           title="USD ↔ INR desk rate"

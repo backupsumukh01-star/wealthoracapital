@@ -3,13 +3,12 @@ import type {
   LedgerEntry,
   PaymentMethod,
   PayoutMethod,
-  Prisma,
   Wallet,
   Withdrawal,
 } from '@prisma/client'
 
 import { env } from '../../config/env.js'
-import { d, moneyDisplay } from '../../utils/money.js'
+import { moneyDisplay } from '../../utils/money.js'
 import { inrDisplay, usdDisplay } from '../../utils/fx.js'
 
 type DepositWithMethod = Deposit & {
@@ -116,14 +115,12 @@ export function mapWalletAggregate(wallets: Wallet[]) {
   const bonus = wallets.find((w) => w.kind === 'BONUS')
   const referral = wallets.find((w) => w.kind === 'REFERRAL')
 
-  const sum = (pick: (w: Wallet) => Prisma.Decimal | string) =>
-    wallets.reduce((acc, w) => acc.plus(d(pick(w))), d(0))
-
+  // Top-level balances are INVESTMENT-only so REFERRAL/BONUS never inflate portfolio capital.
   return {
-    balance: moneyDisplay(sum((w) => w.balance)),
-    availableBalance: moneyDisplay(sum((w) => w.availableBalance)),
-    lockedBalance: moneyDisplay(sum((w) => w.lockedBalance)),
-    pendingBalance: moneyDisplay(sum((w) => w.pendingBalance)),
+    balance: moneyDisplay(investment?.balance ?? 0),
+    availableBalance: moneyDisplay(investment?.availableBalance ?? 0),
+    lockedBalance: moneyDisplay(investment?.lockedBalance ?? 0),
+    pendingBalance: moneyDisplay(investment?.pendingBalance ?? 0),
     investedAmount: moneyDisplay(investment?.investedAmount ?? 0),
     totalProfit: moneyDisplay(
       investment?.totalProfit ?? profit?.totalProfit ?? profit?.balance ?? 0,
@@ -142,11 +139,26 @@ export function mapWalletAggregate(wallets: Wallet[]) {
           }
         : null,
       profit: profit
-        ? { id: profit.id, balance: moneyDisplay(profit.balance) }
+        ? {
+            id: profit.id,
+            balance: moneyDisplay(profit.balance),
+            available: moneyDisplay(profit.availableBalance),
+          }
         : null,
-      bonus: bonus ? { id: bonus.id, balance: moneyDisplay(bonus.balance) } : null,
+      bonus: bonus
+        ? {
+            id: bonus.id,
+            balance: moneyDisplay(bonus.balance),
+            available: moneyDisplay(bonus.availableBalance),
+          }
+        : null,
       referral: referral
-        ? { id: referral.id, balance: moneyDisplay(referral.balance) }
+        ? {
+            id: referral.id,
+            balance: moneyDisplay(referral.balance),
+            available: moneyDisplay(referral.availableBalance),
+            locked: moneyDisplay(referral.lockedBalance),
+          }
         : null,
     },
   }

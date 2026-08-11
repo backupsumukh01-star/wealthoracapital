@@ -34,6 +34,16 @@ export const registerSchema = z
       .regex(/^[+\d\s()-]+$/, 'Use digits and + ( ) - only'),
     password: passwordRules,
     confirmPassword: z.string().min(1, 'Confirm your password'),
+    referralCode: z
+      .string()
+      .optional()
+      .transform((value) => {
+        const trimmed = (value ?? '').trim().toUpperCase()
+        return trimmed.length === 0 ? undefined : trimmed
+      })
+      .refine((value) => value === undefined || (value.length >= 4 && value.length <= 16), {
+        message: 'Enter a valid referral code (4–16 characters)',
+      }),
     acceptTerms: z
       .boolean()
       .refine((v) => v === true, { message: 'Accept the terms to continue' }),
@@ -42,6 +52,11 @@ export const registerSchema = z
     message: 'Passwords do not match',
     path: ['confirmPassword'],
   })
+
+/** Normalize a `?ref=` query value for the registration form (trim + uppercase). */
+export function normalizeReferralRefParam(raw: string | null | undefined): string {
+  return (raw ?? '').trim().toUpperCase()
+}
 
 export const forgotPasswordSchema = z.object({
   email: z.string().trim().email('Enter a valid email address'),

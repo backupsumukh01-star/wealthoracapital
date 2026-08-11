@@ -50,6 +50,7 @@ export const transactionalMailer = {
       reference: input.reference,
       ip: input.ip,
       adminPath: `/admin/deposits`,
+      idempotencyKey: `deposit.submitted:${input.reference}`,
       recordActivity: true,
       activityKind: 'DEPOSIT_SUBMITTED',
     })
@@ -57,7 +58,12 @@ export const transactionalMailer = {
 
   async depositApproved(
     userId: string,
-    input: { reference: string; amount: string; ip?: string | null },
+    input: {
+      reference: string
+      amount: string
+      ip?: string | null
+      autoConfirmed?: boolean
+    },
   ) {
     const user = await loadUser(userId)
     if (!user) return
@@ -80,6 +86,8 @@ export const transactionalMailer = {
       reference: input.reference,
       ip: input.ip,
       adminPath: `/admin/deposits`,
+      idempotencyKey: `deposit.approved:${input.reference}`,
+      details: input.autoConfirmed ? { 'Auto-confirmed': 'yes' } : undefined,
     })
   },
 
@@ -115,7 +123,12 @@ export const transactionalMailer = {
 
   async withdrawalSubmitted(
     userId: string,
-    input: { reference: string; amount: string; ip?: string | null },
+    input: {
+      reference: string
+      amount: string
+      ip?: string | null
+      details?: Record<string, string | number | null | undefined>
+    },
   ) {
     const user = await loadUser(userId)
     if (!user) return
@@ -138,6 +151,8 @@ export const transactionalMailer = {
       reference: input.reference,
       ip: input.ip,
       adminPath: `/admin/withdrawals`,
+      idempotencyKey: `withdrawal.submitted:${input.reference}`,
+      details: input.details,
       recordActivity: true,
       activityKind: 'WITHDRAWAL_SUBMITTED',
     })
@@ -145,7 +160,12 @@ export const transactionalMailer = {
 
   async withdrawalApproved(
     userId: string,
-    input: { reference: string; amount: string; ip?: string | null },
+    input: {
+      reference: string
+      amount: string
+      ip?: string | null
+      details?: Record<string, string | number | null | undefined>
+    },
   ) {
     const user = await loadUser(userId)
     if (!user) return
@@ -168,12 +188,20 @@ export const transactionalMailer = {
       reference: input.reference,
       ip: input.ip,
       adminPath: `/admin/withdrawals`,
+      idempotencyKey: `withdrawal.approved:${input.reference}`,
+      details: input.details,
     })
   },
 
   async withdrawalRejected(
     userId: string,
-    input: { reference: string; amount: string; reason: string; ip?: string | null },
+    input: {
+      reference: string
+      amount: string
+      reason: string
+      ip?: string | null
+      details?: Record<string, string | number | null | undefined>
+    },
   ) {
     const user = await loadUser(userId)
     if (!user) return
@@ -198,6 +226,62 @@ export const transactionalMailer = {
       reason: input.reason,
       ip: input.ip,
       adminPath: `/admin/withdrawals`,
+      idempotencyKey: `withdrawal.rejected:${input.reference}`,
+      details: input.details,
+    })
+  },
+
+  async withdrawalPaid(
+    userId: string,
+    input: {
+      reference: string
+      amount: string
+      ip?: string | null
+      details?: Record<string, string | number | null | undefined>
+    },
+  ) {
+    const user = await loadUser(userId)
+    if (!user) return
+    await opsAlertService.notify({
+      event: 'WITHDRAWAL_PAID',
+      title: 'Withdrawal paid',
+      action: 'Withdrawal marked paid/completed',
+      userId: user.id,
+      userName: fullName(user),
+      userEmail: user.email,
+      amount: input.amount,
+      reference: input.reference,
+      ip: input.ip,
+      adminPath: `/admin/withdrawals`,
+      idempotencyKey: `withdrawal.paid:${input.reference}`,
+      details: input.details,
+    })
+  },
+
+  async withdrawalCancelled(
+    userId: string,
+    input: {
+      reference: string
+      amount: string
+      ip?: string | null
+      details?: Record<string, string | number | null | undefined>
+    },
+  ) {
+    const user = await loadUser(userId)
+    if (!user) return
+    await opsAlertService.notify({
+      event: 'WITHDRAWAL_CANCELLED',
+      title: 'Withdrawal cancelled',
+      action: 'Withdrawal was cancelled',
+      userId: user.id,
+      userName: fullName(user),
+      userEmail: user.email,
+      amount: input.amount,
+      reference: input.reference,
+      ip: input.ip,
+      adminPath: `/admin/withdrawals`,
+      idempotencyKey: `withdrawal.cancelled:${input.reference}`,
+      details: input.details,
     })
   },
 
@@ -217,6 +301,7 @@ export const transactionalMailer = {
       reference: input?.submissionId ?? user.id,
       ip: input?.ip,
       adminPath: `/admin/kyc/${user.id}`,
+      idempotencyKey: `kyc.submitted:${input?.submissionId ?? user.id}`,
       recordActivity: true,
       activityKind: 'KYC_SUBMITTED',
     })
@@ -238,6 +323,7 @@ export const transactionalMailer = {
       reference: input?.submissionId ?? user.id,
       ip: input?.ip,
       adminPath: `/admin/kyc/${user.id}`,
+      idempotencyKey: `kyc.approved:${input?.submissionId ?? user.id}`,
       recordActivity: true,
       activityKind: 'KYC_APPROVED',
     })
@@ -268,6 +354,7 @@ export const transactionalMailer = {
       reference: input?.submissionId ?? user.id,
       ip: input?.ip,
       adminPath: `/admin/kyc/${user.id}`,
+      idempotencyKey: `kyc.rejected:${input?.submissionId ?? user.id}`,
       recordActivity: true,
       activityKind: 'KYC_REJECTED',
     })
@@ -323,10 +410,21 @@ export const transactionalMailer = {
       openingBalance: string
       closingBalance: string
       reference: string
+      /** Cumulative investment profit through this settlement (not today's profit). */
+      earningsTillDate: string
     },
   ) {
     const user = await loadUser(userId)
     if (!user) return
+    let shareProgressUrl = ''
+    try {
+      const { progressShareService } = await import('../services/progress-share/progress-share.service.js')
+      const link = await progressShareService.createLink(userId)
+      shareProgressUrl = link.shareUrl
+    } catch {
+      // Never block Daily Profit email if share-link minting fails.
+      shareProgressUrl = ''
+    }
     await safe('daily-return', () =>
       emailService.sendDailyRoi({
         to: user.email,
@@ -337,9 +435,11 @@ export const transactionalMailer = {
         closingBalance: input.closingBalance,
         portfolioValue: input.closingBalance,
         investmentValue: input.investment,
-        totalProfit: input.profit,
+        totalProfit: input.earningsTillDate,
+        earningsTillDate: input.earningsTillDate,
         date: input.date,
         reference: input.reference,
+        shareProgressUrl,
       }),
     )
   },

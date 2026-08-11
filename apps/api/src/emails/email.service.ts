@@ -335,10 +335,12 @@ class AppEmailService implements EmailService {
     closingBalance?: string
     portfolioValue?: string
     totalProfit?: string
+    earningsTillDate?: string
     investmentValue?: string
     monthlyProfit?: string
     date?: string
     reference?: string
+    shareProgressUrl?: string
   }): Promise<void> {
     return this.dispatch(input.to, 'daily-roi', {
       firstName: input.firstName,
@@ -347,12 +349,14 @@ class AppEmailService implements EmailService {
       openingBalance: input.openingBalance ?? '',
       closingBalance: input.closingBalance ?? '',
       portfolioValue: input.portfolioValue ?? '',
-      totalProfit: input.totalProfit ?? '',
+      totalProfit: input.earningsTillDate ?? input.totalProfit ?? '',
+      earningsTillDate: input.earningsTillDate ?? input.totalProfit ?? '',
       investmentValue: input.investmentValue ?? '',
       monthlyProfit: input.monthlyProfit ?? '',
       date: input.date ?? new Date().toISOString().slice(0, 10),
       reference: input.reference ?? '',
       sparkline: '0.3,0.5,0.4,0.7,0.6,0.9,1.0',
+      shareProgressUrl: input.shareProgressUrl ?? '',
     })
   }
 

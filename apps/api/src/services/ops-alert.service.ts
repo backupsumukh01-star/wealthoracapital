@@ -4,6 +4,9 @@ import { emailService } from '../emails/email.service.js'
 import { activityService } from './activity.service.js'
 import { auditService } from './audit.service.js'
 import { prisma } from '../database/prisma.js'
+import { claimOpsNotificationDelivery } from './ops-notification-delivery.service.js'
+import { telegramService, type TelegramBotKind } from './telegram.service.js'
+import { moneyDisplay } from '../utils/money.js'
 
 export type OpsAlertEvent =
   | 'USER_REGISTERED'
@@ -15,11 +18,14 @@ export type OpsAlertEvent =
   | 'KYC_APPROVED'
   | 'KYC_REJECTED'
   | 'DEPOSIT_SUBMITTED'
+  | 'DEPOSIT_PROVIDER_VERIFIED'
   | 'DEPOSIT_APPROVED'
   | 'DEPOSIT_REJECTED'
   | 'WITHDRAWAL_SUBMITTED'
   | 'WITHDRAWAL_APPROVED'
   | 'WITHDRAWAL_REJECTED'
+  | 'WITHDRAWAL_PAID'
+  | 'WITHDRAWAL_CANCELLED'
   | 'INVESTMENT_CREATED'
   | 'INVESTMENT_CANCELLED'
   | 'ROI_DISTRIBUTED'
@@ -49,6 +55,8 @@ export type OpsAlertPayload = {
   ip?: string | null
   adminPath?: string | null
   details?: Record<string, string | number | null | undefined>
+  /** Stable key for Telegram/email side-effect dedupe (not financial idempotency). */
+  idempotencyKey?: string | null
   /** Also write platform activity for the live feed (requires userId). */
   recordActivity?: boolean
   activityKind?: import('@prisma/client').ActivityKind
@@ -76,8 +84,66 @@ function formatWhen(d = new Date()) {
   }
 }
 
+function telegramBotForEvent(event: OpsAlertEvent): TelegramBotKind | null {
+  if (event.startsWith('KYC_')) return 'KYC'
+  if (event.startsWith('DEPOSIT_') || event === 'PAYMENT_WEBHOOK_FAILED') return 'DEPOSIT'
+  if (event.startsWith('WITHDRAWAL_')) return 'WITHDRAWAL'
+  return null
+}
+
+function asDetails(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+  return {}
+}
+
+async function enrichDepositDetails(
+  reference: string | null | undefined,
+  details: Record<string, string | number | null | undefined>,
+): Promise<Record<string, string | number | null | undefined>> {
+  if (!reference) return details
+  const deposit = await prisma.deposit.findFirst({
+    where: { reference },
+    include: { paymentMethod: { select: { name: true, type: true } } },
+  })
+  if (!deposit) return details
+  const meta = asDetails(deposit.submissionDetails)
+  const next = { ...details }
+  if (!next.Cryptocurrency && deposit.paymentMethod?.name) {
+    next.Cryptocurrency = deposit.paymentMethod.name
+  }
+  if (!next.Network) {
+    next.Network =
+      (typeof meta.network === 'string' && meta.network) ||
+      (typeof meta.expectedNetwork === 'string' && meta.expectedNetwork) ||
+      null
+  }
+  if (!next['OxaPay track ID'] && typeof meta.oxapayTrackId === 'string') {
+    next['OxaPay track ID'] = meta.oxapayTrackId
+  }
+  if (!next['Transaction hash'] && deposit.txHash) {
+    next['Transaction hash'] = deposit.txHash
+  }
+  if (!next['Auto-confirmed'] && meta.oxapayConfirmedAt) {
+    next['Auto-confirmed'] = 'yes'
+  }
+  if (!next.Amount) {
+    next.Amount = moneyDisplay(deposit.creditedAmount ?? deposit.amount)
+  }
+  return next
+}
+
+function formatTelegramText(rows: Array<[string, string]>, title: string): string {
+  const lines = [`Growzy · ${title}`, '']
+  for (const [k, v] of rows) {
+    lines.push(`${k}: ${v}`)
+  }
+  return lines.join('\n')
+}
+
 /**
- * Owner / ops alert fan-out via ADMIN_ALERT_EMAILS.
+ * Owner / ops alert fan-out via ADMIN_ALERT_EMAILS + Telegram bots.
  * Never throws to callers — alerts must not break money/KYC flows.
  */
 export const opsAlertService = {
@@ -101,6 +167,15 @@ export const opsAlertService = {
         }
       }
 
+      let details = { ...(payload.details ?? {}) }
+      if (
+        payload.event === 'DEPOSIT_APPROVED' ||
+        payload.event === 'DEPOSIT_PROVIDER_VERIFIED' ||
+        payload.event === 'DEPOSIT_SUBMITTED'
+      ) {
+        details = await enrichDepositDetails(payload.reference, details)
+      }
+
       const link = adminUrl(payload.adminPath)
       const rows: Array<[string, string]> = [
         ['Event', payload.event],
@@ -115,18 +190,29 @@ export const opsAlertService = {
       if (payload.reference) rows.push(['Reference', payload.reference])
       if (payload.reason) rows.push(['Reason', payload.reason])
       if (payload.ip) rows.push(['IP', payload.ip])
-      if (payload.details) {
-        for (const [k, v] of Object.entries(payload.details)) {
-          if (v === null || v === undefined || v === '') continue
-          rows.push([k, String(v)])
+      for (const [k, v] of Object.entries(details)) {
+        if (v === null || v === undefined || v === '') continue
+        // Never relay secrets / OTP-looking keys
+        const keyLower = k.toLowerCase()
+        if (
+          keyLower.includes('otp') ||
+          keyLower.includes('password') ||
+          keyLower.includes('token') ||
+          keyLower.includes('secret') ||
+          keyLower.includes('account number') ||
+          keyLower.includes('iban') ||
+          keyLower.includes('document')
+        ) {
+          continue
         }
+        rows.push([k, String(v)])
       }
       rows.push(['Admin link', link])
 
       const alertBody = rows.map(([k, v]) => `${k}: ${v}`).join('\n')
 
       if (to.length === 0) {
-        logger.debug({ event: payload.event }, 'No ADMIN_ALERT_EMAILS; skipping ops alert')
+        logger.debug({ event: payload.event }, 'No ADMIN_ALERT_EMAILS; skipping ops alert email')
       } else {
         for (const email of to) {
           await emailService.sendAdminAlert({
@@ -137,6 +223,20 @@ export const opsAlertService = {
             adminLink: link,
             fields: Object.fromEntries(rows),
           })
+        }
+      }
+
+      const bot = telegramBotForEvent(payload.event)
+      if (bot) {
+        const eventKey =
+          payload.idempotencyKey?.trim() ||
+          `${payload.event}:${payload.reference ?? payload.userId ?? 'na'}:${when.date}:${when.time}`
+        const channel = `TELEGRAM_${bot}`
+        const claimed = await claimOpsNotificationDelivery(channel, eventKey)
+        if (claimed) {
+          await telegramService.send(bot, formatTelegramText(rows, payload.title))
+        } else {
+          logger.debug({ event: payload.event, eventKey }, 'Telegram alert deduped')
         }
       }
 
