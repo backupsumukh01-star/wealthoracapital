@@ -114,21 +114,21 @@ export const onboardingKycSchema = z.object({
 export type OnboardingKycInput = z.infer<typeof onboardingKycSchema>
 
 export const COUNTRIES = [
-  { value: 'PK', label: 'Pakistan' },
+  { value: 'US', label: 'United States' },
   { value: 'AE', label: 'United Arab Emirates' },
   { value: 'GB', label: 'United Kingdom' },
-  { value: 'US', label: 'United States' },
-  { value: 'SA', label: 'Saudi Arabia' },
+  { value: 'CA', label: 'Canada' },
+  { value: 'AU', label: 'Australia' },
+  { value: 'DE', label: 'Germany' },
   { value: 'IN', label: 'India' },
+  { value: 'SA', label: 'Saudi Arabia' },
   { value: 'SG', label: 'Singapore' },
   { value: 'MY', label: 'Malaysia' },
   { value: 'TR', label: 'Türkiye' },
   { value: 'EG', label: 'Egypt' },
   { value: 'NG', label: 'Nigeria' },
   { value: 'ZA', label: 'South Africa' },
-  { value: 'CA', label: 'Canada' },
-  { value: 'AU', label: 'Australia' },
-  { value: 'DE', label: 'Germany' },
+  { value: 'PK', label: 'Pakistan' },
 ] as const
 
 export function passwordStrength(password: string): {

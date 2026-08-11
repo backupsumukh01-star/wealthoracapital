@@ -90,7 +90,7 @@ export function OnboardingWizard() {
   const form = useForm<OnboardingKycInput>({
     resolver: zodResolver(onboardingKycSchema),
     defaultValues: {
-      country: session?.user.country ?? 'PK',
+      country: session?.user.country ?? 'US',
       dateOfBirth: '',
       address: '',
       city: '',
@@ -98,6 +98,13 @@ export function OnboardingWizard() {
       idType: 'PASSPORT',
     },
   })
+
+  // Session may load after first mount — apply saved country without overwriting empty → US default.
+  useEffect(() => {
+    const saved = session?.user.country
+    if (!saved) return
+    form.setValue('country', saved)
+  }, [session?.user.country, form])
 
   useEffect(() => {
     if (sessionLoading) return
