@@ -68,6 +68,20 @@ function oauthFailureRedirect(errorCode: string, next?: string | null): string {
   return url.toString()
 }
 
+/** Detect which frontend entry started Google OAuth (login / admin / register). */
+function oauthEntryFromRedirect(redirect?: string | null): 'login' | 'admin' | null {
+  if (!redirect) return null
+  try {
+    const url = new URL(redirect)
+    const from = url.searchParams.get('from') || url.searchParams.get('next')
+    if (from === 'login') return 'login'
+    if (from === 'admin') return 'admin'
+  } catch {
+    /* ignore */
+  }
+  return null
+}
+
 function mapOAuthError(err: unknown): string {
   if (err instanceof AppError) {
     if (err.statusCode === 503) return 'not_configured'
@@ -183,8 +197,9 @@ export const authController = {
       res.redirect(302, url)
     } catch (err) {
       if (err instanceof AppError && /invalid referral code/i.test(err.message)) {
-        // Send investors back to register so they can fix/clear the code.
-        res.redirect(302, oauthFailureRedirect('invalid_referral'))
+        // Return to the page that started Google (login or register) so the user can fix/clear the code.
+        const entry = oauthEntryFromRedirect(redirect)
+        res.redirect(302, oauthFailureRedirect('invalid_referral', entry === 'login' ? 'login' : null))
         return
       }
       throw err
@@ -247,7 +262,11 @@ export const authController = {
       clearState()
       const code = mapOAuthError(err)
       logger.warn({ err, code }, 'Google OAuth callback failed')
-      res.redirect(302, oauthFailureRedirect(code, adminIntent ? 'admin' : null))
+      const entry = adminIntent ? 'admin' : oauthEntryFromRedirect(frontendRedirect)
+      res.redirect(
+        302,
+        oauthFailureRedirect(code, entry === 'admin' ? 'admin' : entry === 'login' ? 'login' : null),
+      )
     }
   }),
 }

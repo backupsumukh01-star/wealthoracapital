@@ -1,5 +1,7 @@
 'use client'
 
+import type { ReactNode } from 'react'
+
 import { Button } from '@/components/ui/button'
 
 import { AuthDivider } from './auth-divider'
@@ -8,10 +10,13 @@ export function SocialLoginButtons({
   googleLabel = 'Continue with Google',
   onGoogle,
   showDivider = true,
+  belowGoogle,
 }: {
   googleLabel?: string
   onGoogle?: () => void
   showDivider?: boolean
+  /** Optional content between the Google button and the OR divider (e.g. promo code). */
+  belowGoogle?: ReactNode
 }) {
   return (
     <div className="space-y-3">
@@ -26,6 +31,8 @@ export function SocialLoginButtons({
         <GoogleMark />
         {googleLabel}
       </Button>
+
+      {belowGoogle}
 
       {showDivider ? <AuthDivider label="OR" /> : null}
     </div>

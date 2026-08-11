@@ -193,4 +193,104 @@ describe('Google OAuth', () => {
     const me = await agent.get('/api/v1/auth/me')
     expect(me.status).toBe(200)
   })
+
+  it('login entry: Google start without promo has no signed referral; with promo signs rc', async () => {
+    enableGoogleEnv()
+    const { prisma } = await import('../../src/database/prisma.js')
+    const referrerCode = randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()
+    await prisma.user.create({
+      data: {
+        email: `ref_login_${randomUUID().slice(0, 8)}@example.com`,
+        passwordHash: null,
+        firstName: 'Ref',
+        lastName: 'Login',
+        status: 'ACTIVE',
+        emailVerifiedAt: new Date(),
+        referralCode: referrerCode,
+      },
+    })
+
+    const loginRedirect = `${env.APP_URL.replace(/\/$/, '')}/oauth/callback?from=login`
+
+    const noPromo = await request(app).get(
+      `/api/v1/auth/google?redirect=${encodeURIComponent(loginRedirect)}`,
+    )
+    expect(noPromo.status).toBe(302)
+    const noPromoState = new URL(noPromo.headers.location as string).searchParams.get('state')!
+    const [noPromoBody] = noPromoState.split('.')
+    const noPromoPayload = JSON.parse(Buffer.from(noPromoBody, 'base64url').toString('utf8')) as {
+      rc?: string
+      r?: string
+    }
+    expect(noPromoPayload.rc).toBeUndefined()
+    expect(String(noPromoPayload.r)).toContain('from=login')
+
+    const withPromo = await request(app).get(
+      `/api/v1/auth/google?redirect=${encodeURIComponent(loginRedirect)}&ref=${encodeURIComponent(referrerCode)}`,
+    )
+    expect(withPromo.status).toBe(302)
+    const withState = new URL(withPromo.headers.location as string).searchParams.get('state')!
+    const [withBody] = withState.split('.')
+    const withPayload = JSON.parse(Buffer.from(withBody, 'base64url').toString('utf8')) as {
+      rc?: string
+    }
+    expect(withPayload.rc).toBe(referrerCode)
+  })
+
+  it('login entry: invalid short promo returns invalid_referral with next=login', async () => {
+    enableGoogleEnv()
+    const loginRedirect = `${env.APP_URL.replace(/\/$/, '')}/oauth/callback?from=login`
+    const short = await request(app).get(
+      `/api/v1/auth/google?redirect=${encodeURIComponent(loginRedirect)}&ref=AB`,
+    )
+    expect(short.status).toBe(302)
+    expect(short.headers.location).toMatch(/error=invalid_referral/)
+    expect(short.headers.location).toMatch(/next=login/)
+  })
+
+  it('login entry: unknown promo fails on callback without creating user; next=login', async () => {
+    enableGoogleEnv()
+    const email = `g_login_bad_${randomUUID().slice(0, 8)}@gmail.com`
+    const googleSub = `g-login-bad-${randomUUID().slice(0, 8)}`
+
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('oauth2.googleapis.com/token')) {
+        return new Response(JSON.stringify({ access_token: 'tok' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      if (url.includes('userinfo')) {
+        return new Response(
+          JSON.stringify({
+            sub: googleSub,
+            email,
+            email_verified: true,
+            given_name: 'Bad',
+            family_name: 'Promo',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        )
+      }
+      return originalFetch(input)
+    }) as typeof fetch
+
+    const loginRedirect = `${env.APP_URL.replace(/\/$/, '')}/oauth/callback?from=login`
+    const agent = request.agent(app)
+    const start = await agent.get(
+      `/api/v1/auth/google?redirect=${encodeURIComponent(loginRedirect)}&ref=NOTEXIST1`,
+    )
+    expect(start.status).toBe(302)
+    const state = new URL(start.headers.location as string).searchParams.get('state')!
+    const callback = await agent.get(
+      `/api/v1/auth/google/callback?code=c&state=${encodeURIComponent(state)}`,
+    )
+    expect(callback.status).toBe(302)
+    expect(callback.headers.location).toMatch(/error=invalid_referral/)
+    expect(callback.headers.location).toMatch(/next=login/)
+
+    const { prisma } = await import('../../src/database/prisma.js')
+    expect(await prisma.user.findFirst({ where: { email } })).toBeNull()
+  })
 })

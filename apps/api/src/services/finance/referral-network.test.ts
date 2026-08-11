@@ -190,6 +190,60 @@ describe('Phase 3M.1 referral registration UX + network', () => {
     ).toBe(0)
   })
 
+  it('2b. Google signup from /login?ref= attaches referrer via signed state (no reward)', async () => {
+    enableGoogleEnv()
+    const referrer = await createUser({ emailPrefix: 'login_ref_a' })
+    const email = `g_login_ref_${randomUUID().slice(0, 8)}@gmail.com`
+    const googleSub = `g-login-ref-${randomUUID().slice(0, 8)}`
+
+    globalThis.fetch = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input)
+      if (url.includes('oauth2.googleapis.com/token')) {
+        return new Response(JSON.stringify({ access_token: 'tok' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      if (url.includes('userinfo')) {
+        return new Response(
+          JSON.stringify({
+            sub: googleSub,
+            email,
+            email_verified: true,
+            given_name: 'Login',
+            family_name: 'Promo',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        )
+      }
+      return originalFetch(input)
+    }) as typeof fetch
+
+    const loginRedirect = `${env.APP_URL.replace(/\/$/, '')}/oauth/callback?from=login`
+    const agent = request.agent(app)
+    const start = await agent.get(
+      `/api/v1/auth/google?redirect=${encodeURIComponent(loginRedirect)}&ref=${encodeURIComponent(referrer.referralCode!)}`,
+    )
+    expect(start.status).toBe(302)
+    const state = new URL(start.headers.location as string).searchParams.get('state')
+    expect(decodeOAuthState(state!).rc).toBe(referrer.referralCode)
+
+    const callback = await agent.get(
+      `/api/v1/auth/google/callback?code=test-auth-code&state=${encodeURIComponent(state!)}`,
+    )
+    expect(callback.status).toBe(302)
+    expect(callback.headers.location).toContain('from=login')
+    expect(callback.headers.location).not.toMatch(/error=/)
+
+    const user = await prisma.user.findFirstOrThrow({ where: { email } })
+    expect(user.referredById).toBe(referrer.id)
+    expect(
+      await prisma.referralReward.count({
+        where: { OR: [{ referrerId: referrer.id, refereeId: user.id }, { refereeId: user.id }] },
+      }),
+    ).toBe(0)
+  })
+
   it('3. Google registration without ?ref= works and leaves referredById null', async () => {
     enableGoogleEnv()
     const email = `g_noref_${randomUUID().slice(0, 8)}@gmail.com`

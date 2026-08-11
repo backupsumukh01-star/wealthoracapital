@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { API_ROUTES, ERROR_CODES, ROUTES } from '@meridian/shared'
@@ -19,7 +19,7 @@ import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
 import { useLogin } from '@/features/auth/hooks'
 import { ApiError } from '@/lib/api-client'
-import { loginSchema, type LoginInput } from '@/lib/auth-schemas'
+import { loginSchema, normalizeReferralRefParam, type LoginInput } from '@/lib/auth-schemas'
 import { env } from '@/lib/env'
 
 export function LoginForm() {
@@ -28,6 +28,8 @@ export function LoginForm() {
   const login = useLogin()
   const [formError, setFormError] = useState<string | null>(null)
   const [errorOpen, setErrorOpen] = useState(false)
+  const refFromQuery = normalizeReferralRefParam(searchParams.get('ref'))
+  const [promoCode, setPromoCode] = useState(refFromQuery)
   const {
     register,
     handleSubmit,
@@ -37,6 +39,13 @@ export function LoginForm() {
     resolver: zodResolver(loginSchema),
     defaultValues: { identifier: '', password: '', rememberMe: false },
   })
+
+  // Keep promo field in sync when landing via /login?ref=CODE
+  useEffect(() => {
+    if (refFromQuery) {
+      setPromoCode(refFromQuery)
+    }
+  }, [refFromQuery])
 
   const oauth = searchParams.get('oauth')
   const banner =
@@ -75,8 +84,14 @@ export function LoginForm() {
   }
 
   function handleGoogle() {
-    const redirectTo = `${env.NEXT_PUBLIC_SITE_URL}${ROUTES.auth.oauthCallback}`
-    window.location.href = `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.auth.google}?redirect=${encodeURIComponent(redirectTo)}`
+    // Mark login entry so invalid_referral returns here (not register).
+    const redirectTo = `${env.NEXT_PUBLIC_SITE_URL}${ROUTES.auth.oauthCallback}?from=login`
+    const params = new URLSearchParams({
+      redirect: redirectTo,
+    })
+    const code = normalizeReferralRefParam(promoCode)
+    if (code) params.set('ref', code)
+    window.location.href = `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.auth.google}?${params.toString()}`
   }
 
   async function onSubmit(values: LoginInput) {
@@ -106,6 +121,13 @@ export function LoginForm() {
     }
   }
 
+  const registerHref = (() => {
+    const code = normalizeReferralRefParam(promoCode)
+    return code
+      ? `${ROUTES.auth.register}?ref=${encodeURIComponent(code)}`
+      : ROUTES.auth.register
+  })()
+
   return (
     <>
       <AuthCard
@@ -115,7 +137,7 @@ export function LoginForm() {
           <>
             No account yet?{' '}
             <Link
-              href={ROUTES.auth.register}
+              href={registerHref}
               className="rounded-sm text-accent-300 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-base"
             >
               Register
@@ -123,10 +145,37 @@ export function LoginForm() {
           </>
         }
       >
-        <SocialLoginButtons googleLabel="Continue with Google" onGoogle={handleGoogle} />
+        {oauth === 'invalid_referral' ? (
+          <Alert tone="danger" title="Invalid referral code." className="mb-5">
+            The promo code could not be applied. Edit or clear it, then try Google again — or sign in
+            with email.
+          </Alert>
+        ) : null}
+
+        <SocialLoginButtons
+          googleLabel="Continue with Google"
+          onGoogle={handleGoogle}
+          belowGoogle={
+            <FormField
+              label="Have a promo code?"
+              hint="Optional. Used only for new Google sign-ups."
+            >
+              <Input
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                placeholder="Enter referral code"
+                className="uppercase tracking-wide"
+                value={promoCode}
+                onChange={(e) => setPromoCode(normalizeReferralRefParam(e.target.value))}
+                aria-label="Promo or referral code"
+              />
+            </FormField>
+          }
+        />
 
         <form className="space-y-5" noValidate onSubmit={handleSubmit(onSubmit)}>
-          {banner ? (
+          {banner && oauth !== 'invalid_referral' ? (
             <Alert
               tone={bannerTone === 'danger' ? 'danger' : 'success'}
               title={bannerTone === 'danger' ? 'Google sign-in' : 'Ready to continue'}

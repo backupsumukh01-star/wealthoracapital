@@ -53,7 +53,7 @@ export const registerSchema = z
     path: ['confirmPassword'],
   })
 
-/** Normalize a `?ref=` query value for the registration form (trim + uppercase). */
+/** Normalize a `?ref=` / promo field value for login + registration (trim + uppercase). */
 export function normalizeReferralRefParam(raw: string | null | undefined): string {
   return (raw ?? '').trim().toUpperCase()
 }

@@ -40,7 +40,10 @@ function OAuthCallbackInner() {
         return
       }
       if (reason === 'invalid_referral') {
-        router.replace(`${ROUTES.auth.register}?oauth=invalid_referral`)
+        // Prefer the page that started Google (login vs register). Default: register.
+        const dest =
+          next === 'login' ? ROUTES.auth.login : ROUTES.auth.register
+        router.replace(`${dest}?oauth=invalid_referral`)
         return
       }
       router.replace(`${ROUTES.auth.login}?oauth=${encodeURIComponent(reason)}`)
