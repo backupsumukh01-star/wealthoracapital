@@ -498,6 +498,7 @@ export const depositService = {
             OR: [
               { reference: { contains: query.q.toUpperCase() } },
               { txHash: { contains: query.q } },
+              { userReference: { contains: query.q } },
               { user: { email: { contains: query.q, mode: 'insensitive' } } },
               { user: { firstName: { contains: query.q, mode: 'insensitive' } } },
               { user: { lastName: { contains: query.q, mode: 'insensitive' } } },

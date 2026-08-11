@@ -471,7 +471,7 @@ export function AdminOverviewWorkspace() {
               description="Approve or reject without leaving the dashboard"
               action={
                 <Button asChild variant="ghost" size="sm">
-                  <Link href={ROUTES.admin.deposits}>View all</Link>
+                  <Link href={`${ROUTES.admin.deposits}?status=PENDING`}>View all</Link>
                 </Button>
               }
             />

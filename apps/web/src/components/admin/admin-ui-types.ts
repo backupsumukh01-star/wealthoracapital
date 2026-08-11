@@ -15,7 +15,14 @@ export type AdminAccountStatus =
   | 'SUSPENDED'
   | 'REJECTED'
 
-export type AdminDepositStatus = 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'NEED_INFO'
+export type AdminDepositStatus =
+  | 'PENDING'
+  | 'UNDER_REVIEW'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'NEED_INFO'
+  | 'CANCELLED'
+  | 'EXPIRED'
 export type AdminWithdrawalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'PAID'
 export type AdminTradeDirection = 'LONG' | 'SHORT'
 

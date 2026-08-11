@@ -69,8 +69,10 @@ export function AdminDepositPill({ status }: { status: AdminDepositStatus }) {
     APPROVED: { label: 'Approved', variant: 'profit' },
     REJECTED: { label: 'Rejected', variant: 'loss' },
     NEED_INFO: { label: 'Need info', variant: 'info' },
+    CANCELLED: { label: 'Cancelled', variant: 'neutral' },
+    EXPIRED: { label: 'Expired', variant: 'neutral' },
   }
-  const m = map[status]
+  const m = map[status] ?? map.PENDING
   return <Pill label={m.label} variant={m.variant} />
 }
 

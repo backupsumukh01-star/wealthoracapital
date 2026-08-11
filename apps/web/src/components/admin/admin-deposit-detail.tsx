@@ -287,6 +287,39 @@ export function AdminDepositDetailWorkspace() {
                 <dd className="font-mono text-fg">{deposit.reference}</dd>
               </div>
               <div>
+                <dt className="text-fg-subtle">Gateway</dt>
+                <dd className="text-fg">
+                  {pickString(submissionDetails, ['gateway']) === 'oxapay'
+                    ? 'OxaPay'
+                    : pickString(submissionDetails, ['gateway']) ?? deposit.gateway ?? '—'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">OxaPay track ID</dt>
+                <dd className="break-all font-mono text-fg">
+                  {deposit.oxapayTrackId ??
+                    pickString(submissionDetails, ['oxapayTrackId']) ??
+                    (pickString(submissionDetails, ['gateway']) === 'oxapay'
+                      ? deposit.userReference
+                      : null) ??
+                    '—'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">Confirmation</dt>
+                <dd className="text-fg">
+                  {deposit.reviewedAt ? formatDateTime(deposit.reviewedAt) : '—'}
+                </dd>
+                <dd className="text-[11px] text-fg-subtle">
+                  {pickString(submissionDetails, ['oxapayConfirmedAt']) ||
+                  pickString(submissionDetails, ['oxapayVerificationResult']) === 'ok'
+                    ? 'Provider auto-confirmed'
+                    : deposit.status === 'APPROVED'
+                      ? 'Approved'
+                      : '—'}
+                </dd>
+              </div>
+              <div>
                 <dt className="text-fg-subtle">Submission Time</dt>
                 <dd className="text-fg">{formatDateTime(deposit.createdAt)}</dd>
               </div>
@@ -404,7 +437,13 @@ export function AdminDepositDetailWorkspace() {
                 </Button>
               </div>
             ) : (
-              <p className="text-caption text-fg-muted">This deposit is already decided ({status}).</p>
+              <p className="text-caption text-fg-muted">
+                This deposit is already decided ({status}
+                {asRecord(deposit.submissionDetails)?.gateway === 'oxapay' && status === 'APPROVED'
+                  ? ' — OxaPay provider auto-confirm; no further Admin Approve needed'
+                  : ''}
+                ).
+              </p>
             )}
           </AdminPanel>
         </div>

@@ -131,10 +131,9 @@ export function mapDepositStatus(status: DepositStatus | string): AdminDepositSt
     case 'APPROVED':
     case 'REJECTED':
     case 'NEED_INFO':
-      return status
     case 'CANCELLED':
     case 'EXPIRED':
-      return 'REJECTED'
+      return status
     default:
       return 'PENDING'
   }
