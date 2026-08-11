@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  CRYPTO_DEPOSIT_MIN_USD,
   convertFromUsd,
+  isCryptoDepositMethodType,
   normalizeCurrencyRates,
   DISPLAY_CURRENCIES,
 } from '../utils/currency.js'
@@ -25,5 +27,14 @@ describe('@meridian/shared currency utils', () => {
     expect(convertFromUsd('10', 'INR', rates)).toBe('935')
     expect(convertFromUsd('10', 'AED', rates)).toBe('36.70')
     expect(convertFromUsd('10', 'USD', rates)).toBe('10.00')
+  })
+
+  it('crypto deposit floor is $1 for all crypto rails', () => {
+    expect(CRYPTO_DEPOSIT_MIN_USD).toBe('1')
+    for (const type of ['CRYPTO', 'USDT_TRC20', 'USDT_BEP20', 'BTC', 'ETH']) {
+      expect(isCryptoDepositMethodType(type)).toBe(true)
+    }
+    expect(isCryptoDepositMethodType('UPI')).toBe(false)
+    expect(isCryptoDepositMethodType('BANK_TRANSFER')).toBe(false)
   })
 })

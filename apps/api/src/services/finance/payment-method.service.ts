@@ -4,8 +4,9 @@ import { prisma } from '../../database/prisma.js'
 import { auditService } from '../audit.service.js'
 import { opsAlertService } from '../ops-alert.service.js'
 import { badRequest, notFound } from '../../utils/errors.js'
-import { d, moneyString } from '../../utils/money.js'
+import { d, moneyDisplay, moneyString } from '../../utils/money.js'
 import { mapPaymentMethodDetailed } from './payment-method.mapper.js'
+import { CRYPTO_DEPOSIT_MIN_USD, isCryptoDepositMethodType } from '@meridian/shared'
 
 type Ctx = { ip?: string | null; userAgent?: string | null }
 
@@ -122,9 +123,15 @@ export const paymentMethodService = {
     })
 
     return methods
-      .map((m) => mapPaymentMethodDetailed(m))
+      .map((m) => {
+        const mapped = mapPaymentMethodDetailed(m)
+        if (isCryptoDepositMethodType(mapped.type)) {
+          return { ...mapped, minAmount: moneyDisplay(CRYPTO_DEPOSIT_MIN_USD) }
+        }
+        return mapped
+      })
       .filter((m) => {
-        if (m.type === 'CRYPTO' || m.type === 'USDT_TRC20' || m.type === 'USDT_BEP20' || m.type === 'BTC' || m.type === 'ETH') {
+        if (isCryptoDepositMethodType(m.type)) {
           return m.cryptoWallets.length > 0
         }
         return true

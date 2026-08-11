@@ -292,8 +292,8 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
   const amountError = (() => {
     if (!amount.trim()) return 'Enter a deposit amount.'
     if (!Number.isFinite(amountNum) || amountNum <= 0) return 'Amount must be a positive number.'
-    if (amountNum < min) return `Minimum deposit is ${selected?.minAmount ?? min} USDT.`
-    if (max != null && amountNum > max) return `Maximum deposit is ${selected?.maxAmount} USDT.`
+    if (amountNum < min) return `Minimum deposit is $${Number(selected?.minAmount ?? min).toFixed(2)}.`
+    if (max != null && amountNum > max) return `Maximum deposit is $${Number(selected?.maxAmount).toFixed(2)}.`
     return null
   })()
 
@@ -547,7 +547,7 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
             <FormField
               label="Investment amount (USDT)"
               required
-              hint={`Minimum ${selected.minAmount} USDT${selected.maxAmount ? ` · Maximum ${selected.maxAmount} USDT` : ''}`}
+              hint={`Minimum $${Number(selected.minAmount).toFixed(2)}${selected.maxAmount ? ` · Maximum $${Number(selected.maxAmount).toFixed(2)}` : ''}`}
               error={amount.trim() ? amountError ?? undefined : undefined}
             >
               <Input

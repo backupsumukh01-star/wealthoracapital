@@ -32,6 +32,13 @@ export const DEFAULT_CURRENCY_RATES: Record<DisplayCurrency, string> = {
 
 export const DEPOSIT_LOCK_DAYS_DEFAULT = 10
 
+/** Minimum USD (USDT-equivalent) for user crypto deposit rails. */
+export const CRYPTO_DEPOSIT_MIN_USD = '1'
+
+export function isCryptoDepositMethodType(type: string): boolean {
+  return type === 'CRYPTO' || type === 'USDT_TRC20' || type === 'USDT_BEP20' || type === 'BTC' || type === 'ETH'
+}
+
 export function isDisplayCurrency(value: string): value is DisplayCurrency {
   return (DISPLAY_CURRENCIES as readonly string[]).includes(value)
 }

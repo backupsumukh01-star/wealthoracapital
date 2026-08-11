@@ -1,6 +1,10 @@
 import { createHash, randomUUID } from 'node:crypto'
 import path from 'node:path'
 import type { DepositStatus, Prisma } from '@prisma/client'
+import {
+  CRYPTO_DEPOSIT_MIN_USD,
+  isCryptoDepositMethodType,
+} from '@meridian/shared'
 
 import { prisma } from '../../database/prisma.js'
 import { env } from '../../config/env.js'
@@ -20,10 +24,7 @@ import { buildDepositProofImageUrl, mapDeposit } from './finance.mappers.js'
 import { mapPaymentMethodDetailed } from './payment-method.mapper.js'
 import { ledgerService } from './ledger.service.js'
 import { paymentMethodService } from './payment-method.service.js'
-import {
-  DEPOSIT_LOCK_DAYS_DEFAULT,
-  computeFundsUnlockAt,
-} from './currency.service.js'
+import { DEPOSIT_LOCK_DAYS_DEFAULT, computeFundsUnlockAt } from './currency.service.js'
 
 type Ctx = { ip?: string | null; userAgent?: string | null }
 
@@ -109,8 +110,13 @@ export const depositService = {
       where: { id: body.methodId, isActive: true, deletedAt: null },
     })
     if (!method) throw badRequest('Payment method is unavailable.')
-    if (amount.lt(d(method.minAmount))) {
-      throw badRequest(`Minimum deposit is ${moneyDisplay(method.minAmount)}.`)
+    // Crypto rails use a fixed $1 floor for gateway testing (method row is synced via migration).
+    // Non-crypto rails keep their configured payment-method minimum.
+    const minAmount = isCryptoDepositMethodType(method.type)
+      ? d(CRYPTO_DEPOSIT_MIN_USD)
+      : d(method.minAmount)
+    if (amount.lt(minAmount)) {
+      throw badRequest(`Minimum deposit is ${moneyDisplay(minAmount)}.`)
     }
     if (method.maxAmount && amount.gt(d(method.maxAmount))) {
       throw badRequest(`Maximum deposit is ${moneyDisplay(method.maxAmount)}.`)
