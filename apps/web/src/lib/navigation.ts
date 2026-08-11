@@ -206,7 +206,7 @@ export const DASHBOARD_NAV: NavSection[] = [
         permission: 'profile.view',
       },
       {
-        label: 'Settings',
+        label: 'Preferences',
         href: ROUTES.dashboard.settings.preferences,
         icon: Settings,
         permission: 'profile.view',
@@ -238,6 +238,13 @@ export const DASHBOARD_SETTINGS_NAV: NavItem[] = [
     permission: 'profile.view',
   },
   {
+    label: 'Preferences',
+    href: ROUTES.dashboard.settings.preferences,
+    icon: SlidersHorizontal,
+    description: 'Display Currency, theme and notifications',
+    permission: 'profile.view',
+  },
+  {
     label: 'Security',
     href: ROUTES.dashboard.settings.security,
     icon: ShieldCheck,
@@ -250,13 +257,6 @@ export const DASHBOARD_SETTINGS_NAV: NavItem[] = [
     icon: CreditCard,
     description: 'Where your withdrawals are sent',
     permission: 'withdrawals.view',
-  },
-  {
-    label: 'Preferences',
-    href: ROUTES.dashboard.settings.preferences,
-    icon: SlidersHorizontal,
-    description: 'Notifications, theme and number format',
-    permission: 'profile.view',
   },
 ]
 

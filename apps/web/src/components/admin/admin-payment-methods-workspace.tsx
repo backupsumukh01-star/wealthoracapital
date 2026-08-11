@@ -74,7 +74,7 @@ function emptyForm(): FormState {
     name: '',
     type: 'UPI',
     instructions: '',
-    minAmount: '50',
+    minAmount: '1',
     maxAmount: '100000',
     processingTime: '1–24 hours',
     logoKey: null,

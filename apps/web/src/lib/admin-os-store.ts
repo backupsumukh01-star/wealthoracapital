@@ -467,7 +467,7 @@ export function createDefaultAdminOs(): AdminOsState {
       discord: 'https://discord.gg/growzy',
       facebook: 'https://facebook.com/growzy',
       instagram: 'https://instagram.com/growzy',
-      minDeposit: '50',
+      minDeposit: '1',
       maxDeposit: '100000',
       minWithdrawal: '50',
       maxWithdrawal: '50000',

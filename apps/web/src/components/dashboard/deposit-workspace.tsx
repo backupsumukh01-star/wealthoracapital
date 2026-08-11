@@ -289,7 +289,7 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
     }
   }, [methods])
 
-  const min = Number(selected?.minAmount ?? '50')
+  const min = Number(selected?.minAmount ?? '1')
   const max = selected?.maxAmount ? Number(selected.maxAmount) : null
   const amountNum = parseAmount(amount)
   const amountError = (() => {

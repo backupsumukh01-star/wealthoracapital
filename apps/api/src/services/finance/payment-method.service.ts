@@ -160,7 +160,7 @@ export const paymentMethodService = {
           accountDetails: {},
           network: body.network ?? null,
           logoKey: body.logoKey ?? null,
-          minAmount: moneyString(d(body.minAmount ?? '50')),
+          minAmount: moneyString(d(body.minAmount ?? '1')),
           maxAmount: body.maxAmount ? moneyString(d(body.maxAmount)) : null,
           feePct: moneyString(d(body.feePct ?? '0'), 6),
           processingTime: body.processingTime ?? null,

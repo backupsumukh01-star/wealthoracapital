@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useWalletSummary } from '@/features/wallet/hooks'
+import { useDisplayCurrency } from '@/hooks/use-display-currency'
 import { useExchangeRate } from '@/hooks/use-exchange-rate'
 import { useSession } from '@/providers/session-provider'
 
@@ -17,12 +18,14 @@ import { useSession } from '@/providers/session-provider'
 export function ActiveInvestmentCard() {
   const { session } = useSession()
   const { data: summary } = useWalletSummary({ enabled: Boolean(session) })
-  const { usdToInr } = useExchangeRate({ enabled: Boolean(session) })
+  const { convertFromUsd } = useExchangeRate({ enabled: Boolean(session) })
+  const { displayCurrency } = useDisplayCurrency({ enabled: Boolean(session) })
   const wallet = summary?.wallet ?? session?.wallet
   const investedAmount = wallet?.investedAmount ?? '0.00'
   const totalProfit = wallet?.totalProfit ?? '0.00'
   const availableBalance = wallet?.availableBalance ?? '0.00'
-  const investedInr = usdToInr(investedAmount)
+  const investedDisplay =
+    displayCurrency === 'USD' ? null : convertFromUsd(investedAmount, displayCurrency)
   const todayReturnPct = summary?.today.returnPct ?? '0.00'
   const totalRoiPct =
     wallet && Number(wallet.totalDeposited) > 0
@@ -47,9 +50,9 @@ export function ActiveInvestmentCard() {
           <p className="mt-2 text-stat-lg tabular-nums text-fg">
             <Money value={investedAmount} />
           </p>
-          {investedInr ? (
+          {investedDisplay ? (
             <p className="mt-0.5 text-caption text-fg-subtle tabular-nums">
-              ≈ <Money value={investedInr} currency="INR" size="inherit" />
+              ≈ <Money value={investedDisplay} currency={displayCurrency} size="inherit" />
             </p>
           ) : null}
           <p className="mt-1 text-body-sm text-fg-muted">

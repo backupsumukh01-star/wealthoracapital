@@ -10,6 +10,7 @@ import { Percent } from '@/components/common/percent'
 import { AnimatedNumber } from '@/components/motion/animated-number'
 import { Button } from '@/components/ui/button'
 import { useWalletSummary } from '@/features/wallet/hooks'
+import { useDisplayCurrency } from '@/hooks/use-display-currency'
 import { useExchangeRate } from '@/hooks/use-exchange-rate'
 import { accountAccessMessage, canTransact } from '@/lib/account-access'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
@@ -40,7 +41,8 @@ export function PortfolioHero({
     enabled: Boolean(session),
     refetchInterval: 15_000,
   })
-  const { usdToInr, rate } = useExchangeRate({ enabled: Boolean(session) })
+  const { convertFromUsd, rates } = useExchangeRate({ enabled: Boolean(session) })
+  const { displayCurrency } = useDisplayCurrency({ enabled: Boolean(session) })
 
   const wallet = summary?.wallet ?? session?.wallet
   const balance = wallet?.availableBalance ?? '0.00'
@@ -54,7 +56,9 @@ export function PortfolioHero({
   const name = session?.user.firstName ?? 'Investor'
   const allowed = canTransact(session?.user.kycStatus)
   const access = accountAccessMessage(session?.user.kycStatus)
-  const balanceInr = usdToInr(balance)
+  const balanceDisplay =
+    displayCurrency === 'USD' ? null : convertFromUsd(balance, displayCurrency)
+  const displayRate = rates[displayCurrency]
 
   const depositBtn = onDeposit ? (
     <Button
@@ -135,10 +139,15 @@ export function PortfolioHero({
               className="text-inherit"
             />
           </p>
-          {balanceInr ? (
+          {balanceDisplay ? (
             <p className="mt-1 text-body-sm text-fg-muted tabular-nums">
-              ≈ <Money value={balanceInr} currency="INR" size="sm" />
-              <span className="text-caption text-fg-subtle"> · 1 USD = ₹{rate}</span>
+              ≈ <Money value={balanceDisplay} currency={displayCurrency} size="sm" />
+              {displayRate ? (
+                <span className="text-caption text-fg-subtle">
+                  {' '}
+                  · 1 USD = {displayRate} {displayCurrency}
+                </span>
+              ) : null}
             </p>
           ) : null}
           <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -155,7 +164,8 @@ export function PortfolioHero({
             { label: 'Total investment', value: invested, tone: 'neutral' as const },
             { label: 'Available', value: available, tone: 'neutral' as const },
           ].map((stat) => {
-            const inr = usdToInr(stat.value)
+            const converted =
+              displayCurrency === 'USD' ? null : convertFromUsd(stat.value, displayCurrency)
             return (
               <div
                 key={stat.label}
@@ -170,9 +180,9 @@ export function PortfolioHero({
                 >
                   <Money value={stat.value} signed={stat.tone === 'profit'} size="sm" />
                 </p>
-                {inr ? (
+                {converted ? (
                   <p className="mt-0.5 text-[11px] text-fg-subtle tabular-nums">
-                    <Money value={inr} currency="INR" size="inherit" />
+                    <Money value={converted} currency={displayCurrency} size="inherit" />
                   </p>
                 ) : null}
               </div>

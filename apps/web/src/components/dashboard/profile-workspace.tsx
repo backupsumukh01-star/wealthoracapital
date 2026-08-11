@@ -8,6 +8,7 @@ import {
   Landmark,
   MoreHorizontal,
   ShieldCheck,
+  SlidersHorizontal,
   Smartphone,
   UserRound,
   Wallet,
@@ -16,6 +17,7 @@ import {
 import { PageHeader } from '@/components/common/page-header'
 import { AddBankAccountDialog } from '@/components/dashboard/add-bank-account-dialog'
 import { AddCryptoWalletDialog } from '@/components/dashboard/add-crypto-wallet-dialog'
+import { DisplayCurrencySelector } from '@/components/dashboard/display-currency-selector'
 import { SettingsCard, SettingsRow } from '@/components/dashboard/settings-card'
 import { StatusPill } from '@/components/dashboard/status-pill'
 import { PremiumEmptyState } from '@/components/dashboard/premium-empty-state'
@@ -187,7 +189,15 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
           </TabsList>
         </div>
 
-        <TabsContent value="personal" className="mt-4">
+        <TabsContent value="personal" className="mt-4 space-y-4">
+          <SettingsCard
+            title="Display Currency"
+            description="Presentation only — wallet and ledger remain USD."
+            icon={SlidersHorizontal}
+          >
+            <DisplayCurrencySelector />
+          </SettingsCard>
+
           <SettingsCard
             title="Investor identity"
             description="Permanent User ID and username never change."
