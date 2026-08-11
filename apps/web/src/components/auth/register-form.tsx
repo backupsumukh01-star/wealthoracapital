@@ -134,29 +134,19 @@ export function RegisterForm() {
       <form className="space-y-5" noValidate onSubmit={handleSubmit(onSubmit)}>
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField label="First name" required error={errors.firstName?.message}>
-            <Input autoComplete="given-name" placeholder="Harsh" {...register('firstName')} />
+            <Input autoComplete="given-name" {...register('firstName')} />
           </FormField>
           <FormField label="Last name" required error={errors.lastName?.message}>
-            <Input autoComplete="family-name" placeholder="Patel" {...register('lastName')} />
+            <Input autoComplete="family-name" {...register('lastName')} />
           </FormField>
         </div>
 
         <FormField label="Email" required error={errors.email?.message}>
-          <Input
-            type="email"
-            autoComplete="email"
-            placeholder="you@example.com"
-            {...register('email')}
-          />
+          <Input type="email" autoComplete="email" {...register('email')} />
         </FormField>
 
         <FormField label="Mobile number" required error={errors.phone?.message}>
-          <Input
-            type="tel"
-            autoComplete="tel"
-            placeholder="+92 300 1234567"
-            {...register('phone')}
-          />
+          <Input type="tel" autoComplete="tel" {...register('phone')} />
         </FormField>
 
         <FormField label="Password" required error={errors.password?.message}>
