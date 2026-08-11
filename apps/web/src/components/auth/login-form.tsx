@@ -54,9 +54,11 @@ export function LoginForm() {
                 ? 'This account has been suspended.'
                 : oauth === 'forbidden'
                   ? 'Google sign-in was blocked for this account.'
-                  : oauth === 'failed' || oauth === 'oauth_failed'
-                    ? 'Google sign-in did not complete. Try again or use email.'
-                    : null
+                  : oauth === 'invalid_referral'
+                    ? 'Invalid referral code.'
+                    : oauth === 'failed' || oauth === 'oauth_failed'
+                      ? 'Google sign-in did not complete. Try again or use email.'
+                      : null
 
   const bannerTone = oauth && oauth !== 'verified' ? 'danger' : 'success'
 

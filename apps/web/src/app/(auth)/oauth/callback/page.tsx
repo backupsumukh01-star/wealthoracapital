@@ -18,6 +18,7 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   account_suspended: 'This account has been suspended.',
   forbidden: 'Google sign-in was blocked for this account.',
   oauth_failed: 'Google sign-in could not be completed.',
+  invalid_referral: 'Invalid referral code.',
 }
 
 function OAuthCallbackInner() {
@@ -36,6 +37,10 @@ function OAuthCallbackInner() {
       const next = searchParams.get('next')
       if (next === 'admin') {
         router.replace(`${ROUTES.admin.login}?oauth=${encodeURIComponent(reason)}`)
+        return
+      }
+      if (reason === 'invalid_referral') {
+        router.replace(`${ROUTES.auth.register}?oauth=invalid_referral`)
         return
       }
       router.replace(`${ROUTES.auth.login}?oauth=${encodeURIComponent(reason)}`)

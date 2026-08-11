@@ -17,6 +17,26 @@ export type ReferralSummary = {
   redeemedReferral: MoneyString
 }
 
+export type ReferralNetworkStatus = 'ACTIVE' | 'NOT_FUNDED'
+
+export type ReferralNetworkPerson = {
+  displayName: string
+  joinedAt: string
+  status: ReferralNetworkStatus
+  approvedDepositAmount: MoneyString
+  referralEarnings: MoneyString
+}
+
+export type ReferralNetwork = {
+  totalReferrals: number
+  activeReferrals: number
+  totalEarnings: MoneyString
+  lockedEarnings: MoneyString
+  availableEarnings: MoneyString
+  redeemedEarnings: MoneyString
+  referrals: ReferralNetworkPerson[]
+}
+
 export type ReferralRewardItem = {
   id: string
   sourceDepositId: string
@@ -41,6 +61,8 @@ export type ReferralRedeemResult = {
 
 export const referralService = {
   summary: () => apiClient<ReferralSummary>(API_ROUTES.referrals.summary),
+
+  network: () => apiClient<ReferralNetwork>(API_ROUTES.referrals.network),
 
   rewards: (query?: { cursor?: string; limit?: number }) => {
     const params = new URLSearchParams()

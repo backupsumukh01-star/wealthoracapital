@@ -362,6 +362,16 @@ export const googleOAuthService = {
     })
 
     logger.info({ userId: user.id }, 'User registered via Google OAuth')
+    if (referredById) {
+      void import('./finance/referral-notification.service.js').then(
+        ({ referralNotificationService }) => {
+          void referralNotificationService.onReferredUserRegistered({
+            referrerId: referredById!,
+            refereeId: user.id,
+          })
+        },
+      )
+    }
     return user
   },
 

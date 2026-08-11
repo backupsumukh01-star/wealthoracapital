@@ -183,6 +183,7 @@ export const authController = {
       res.redirect(302, url)
     } catch (err) {
       if (err instanceof AppError && /invalid referral code/i.test(err.message)) {
+        // Send investors back to register so they can fix/clear the code.
         res.redirect(302, oauthFailureRedirect('invalid_referral'))
         return
       }

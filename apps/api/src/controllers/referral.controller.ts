@@ -11,6 +11,11 @@ export const referralController = {
     sendSuccess(res, await referralService.summary(req.user!.id))
   }),
 
+  network: asyncHandler(async (req, res) => {
+    // Ownership: always the authenticated session user — ignore any client userId.
+    sendSuccess(res, await referralService.network(req.user!.id))
+  }),
+
   listRewards: asyncHandler(async (req, res) => {
     const query = req.query as ListQuery
     sendSuccess(

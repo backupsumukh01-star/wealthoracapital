@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { API_ROUTES, ROUTES } from '@meridian/shared'
@@ -10,6 +11,7 @@ import { toast } from 'sonner'
 import { AuthCard } from '@/components/auth/auth-card'
 import { PasswordField } from '@/components/auth/password-field'
 import { SocialLoginButtons } from '@/components/auth/social-login-buttons'
+import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { CheckboxField } from '@/components/ui/checkbox'
 import { FormField } from '@/components/ui/form-field'
@@ -28,12 +30,14 @@ export function RegisterForm() {
   const searchParams = useSearchParams()
   const registerMutation = useRegister()
   const refFromQuery = normalizeReferralRefParam(searchParams.get('ref'))
+  const oauthError = searchParams.get('oauth')
 
   const {
     register,
     handleSubmit,
     watch,
     control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
@@ -48,6 +52,13 @@ export function RegisterForm() {
       acceptTerms: false,
     },
   })
+
+  // Keep the Referral Code field in sync when landing via /register?ref=CODE
+  useEffect(() => {
+    if (refFromQuery) {
+      setValue('referralCode', refFromQuery, { shouldDirty: false, shouldValidate: true })
+    }
+  }, [refFromQuery, setValue])
 
   const referralCodeValue = watch('referralCode')
 
@@ -111,6 +122,13 @@ export function RegisterForm() {
         </>
       }
     >
+      {oauthError === 'invalid_referral' ? (
+        <Alert tone="danger" title="Invalid referral code." className="mb-5">
+          The referral code could not be applied. Edit or clear the Referral Code field, then try
+          again with email or Google.
+        </Alert>
+      ) : null}
+
       <SocialLoginButtons googleLabel="Continue with Google" onGoogle={handleGoogle} />
 
       <form className="space-y-5" noValidate onSubmit={handleSubmit(onSubmit)}>
@@ -150,8 +168,8 @@ export function RegisterForm() {
         </FormField>
 
         <FormField
-          label="Referral code"
-          hint="Optional. Enter a friend’s code if you have one."
+          label="Referral code / Promo code"
+          hint="Optional. Pre-filled from your invite link — you can keep, edit, or clear it."
           error={errors.referralCode?.message}
         >
           <Input

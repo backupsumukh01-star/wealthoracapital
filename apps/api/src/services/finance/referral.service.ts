@@ -50,6 +50,19 @@ function mapReward(row: ReferralReward & { sourceDeposit?: { reference: string }
   }
 }
 
+/** Privacy-safe public label for a referred user (no email/phone/id). */
+export function privacySafeDisplayName(
+  firstName: string | null | undefined,
+  lastName: string | null | undefined,
+): string {
+  const first = (firstName ?? '').trim()
+  const last = (lastName ?? '').trim()
+  const combined = `${first} ${last}`.trim()
+  if (!combined) return 'User'
+  // Avoid leaking single-character noise; still never expose contact fields.
+  return combined.slice(0, 80)
+}
+
 export const referralService = {
   /**
    * Create a LOCKED referral reward after a deposit is approved and credited.
@@ -250,6 +263,81 @@ export const referralService = {
       lockedReferral: moneyDisplay(locked),
       availableReferral: moneyDisplay(available),
       redeemedReferral: moneyDisplay(redeemed),
+    }
+  },
+
+  /**
+   * Direct referral network for the authenticated investor.
+   * Caller MUST pass session userId only — never a client-supplied user id.
+   * Direct referrals only (referredById = userId). No multi-level tree.
+   */
+  async network(userId: string) {
+    await this.unlockEligibleRewards(prisma, { referrerId: userId })
+
+    const [directReferrals, rewards] = await Promise.all([
+      prisma.user.findMany({
+        where: { referredById: userId, deletedAt: null },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          createdAt: true,
+          deposits: {
+            where: { status: 'APPROVED' },
+            select: { amount: true, creditedAmount: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.referralReward.findMany({
+        where: { referrerId: userId, status: { not: 'CANCELLED' } },
+        select: { refereeId: true, rewardAmount: true, status: true },
+      }),
+    ])
+
+    let locked = d(0)
+    let available = d(0)
+    let redeemed = d(0)
+    let total = d(0)
+    const earningsByReferee = new Map<string, ReturnType<typeof d>>()
+
+    for (const row of rewards) {
+      const amt = d(row.rewardAmount)
+      total = total.plus(amt)
+      if (row.status === 'LOCKED') locked = locked.plus(amt)
+      else if (row.status === 'AVAILABLE') available = available.plus(amt)
+      else if (row.status === 'REDEEMED') redeemed = redeemed.plus(amt)
+
+      const prev = earningsByReferee.get(row.refereeId) ?? d(0)
+      earningsByReferee.set(row.refereeId, prev.plus(amt))
+    }
+
+    let activeReferrals = 0
+    const referrals = directReferrals.map((row) => {
+      let deposited = d(0)
+      for (const dep of row.deposits) {
+        deposited = deposited.plus(d(dep.creditedAmount ?? dep.amount))
+      }
+      const isActive = row.deposits.length > 0
+      if (isActive) activeReferrals += 1
+
+      return {
+        displayName: privacySafeDisplayName(row.firstName, row.lastName),
+        joinedAt: row.createdAt.toISOString(),
+        status: isActive ? ('ACTIVE' as const) : ('NOT_FUNDED' as const),
+        approvedDepositAmount: moneyDisplay(deposited),
+        referralEarnings: moneyDisplay(earningsByReferee.get(row.id) ?? d(0)),
+      }
+    })
+
+    return {
+      totalReferrals: directReferrals.length,
+      activeReferrals,
+      totalEarnings: moneyDisplay(total),
+      lockedEarnings: moneyDisplay(locked),
+      availableEarnings: moneyDisplay(available),
+      redeemedEarnings: moneyDisplay(redeemed),
+      referrals,
     }
   },
 

@@ -10,6 +10,7 @@ import { referralService } from '@/services/referral.service'
 export const referralQueryKeys = {
   all: ['referrals'] as const,
   summary: () => [...referralQueryKeys.all, 'summary'] as const,
+  network: () => [...referralQueryKeys.all, 'network'] as const,
   rewards: (filters?: Record<string, unknown>) =>
     [...referralQueryKeys.all, 'rewards', filters ?? {}] as const,
 }
@@ -18,6 +19,16 @@ export function useReferralSummary(options?: QueryHookOptions) {
   return useQuery({
     queryKey: referralQueryKeys.summary(),
     queryFn: () => referralService.summary(),
+    enabled: options?.enabled,
+    staleTime: QUERY_STALE_TIME.fast,
+    refetchOnMount: 'always',
+  })
+}
+
+export function useReferralNetwork(options?: QueryHookOptions) {
+  return useQuery({
+    queryKey: referralQueryKeys.network(),
+    queryFn: () => referralService.network(),
     enabled: options?.enabled,
     staleTime: QUERY_STALE_TIME.fast,
     refetchOnMount: 'always',

@@ -220,6 +220,7 @@ export const API_ROUTES = {
   },
   referrals: {
     summary: '/referrals/summary',
+    network: '/referrals/network',
     rewards: '/referrals/rewards',
     redeem: (id: string) => `/referrals/rewards/${id}/redeem`,
   },

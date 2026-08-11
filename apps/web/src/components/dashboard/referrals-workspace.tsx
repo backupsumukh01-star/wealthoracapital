@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ROUTES } from '@meridian/shared'
+import { ROUTES, type MoneyString } from '@meridian/shared'
 import {
   Copy,
   Lock,
   Share2,
   Sparkles,
   ArrowDownToLine,
+  Users,
 } from 'lucide-react'
 
 import { Money } from '@/components/common/money'
@@ -22,13 +23,20 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from '@/components/ui/toast'
 import {
   useRedeemReferralReward,
+  useReferralNetwork,
   useReferralRewards,
   useReferralSummary,
 } from '@/features/referrals/hooks'
+import { useDisplayCurrency } from '@/hooks/use-display-currency'
+import { useExchangeRate } from '@/hooks/use-exchange-rate'
 import { ApiError } from '@/lib/api-client'
 import { cn } from '@/lib/cn'
 import { formatDate, formatDateTime, formatPercent } from '@/lib/format'
-import type { ReferralRewardItem } from '@/services/referral.service'
+import { useSession } from '@/providers/session-provider'
+import type {
+  ReferralNetworkPerson,
+  ReferralRewardItem,
+} from '@/services/referral.service'
 
 const SHARE_TEXT = 'Join me on Growzy Capital and start your investment journey.'
 
@@ -55,15 +63,27 @@ async function copyText(value: string): Promise<boolean> {
   }
 }
 
-function SummaryStat({
-  label,
+function useReferralMoneyDisplay() {
+  const { session } = useSession()
+  const { displayCurrency } = useDisplayCurrency({ enabled: Boolean(session) })
+  const { convertFromUsd } = useExchangeRate({ enabled: Boolean(session) })
+  return { displayCurrency, convertFromUsd }
+}
+
+function MoneyDisplay({
   value,
+  size = 'md',
+  className,
   tone,
 }: {
-  label: string
-  value: string
+  value: MoneyString
+  size?: 'sm' | 'md'
+  className?: string
   tone?: 'default' | 'locked' | 'available' | 'redeemed'
 }) {
+  const { displayCurrency, convertFromUsd } = useReferralMoneyDisplay()
+  const converted =
+    displayCurrency === 'USD' ? null : convertFromUsd(value, displayCurrency)
   const valueClass =
     tone === 'locked'
       ? 'text-warning'
@@ -71,12 +91,49 @@ function SummaryStat({
         ? 'text-profit'
         : tone === 'redeemed'
           ? 'text-info'
-          : 'text-fg'
+          : undefined
 
+  return (
+    <span className={cn('inline-flex flex-col', className)}>
+      <Money
+        value={converted ?? value}
+        currency={displayCurrency}
+        size={size}
+        className={cn('break-all', valueClass)}
+      />
+      {converted ? (
+        <span className="text-[11px] text-fg-subtle">
+          Ledger <Money value={value} currency="USD" size="inherit" className="inline" />
+        </span>
+      ) : null}
+    </span>
+  )
+}
+
+function SummaryStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string
+  value: MoneyString
+  tone?: 'default' | 'locked' | 'available' | 'redeemed'
+}) {
   return (
     <div className="min-w-0 rounded-xl border border-line bg-inset/40 px-3 py-3 sm:px-4 sm:py-3.5">
       <p className="text-caption text-fg-subtle">{label}</p>
-      <Money value={value} size="md" className={cn('mt-1 block break-all', valueClass)} />
+      <div className="mt-1">
+        <MoneyDisplay value={value} size="md" tone={tone} />
+      </div>
+    </div>
+  )
+}
+
+function CountStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="min-w-0 rounded-xl border border-line bg-inset/40 px-3 py-3 sm:px-4 sm:py-3.5">
+      <p className="text-caption text-fg-subtle">{label}</p>
+      <p className="mt-1 text-stat-md tabular-nums text-fg">{value}</p>
     </div>
   )
 }
@@ -232,7 +289,8 @@ function RewardCard({ reward }: { reward: ReferralRewardItem }) {
         <div className="min-w-0">
           <p className="text-caption text-fg-subtle">{formatDateTime(reward.createdAt)}</p>
           <p className="mt-1 text-body-sm font-medium text-fg">
-            Reward <Money value={reward.rewardAmount} size="sm" className="inline text-profit" />
+            Reward{' '}
+            <MoneyDisplay value={reward.rewardAmount} size="sm" className="inline" tone="available" />
           </p>
         </div>
         <StatusPill status={reward.status} />
@@ -242,7 +300,7 @@ function RewardCard({ reward }: { reward: ReferralRewardItem }) {
         <div className="min-w-0">
           <dt className="text-fg-subtle">Referred deposit</dt>
           <dd className="mt-0.5 text-fg">
-            <Money value={reward.sourceAmount} size="sm" />
+            <MoneyDisplay value={reward.sourceAmount} size="sm" />
           </dd>
         </div>
         <div className="min-w-0">
@@ -291,13 +349,13 @@ function RewardTable({ items }: { items: ReferralRewardItem[] }) {
             <tr key={reward.id} className="border-b border-line/70 align-top">
               <td className="px-3 py-3 text-fg-muted">{formatDateTime(reward.createdAt)}</td>
               <td className="px-3 py-3">
-                <Money value={reward.sourceAmount} size="sm" />
+                <MoneyDisplay value={reward.sourceAmount} size="sm" />
               </td>
               <td className="px-3 py-3 text-fg-muted">
                 {formatPercent(reward.percentApplied, { signed: false, decimals: 2 })}
               </td>
               <td className="px-3 py-3">
-                <Money value={reward.rewardAmount} size="sm" className="text-profit" />
+                <MoneyDisplay value={reward.rewardAmount} size="sm" tone="available" />
               </td>
               <td className="px-3 py-3">
                 <StatusPill status={reward.status} />
@@ -317,14 +375,90 @@ function RewardTable({ items }: { items: ReferralRewardItem[] }) {
   )
 }
 
+function NetworkPersonCard({ person }: { person: ReferralNetworkPerson }) {
+  return (
+    <li className="rounded-xl border border-line bg-raised/40 p-3.5 sm:p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-body-sm font-medium text-fg">{person.displayName}</p>
+          <p className="mt-1 text-caption text-fg-subtle">Joined {formatDate(person.joinedAt)}</p>
+        </div>
+        <StatusPill status={person.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE'} />
+      </div>
+      <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-caption">
+        <div className="min-w-0">
+          <dt className="text-fg-subtle">Status</dt>
+          <dd className="mt-0.5 text-fg">
+            {person.status === 'ACTIVE' ? 'Active' : 'Not funded'}
+          </dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-fg-subtle">Deposited</dt>
+          <dd className="mt-0.5 text-fg">
+            <MoneyDisplay value={person.approvedDepositAmount} size="sm" />
+          </dd>
+        </div>
+        <div className="min-w-0 col-span-2">
+          <dt className="text-fg-subtle">Earned</dt>
+          <dd className="mt-0.5 text-fg">
+            <MoneyDisplay value={person.referralEarnings} size="sm" tone="available" />
+          </dd>
+        </div>
+      </dl>
+    </li>
+  )
+}
+
+function NetworkTable({ people }: { people: ReferralNetworkPerson[] }) {
+  return (
+    <div className="hidden overflow-x-auto md:block">
+      <table className="w-full min-w-[640px] border-collapse text-left text-body-sm">
+        <thead>
+          <tr className="border-b border-line text-caption text-fg-subtle">
+            <th className="px-3 py-2.5 font-medium">Name</th>
+            <th className="px-3 py-2.5 font-medium">Joined</th>
+            <th className="px-3 py-2.5 font-medium">Status</th>
+            <th className="px-3 py-2.5 font-medium">Deposited</th>
+            <th className="px-3 py-2.5 font-medium">Earnings</th>
+          </tr>
+        </thead>
+        <tbody>
+          {people.map((person, idx) => (
+            <tr
+              key={`${person.displayName}-${person.joinedAt}-${idx}`}
+              className="border-b border-line/70 align-top"
+            >
+              <td className="px-3 py-3 font-medium text-fg">{person.displayName}</td>
+              <td className="px-3 py-3 text-fg-muted">{formatDate(person.joinedAt)}</td>
+              <td className="px-3 py-3 text-fg">
+                {person.status === 'ACTIVE' ? 'Active' : 'Not funded'}
+              </td>
+              <td className="px-3 py-3">
+                <MoneyDisplay value={person.approvedDepositAmount} size="sm" />
+              </td>
+              <td className="px-3 py-3">
+                <MoneyDisplay value={person.referralEarnings} size="sm" tone="available" />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export function ReferralsWorkspace() {
   const summaryQuery = useReferralSummary()
+  const networkQuery = useReferralNetwork({
+    enabled: Boolean(summaryQuery.data?.referralEligible),
+  })
   const rewardsQuery = useReferralRewards(
     { limit: 50 },
     { enabled: Boolean(summaryQuery.data?.referralEligible) },
   )
 
   const summary = summaryQuery.data
+  const network = networkQuery.data
   const loading = summaryQuery.isLoading
   const error = summaryQuery.error
 
@@ -392,12 +526,13 @@ export function ReferralsWorkspace() {
   }
 
   const rewards = rewardsQuery.data?.items ?? []
+  const people = network?.referrals ?? []
 
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
-        title="Referrals"
-        description="Share your link. Rewards stay in your referral balance until you redeem them."
+        title="Referral Programme"
+        description="Share your link. Track who joined and redeem rewards when they unlock."
       />
 
       {!summary.referralEnabled ? (
@@ -407,21 +542,35 @@ export function ReferralsWorkspace() {
         </Alert>
       ) : null}
 
-      <section aria-labelledby="referral-summary-heading" className="space-y-3">
+      <section aria-labelledby="referral-network-summary-heading" className="space-y-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="size-4 text-accent-300" aria-hidden />
-          <h2 id="referral-summary-heading" className="text-body-sm font-medium text-fg">
-            Referral balance
+          <Users className="size-4 text-accent-300" aria-hidden />
+          <h2 id="referral-network-summary-heading" className="text-body-sm font-medium text-fg">
+            Your referral network
           </h2>
         </div>
-        <p className="text-caption text-fg-subtle">
-          Separate from your investment wallet. Redeem moves available rewards into investment.
-        </p>
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
-          <SummaryStat label="Total referral earned" value={summary.totalReferralEarned} />
-          <SummaryStat label="Locked referral" value={summary.lockedReferral} tone="locked" />
-          <SummaryStat label="Available referral" value={summary.availableReferral} tone="available" />
-          <SummaryStat label="Redeemed referral" value={summary.redeemedReferral} tone="redeemed" />
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
+          <CountStat label="Total referrals" value={network?.totalReferrals ?? 0} />
+          <CountStat label="Active referrals" value={network?.activeReferrals ?? 0} />
+          <SummaryStat
+            label="Total referral earnings"
+            value={network?.totalEarnings ?? summary.totalReferralEarned}
+          />
+          <SummaryStat
+            label="Available to redeem"
+            value={network?.availableEarnings ?? summary.availableReferral}
+            tone="available"
+          />
+          <SummaryStat
+            label="Locked earnings"
+            value={network?.lockedEarnings ?? summary.lockedReferral}
+            tone="locked"
+          />
+          <SummaryStat
+            label="Redeemed earnings"
+            value={network?.redeemedEarnings ?? summary.redeemedReferral}
+            tone="redeemed"
+          />
         </div>
       </section>
 
@@ -438,6 +587,77 @@ export function ReferralsWorkspace() {
           </p>
         </section>
       ) : null}
+
+      <section aria-labelledby="my-referrals-heading" className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 id="my-referrals-heading" className="text-body-sm font-medium text-fg">
+              My Referrals
+            </h2>
+            <p className="mt-1 text-caption text-fg-subtle">
+              {(network?.totalReferrals ?? 0) === 1
+                ? '1 person joined'
+                : `${network?.totalReferrals ?? 0} people joined`}
+            </p>
+          </div>
+        </div>
+        <Card padded="none" className="overflow-hidden">
+          {networkQuery.isLoading ? (
+            <div className="space-y-3 p-4">
+              <Skeleton className="h-24 rounded-xl" />
+              <Skeleton className="h-24 rounded-xl" />
+            </div>
+          ) : networkQuery.error ? (
+            <div className="p-4">
+              <Alert tone="danger" title="Could not load referral network">
+                {networkQuery.error instanceof Error
+                  ? networkQuery.error.message
+                  : 'Please refresh and try again.'}
+              </Alert>
+            </div>
+          ) : people.length === 0 ? (
+            <div className="p-6">
+              <EmptyState
+                icon={Users}
+                title="No referrals yet"
+                description="When someone joins with your code, they appear here. Direct referrals only."
+              />
+            </div>
+          ) : (
+            <>
+              <ul className="space-y-3 p-3 md:hidden">
+                {people.map((person, idx) => (
+                  <NetworkPersonCard
+                    key={`${person.displayName}-${person.joinedAt}-${idx}`}
+                    person={person}
+                  />
+                ))}
+              </ul>
+              <div className="p-2">
+                <NetworkTable people={people} />
+              </div>
+            </>
+          )}
+        </Card>
+      </section>
+
+      <section aria-labelledby="referral-earnings-heading" className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="size-4 text-accent-300" aria-hidden />
+          <h2 id="referral-earnings-heading" className="text-body-sm font-medium text-fg">
+            Referral earnings
+          </h2>
+        </div>
+        <p className="text-caption text-fg-subtle">
+          Separate from your investment wallet. Redeem moves available rewards into investment.
+        </p>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+          <SummaryStat label="Total earned" value={summary.totalReferralEarned} />
+          <SummaryStat label="Locked" value={summary.lockedReferral} tone="locked" />
+          <SummaryStat label="Available" value={summary.availableReferral} tone="available" />
+          <SummaryStat label="Redeemed" value={summary.redeemedReferral} tone="redeemed" />
+        </div>
+      </section>
 
       <section aria-labelledby="referral-history-heading" className="space-y-3">
         <h2 id="referral-history-heading" className="text-body-sm font-medium text-fg">

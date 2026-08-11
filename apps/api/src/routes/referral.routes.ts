@@ -21,6 +21,12 @@ referralRouter.get(
 )
 
 referralRouter.get(
+  '/network',
+  requirePermission(PERMISSIONS['wallet.view']),
+  referralController.network,
+)
+
+referralRouter.get(
   '/rewards',
   requirePermission(PERMISSIONS['wallet.view']),
   validate(referralListQuerySchema, 'query'),
