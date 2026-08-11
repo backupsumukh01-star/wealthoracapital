@@ -2,10 +2,15 @@ import { Router } from 'express'
 
 import { PERMISSIONS } from '../config/permissions.js'
 import { depositUpload, financeController } from '../controllers/finance.controller.js'
+import { oxapayController } from '../controllers/oxapay.controller.js'
 import { authenticate } from '../middlewares/authenticate.js'
 import { requirePermission } from '../middlewares/require-permission.js'
 import { validate } from '../middlewares/validate.js'
-import { createDepositSchema, idParamSchema } from '../validators/finance.validators.js'
+import {
+  createDepositSchema,
+  createOxapayDepositSchema,
+  idParamSchema,
+} from '../validators/finance.validators.js'
 
 export const depositRouter = Router()
 
@@ -15,6 +20,17 @@ depositRouter.get(
   '/methods',
   requirePermission(PERMISSIONS['deposits.view']),
   financeController.depositMethods,
+)
+depositRouter.get(
+  '/oxapay/status',
+  requirePermission(PERMISSIONS['deposits.view']),
+  oxapayController.status,
+)
+depositRouter.post(
+  '/oxapay',
+  requirePermission(PERMISSIONS['deposits.create']),
+  validate(createOxapayDepositSchema),
+  oxapayController.createDeposit,
 )
 depositRouter.get(
   '/',

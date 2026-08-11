@@ -49,7 +49,23 @@ export function useDepositMethods(options?: QueryHookOptions) {
   })
 }
 
+export function useOxapayStatus(options?: QueryHookOptions) {
+  return useQuery({
+    queryKey: [...depositQueryKeys.all, 'oxapay-status'] as const,
+    queryFn: () => depositsApi.oxapayStatus(),
+    enabled: options?.enabled,
+    staleTime: 60_000,
+  })
+}
+
 export type CreateDepositInput = Omit<CreateDepositBody, 'idempotencyKey'> & {
+  idempotencyKey?: string
+}
+
+export type CreateOxapayDepositInput = Omit<
+  import('@/services/deposit.service').CreateOxapayDepositBody,
+  'idempotencyKey'
+> & {
   idempotencyKey?: string
 }
 
@@ -60,6 +76,23 @@ export function useCreateDeposit() {
   return useMutation<Deposit, Error, CreateDepositInput>({
     mutationFn: (input) =>
       depositsApi.create({
+        ...input,
+        idempotencyKey: input.idempotencyKey ?? crypto.randomUUID(),
+      }),
+    onSuccess: (deposit) => {
+      queryClient.invalidateQueries({ queryKey: depositQueryKeys.all })
+      queryClient.invalidateQueries({ queryKey: walletQueryKeys.all })
+      queryClient.setQueryData(depositQueryKeys.detail(deposit.id), deposit)
+    },
+  })
+}
+
+export function useCreateOxapayDeposit() {
+  const queryClient = useQueryClient()
+
+  return useMutation<Deposit, Error, CreateOxapayDepositInput>({
+    mutationFn: (input) =>
+      depositsApi.createOxapay({
         ...input,
         idempotencyKey: input.idempotencyKey ?? crypto.randomUUID(),
       }),

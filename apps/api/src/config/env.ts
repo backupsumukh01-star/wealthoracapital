@@ -107,6 +107,23 @@ const envSchema = z.object({
   /** Max age of webhook timestamp claim (seconds); 0 disables skew check. */
   PAYMENT_WEBHOOK_MAX_SKEW_SECONDS: z.coerce.number().int().min(0).default(300),
 
+  /**
+   * OxaPay crypto gateway (invoice + HMAC-SHA512 webhooks).
+   * Leave OXAPAY_MERCHANT_API_KEY empty to disable the gateway path.
+   * Default sandbox=true so production money is never taken unless operators opt in.
+   */
+  OXAPAY_MERCHANT_API_KEY: z.string().optional().default(''),
+  OXAPAY_SANDBOX: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
+  OXAPAY_CALLBACK_URL: z.string().optional().default(''),
+  OXAPAY_RETURN_URL: z.string().optional().default(''),
+  OXAPAY_API_BASE_URL: z
+    .string()
+    .url()
+    .default('https://api.oxapay.com/v1'),
+
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
   /** Market quotes: `public` = free delayed sources; `finnhub` needs MARKET_DATA_API_KEY. */
@@ -196,10 +213,11 @@ function parseEnv(): Env {
   if (
     parsed.data.NODE_ENV === 'production' &&
     parsed.data.PAYMENT_AUTO_CONFIRM_DEPOSITS &&
-    !parsed.data.PAYMENT_WEBHOOK_SECRET
+    !parsed.data.PAYMENT_WEBHOOK_SECRET &&
+    !parsed.data.OXAPAY_MERCHANT_API_KEY
   ) {
     throw new Error(
-      'PAYMENT_AUTO_CONFIRM_DEPOSITS requires PAYMENT_WEBHOOK_SECRET in production',
+      'PAYMENT_AUTO_CONFIRM_DEPOSITS requires PAYMENT_WEBHOOK_SECRET or OXAPAY_MERCHANT_API_KEY in production',
     )
   }
 

@@ -29,6 +29,15 @@ export const createDepositSchema = z.object({
   idempotencyKey: z.string().min(8).max(120),
 })
 
+/** OxaPay crypto gateway deposit — creates PENDING deposit + invoice; no credit. */
+export const createOxapayDepositSchema = z.object({
+  amount: money,
+  methodId: z.string().uuid(),
+  notes: z.string().max(2000).optional(),
+  email: z.string().email().max(160).optional(),
+  idempotencyKey: z.string().min(8).max(120),
+})
+
 export const createWithdrawalSchema = z.object({
   amount: money,
   /** Optional INR snapshot from the dual-currency form; server recomputes if omitted. */

@@ -15,6 +15,20 @@ export type CreateDepositBody = {
   idempotencyKey: string
 }
 
+export type CreateOxapayDepositBody = {
+  amount: string
+  methodId: string
+  notes?: string
+  email?: string
+  idempotencyKey: string
+}
+
+export type OxapayStatusResponse = {
+  enabled: boolean
+  sandbox: boolean
+  provider: string
+}
+
 async function apiFormData<T>(path: string, form: FormData): Promise<T> {
   const run = async (forceCsrf: boolean) => {
     const csrf = await ensureCsrfToken(forceCsrf)
@@ -64,6 +78,16 @@ export const depositService = {
 
   create: (body: CreateDepositBody) =>
     apiClient<Deposit>(API_ROUTES.deposits.root, {
+      method: 'POST',
+      body,
+      idempotencyKey: body.idempotencyKey,
+    }),
+
+  oxapayStatus: () =>
+    apiClient<OxapayStatusResponse>(API_ROUTES.deposits.oxapayStatus),
+
+  createOxapay: (body: CreateOxapayDepositBody) =>
+    apiClient<Deposit>(API_ROUTES.deposits.oxapay, {
       method: 'POST',
       body,
       idempotencyKey: body.idempotencyKey,

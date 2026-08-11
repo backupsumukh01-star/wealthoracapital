@@ -54,6 +54,11 @@ export function mapDeposit(deposit: DepositWithMethod) {
 
   const amountUsd = usdDisplay(deposit.amount)
   const amountInr = deposit.amountInr != null ? inrDisplay(deposit.amountInr) : null
+  const gateway = nonempty(details?.gateway)
+  const paymentUrl = nonempty(details?.oxapayPaymentUrl) ?? nonempty(details?.paymentUrl)
+  const oxapayTrackId =
+    nonempty(details?.oxapayTrackId) ??
+    (gateway === 'oxapay' ? nonempty(deposit.userReference) : null)
 
   return {
     id: deposit.id,
@@ -98,6 +103,10 @@ export function mapDeposit(deposit: DepositWithMethod) {
       deposit.status === 'APPROVED' &&
       deposit.fundsUnlockAt != null &&
       deposit.fundsUnlockAt.getTime() > Date.now(),
+    gateway,
+    paymentUrl,
+    oxapayTrackId,
+    expiresAt: deposit.expiresAt?.toISOString() ?? null,
   }
 }
 

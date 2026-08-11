@@ -43,8 +43,10 @@ import { toast } from '@/components/ui/toast'
 import {
   useCancelDeposit,
   useCreateDeposit,
+  useCreateOxapayDeposit,
   useDepositMethods,
   useDeposits,
+  useOxapayStatus,
   useUploadDepositProof,
 } from '@/features/deposits/hooks'
 import { ApiError } from '@/lib/api-client'
@@ -58,7 +60,7 @@ const TIMELINE = [
 ]
 
 type Rail = 'CRYPTO' | 'BANK' | 'UPI'
-type Step = 'method' | 'amount' | 'details' | 'summary' | 'done'
+type Step = 'method' | 'amount' | 'details' | 'summary' | 'done' | 'gateway'
 
 type CryptoWalletOption = {
   id: string
@@ -236,8 +238,11 @@ function DepositHistory() {
 
 function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
   const createDeposit = useCreateDeposit()
+  const createOxapay = useCreateOxapayDeposit()
   const uploadProof = useUploadDepositProof()
   const cancelDeposit = useCancelDeposit()
+  const { data: oxapayStatus } = useOxapayStatus()
+  const oxapayEnabled = Boolean(oxapayStatus?.enabled)
 
   const [step, setStep] = useState<Step>('method')
   const [rail, setRail] = useState<Rail | null>(null)
@@ -315,6 +320,40 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
       return
     }
     setStep('details')
+  }
+
+  async function startOxapayCheckout() {
+    if (!selected || rail !== 'CRYPTO') return
+    if (amountError) {
+      toast.error(amountError)
+      return
+    }
+    setSubmitting(true)
+    try {
+      const deposit = await createOxapay.mutateAsync({
+        amount: depositUsd.trim(),
+        methodId: selected.id,
+        notes: notes.trim() || undefined,
+      })
+      const paymentUrl = deposit.paymentUrl
+      if (!paymentUrl) {
+        throw new Error('Checkout URL was not returned. Please try again.')
+      }
+      setSubmitted(deposit)
+      setStep('gateway')
+      toast.success('Checkout ready', 'Complete payment in the OxaPay window.')
+      window.location.assign(paymentUrl)
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : 'Could not start crypto checkout.',
+      )
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   function goSummary() {
@@ -473,11 +512,13 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
                   ? 'Step 3 · Transfer'
                   : step === 'summary'
                     ? 'Step 4 · Confirm'
-                    : 'Submitted'}
+                    : step === 'gateway'
+                      ? 'Checkout'
+                      : 'Submitted'}
           </p>
         </div>
 
-        {step !== 'method' && step !== 'done' ? (
+        {step !== 'method' && step !== 'done' && step !== 'gateway' ? (
           <button
             type="button"
             className="text-caption text-fg-subtle mb-4 inline-flex items-center gap-1.5 hover:text-fg"
@@ -559,9 +600,59 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
                 autoFocus
               />
             </FormField>
-            <Button type="button" className="w-full" onClick={goDetails} disabled={Boolean(amountError)}>
-              Continue
-              <ArrowRight aria-hidden />
+            {rail === 'CRYPTO' && oxapayEnabled ? (
+              <div className="space-y-2">
+                <Button
+                  type="button"
+                  className="w-full"
+                  onClick={() => void startOxapayCheckout()}
+                  disabled={Boolean(amountError) || submitting}
+                >
+                  {submitting ? 'Opening checkout…' : 'Pay with crypto checkout'}
+                  <ArrowRight aria-hidden />
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  onClick={goDetails}
+                  disabled={Boolean(amountError) || submitting}
+                >
+                  Manual transfer instead
+                </Button>
+                <p className="text-caption text-fg-subtle text-center">
+                  Checkout confirms automatically after network confirmation. Manual transfer still
+                  requires proof and admin review.
+                </p>
+              </div>
+            ) : (
+              <Button type="button" className="w-full" onClick={goDetails} disabled={Boolean(amountError)}>
+                Continue
+                <ArrowRight aria-hidden />
+              </Button>
+            )}
+          </div>
+        ) : null}
+
+        {step === 'gateway' && submitted ? (
+          <div className="mx-auto max-w-md space-y-4 text-center">
+            <CheckCircle2 className="text-accent-300 mx-auto size-10" aria-hidden />
+            <SectionHeader
+              title="Complete payment in OxaPay"
+              description="Your balance updates only after OxaPay confirms the payment on the server. Returning to this site alone does not credit funds."
+              as="h3"
+            />
+            <p className="text-caption text-fg-subtle">
+              Reference {submitted.reference}
+              {submitted.oxapayTrackId ? ` · Track ${submitted.oxapayTrackId}` : ''}
+            </p>
+            {submitted.paymentUrl ? (
+              <Button type="button" className="w-full" asChild>
+                <a href={submitted.paymentUrl}>Open checkout again</a>
+              </Button>
+            ) : null}
+            <Button type="button" variant="secondary" className="w-full" onClick={resetFlow}>
+              Start another deposit
             </Button>
           </div>
         ) : null}

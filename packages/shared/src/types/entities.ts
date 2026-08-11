@@ -168,6 +168,15 @@ export interface Deposit {
   rejectionReason: string | null
   createdAt: IsoDateTime
   reviewedAt: IsoDateTime | null
+  /** Optional gateway marker (e.g. oxapay). */
+  gateway?: string | null
+  /** OxaPay checkout URL when a gateway invoice was created. */
+  paymentUrl?: string | null
+  oxapayTrackId?: string | null
+  expiresAt?: IsoDateTime | null
+  lockDays?: number
+  fundsUnlockAt?: IsoDateTime | null
+  fundsLocked?: boolean
 }
 
 export interface PayoutMethod {

@@ -50,6 +50,8 @@ export const ROUTES = {
     /** Full deposit submission flow (amount, method, proof). */
     deposit: '/deposit',
     depositHistory: '/deposit/history',
+    /** Browser return after OxaPay checkout — never credits funds. */
+    depositOxapayReturn: '/deposit/oxapay/return',
     trades: '/trades',
     trade: (tradeId: string) => `/trades/${tradeId}`,
     // `/performance` belongs to the public marketing track record, which is SEO-critical and
@@ -155,6 +157,8 @@ export const API_ROUTES = {
   deposits: {
     root: '/deposits',
     methods: '/deposits/methods',
+    oxapay: '/deposits/oxapay',
+    oxapayStatus: '/deposits/oxapay/status',
     cancel: (id: string) => `/deposits/${id}/cancel`,
     proof: (id: string) => `/deposits/${id}/proof`,
     /** Authenticated binary stream for payment proof preview/download. */
