@@ -535,50 +535,38 @@ export const oxapayWebhookService = {
 
     const creditTxHash = firstTxHash(payment.txs) ?? txHash ?? undefined
 
-    if (!env.PAYMENT_AUTO_CONFIRM_DEPOSITS) {
-      await prisma.deposit.updateMany({
-        where: { id: deposit.id, status: { in: ['PENDING', 'UNDER_REVIEW'] } },
-        data: {
-          status: 'UNDER_REVIEW',
-          txHash: creditTxHash?.slice(0, 120) ?? undefined,
-          internalNotes: `OxaPay paid+verified; awaiting admin (PAYMENT_AUTO_CONFIRM_DEPOSITS=false) track_id=${trackId}`.slice(
-            0,
-            2000,
-          ),
-        },
-      })
-      await prisma.financeReview.create({
-        data: {
-          depositId: deposit.id,
-          decision: 'PROVIDER_CONFIRM',
-          reason: 'OxaPay paid and verified — auto-confirm disabled',
-          metadata: { trackId, eventId: webhookEventId },
-        },
-      })
-      await prisma.paymentWebhookEvent.update({
-        where: { id: webhookEventId },
-        data: { status: 'PROCESSED', processedAt: new Date() },
-      })
-      return {
-        action: 'queued_for_admin' as const,
-        depositId: deposit.id,
-        status: normalizedStatus,
-      }
-    }
-
-    const credited = await depositService.confirmFromProvider(deposit.id, {
-      amount: moneyString(deposit.amount),
-      eventId: `oxapay:${trackId}:paid`,
-      txHash: creditTxHash,
-      context,
-    })
-
+    // Product rule: verified OxaPay paid = payment received for Admin review.
+    // Never auto-credit the ledger from the OxaPay webhook path.
     await mergeDepositGatewayMeta(deposit.id, {
       oxapayVerificationResult: 'ok',
-      oxapayConfirmedAt: new Date().toISOString(),
+      oxapayVerifiedAt: new Date().toISOString(),
       oxapayStatus: 'paid',
+      oxapayAwaitingAdminApproval: 'true',
+    }, {
+      txHash: creditTxHash,
+      internalNotes: `OxaPay paid+verified; awaiting admin approval. track_id=${trackId}`.slice(0, 2000),
     })
 
+    await prisma.deposit.updateMany({
+      where: { id: deposit.id, status: { in: ['PENDING', 'UNDER_REVIEW'] } },
+      data: {
+        status: 'UNDER_REVIEW',
+        txHash: creditTxHash?.slice(0, 120) ?? undefined,
+      },
+    })
+    await prisma.financeReview.create({
+      data: {
+        depositId: deposit.id,
+        decision: 'PROVIDER_CONFIRM',
+        reason: 'OxaPay paid and verified — awaiting admin approval (no auto-credit)',
+        metadata: {
+          trackId,
+          eventId: webhookEventId,
+          autoConfirm: false,
+          paymentAutoConfirmEnv: env.PAYMENT_AUTO_CONFIRM_DEPOSITS,
+        },
+      },
+    })
     await prisma.paymentWebhookEvent.update({
       where: { id: webhookEventId },
       data: { status: 'PROCESSED', processedAt: new Date() },
@@ -591,15 +579,14 @@ export const oxapayWebhookService = {
         orderId: deposit.reference,
         status: 'paid',
         verificationResult: 'ok',
-        creditedAmount: credited,
+        action: 'queued_for_admin',
       },
-      'OxaPay deposit auto-confirmed',
+      'OxaPay deposit queued for admin review — no ledger credit',
     )
 
     return {
-      action: 'auto_confirmed' as const,
+      action: 'queued_for_admin' as const,
       depositId: deposit.id,
-      creditedAmount: credited,
       status: normalizedStatus,
     }
   },

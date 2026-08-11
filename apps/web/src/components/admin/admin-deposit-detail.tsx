@@ -365,11 +365,10 @@ export function AdminDepositDetailWorkspace() {
             </FormField>
             {actionable ? (
               <div className="flex flex-wrap gap-2">
-                {asRecord(deposit.submissionDetails)?.gateway === 'oxapay' &&
-                status === 'PENDING' ? (
+                {asRecord(deposit.submissionDetails)?.gateway === 'oxapay' ? (
                   <p className="text-caption text-fg-muted w-full">
-                    OxaPay gateway deposit — wait for verified webhook auto-confirm. Manual approve
-                    only for reconciliation exceptions.
+                    OxaPay gateway deposit — verified payment waits for Admin Approve before any
+                    wallet credit.
                   </p>
                 ) : null}
                 <Button

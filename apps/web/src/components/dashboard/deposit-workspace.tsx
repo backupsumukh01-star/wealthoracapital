@@ -621,8 +621,8 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
                   Manual transfer instead
                 </Button>
                 <p className="text-caption text-fg-subtle text-center">
-                  Checkout confirms automatically after network confirmation. Manual transfer still
-                  requires proof and admin review.
+                  After checkout, payment is verified then reviewed by Admin before your balance
+                  updates. Manual transfer still requires proof and admin review.
                 </p>
               </div>
             ) : (
@@ -639,7 +639,7 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
             <CheckCircle2 className="text-accent-300 mx-auto size-10" aria-hidden />
             <SectionHeader
               title="Complete payment in OxaPay"
-              description="Your balance updates only after OxaPay confirms the payment on the server. Returning to this site alone does not credit funds."
+              description="Payment received goes under Admin review. Your available balance updates only after approval — not from this browser return."
               as="h3"
             />
             <p className="text-caption text-fg-subtle">
