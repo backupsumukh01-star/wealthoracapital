@@ -79,6 +79,20 @@ const nextConfig: NextConfig = {
     remotePatterns: [],
   },
 
+  /**
+   * Stale path: daily-return desk used to be referenced as `/admin/returns`
+   * (API remains `/api/v1/admin/returns`). Nav already uses `/admin/daily-return`.
+   */
+  async redirects() {
+    return [
+      {
+        source: '/admin/returns',
+        destination: '/admin/daily-return',
+        permanent: false,
+      },
+    ]
+  },
+
   async headers() {
     const csp = isProd
       ? [

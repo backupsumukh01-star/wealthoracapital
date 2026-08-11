@@ -91,6 +91,8 @@ export const ROUTES = {
     trade: (tradeId: string) => `/admin/trades/${tradeId}`,
     dailyReturn: '/admin/daily-return',
     dailyReturnRun: (runId: string) => `/admin/daily-return/${runId}`,
+    /** @deprecated Alias of dailyReturn — prefer dailyReturn. Redirected in Next config. */
+    returns: '/admin/daily-return',
     notifications: '/admin/notifications',
     broadcast: '/admin/broadcast',
     auditLog: '/admin/audit-log',
