@@ -182,6 +182,13 @@ export const DASHBOARD_NAV: NavSection[] = [
         description: 'Activity timeline',
         permission: ['deposits.view', 'withdrawals.view'],
       },
+      {
+        label: 'Referrals',
+        href: ROUTES.dashboard.referrals,
+        icon: Sparkles,
+        description: 'Share your promo code',
+        permission: 'profile.view',
+      },
     ],
   },
   {
@@ -217,13 +224,6 @@ export const DASHBOARD_NAV: NavSection[] = [
         icon: CandlestickChart,
         matchNested: true,
         permission: 'trades.view',
-      },
-      {
-        label: 'Referrals',
-        href: ROUTES.dashboard.referrals,
-        icon: Sparkles,
-        badge: 'v1.1',
-        permission: 'profile.view',
       },
     ],
   },

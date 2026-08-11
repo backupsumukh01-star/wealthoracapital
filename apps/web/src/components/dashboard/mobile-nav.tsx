@@ -4,11 +4,11 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ROUTES } from '@meridian/shared'
 import {
-  ChartNoAxesCombined,
   LayoutDashboard,
   UserRound,
   Wallet,
   History,
+  Sparkles,
 } from 'lucide-react'
 import { useMemo } from 'react'
 
@@ -25,16 +25,16 @@ const MOBILE_NAV: NavItem[] = [
   },
   { label: 'Wallet', href: ROUTES.dashboard.wallet, icon: Wallet, permission: 'wallet.view' },
   {
-    label: 'Returns',
-    href: ROUTES.dashboard.performance,
-    icon: ChartNoAxesCombined,
-    permission: 'performance.view',
-  },
-  {
     label: 'History',
     href: ROUTES.dashboard.transactions,
     icon: History,
     permission: ['deposits.view', 'withdrawals.view'],
+  },
+  {
+    label: 'Referrals',
+    href: ROUTES.dashboard.referrals,
+    icon: Sparkles,
+    permission: 'profile.view',
   },
   {
     label: 'Profile',

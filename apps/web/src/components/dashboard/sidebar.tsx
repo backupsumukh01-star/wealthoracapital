@@ -15,7 +15,6 @@ import {
   type NavSection,
 } from '@/lib/navigation'
 import { useLogout } from '@/features/auth/hooks'
-import { env } from '@/lib/env'
 import { cn } from '@/lib/cn'
 import { useSession } from '@/providers/session-provider'
 
@@ -25,7 +24,6 @@ function useVisibleDashboardNav(): NavSection[] {
     return DASHBOARD_NAV.map((section) => ({
       ...section,
       items: section.items.filter((item) => {
-        if (item.badge === 'v1.1' && !env.NEXT_PUBLIC_ENABLE_REFERRALS) return false
         if (!item.permission) return true
         return Array.isArray(item.permission) ? canAny(item.permission) : can(item.permission)
       }),
