@@ -3,10 +3,34 @@ import { logger } from '../utils/logger.js'
 
 export type TelegramBotKind = 'KYC' | 'DEPOSIT' | 'WITHDRAWAL'
 
-type BotConfig = { token: string; chatId: string }
+type BotTarget = { token: string; chatId: string }
 
-function botConfig(kind: TelegramBotKind): BotConfig | null {
-  const map: Record<TelegramBotKind, BotConfig> = {
+function parseCsv(raw: string): string[] {
+  return raw
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0)
+}
+
+/** One token + many chats, many tokens + one chat, or pair by index when both lists have more than one. */
+function pairTargets(tokens: string[], chatIds: string[]): BotTarget[] {
+  if (tokens.length === 0 || chatIds.length === 0) return []
+  if (tokens.length === 1) {
+    return chatIds.map((chatId) => ({ token: tokens[0]!, chatId }))
+  }
+  if (chatIds.length === 1) {
+    return tokens.map((token) => ({ token, chatId: chatIds[0]! }))
+  }
+  const n = Math.min(tokens.length, chatIds.length)
+  const targets: BotTarget[] = []
+  for (let i = 0; i < n; i++) {
+    targets.push({ token: tokens[i]!, chatId: chatIds[i]! })
+  }
+  return targets
+}
+
+function botTargets(kind: TelegramBotKind): BotTarget[] {
+  const map: Record<TelegramBotKind, { token: string; chatId: string }> = {
     KYC: { token: env.TELEGRAM_KYC_BOT_TOKEN.trim(), chatId: env.TELEGRAM_KYC_CHAT_ID.trim() },
     DEPOSIT: {
       token: env.TELEGRAM_DEPOSIT_BOT_TOKEN.trim(),
@@ -18,8 +42,7 @@ function botConfig(kind: TelegramBotKind): BotConfig | null {
     },
   }
   const cfg = map[kind]
-  if (!cfg.token || !cfg.chatId) return null
-  return cfg
+  return pairTargets(parseCsv(cfg.token), parseCsv(cfg.chatId))
 }
 
 /** Escape Telegram MarkdownV2 special characters in plain text segments. */
@@ -29,45 +52,48 @@ export function escapeTelegramMarkdown(text: string): string {
 
 /**
  * Admin Telegram fan-out. Never throws. Never logs bot tokens or chat credentials.
+ * TELEGRAM_*_BOT_TOKEN and TELEGRAM_*_CHAT_ID may be a single value or comma-separated lists.
  */
 export const telegramService = {
   isConfigured(kind: TelegramBotKind): boolean {
-    return botConfig(kind) !== null
+    return botTargets(kind).length > 0
   },
 
   async send(kind: TelegramBotKind, text: string): Promise<{ sent: boolean; skipped: boolean }> {
-    const cfg = botConfig(kind)
-    if (!cfg) {
+    const targets = botTargets(kind)
+    if (targets.length === 0) {
       logger.debug({ kind }, 'Telegram bot not configured; skipping')
       return { sent: false, skipped: true }
     }
 
-    try {
-      const url = `https://api.telegram.org/bot${cfg.token}/sendMessage`
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: cfg.chatId,
-          text: text.slice(0, 4000),
-          disable_web_page_preview: true,
-        }),
-      })
-      if (!response.ok) {
-        // Do not include response body if it might echo the token in rare API errors.
+    const bodyText = text.slice(0, 4000)
+    let anySent = false
+
+    for (const target of targets) {
+      try {
+        const url = `https://api.telegram.org/bot${target.token}/sendMessage`
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: target.chatId,
+            text: bodyText,
+            disable_web_page_preview: true,
+          }),
+        })
+        if (!response.ok) {
+          logger.warn({ kind, status: response.status }, 'Telegram sendMessage failed')
+          continue
+        }
+        anySent = true
+      } catch (err) {
         logger.warn(
-          { kind, status: response.status },
-          'Telegram sendMessage failed',
+          { kind, err: err instanceof Error ? err.message : 'telegram_error' },
+          'Telegram sendMessage threw',
         )
-        return { sent: false, skipped: false }
       }
-      return { sent: true, skipped: false }
-    } catch (err) {
-      logger.warn(
-        { kind, err: err instanceof Error ? err.message : 'telegram_error' },
-        'Telegram sendMessage threw',
-      )
-      return { sent: false, skipped: false }
     }
+
+    return { sent: anySent, skipped: false }
   },
 }
