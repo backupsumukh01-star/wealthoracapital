@@ -71,8 +71,10 @@ export function createApiRouter(): Router {
   router.use('/v1/settings', settingsRouter)
   router.use('/v1/currency', currencyRouter)
   router.use('/v1/reports', reportRouter)
-  router.use('/v1/cms', cmsRouter)
+  // Mount /downloads before /cms. Express treats `/v1/cms` as a prefix, so
+  // `/v1/cms/downloads/public` would otherwise hit CMS staff auth and 401.
   router.use('/v1/cms/downloads', cmsDownloadRouter)
+  router.use('/v1/cms', cmsRouter)
   router.use('/v1/files', filesRouter)
   router.use('/v1/emails', emailTrackingRouter)
   router.use('/v1/admin', adminRouter)
