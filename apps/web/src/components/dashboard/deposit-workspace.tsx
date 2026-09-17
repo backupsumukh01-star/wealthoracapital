@@ -597,6 +597,7 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
                 value={depositUsd}
                 onChange={(e) => onAmountChange(e.target.value)}
                 placeholder="Enter USDT amount"
+                className="pl-16"
                 autoFocus
               />
             </FormField>
