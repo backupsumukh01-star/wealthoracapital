@@ -58,7 +58,7 @@ export function VerifyEmailPanel() {
       return (
         <SuccessState
           title="Email verified"
-          description="Welcome to Growzy. Complete identity verification before investing."
+          description="Welcome to Wealthora. Complete identity verification before investing."
           primaryAction={{ label: 'Continue onboarding', href: ROUTES.auth.onboarding }}
         />
       )

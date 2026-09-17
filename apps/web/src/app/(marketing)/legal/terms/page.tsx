@@ -14,7 +14,7 @@ export default function TermsPage() {
     <>
       <LegalDocument
         title="Terms of service"
-        intro="The agreement between you and Growzy Capital Partners, covering eligibility, the nature of the programme, and how the relationship can end."
+        intro="The agreement between you and Wealthora Capital Partners, covering eligibility, the nature of the programme, and how the relationship can end."
         sections={[
           { heading: 'Eligibility and account registration', summary: 'Who may open an account, the one-account rule, and the information required.' },
           { heading: 'Nature of the service', summary: 'What the managed programme is, and explicitly what it is not — no guaranteed return and no principal protection.' },

@@ -81,7 +81,7 @@ export function defaultFrontendContent(): FrontendCmsDocument {
     updatedAt: now,
     publishedAt: now,
     seo: {
-      metaTitle: 'Growzy Capital — Transparent forex investing',
+      metaTitle: 'Wealthora Capital — Transparent forex investing',
       metaDescription:
         'AI-assisted forex strategies with human-verified daily returns and a full public trade ledger.',
       ogImageUrl: '',
@@ -97,7 +97,7 @@ export function defaultFrontendContent(): FrontendCmsDocument {
       whatsapp: '+971500000000',
     },
     contact: {
-      supportEmail: 'support@growzy.com',
+      supportEmail: 'support@wealthoracapital.com',
       supportPhone: '',
       address: '',
       hours: 'Mon–Fri · business hours',
@@ -109,7 +109,7 @@ export function defaultFrontendContent(): FrontendCmsDocument {
           key: 'hero',
           label: 'Hero Section',
           visible: true,
-          eyebrow: 'Growzy Capital',
+          eyebrow: 'Wealthora Capital',
           title: 'Forex investing with every trade on record',
           description:
             'AI-assisted strategies, human-verified results and transparent historical performance.',
@@ -125,7 +125,7 @@ export function defaultFrontendContent(): FrontendCmsDocument {
             particlesEnabled: true,
             glowEnabled: true,
             intensity: 1,
-            companyName: 'Growzy',
+            companyName: 'Wealthora',
           },
         },
         0,
@@ -156,7 +156,7 @@ export function defaultFrontendContent(): FrontendCmsDocument {
           visible: true,
           eyebrow: 'About',
           title: 'A desk that publishes its work',
-          description: 'Growzy runs discretionary forex strategies with operator-verified daily results.',
+          description: 'Wealthora runs discretionary forex strategies with operator-verified daily results.',
           bodyHtml:
             '<p>Every eligible wallet receives the same verified daily figure. Losing days are shown with the same care as winning days.</p>',
           imageUrl: '',
@@ -207,7 +207,7 @@ export function defaultFrontendContent(): FrontendCmsDocument {
           key: 'why_choose_us',
           label: 'Why Choose Us',
           visible: true,
-          eyebrow: 'Why Growzy',
+          eyebrow: 'Why Wealthora',
           title: 'Built for verification',
           description: 'Compact reasons to inspect the platform — not marketing promises.',
           items: [
@@ -344,7 +344,7 @@ export function defaultFrontendContent(): FrontendCmsDocument {
           key: 'footer',
           label: 'Footer',
           visible: true,
-          title: 'Growzy Capital',
+          title: 'Wealthora Capital',
           description: 'Transparent forex investing with every trade on record.',
           meta: { newsletterEnabled: true, newsletterLabel: 'Newsletter' },
         },

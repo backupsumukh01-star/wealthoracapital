@@ -145,7 +145,7 @@ export function DailySettlementFlow() {
                   'relative flex h-full w-full flex-col items-start gap-2 rounded-xl border px-3 py-3 text-left transition-all duration-300 sm:items-center sm:text-center',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-base',
                   on
-                    ? 'border-accent-500/50 bg-accent-500/12 shadow-[0_0_24px_-8px_rgba(18,214,160,0.55)]'
+                    ? 'border-accent-500/50 bg-accent-500/12 shadow-[0_0_24px_-8px_rgba(212,217,223,0.55)]'
                     : 'border-white/[0.06] bg-white/[0.02] opacity-70 hover:opacity-100',
                 )}
               >

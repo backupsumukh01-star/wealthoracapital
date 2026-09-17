@@ -46,7 +46,7 @@ async function bootstrap(): Promise<void> {
     process.exit(1)
   }
 
-  logger.info({ group, queues: groups.length }, 'Growzy workers ready')
+  logger.info({ group, queues: groups.length }, 'Wealthora workers ready')
 
   const shutdown = async (signal: string) => {
     logger.info({ signal }, 'Shutting down worker')

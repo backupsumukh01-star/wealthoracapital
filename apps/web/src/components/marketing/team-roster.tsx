@@ -81,7 +81,7 @@ export const TeamRoster = memo(function TeamRoster({
                 'bg-gradient-to-b from-white/[0.07] via-white/[0.03] to-transparent p-5',
                 'shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl',
                 'transition-[transform,box-shadow] duration-300',
-                'hover:-translate-y-1 hover:shadow-[0_0_32px_-10px_rgba(18,214,160,0.45)]',
+                'hover:-translate-y-1 hover:shadow-[0_0_32px_-10px_rgba(212,217,223,0.45)]',
               )}
               initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -94,7 +94,7 @@ export const TeamRoster = memo(function TeamRoster({
                     <AvatarFallback>{initialsOf(first, last)}</AvatarFallback>
                   </Avatar>
                   <span
-                    className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-[#0a1620] bg-profit shadow-[0_0_8px_rgba(18,214,160,0.8)]"
+                    className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-[#07090B] bg-profit shadow-[0_0_8px_rgba(212,217,223,0.8)]"
                     aria-hidden
                   />
                 </div>

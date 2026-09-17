@@ -55,7 +55,7 @@ export function AdminAuditWorkspace() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `growzy-audit-${Date.now()}.csv`
+    a.download = `wealthora-audit-${Date.now()}.csv`
     a.click()
     URL.revokeObjectURL(url)
     toast.success('Audit CSV exported')

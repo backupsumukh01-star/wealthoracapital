@@ -24,7 +24,7 @@ import { emailAdminService } from '@/services/email-admin.service'
 const TEMPLATES: { id: string; subject: string; body: string }[] = [
   {
     id: 'Welcome',
-    subject: 'Welcome to Growzy',
+    subject: 'Welcome to Wealthora',
     body: 'Your account is ready. Verify your email and complete KYC to unlock deposits.',
   },
   {
@@ -44,7 +44,7 @@ const TEMPLATES: { id: string; subject: string; body: string }[] = [
   },
   {
     id: 'Marketing',
-    subject: 'Growzy desk update',
+    subject: 'Wealthora desk update',
     body: 'A short note from the trading desk on recent performance and platform updates.',
   },
   {
@@ -64,7 +64,7 @@ export function AdminEmailCenter() {
   const emails = data?.items ?? []
   const [templateId, setTemplateId] = useState<TemplateId>('Welcome')
   const [to, setTo] = useState('')
-  const [subject, setSubject] = useState<string>(TEMPLATES[0]?.subject ?? 'Welcome to Growzy')
+  const [subject, setSubject] = useState<string>(TEMPLATES[0]?.subject ?? 'Welcome to Wealthora')
   const [body, setBody] = useState<string>(
     TEMPLATES[0]?.body ?? 'Your account is ready. Verify your email and complete KYC to unlock deposits.',
   )

@@ -46,7 +46,7 @@ export function AdminEmailTemplatesWorkspace() {
       <AdminPanel>
         <AdminPanelHeader
           title="Template studio"
-          description="Each email has its own colors, illustration, and layout while keeping Growzy identity."
+          description="Each email has its own colors, illustration, and layout while keeping Wealthora identity."
         />
         <div className="p-4 sm:p-5">
           <PremiumEmailPreviewStudio showEditor />

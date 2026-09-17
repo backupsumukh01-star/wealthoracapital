@@ -40,7 +40,7 @@ export function NavBar() {
         'w-full min-w-0 pt-[env(safe-area-inset-top)] transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300',
         scrolled
           ? 'glass-strong border-b border-white/[0.08] shadow-[0_8px_28px_rgb(0_0_0_/_0.35)]'
-          : 'border-b border-white/[0.06] bg-[#07131C]/85 backdrop-blur-xl',
+          : 'border-b border-white/[0.06] bg-[#07090B]/85 backdrop-blur-xl',
       )}
     >
       <nav className="container-page flex h-[58px] min-w-0 items-center justify-between gap-3 py-0 lg:h-[61px]">
@@ -51,7 +51,7 @@ export function NavBar() {
           />
           <Logo
             className="relative shrink-0 [&>span]:gap-3.5 sm:[&>span]:gap-4 [&_.font-semibold]:text-[1.625rem] lg:[&_.font-semibold]:text-[1.75rem] [&_.font-semibold]:font-semibold [&_.font-semibold]:leading-none [&_.font-semibold]:self-center"
-            markClassName="size-[33px] lg:size-[40px] shrink-0 drop-shadow-[0_0_12px_rgba(18,214,160,0.35)]"
+            markClassName="size-[33px] lg:size-[40px] shrink-0 drop-shadow-[0_0_12px_rgba(212,217,223,0.16)]"
           />
         </div>
 
@@ -73,7 +73,7 @@ export function NavBar() {
                   {item.label}
                   {active ? (
                     <span
-                      className="absolute inset-x-3 -bottom-0.5 h-0.5 rounded-full bg-accent shadow-[0_0_8px_rgba(18,214,160,0.65)]"
+                      className="absolute inset-x-3 -bottom-0.5 h-0.5 rounded-full bg-accent shadow-[0_0_8px_rgba(212,217,223),0.65)]"
                       aria-hidden
                     />
                   ) : null}

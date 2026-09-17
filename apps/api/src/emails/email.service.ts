@@ -407,7 +407,7 @@ class AppEmailService implements EmailService {
       reference: input.reference,
       subject: input.subject,
       message: input.message,
-      agentName: input.agentName ?? 'Growzy Support',
+      agentName: input.agentName ?? 'Wealthora Support',
     })
   }
 

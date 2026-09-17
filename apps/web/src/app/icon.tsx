@@ -3,7 +3,7 @@ import { ImageResponse } from 'next/og'
 export const size = { width: 32, height: 32 }
 export const contentType = 'image/png'
 
-/** Browser favicon — Growzy geometric G mark. */
+/** Browser favicon — Wealthora geometric W mark. */
 export default function Icon() {
   return new ImageResponse(
     (
@@ -14,7 +14,7 @@ export default function Icon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #5EF2C4 0%, #12D6A0 50%, #2AE8FF 100%)',
+          background: 'linear-gradient(135deg, #C4CBD3 0%, #D4D9DF 50%, #F2F4F7 100%)',
           borderRadius: 9,
         }}
       >
@@ -22,12 +22,12 @@ export default function Icon() {
           style={{
             fontSize: 20,
             fontWeight: 700,
-            color: '#07131C',
+            color: '#07090B',
             fontFamily: 'system-ui, sans-serif',
             lineHeight: 1,
           }}
         >
-          G
+          W
         </div>
       </div>
     ),

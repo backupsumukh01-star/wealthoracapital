@@ -60,7 +60,7 @@ export function NotificationSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="max-w-[min(100vw,24rem)] border-glass-line bg-[rgb(10_20_30/0.88)] backdrop-blur-2xl"
+        className="max-w-[min(100vw,24rem)] border-glass-line bg-[rgb(7_9_11/0.88)] backdrop-blur-2xl"
       >
         <SheetHeader className="safe-pt px-4 sm:px-5">
           <SheetTitle className="text-heading-md">Notifications</SheetTitle>

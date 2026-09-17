@@ -78,7 +78,7 @@ export default function ProgressSharePage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = 'growzy-progress.png'
+      a.download = 'wealthora-progress.png'
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -100,20 +100,20 @@ export default function ProgressSharePage() {
     if (!token || !shareUrl) return
     try {
       const blob = await progressShareService.fetchImageBlob({ token })
-      const file = new File([blob], 'growzy-progress.png', { type: 'image/png' })
+      const file = new File([blob], 'wealthora-progress.png', { type: 'image/png' })
       if (typeof navigator.share === 'function') {
         try {
           if (navigator.canShare?.({ files: [file] })) {
             await navigator.share({
-              title: 'Growzy Capital',
-              text: 'My investment progress on Growzy Capital.',
+              title: 'Wealthora Capital',
+              text: 'My investment progress on Wealthora Capital.',
               files: [file],
             })
             return
           }
           await navigator.share({
-            title: 'Growzy Capital',
-            text: 'My investment progress on Growzy Capital.',
+            title: 'Wealthora Capital',
+            text: 'My investment progress on Wealthora Capital.',
             url: shareUrl,
           })
           return
@@ -129,10 +129,10 @@ export default function ProgressSharePage() {
   }
 
   return (
-    <main className="min-h-dvh bg-[radial-gradient(circle_at_top,#0C1C28_0%,#07131C_55%,#050D14_100%)] px-4 py-5 text-[#F4F8FB] sm:px-6 sm:py-8">
+    <main className="min-h-dvh bg-[radial-gradient(circle_at_top,#0A0D10_0%,#07090B_55%,#050708_100%)] px-4 py-5 text-[#F2F4F7] sm:px-6 sm:py-8">
       <div className="mx-auto w-full max-w-md space-y-4 sm:max-w-lg sm:space-y-5">
         <header className="space-y-1.5">
-          <p className="text-[11px] font-semibold tracking-[0.14em] text-[#5EF2C4]">GROWZY CAPITAL</p>
+          <p className="text-[11px] font-semibold tracking-[0.14em] text-[#C9A45C]">WEALTHORA CAPITAL</p>
           <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Share My Progress</h1>
         </header>
 
@@ -159,8 +159,8 @@ export default function ProgressSharePage() {
                 src={imageUrl}
                 alt={
                   snapshot
-                    ? `${snapshot.displayName} investment progress on Growzy Capital`
-                    : 'Growzy Capital progress'
+                    ? `${snapshot.displayName} investment progress on Wealthora Capital`
+                    : 'Wealthora Capital progress'
                 }
                 className="block h-auto w-full max-w-full rounded-2xl border border-white/10 shadow-[0_12px_40px_-16px_rgba(0,0,0,0.65)]"
                 style={{ objectFit: 'contain', display: 'block', width: '100%', height: 'auto' }}
@@ -171,7 +171,7 @@ export default function ProgressSharePage() {
             ) : null}
 
             <p className="px-1 text-center text-[15px] leading-snug text-[#C5D0DC] sm:text-base">
-              My investment progress on Growzy Capital.
+              My investment progress on Wealthora Capital.
             </p>
 
             {snapshot ? (
@@ -198,7 +198,7 @@ export default function ProgressSharePage() {
         )}
 
         <p className="pt-1 text-center text-xs text-[#6B7C90]">
-          <Link href={ROUTES.dashboard.root} className="text-[#5EF2C4] underline-offset-2 hover:underline">
+          <Link href={ROUTES.dashboard.root} className="text-[#D4D9DF] underline-offset-2 hover:underline">
             Open dashboard
           </Link>
         </p>

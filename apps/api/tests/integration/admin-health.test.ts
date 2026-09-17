@@ -43,7 +43,7 @@ describe('Production monitoring — GET /admin/health', () => {
     expect(res.body.success).toBe(true)
 
     const data = res.body.data
-    expect(data.version).toMatch(/Growzy API/)
+    expect(data.version).toMatch(/Wealthora API/)
     expect(data.refreshedAt).toBeTruthy()
     expect(Array.isArray(data.metrics)).toBe(true)
 

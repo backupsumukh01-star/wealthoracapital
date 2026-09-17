@@ -23,7 +23,7 @@ import { LANDING_FAQS } from '@/lib/landing-data'
 export const metadata: Metadata = {
   title: 'Resources',
   description:
-    'FAQ, guides, glossary, downloads, and market insights for Growzy investors.',
+    'FAQ, guides, glossary, downloads, and market insights for Wealthora investors.',
   alternates: { canonical: ROUTES.marketing.resources },
 }
 

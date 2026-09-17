@@ -96,7 +96,7 @@ export function MobileBottomNav() {
                     'relative grid size-9 place-items-center rounded-full',
                     'transition-[transform,background-color,box-shadow] duration-200 ease-out',
                     active
-                      ? 'scale-110 bg-accent-500/18 shadow-[0_0_18px_-2px_rgba(18,214,160,0.55)]'
+                      ? 'scale-110 bg-accent-500/18 shadow-[0_0_18px_-2px_rgba(212,217,223,0.55)]'
                       : 'scale-100 group-active:scale-95',
                   )}
                 >

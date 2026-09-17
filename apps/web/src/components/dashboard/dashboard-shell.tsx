@@ -29,7 +29,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               className="absolute inset-x-0 top-0 h-[55vh]"
               style={{
                 background:
-                  'radial-gradient(70% 50% at 50% 0%, rgb(18 214 160 / 0.22) 0%, transparent 70%)',
+                  'radial-gradient(70% 50% at 50% 0%, rgb(212 217 223 / 0.08) 0%, transparent 70%)',
               }}
             />
             <div className="absolute -left-40 top-24 h-[28rem] w-[28rem] rounded-full bg-accent-500/12 blur-3xl" />

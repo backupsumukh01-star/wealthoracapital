@@ -664,7 +664,7 @@ export const adminHealthService = {
 
     return {
       refreshedAt,
-      version: `Growzy API ${APP_VERSION}`,
+      version: `Wealthora API ${APP_VERSION}`,
       environment: envLabel,
       uptimeSeconds: Math.floor(process.uptime()),
       metrics,

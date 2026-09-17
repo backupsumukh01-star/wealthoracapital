@@ -106,7 +106,7 @@ export function applyCmsBootstrap(prev: AdminOsState, boot: CmsPublicBootstrap):
             country: str(row.country, '—'),
             quote: str(row.quote ?? row.body, ''),
             rating: typeof row.rating === 'number' ? row.rating : 5,
-            platform: str(row.platform ?? row.role ?? row.title, 'Growzy'),
+            platform: str(row.platform ?? row.role ?? row.title, 'Wealthora'),
             enabled: row.enabled !== false,
             photoUrl: str(row.photoUrl, ''),
             publishedAt: str(row.publishedAt, adminOsNow()),

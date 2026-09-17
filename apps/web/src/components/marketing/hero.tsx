@@ -26,7 +26,7 @@ const TRUST = [
 ] as const
 
 const DEMO = {
-  companyName: 'Growzy',
+  companyName: 'Wealthora',
   heroTitle: 'Forex investing with every trade on record',
   heroSubtitle:
     'AI-assisted strategies, human-verified results and transparent historical performance.',
@@ -34,7 +34,7 @@ const DEMO = {
   heroSecondaryCta: 'View Historical Performance',
 } as const
 
-/** Premium centered hero — Growzy brand, CTAs, trust, markets, equity visual. */
+/** Premium centered hero — Wealthora brand, CTAs, trust, markets, equity visual. */
 export function Hero() {
   const prefersReducedMotion = usePrefersReducedMotion()
   const { landing: cms } = usePublishedLanding()
@@ -92,7 +92,7 @@ export function Hero() {
       <div
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[70vh]"
         style={{
-          background: `radial-gradient(80% 55% at 50% 0%, rgb(18 214 160 / ${0.28 * intensity}) 0%, transparent 70%)`,
+          background: `radial-gradient(80% 55% at 50% 0%, rgb(212 217 223 / ${0.10 * intensity}) 0%, transparent 70%)`,
         }}
       />
       {showGlow ? (
@@ -139,7 +139,7 @@ export function Hero() {
         <>
           <motion.div
             aria-hidden
-            className="pointer-events-none absolute left-[8%] top-[28%] -z-10 size-2 rounded-full bg-accent-300/50 shadow-[0_0_18px_rgb(18_214_160_/_0.45)]"
+            className="pointer-events-none absolute left-[8%] top-[28%] -z-10 size-2 rounded-full bg-accent-300/50 shadow-[0_0_18px_rgb(212_217_223_/_0.10)]"
             animate={{ y: [0, -20, 0], x: [0, 8, 0] }}
             transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
           />
@@ -163,13 +163,13 @@ export function Hero() {
           <div className="mb-7 flex flex-col items-center gap-3.5 sm:mb-8 sm:gap-4">
             <div className="relative">
               <div
-                className="pointer-events-none absolute -inset-6 rounded-full bg-[#12D6A0]/25 blur-2xl"
+                className="pointer-events-none absolute -inset-6 rounded-full bg-[#D4D9DF]/10 blur-2xl"
                 aria-hidden
               />
               <LogoMark className="relative size-16 sm:size-[4.5rem]" />
             </div>
             <p className="text-[1.75rem] font-semibold tracking-tight sm:text-[2rem]">
-              <span className="bg-gradient-to-r from-[#5EF2C4] via-[#12D6A0] to-[#2AE8FF] bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#C4CBD3] via-[#D4D9DF] to-[#F2F4F7] bg-clip-text text-transparent">
                 {companyName || SITE.wordmark.primary}
               </span>
             </p>

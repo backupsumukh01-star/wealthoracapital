@@ -1,4 +1,4 @@
-# Growzy — Render Blueprint
+# Wealthora Capital — Render Blueprint
 # https://render.com/docs/blueprint-spec
 #
 # Connect this GitHub repo in Render → New → Blueprint.
@@ -39,7 +39,7 @@ services:
       - key: APP_ENV
         value: production
       - key: APP_NAME
-        value: Growzy
+        value: Wealthora Capital
       - key: DATABASE_URL
         fromDatabase:
           name: growzy-db
@@ -71,7 +71,7 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: SMTP_FROM_NAME
-        value: Growzy
+        value: Wealthora Capital
       - key: SMTP_FROM_ADDRESS
         sync: false
       # Optional lane overrides — leave unset to use SMTP_FROM_ADDRESS (verified Resend sender)
@@ -146,7 +146,7 @@ services:
       - key: NEXT_PUBLIC_SITE_URL
         value: https://growzycapital.com
       - key: NEXT_PUBLIC_PLATFORM_NAME
-        value: Growzy
+        value: Wealthora Capital
       - key: NEXT_PUBLIC_SUPPORT_EMAIL
         value: support@growzycapital.com
       - key: NEXT_PUBLIC_ENABLE_REFERRALS

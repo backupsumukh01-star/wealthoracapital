@@ -175,7 +175,7 @@ export function ReportPreviewModal({
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-[80] bg-black/75 backdrop-blur-sm data-[state=open]:animate-fade-in" />
         <DialogPrimitive.Content
-          className="fixed inset-0 z-[90] flex h-[100dvh] w-screen flex-col bg-[#07131C] outline-none"
+          className="fixed inset-0 z-[90] flex h-[100dvh] w-screen flex-col bg-[#07090B] outline-none"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <DialogPrimitive.Title className="sr-only">
@@ -339,7 +339,7 @@ export function ReportPreviewModal({
                   title={current?.title ?? 'Report'}
                   srcDoc={htmlDoc}
                   onLoad={onIframeLoad}
-                  className="mx-auto block h-[min(88dvh,1100px)] w-full max-w-5xl rounded-xl border border-white/10 bg-[#07131C] shadow-e3"
+                  className="mx-auto block h-[min(88dvh,1100px)] w-full max-w-5xl rounded-xl border border-white/10 bg-[#07090B] shadow-e3"
                   // allow-same-origin needed for page navigation + print; no allow-top-navigation
                   sandbox="allow-same-origin allow-modals"
                 />
@@ -358,7 +358,7 @@ export function ReportPreviewModal({
                   ref={objectRef}
                   data={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1`}
                   type="application/pdf"
-                  className="h-[min(88dvh,1100px)] w-full rounded-xl border border-white/10 bg-[#07131C]"
+                  className="h-[min(88dvh,1100px)] w-full rounded-xl border border-white/10 bg-[#07090B]"
                   aria-label={current?.title ?? 'PDF report'}
                 >
                   <p className="p-6 text-center text-body-sm text-fg-muted">

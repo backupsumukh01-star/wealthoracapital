@@ -18,8 +18,8 @@ export default function OpenGraphImage() {
           flexDirection: 'column',
           justifyContent: 'space-between',
           padding: 64,
-          background: 'linear-gradient(145deg, #07131C 0%, #0C1C28 55%, #0A2420 100%)',
-          color: '#F4F8FB',
+          background: 'linear-gradient(145deg, #07090B 0%, #0A0D10 55%, #0D1115 100%)',
+          color: '#F2F4F7',
           fontFamily: 'system-ui, sans-serif',
         }}
       >
@@ -38,13 +38,13 @@ export default function OpenGraphImage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'linear-gradient(135deg, #5EF2C4 0%, #12D6A0 45%, #2AE8FF 100%)',
-              color: '#07131C',
+              background: 'linear-gradient(135deg, #C4CBD3 0%, #D4D9DF 45%, #F2F4F7 100%)',
+              color: '#07090B',
               fontSize: 40,
               fontWeight: 700,
             }}
           >
-            G
+            W
           </div>
           <div style={{ fontSize: 40, fontWeight: 650, letterSpacing: '-0.02em' }}>
             {SITE.wordmark.primary}
@@ -67,8 +67,8 @@ export default function OpenGraphImage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', color: '#5EF2C4', fontSize: 20, fontWeight: 600 }}>
-          growzy.com
+        <div style={{ display: 'flex', color: '#C9A45C', fontSize: 20, fontWeight: 600 }}>
+          wealthoracapital.com
         </div>
       </div>
     ),

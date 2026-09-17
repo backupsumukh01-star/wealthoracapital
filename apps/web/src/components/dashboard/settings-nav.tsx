@@ -45,7 +45,7 @@ export function SettingsNav() {
                   'flex items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2.5',
                   'text-caption font-medium transition-colors duration-[140ms] sm:text-body-sm',
                   active
-                    ? 'bg-accent-500/12 text-fg shadow-[inset_0_0_0_1px_rgba(18,214,160,0.18)]'
+                    ? 'bg-accent-500/12 text-fg shadow-[inset_0_0_0_1px_rgba(212,217,223,0.18)]'
                     : 'text-fg-muted hover:bg-hover/60 hover:text-fg',
                 )}
               >

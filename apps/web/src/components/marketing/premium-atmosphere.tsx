@@ -37,7 +37,7 @@ export function PremiumAtmosphere() {
             left: `${pos.x}%`,
             top: `${pos.y}%`,
             background:
-              'radial-gradient(circle, rgb(18 214 160 / 0.12) 0%, transparent 65%)',
+              'radial-gradient(circle, rgb(212 217 223 / 0.06) 0%, transparent 65%)',
           }}
           transition={{ type: 'spring', stiffness: 50, damping: 20, mass: 0.4 }}
         />

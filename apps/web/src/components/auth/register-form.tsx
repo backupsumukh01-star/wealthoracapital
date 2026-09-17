@@ -109,7 +109,7 @@ export function RegisterForm() {
   return (
     <AuthCard
       title="Create your account"
-      description="Open a Growzy investor account. We assign a permanent User ID and username automatically."
+      description="Open a Wealthora investor account. We assign a permanent User ID and username automatically."
       footer={
         <>
           Already have an account?{' '}

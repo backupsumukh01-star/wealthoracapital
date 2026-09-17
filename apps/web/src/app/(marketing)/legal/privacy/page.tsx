@@ -14,7 +14,7 @@ export default function PrivacyPage() {
     <>
       <LegalDocument
         title="Privacy policy"
-        intro="What personal data Growzy Capital Partners holds, why it holds it, who can see it, and how long it is kept."
+        intro="What personal data Wealthora Capital Partners holds, why it holds it, who can see it, and how long it is kept."
         sections={[
           { heading: 'Data we collect', summary: 'Account details, payment proof documents, device and session metadata, and support correspondence.' },
           { heading: 'Why we collect it', summary: 'The lawful basis for each category, including the compliance obligations behind identity checks.' },

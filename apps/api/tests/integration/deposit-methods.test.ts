@@ -56,7 +56,7 @@ describe('deposit methods module', () => {
       .post('/api/v1/admin/payment-methods')
       .set('x-csrf-token', csrf)
       .send({
-        name: 'Growzy UPI',
+        name: 'Wealthora UPI',
         type: 'UPI',
         instructions: 'Pay via UPI and upload screenshot.',
         minAmount: '100',
@@ -64,7 +64,7 @@ describe('deposit methods module', () => {
         processingTime: 'Instant',
         upi: {
           upiId: 'growzy@okaxis',
-          accountHolderName: 'Growzy Capital',
+          accountHolderName: 'Wealthora Capital',
         },
       })
     expect(upi.status).toBe(200)
@@ -81,7 +81,7 @@ describe('deposit methods module', () => {
         minAmount: '500',
         maxAmount: '200000',
         bank: {
-          accountHolderName: 'Growzy Capital Pvt Ltd',
+          accountHolderName: 'Wealthora Capital Pvt Ltd',
           bankName: 'HDFC Bank',
           accountNumber: '50200012345678',
           ifscCode: 'HDFC0001234',

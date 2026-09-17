@@ -1,5 +1,5 @@
 /**
- * Growzy premium email template system.
+ * Wealthora premium email template system.
  * Each template is a unique responsive HTML layout — table-based for clients.
  * Dark/light compatible via color-scheme + dual-tone palette.
  */
@@ -41,31 +41,31 @@ export type PremiumEmailMeta = {
 }
 
 export const PREMIUM_EMAIL_CATALOG: PremiumEmailMeta[] = [
-  { key: 'welcome', name: 'Welcome', subject: 'Welcome to Growzy Capital', category: 'Auth', accent: '#12D6A0', description: 'Onboarding welcome' },
-  { key: 'verify', name: 'Verify Email', subject: 'Verify your Growzy email', category: 'Auth', accent: '#2AE8FF', description: 'OTP + verify CTA' },
-  { key: 'login_alert', name: 'Login Alert', subject: 'New login to your Growzy account', category: 'Security', accent: '#F59E0B', description: 'Device / location alert' },
-  { key: 'password_reset', name: 'Password Reset', subject: 'Reset your Growzy password', category: 'Security', accent: '#6366F1', description: 'Secure reset link' },
-  { key: 'password_changed', name: 'Password Changed', subject: 'Your Growzy password was changed', category: 'Security', accent: '#10B981', description: 'Security confirmation' },
-  { key: 'kyc_started', name: 'KYC Started', subject: 'KYC submitted — under review', category: 'KYC', accent: '#38BDF8', description: 'Progress timeline' },
-  { key: 'kyc_approved', name: 'KYC Approved', subject: 'Account verified — start investing', category: 'KYC', accent: '#12D6A0', description: 'Success celebration' },
-  { key: 'kyc_rejected', name: 'KYC Rejected', subject: 'KYC needs your attention', category: 'KYC', accent: '#F97316', description: 'Resubmit documents' },
-  { key: 'deposit_pending', name: 'Deposit Request Received', subject: 'Deposit received — awaiting review', category: 'Money', accent: '#22D3EE', description: 'Request timeline' },
-  { key: 'deposit_approved', name: 'Deposit Approved', subject: 'Deposit approved — wallet updated', category: 'Money', accent: '#12D6A0', description: 'Balance credited' },
-  { key: 'withdrawal_pending', name: 'Withdrawal Requested', subject: 'Withdrawal request received', category: 'Money', accent: '#A78BFA', description: 'Processing estimate' },
-  { key: 'withdrawal_approved', name: 'Withdrawal Approved', subject: 'Withdrawal completed', category: 'Money', accent: '#34D399', description: 'Payout confirmation' },
-  { key: 'daily_return', name: 'Daily Return Published', subject: 'Today’s return has been credited', category: 'Performance', accent: '#12D6A0', description: 'Performance card' },
-  { key: 'weekly_performance', name: 'Weekly Performance', subject: 'Your weekly Growzy performance report', category: 'Performance', accent: '#2AE8FF', description: 'Analytics summary' },
-  { key: 'monthly_statement', name: 'Monthly Statement', subject: 'Your Growzy monthly statement', category: 'Performance', accent: '#94A3B8', description: 'Luxury statement' },
-  { key: 'trade_published', name: 'Trade Published', subject: 'Today’s trades are live', category: 'Performance', accent: '#F472B6', description: 'Trade tape digest' },
-  { key: 'announcement', name: 'Announcement', subject: 'An update from Growzy Capital', category: 'Marketing', accent: '#818CF8', description: 'Marketing banner' },
+  { key: 'welcome', name: 'Welcome', subject: 'Welcome to Wealthora Capital', category: 'Auth', accent: '#D4D9DF', description: 'Onboarding welcome' },
+  { key: 'verify', name: 'Verify Email', subject: 'Verify your Wealthora email', category: 'Auth', accent: '#AAB3BD', description: 'OTP + verify CTA' },
+  { key: 'login_alert', name: 'Login Alert', subject: 'New login to your Wealthora account', category: 'Security', accent: '#D9A441', description: 'Device / location alert' },
+  { key: 'password_reset', name: 'Password Reset', subject: 'Reset your Wealthora password', category: 'Security', accent: '#8FA8C0', description: 'Secure reset link' },
+  { key: 'password_changed', name: 'Password Changed', subject: 'Your Wealthora password was changed', category: 'Security', accent: '#3CCB91', description: 'Security confirmation' },
+  { key: 'kyc_started', name: 'KYC Started', subject: 'KYC submitted — under review', category: 'KYC', accent: '#8FA8C0', description: 'Progress timeline' },
+  { key: 'kyc_approved', name: 'KYC Approved', subject: 'Account verified — start investing', category: 'KYC', accent: '#D4D9DF', description: 'Success celebration' },
+  { key: 'kyc_rejected', name: 'KYC Rejected', subject: 'KYC needs your attention', category: 'KYC', accent: '#D9A441', description: 'Resubmit documents' },
+  { key: 'deposit_pending', name: 'Deposit Request Received', subject: 'Deposit received — awaiting review', category: 'Money', accent: '#8FA8C0', description: 'Request timeline' },
+  { key: 'deposit_approved', name: 'Deposit Approved', subject: 'Deposit approved — wallet updated', category: 'Money', accent: '#D4D9DF', description: 'Balance credited' },
+  { key: 'withdrawal_pending', name: 'Withdrawal Requested', subject: 'Withdrawal request received', category: 'Money', accent: '#AAB3BD', description: 'Processing estimate' },
+  { key: 'withdrawal_approved', name: 'Withdrawal Approved', subject: 'Withdrawal completed', category: 'Money', accent: '#3CCB91', description: 'Payout confirmation' },
+  { key: 'daily_return', name: 'Daily Return Published', subject: 'Today’s return has been credited', category: 'Performance', accent: '#D4D9DF', description: 'Performance card' },
+  { key: 'weekly_performance', name: 'Weekly Performance', subject: 'Your weekly Wealthora performance report', category: 'Performance', accent: '#AAB3BD', description: 'Analytics summary' },
+  { key: 'monthly_statement', name: 'Monthly Statement', subject: 'Your Wealthora monthly statement', category: 'Performance', accent: '#89939E', description: 'Luxury statement' },
+  { key: 'trade_published', name: 'Trade Published', subject: 'Today’s trades are live', category: 'Performance', accent: '#D4D9DF', description: 'Trade tape digest' },
+  { key: 'announcement', name: 'Announcement', subject: 'An update from Wealthora Capital', category: 'Marketing', accent: '#8FA8C0', description: 'Marketing banner' },
   { key: 'maintenance', name: 'Maintenance Notice', subject: 'Scheduled maintenance notice', category: 'Support', accent: '#64748B', description: 'Window + reason' },
-  { key: 'referral_bonus', name: 'Referral Bonus', subject: 'Referral bonus credited 🎉', category: 'Marketing', accent: '#FBBF24', description: 'Celebration credit' },
-  { key: 'support_reply', name: 'Support Ticket Reply', subject: 'New reply on your support ticket', category: 'Support', accent: '#38BDF8', description: 'Conversation thread' },
-  { key: 'account_suspended', name: 'Account Suspended', subject: 'Account suspended — compliance notice', category: 'Security', accent: '#EF4444', description: 'Appeal path' },
-  { key: 'account_reactivated', name: 'Account Reactivated', subject: 'Welcome back — account reactivated', category: 'Security', accent: '#12D6A0', description: 'Welcome back' },
-  { key: 'twofa_enabled', name: '2FA Enabled', subject: 'Two-factor authentication enabled', category: 'Security', accent: '#6366F1', description: 'Security badge' },
-  { key: 'email_changed', name: 'Email Changed', subject: 'Your Growzy email was changed', category: 'Security', accent: '#F59E0B', description: 'Old → new email' },
-  { key: 'profile_updated', name: 'Profile Updated', subject: 'Your profile was updated', category: 'Auth', accent: '#2DD4BF', description: 'Change summary' },
+  { key: 'referral_bonus', name: 'Referral Bonus', subject: 'Referral bonus credited 🎉', category: 'Marketing', accent: '#C9A45C', description: 'Celebration credit' },
+  { key: 'support_reply', name: 'Support Ticket Reply', subject: 'New reply on your support ticket', category: 'Support', accent: '#8FA8C0', description: 'Conversation thread' },
+  { key: 'account_suspended', name: 'Account Suspended', subject: 'Account suspended — compliance notice', category: 'Security', accent: '#E05C67', description: 'Appeal path' },
+  { key: 'account_reactivated', name: 'Account Reactivated', subject: 'Welcome back — account reactivated', category: 'Security', accent: '#D4D9DF', description: 'Welcome back' },
+  { key: 'twofa_enabled', name: '2FA Enabled', subject: 'Two-factor authentication enabled', category: 'Security', accent: '#8FA8C0', description: 'Security badge' },
+  { key: 'email_changed', name: 'Email Changed', subject: 'Your Wealthora email was changed', category: 'Security', accent: '#D9A441', description: 'Old → new email' },
+  { key: 'profile_updated', name: 'Profile Updated', subject: 'Your profile was updated', category: 'Auth', accent: '#D4D9DF', description: 'Change summary' },
 ]
 
 export type EmailSampleData = {
@@ -122,8 +122,8 @@ export const DEFAULT_EMAIL_SAMPLE: EmailSampleData = {
   maintenanceStart: '3 Aug 2026 · 02:00 GST',
   maintenanceEnd: '3 Aug 2026 · 04:00 GST',
   bonus: '50.00',
-  ctaUrl: 'https://growzy.com/dashboard',
-  supportEmail: 'support@growzy.com',
+  ctaUrl: 'https://wealthoracapital.com/dashboard',
+  supportEmail: 'support@wealthoracapital.com',
 }
 
 /* -------------------------------------------------------------------------- */
@@ -138,22 +138,22 @@ function escapeHtml(s: string) {
     .replace(/"/g, '&quot;')
 }
 
-function logoMark(accent = '#12D6A0') {
+function logoMark(accent = '#D4D9DF') {
   return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0">
     <tr>
       <td style="vertical-align:middle;">
-        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,${accent},#2AE8FF);box-shadow:0 8px 24px rgba(18,214,160,0.35);"></div>
+        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,${accent},#C9A45C);box-shadow:0 8px 24px rgba(212,217,223,0.12);"></div>
       </td>
       <td style="padding-left:12px;vertical-align:middle;">
-        <div style="font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:18px;font-weight:700;letter-spacing:-0.02em;color:#0B1220;">Growzy</div>
+        <div style="font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:18px;font-weight:700;letter-spacing:-0.02em;color:#07090B;">Wealthora</div>
         <div style="font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:11px;color:#64748B;letter-spacing:0.08em;text-transform:uppercase;">Capital</div>
       </td>
     </tr>
   </table>`
 }
 
-function ctaButton(label: string, href: string, bg: string, text = '#041018') {
+function ctaButton(label: string, href: string, bg: string, text = '#07090B') {
   return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
     <tr>
@@ -186,8 +186,8 @@ function socialFooter(supportEmail: string) {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:32px;">
     <tr>
       <td align="center" style="padding-top:24px;border-top:1px solid #E2E8F0;">
-        <p style="margin:0 0 10px;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;color:#94A3B8;">
-          Need help? <a href="mailto:${supportEmail}" style="color:#0F766E;text-decoration:none;font-weight:600;">${supportEmail}</a>
+        <p style="margin:0 0 10px;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;color:#89939E;">
+          Need help? <a href="mailto:${supportEmail}" style="color:#89939E;text-decoration:none;font-weight:600;">${supportEmail}</a>
           · WhatsApp · Telegram
         </p>
         <p style="margin:0 0 14px;">
@@ -196,9 +196,9 @@ function socialFooter(supportEmail: string) {
           ${link('Instagram', 'https://instagram.com/growzy')}
           ${link('Discord', 'https://discord.gg/growzy')}
         </p>
-        <p style="margin:0;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:11px;line-height:1.5;color:#94A3B8;">
-          © ${new Date().getFullYear()} Growzy Capital. Forex trading involves risk of loss.<br/>
-          You’re receiving this because you have a Growzy account.
+        <p style="margin:0;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:11px;line-height:1.5;color:#89939E;">
+          © ${new Date().getFullYear()} Wealthora Capital. Forex trading involves risk of loss.<br/>
+          You’re receiving this because you have a Wealthora account.
         </p>
       </td>
     </tr>
@@ -221,16 +221,16 @@ function shell(opts: {
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
   <meta name="supported-color-schemes" content="light dark" />
-  <title>Growzy</title>
+  <title>Wealthora</title>
   <style>
     :root { color-scheme: light dark; }
     @media (prefers-color-scheme: dark) {
-      .email-bg { background:#07131C !important; }
-      .email-card { background:#0F1C28 !important; border-color:#1E3344 !important; }
+      .email-bg { background:#07090B !important; }
+      .email-card { background:#0D1115 !important; border-color:#202A33 !important; }
       .email-title { color:#F1F5F9 !important; }
-      .email-text { color:#94A3B8 !important; }
+      .email-text { color:#89939E !important; }
       .email-muted { color:#64748B !important; }
-      .email-soft { background:#132433 !important; border-color:#1E3344 !important; }
+      .email-soft { background:#11161B !important; border-color:#202A33 !important; }
     }
     @media only screen and (max-width:620px) {
       .email-pad { padding:20px 16px !important; }
@@ -271,7 +271,7 @@ function greeting(firstName: string) {
 }
 
 function h1(text: string) {
-  return `<h1 class="email-title" style="margin:16px 0 8px;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:26px;line-height:1.25;font-weight:700;letter-spacing:-0.03em;color:#0B1220;">${escapeHtml(text)}</h1>`
+  return `<h1 class="email-title" style="margin:16px 0 8px;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:26px;line-height:1.25;font-weight:700;letter-spacing:-0.03em;color:#07090B;">${escapeHtml(text)}</h1>`
 }
 
 function p(text: string) {
@@ -311,7 +311,7 @@ function kvCard(rows: Array<[string, string]>, border = '#E2E8F0') {
         ([k, v], i) => `
       <tr>
         <td style="padding:12px 16px;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:13px;color:#64748B;border-top:${i === 0 ? '0' : `1px solid ${border}`};">${escapeHtml(k)}</td>
-        <td align="right" style="padding:12px 16px;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;color:#0B1220;border-top:${i === 0 ? '0' : `1px solid ${border}`};">${escapeHtml(v)}</td>
+        <td align="right" style="padding:12px 16px;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;color:#07090B;border-top:${i === 0 ? '0' : `1px solid ${border}`};">${escapeHtml(v)}</td>
       </tr>`,
       )
       .join('')}
@@ -324,22 +324,22 @@ function timeline(steps: Array<{ label: string; state: 'done' | 'active' | 'todo
     ${steps
       .map((s, i) => {
         const color =
-          s.state === 'done' ? accent : s.state === 'active' ? '#0B1220' : '#94A3B8'
+          s.state === 'done' ? accent : s.state === 'active' ? '#07090B' : '#89939E'
         const dot =
           s.state === 'done'
             ? accent
             : s.state === 'active'
-              ? '#0B1220'
+              ? '#07090B'
               : '#CBD5E1'
         return `
       <tr>
         <td width="28" valign="top" style="padding:0 0 16px;">
-          <div style="width:12px;height:12px;border-radius:50%;background:${dot};margin-top:4px;box-shadow:0 0 0 4px ${s.state === 'active' ? 'rgba(18,214,160,0.15)' : 'transparent'};"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:${dot};margin-top:4px;box-shadow:0 0 0 4px ${s.state === 'active' ? 'rgba(212,217,223,0.15)' : 'transparent'};"></div>
           ${i < steps.length - 1 ? `<div style="width:2px;height:28px;background:#E2E8F0;margin:4px 0 0 5px;"></div>` : ''}
         </td>
         <td valign="top" style="padding:0 0 16px;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:${color};">
           ${escapeHtml(s.label)}
-          <div style="font-weight:400;font-size:12px;color:#94A3B8;margin-top:2px;">${s.state === 'done' ? 'Completed' : s.state === 'active' ? 'In progress' : 'Upcoming'}</div>
+          <div style="font-weight:400;font-size:12px;color:#89939E;margin-top:2px;">${s.state === 'done' ? 'Completed' : s.state === 'active' ? 'In progress' : 'Upcoming'}</div>
         </td>
       </tr>`
       })
@@ -352,21 +352,21 @@ function timeline(steps: Array<{ label: string; state: 'done' | 'active' | 'todo
 /* -------------------------------------------------------------------------- */
 
 function renderWelcome(d: EmailSampleData) {
-  const accent = '#12D6A0'
+  const accent = '#D4D9DF'
   return shell({
     accent,
-    preheader: 'Your Growzy account is ready — verify, complete KYC, then deposit.',
-    headerBg: `linear-gradient(135deg,#ECFDF5 0%,#E0F2FE 100%)`,
+    preheader: 'Your Wealthora account is ready — verify, complete KYC, then deposit.',
+    headerBg: `linear-gradient(135deg,#F2F4F7 0%,#E8EBEE 100%)`,
     headerHtml: `${illus('welcome', accent)}${h1('Welcome aboard')}`,
     supportEmail: d.supportEmail,
-    security: 'Growzy will never ask for your password or 2FA codes by email.',
+    security: 'Wealthora will never ask for your password or 2FA codes by email.',
     bodyHtml: `
       ${greeting(d.firstName)}
-      ${p(`Welcome to <strong style="color:#0B1220;">Growzy Capital</strong>. Your permanent User ID is <strong>${escapeHtml(d.userId)}</strong> and username is <strong>${escapeHtml(d.username)}</strong>.`)}
+      ${p(`Welcome to <strong style="color:#07090B;">Wealthora Capital</strong>. Your permanent User ID is <strong>${escapeHtml(d.userId)}</strong> and username is <strong>${escapeHtml(d.username)}</strong>.`)}
       ${p('Next: verify your email, complete KYC, then fund your wallet when you are ready.')}
       <div style="margin:28px 0;">${ctaButton('Getting Started', d.ctaUrl, accent)}</div>
       <table width="100%" style="margin-top:8px;"><tr>
-        <td class="stack" style="padding:10px;border-radius:12px;background:#F0FDFA;text-align:center;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;color:#0F766E;">① Verify email</td>
+        <td class="stack" style="padding:10px;border-radius:12px;background:#F2F4F7;text-align:center;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;color:#89939E;">① Verify email</td>
         <td width="8"></td>
         <td class="stack" style="padding:10px;border-radius:12px;background:#F8FAFC;text-align:center;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;color:#64748B;">② Complete KYC</td>
         <td width="8"></td>
@@ -376,22 +376,22 @@ function renderWelcome(d: EmailSampleData) {
 }
 
 function renderVerify(d: EmailSampleData) {
-  const accent = '#2AE8FF'
+  const accent = '#AAB3BD'
   return shell({
     accent,
     preheader: `Your verification code is ${d.otp}. Expires in 10 minutes.`,
-    headerBg: `linear-gradient(160deg,#ECFEFF 0%,#F0F9FF 100%)`,
+    headerBg: `linear-gradient(160deg,#F2F4F7 0%,#F2F4F7 100%)`,
     headerHtml: `${illus('shield', accent)}${h1('Verify your email')}`,
     supportEmail: d.supportEmail,
-    security: 'If you did not create a Growzy account, you can safely ignore this message.',
+    security: 'If you did not create a Wealthora account, you can safely ignore this message.',
     bodyHtml: `
       ${greeting(d.firstName)}
       ${p('Confirm your email to unlock onboarding. Use the button below, or enter the one-time code.')}
-      <div style="margin:24px 0;">${ctaButton('Verify email', `${d.ctaUrl}/verify`, '#0891B2', '#FFFFFF')}</div>
-      <table role="presentation" width="100%" style="margin:24px 0;border-radius:16px;background:#0B1220;">
+      <div style="margin:24px 0;">${ctaButton('Verify email', `${d.ctaUrl}/verify`, '#D4D9DF', '#07090B')}</div>
+      <table role="presentation" width="100%" style="margin:24px 0;border-radius:16px;background:#07090B;">
         <tr><td align="center" style="padding:22px;">
-          <div style="font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#94A3B8;">One-time code</div>
-          <div style="margin-top:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:32px;font-weight:700;letter-spacing:0.28em;color:#2AE8FF;">${escapeHtml(d.otp)}</div>
+          <div style="font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#89939E;">One-time code</div>
+          <div style="margin-top:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:32px;font-weight:700;letter-spacing:0.28em;color:#AAB3BD;">${escapeHtml(d.otp)}</div>
           <div style="margin-top:10px;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;color:#64748B;">⏱ Expires in 10 minutes</div>
         </td></tr>
       </table>`,
@@ -399,7 +399,7 @@ function renderVerify(d: EmailSampleData) {
 }
 
 function renderLoginAlert(d: EmailSampleData) {
-  const accent = '#F59E0B'
+  const accent = '#D9A441'
   return shell({
     accent,
     preheader: `New login from ${d.device} · ${d.location}`,
@@ -409,40 +409,40 @@ function renderLoginAlert(d: EmailSampleData) {
     security: 'If this wasn’t you, secure your account immediately and contact support.',
     bodyHtml: `
       ${greeting(d.firstName)}
-      ${p('We noticed a sign-in to your Growzy account from a device we don’t usually see.')}
+      ${p('We noticed a sign-in to your Wealthora account from a device we don’t usually see.')}
       ${kvCard([
         ['Device', d.device],
         ['Browser', d.browser],
         ['Location', d.location],
         ['Time', d.time],
       ], '#FDE68A')}
-      <div style="margin:28px 0;">${ctaButton('Secure account', `${d.ctaUrl}/settings/security`, accent, '#041018')}</div>`,
+      <div style="margin:28px 0;">${ctaButton('Secure account', `${d.ctaUrl}/settings/security`, accent, '#07090B')}</div>`,
   })
 }
 
 function renderPasswordReset(d: EmailSampleData) {
-  const accent = '#6366F1'
+  const accent = '#8FA8C0'
   return shell({
     accent,
     preheader: 'Reset your password — link expires in 30 minutes.',
-    headerBg: `linear-gradient(135deg,#EEF2FF 0%,#E0E7FF 100%)`,
+    headerBg: `linear-gradient(135deg,#F2F4F7 0%,#E4E8ED 100%)`,
     headerHtml: `${illus('lock', accent)}${h1('Reset your password')}`,
     supportEmail: d.supportEmail,
-    security: 'This link expires in 30 minutes. Growzy staff will never ask you to share it.',
+    security: 'This link expires in 30 minutes. Wealthora staff will never ask you to share it.',
     bodyHtml: `
       ${greeting(d.firstName)}
-      ${p('We received a request to reset the password for your Growzy account.')}
+      ${p('We received a request to reset the password for your Wealthora account.')}
       <div style="margin:28px 0;">${ctaButton('Reset password', `${d.ctaUrl}/reset`, accent, '#FFFFFF')}</div>
-      <p style="margin:0;text-align:center;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;color:#94A3B8;">Or use code <strong style="color:#4338CA;letter-spacing:0.12em;">${escapeHtml(d.otp)}</strong> · expires in 30 minutes</p>`,
+      <p style="margin:0;text-align:center;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;color:#89939E;">Or use code <strong style="color:#4338CA;letter-spacing:0.12em;">${escapeHtml(d.otp)}</strong> · expires in 30 minutes</p>`,
   })
 }
 
 function renderPasswordChanged(d: EmailSampleData) {
-  const accent = '#10B981'
+  const accent = '#3CCB91'
   return shell({
     accent,
-    preheader: 'Your Growzy password was changed successfully.',
-    headerBg: `linear-gradient(135deg,#ECFDF5 0%,#D1FAE5 100%)`,
+    preheader: 'Your Wealthora password was changed successfully.',
+    headerBg: `linear-gradient(135deg,#F2F4F7 0%,#E4E8ED 100%)`,
     headerHtml: `${illus('check', accent)}${h1('Password changed')}`,
     supportEmail: d.supportEmail,
     security: 'If you did not make this change, contact support immediately and freeze withdrawals.',
@@ -458,14 +458,14 @@ function renderPasswordChanged(d: EmailSampleData) {
 }
 
 function renderKycStarted(d: EmailSampleData) {
-  const accent = '#38BDF8'
+  const accent = '#8FA8C0'
   return shell({
     accent,
     preheader: 'KYC submitted — review typically takes 24–48 hours.',
-    headerBg: `linear-gradient(135deg,#F0F9FF 0%,#E0F2FE 100%)`,
+    headerBg: `linear-gradient(135deg,#F2F4F7 0%,#E8EBEE 100%)`,
     headerHtml: `${illus('shield', accent)}${h1('KYC under review')}`,
     supportEmail: d.supportEmail,
-    security: 'Never send identity documents over chat apps — only upload inside Growzy.',
+    security: 'Never send identity documents over chat apps — only upload inside Wealthora.',
     bodyHtml: `
       ${greeting(d.firstName)}
       ${p('We received your identity documents. Here’s where you are in the verification journey.')}
@@ -482,18 +482,18 @@ function renderKycStarted(d: EmailSampleData) {
 }
 
 function renderKycApproved(d: EmailSampleData) {
-  const accent = '#12D6A0'
+  const accent = '#D4D9DF'
   return shell({
     accent,
     preheader: 'Account verified — you can deposit and start investing.',
-    headerBg: `linear-gradient(160deg,#ECFDF5 0%,#A7F3D0 55%,#ECFEFF 100%)`,
+    headerBg: `linear-gradient(160deg,#F2F4F7 0%,#E4E8ED 55%,#F2F4F7 100%)`,
     headerHtml: `${illus('check', accent)}${h1('Account verified')}`,
     supportEmail: d.supportEmail,
-    security: 'Only deposit using payment details shown inside your Growzy wallet.',
+    security: 'Only deposit using payment details shown inside your Wealthora wallet.',
     bodyHtml: `
       ${greeting(d.firstName)}
       <div style="text-align:center;margin:8px 0 20px;">
-        <span style="display:inline-block;padding:8px 16px;border-radius:999px;background:#12D6A0;color:#041018;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:13px;font-weight:700;letter-spacing:0.04em;">✓ ACCOUNT VERIFIED</span>
+        <span style="display:inline-block;padding:8px 16px;border-radius:999px;background:#3CCB91;color:#07090B;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:13px;font-weight:700;letter-spacing:0.04em;">✓ ACCOUNT VERIFIED</span>
       </div>
       ${p('Congratulations — your KYC is approved. Your dashboard is unlocked for deposits.')}
       <div style="margin:28px 0;">${ctaButton('Start Investing', `${d.ctaUrl}/wallet`, accent)}</div>`,
@@ -501,7 +501,7 @@ function renderKycApproved(d: EmailSampleData) {
 }
 
 function renderKycRejected(d: EmailSampleData) {
-  const accent = '#F97316'
+  const accent = '#D9A441'
   return shell({
     accent,
     preheader: 'KYC needs attention — please upload clearer documents.',
@@ -522,14 +522,14 @@ function renderKycRejected(d: EmailSampleData) {
 }
 
 function renderDepositPending(d: EmailSampleData) {
-  const accent = '#22D3EE'
+  const accent = '#8FA8C0'
   return shell({
     accent,
     preheader: `Deposit ${d.requestId} received — waiting for review.`,
-    headerBg: `linear-gradient(135deg,#ECFEFF 0%,#CFFAFE 100%)`,
+    headerBg: `linear-gradient(135deg,#F2F4F7 0%,#E4E8ED 100%)`,
     headerHtml: `${illus('money', accent)}${h1('Deposit request received')}`,
     supportEmail: d.supportEmail,
-    security: 'Never send funds to addresses shared outside the official Growzy app.',
+    security: 'Never send funds to addresses shared outside the official Wealthora app.',
     bodyHtml: `
       ${greeting(d.firstName)}
       ${p('We received your deposit and queued it for operator review.')}
@@ -553,22 +553,22 @@ function renderDepositPending(d: EmailSampleData) {
 }
 
 function renderDepositApproved(d: EmailSampleData) {
-  const accent = '#12D6A0'
+  const accent = '#D4D9DF'
   return shell({
     accent,
     preheader: `$${d.amount} credited · wallet balance $${d.balance}`,
-    headerBg: `linear-gradient(145deg,#ECFDF5 0%,#D1FAE5 50%,#ECFEFF 100%)`,
+    headerBg: `linear-gradient(145deg,#F2F4F7 0%,#E4E8ED 50%,#F2F4F7 100%)`,
     headerHtml: `${illus('money', accent)}${h1('Deposit approved')}`,
     supportEmail: d.supportEmail,
     security: 'Confirm the credit inside your wallet ledger before starting new deposits.',
     bodyHtml: `
       ${greeting(d.firstName)}
-      ${p('Your deposit has been approved and credited to your Growzy wallet.')}
-      <table width="100%" style="margin:20px 0;border-radius:18px;background:#041018;overflow:hidden;">
+      ${p('Your deposit has been approved and credited to your Wealthora wallet.')}
+      <table width="100%" style="margin:20px 0;border-radius:18px;background:#07090B;overflow:hidden;">
         <tr><td align="center" style="padding:28px 20px;">
-          <div style="font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:#5EEAD4;">Wallet updated</div>
-          <div style="margin-top:8px;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:36px;font-weight:700;color:#12D6A0;">+$${escapeHtml(d.amount)}</div>
-          <div style="margin-top:6px;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:14px;color:#94A3B8;">Current balance · $${escapeHtml(d.balance)}</div>
+          <div style="font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:#3CCB91;">Wallet updated</div>
+          <div style="margin-top:8px;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:36px;font-weight:700;color:#3CCB91;">+$${escapeHtml(d.amount)}</div>
+          <div style="margin-top:6px;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:14px;color:#89939E;">Current balance · $${escapeHtml(d.balance)}</div>
         </td></tr>
       </table>
       <div style="margin:28px 0;">${ctaButton('View Wallet', `${d.ctaUrl}/wallet`, accent)}</div>`,
@@ -576,11 +576,11 @@ function renderDepositApproved(d: EmailSampleData) {
 }
 
 function renderWithdrawalPending(d: EmailSampleData) {
-  const accent = '#A78BFA'
+  const accent = '#AAB3BD'
   return shell({
     accent,
     preheader: `Withdrawal ${d.reference} received · estimated processing 24h.`,
-    headerBg: `linear-gradient(135deg,#F5F3FF 0%,#EDE9FE 100%)`,
+    headerBg: `linear-gradient(135deg,#F2F4F7 0%,#E8EBEE 100%)`,
     headerHtml: `${illus('money', accent)}${h1('Withdrawal requested')}`,
     supportEmail: d.supportEmail,
     security: 'Funds are reserved immediately so your available balance cannot be overdrawn.',
@@ -592,7 +592,7 @@ function renderWithdrawalPending(d: EmailSampleData) {
         ['Amount', `$${d.amount}`],
         ['Destination', d.method],
         ['Est. processing', 'Up to 24 hours'],
-      ], '#DDD6FE')}
+      ], '#D4D9DF')}
       ${timeline(
         [
           { label: 'Requested', state: 'done' },
@@ -606,11 +606,11 @@ function renderWithdrawalPending(d: EmailSampleData) {
 }
 
 function renderWithdrawalApproved(d: EmailSampleData) {
-  const accent = '#34D399'
+  const accent = '#3CCB91'
   return shell({
     accent,
     preheader: `Withdrawal completed · ref ${d.reference}`,
-    headerBg: `linear-gradient(135deg,#ECFDF5 0%,#D1FAE5 100%)`,
+    headerBg: `linear-gradient(135deg,#F2F4F7 0%,#E4E8ED 100%)`,
     headerHtml: `${illus('check', accent)}${h1('Payment completed')}`,
     supportEmail: d.supportEmail,
     security: 'If funds do not arrive within the expected rail window, reply to this email with the reference.',
@@ -628,31 +628,31 @@ function renderWithdrawalApproved(d: EmailSampleData) {
 }
 
 function renderDailyReturn(d: EmailSampleData) {
-  const accent = '#12D6A0'
+  const accent = '#D4D9DF'
   return shell({
     accent,
     preheader: `Today’s return +${d.returnPct}% credited to your wallet.`,
-    headerBg: `linear-gradient(145deg,#042F2E 0%,#0F766E 60%,#134E4A 100%)`,
+    headerBg: `linear-gradient(145deg,#07090B 0%,#0D1115 60%,#11161B 100%)`,
     headerHtml: `
-      <div style="color:#5EEAD4;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;margin-top:18px;">Daily performance</div>
-      <h1 style="margin:8px 0 0;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:28px;color:#ECFDF5;letter-spacing:-0.03em;">Return published</h1>`,
+      <div style="color:#3CCB91;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;margin-top:18px;">Daily performance</div>
+      <h1 style="margin:8px 0 0;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:28px;color:#F2F4F7;letter-spacing:-0.03em;">Return published</h1>`,
     supportEmail: d.supportEmail,
     security: 'Returns can be positive or negative. Past performance does not guarantee future results.',
     bodyHtml: `
       ${greeting(d.firstName)}
-      <table width="100%" style="margin:8px 0 24px;border-radius:18px;border:1px solid #D1FAE5;background:linear-gradient(180deg,#FFFFFF,#F0FDFA);overflow:hidden;">
+      <table width="100%" style="margin:8px 0 24px;border-radius:18px;border:1px solid #E4E8ED;background:linear-gradient(180deg,#FFFFFF,#F2F4F7);overflow:hidden;">
         <tr>
           <td align="center" style="padding:24px 12px;width:33%;">
             <div style="font-size:11px;color:#64748B;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;">TODAY</div>
-            <div style="margin-top:6px;font-size:28px;font-weight:700;color:#059669;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;">+${escapeHtml(d.returnPct)}%</div>
+            <div style="margin-top:6px;font-size:28px;font-weight:700;color:#23966D;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;">+${escapeHtml(d.returnPct)}%</div>
           </td>
-          <td align="center" style="padding:24px 12px;width:33%;border-left:1px solid #D1FAE5;border-right:1px solid #D1FAE5;">
+          <td align="center" style="padding:24px 12px;width:33%;border-left:1px solid #E4E8ED;border-right:1px solid #E4E8ED;">
             <div style="font-size:11px;color:#64748B;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;">WALLET</div>
-            <div style="margin-top:6px;font-size:20px;font-weight:700;color:#0B1220;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;">$${escapeHtml(d.balance)}</div>
+            <div style="margin-top:6px;font-size:20px;font-weight:700;color:#07090B;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;">$${escapeHtml(d.balance)}</div>
           </td>
           <td align="center" style="padding:24px 12px;width:33%;">
             <div style="font-size:11px;color:#64748B;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;">MONTHLY</div>
-            <div style="margin-top:6px;font-size:20px;font-weight:700;color:#0B1220;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;">+${escapeHtml(d.monthlyPct)}%</div>
+            <div style="margin-top:6px;font-size:20px;font-weight:700;color:#07090B;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;">+${escapeHtml(d.monthlyPct)}%</div>
           </td>
         </tr>
       </table>
@@ -661,20 +661,20 @@ function renderDailyReturn(d: EmailSampleData) {
 }
 
 function renderWeeklyPerformance(d: EmailSampleData) {
-  const accent = '#2AE8FF'
+  const accent = '#AAB3BD'
   return shell({
     accent,
-    preheader: 'Your weekly Growzy analytics report is ready.',
+    preheader: 'Your weekly Wealthora analytics report is ready.',
     headerBg: `linear-gradient(135deg,#0C4A6E 0%,#0369A1 100%)`,
     headerHtml: `
       <div style="color:#7DD3FC;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;margin-top:18px;">Weekly report</div>
-      <h1 style="margin:8px 0 0;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:26px;color:#F0F9FF;">Performance summary</h1>`,
+      <h1 style="margin:8px 0 0;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:26px;color:#F2F4F7;">Performance summary</h1>`,
     supportEmail: d.supportEmail,
     security: 'This report is informational. Always reconcile against your in-app ledger.',
     bodyHtml: `
       ${greeting(d.firstName)}
       ${illus('chart', accent)}
-      ${p('Here’s a concise look at your week with Growzy.')}
+      ${p('Here’s a concise look at your week with Wealthora.')}
       ${kvCard([
         ['Week return', `+${d.returnPct}%`],
         ['Closing wallet', `$${d.balance}`],
@@ -686,19 +686,19 @@ function renderWeeklyPerformance(d: EmailSampleData) {
         ${[40, 65, 35, 80, 55, 70, 48]
           .map(
             (h, i) =>
-              `<td valign="bottom" align="center" style="padding:0 3px;"><div style="height:${h}px;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,#2AE8FF,#0284C7);"></div><div style="font-size:10px;color:#94A3B8;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;margin-top:6px;">${['M', 'T', 'W', 'T', 'F', 'S', 'S'][i]}</div></td>`,
+              `<td valign="bottom" align="center" style="padding:0 3px;"><div style="height:${h}px;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,#AAB3BD,#AAB3BD);"></div><div style="font-size:10px;color:#89939E;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;margin-top:6px;">${['M', 'T', 'W', 'T', 'F', 'S', 'S'][i]}</div></td>`,
           )
           .join('')}
       </tr></table>
-      <div style="margin:28px 0;">${ctaButton('Open analytics', `${d.ctaUrl}/my-performance`, '#0284C7', '#FFFFFF')}</div>`,
+      <div style="margin:28px 0;">${ctaButton('Open analytics', `${d.ctaUrl}/my-performance`, '#AAB3BD', '#FFFFFF')}</div>`,
   })
 }
 
 function renderMonthlyStatement(d: EmailSampleData) {
-  const accent = '#94A3B8'
+  const accent = '#89939E'
   return shell({
     accent,
-    preheader: 'Your luxury monthly statement from Growzy Capital.',
+    preheader: 'Your luxury monthly statement from Wealthora Capital.',
     headerBg: `linear-gradient(135deg,#0F172A 0%,#1E293B 100%)`,
     headerHtml: `
       <div style="color:#CBD5E1;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;margin-top:18px;">Monthly statement</div>
@@ -707,7 +707,7 @@ function renderMonthlyStatement(d: EmailSampleData) {
     security: 'Statements are final for the period shown. Contact support within 7 days for disputes.',
     bodyHtml: `
       ${greeting(d.firstName)}
-      ${p('Your official Growzy statement for the period is ready.')}
+      ${p('Your official Wealthora statement for the period is ready.')}
       <table width="100%" style="margin:16px 0;border:1px solid #E2E8F0;border-radius:4px;">
         ${[
           ['Opening balance', '$10,120.00'],
@@ -720,7 +720,7 @@ function renderMonthlyStatement(d: EmailSampleData) {
             ([k, v], i) => `
           <tr>
             <td style="padding:14px 16px;font-family:Georgia,'Times New Roman',serif;font-size:14px;color:#475569;border-top:${i ? '1px solid #E2E8F0' : '0'};">${k}</td>
-            <td align="right" style="padding:14px 16px;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:#0B1220;border-top:${i ? '1px solid #E2E8F0' : '0'};">${v}</td>
+            <td align="right" style="padding:14px 16px;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:#07090B;border-top:${i ? '1px solid #E2E8F0' : '0'};">${v}</td>
           </tr>`,
           )
           .join('')}
@@ -730,7 +730,7 @@ function renderMonthlyStatement(d: EmailSampleData) {
 }
 
 function renderTradePublished(d: EmailSampleData) {
-  const accent = '#F472B6'
+  const accent = '#D4D9DF'
   return shell({
     accent,
     preheader: 'Today’s desk trades are published on your dashboard.',
@@ -755,26 +755,26 @@ function renderTradePublished(d: EmailSampleData) {
           .map(
             ([pair, side, pl]) => `
           <tr>
-            <td style="padding:12px 10px;border-top:1px solid #FBCFE8;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:13px;color:#0B1220;">${pair}</td>
-            <td style="padding:12px 10px;border-top:1px solid #FBCFE8;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:13px;color:#64748B;">${side}</td>
-            <td align="right" style="padding:12px 10px;border-top:1px solid #FBCFE8;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;color:#059669;">${pl}</td>
+            <td style="padding:12px 10px;border-top:1px solid #E4E8ED;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:13px;color:#07090B;">${pair}</td>
+            <td style="padding:12px 10px;border-top:1px solid #E4E8ED;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:13px;color:#64748B;">${side}</td>
+            <td align="right" style="padding:12px 10px;border-top:1px solid #E4E8ED;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;color:#23966D;">${pl}</td>
           </tr>`,
           )
           .join('')}
       </table>
       ${p(`Session net contribution to today’s return: <strong>+${escapeHtml(d.returnPct)}%</strong>`)}
-      <div style="margin:28px 0;">${ctaButton('Open Dashboard', d.ctaUrl, accent, '#041018')}</div>`,
+      <div style="margin:28px 0;">${ctaButton('Open Dashboard', d.ctaUrl, accent, '#07090B')}</div>`,
   })
 }
 
 function renderAnnouncement(d: EmailSampleData) {
-  const accent = '#818CF8'
+  const accent = '#8FA8C0'
   return shell({
     accent,
-    preheader: 'An important update from Growzy Capital.',
-    headerBg: `linear-gradient(120deg,#312E81 0%,#4F46E5 50%,#6366F1 100%)`,
+    preheader: 'An important update from Wealthora Capital.',
+    headerBg: `linear-gradient(120deg,#07090B 0%,#0D1115 50%,#11161B 100%)`,
     headerHtml: `
-      <div style="margin-top:20px;display:inline-block;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,0.15);color:#E0E7FF;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;">Announcement</div>
+      <div style="margin-top:20px;display:inline-block;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,0.15);color:#E4E8ED;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;">Announcement</div>
       <h1 style="margin:12px 0 0;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:28px;color:#FFFFFF;letter-spacing:-0.03em;">Built for clarity</h1>
       <p style="margin:10px 0 0;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:14px;color:#C7D2FE;max-width:420px;">New performance tools and faster KYC reviews are rolling out this week.</p>`,
     supportEmail: d.supportEmail,
@@ -797,7 +797,7 @@ function renderMaintenance(d: EmailSampleData) {
     security: 'During maintenance, deposits and withdrawals may be temporarily unavailable.',
     bodyHtml: `
       ${greeting(d.firstName)}
-      ${p('Growzy will undergo scheduled maintenance. Trading ledgers remain safe; some actions will pause.')}
+      ${p('Wealthora will undergo scheduled maintenance. Trading ledgers remain safe; some actions will pause.')}
       ${kvCard([
         ['Start time', d.maintenanceStart],
         ['End time', d.maintenanceEnd],
@@ -808,7 +808,7 @@ function renderMaintenance(d: EmailSampleData) {
 }
 
 function renderReferralBonus(d: EmailSampleData) {
-  const accent = '#FBBF24'
+  const accent = '#C9A45C'
   return shell({
     accent,
     preheader: `$${d.bonus} referral bonus credited to your wallet.`,
@@ -818,11 +818,11 @@ function renderReferralBonus(d: EmailSampleData) {
     security: 'Referral abuse or self-referrals may reverse bonuses and restrict accounts.',
     bodyHtml: `
       ${greeting(d.firstName)}
-      ${p('Celebration time — a friend joined Growzy with your invite.')}
-      <table width="100%" style="margin:16px 0;border-radius:18px;background:#0B1220;">
+      ${p('Celebration time — a friend joined Wealthora with your invite.')}
+      <table width="100%" style="margin:16px 0;border-radius:18px;background:#07090B;">
         <tr><td align="center" style="padding:26px;">
           <div style="font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;color:#FCD34D;letter-spacing:0.12em;text-transform:uppercase;">Referral bonus</div>
-          <div style="margin-top:8px;font-size:36px;font-weight:700;color:#FBBF24;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;">+$${escapeHtml(d.bonus)}</div>
+          <div style="margin-top:8px;font-size:36px;font-weight:700;color:#C9A45C;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;">+$${escapeHtml(d.bonus)}</div>
         </td></tr>
       </table>
       <div style="margin:28px 0;">${ctaButton('Invite friends', `${d.ctaUrl}/referrals`, accent)}</div>`,
@@ -830,32 +830,32 @@ function renderReferralBonus(d: EmailSampleData) {
 }
 
 function renderSupportReply(d: EmailSampleData) {
-  const accent = '#38BDF8'
+  const accent = '#8FA8C0'
   return shell({
     accent,
     preheader: `New reply on ticket ${d.ticketId}`,
-    headerBg: `linear-gradient(135deg,#F0F9FF 0%,#E0F2FE 100%)`,
+    headerBg: `linear-gradient(135deg,#F2F4F7 0%,#E8EBEE 100%)`,
     headerHtml: `${illus('chat', accent)}${h1('Support replied')}`,
     supportEmail: d.supportEmail,
     security: 'Support will never ask for passwords, seed phrases, or 2FA codes.',
     bodyHtml: `
       ${greeting(d.firstName)}
       ${p(`There’s a new message on ticket <strong>${escapeHtml(d.ticketId)}</strong>.`)}
-      <table width="100%" style="margin:16px 0;border-radius:16px;border:1px solid #BAE6FD;background:#F0F9FF;">
+      <table width="100%" style="margin:16px 0;border-radius:16px;border:1px solid #BAE6FD;background:#F2F4F7;">
         <tr><td style="padding:16px;">
-          <div style="font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:11px;color:#0284C7;font-weight:600;">GROWZY SUPPORT</div>
+          <div style="font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:11px;color:#AAB3BD;font-weight:600;">WEALTHORA SUPPORT</div>
           <p style="margin:8px 0 0;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#0C4A6E;">${escapeHtml(d.replyPreview)}</p>
         </td></tr>
       </table>
-      <div style="margin:28px 0;">${ctaButton('Reply to ticket', `${d.ctaUrl}/support`, '#0284C7', '#FFFFFF')}</div>`,
+      <div style="margin:28px 0;">${ctaButton('Reply to ticket', `${d.ctaUrl}/support`, '#AAB3BD', '#FFFFFF')}</div>`,
   })
 }
 
 function renderAccountSuspended(d: EmailSampleData) {
-  const accent = '#EF4444'
+  const accent = '#E05C67'
   return shell({
     accent,
-    preheader: 'Your Growzy account has been suspended — compliance notice.',
+    preheader: 'Your Wealthora account has been suspended — compliance notice.',
     headerBg: `linear-gradient(135deg,#FEF2F2 0%,#FEE2E2 100%)`,
     headerHtml: `${illus('warn', accent)}${h1('Account suspended')}`,
     supportEmail: d.supportEmail,
@@ -873,11 +873,11 @@ function renderAccountSuspended(d: EmailSampleData) {
 }
 
 function renderAccountReactivated(d: EmailSampleData) {
-  const accent = '#12D6A0'
+  const accent = '#D4D9DF'
   return shell({
     accent,
-    preheader: 'Welcome back — your Growzy account is active again.',
-    headerBg: `linear-gradient(135deg,#ECFDF5 0%,#D1FAE5 100%)`,
+    preheader: 'Welcome back — your Wealthora account is active again.',
+    headerBg: `linear-gradient(135deg,#F2F4F7 0%,#E4E8ED 100%)`,
     headerHtml: `${illus('spark', accent)}${h1('Welcome back')}`,
     supportEmail: d.supportEmail,
     security: 'Review your security settings after reactivation, especially if a password reset occurred.',
@@ -889,11 +889,11 @@ function renderAccountReactivated(d: EmailSampleData) {
 }
 
 function renderTwoFaEnabled(d: EmailSampleData) {
-  const accent = '#6366F1'
+  const accent = '#8FA8C0'
   return shell({
     accent,
     preheader: 'Authenticator app protection is now active on your account.',
-    headerBg: `linear-gradient(135deg,#EEF2FF 0%,#E0E7FF 100%)`,
+    headerBg: `linear-gradient(135deg,#F2F4F7 0%,#E4E8ED 100%)`,
     headerHtml: `${illus('shield', accent)}${h1('2FA enabled')}`,
     supportEmail: d.supportEmail,
     security: 'Store backup codes offline. Losing both device and codes may delay account recovery.',
@@ -902,14 +902,14 @@ function renderTwoFaEnabled(d: EmailSampleData) {
       <div style="text-align:center;margin:12px 0 20px;">
         <span style="display:inline-block;padding:10px 18px;border-radius:999px;border:1px solid #C7D2FE;background:#FFFFFF;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:13px;font-weight:700;color:#4338CA;">🛡 AUTHENTICATOR ACTIVATED</span>
       </div>
-      ${p('Two-factor authentication is now protecting sign-ins to your Growzy account.')}
+      ${p('Two-factor authentication is now protecting sign-ins to your Wealthora account.')}
       ${kvCard([['Enabled at', d.time], ['Device', d.device]])}
       <div style="margin:28px 0;">${ctaButton('View security settings', `${d.ctaUrl}/settings/security`, accent, '#FFFFFF')}</div>`,
   })
 }
 
 function renderEmailChanged(d: EmailSampleData) {
-  const accent = '#F59E0B'
+  const accent = '#D9A441'
   return shell({
     accent,
     preheader: `Email changed from ${d.oldEmail} to ${d.newEmail}`,
@@ -919,7 +919,7 @@ function renderEmailChanged(d: EmailSampleData) {
     security: 'If you did not request this change, contact support immediately from a trusted device.',
     bodyHtml: `
       ${greeting(d.firstName)}
-      ${p('The email on your Growzy account was changed.')}
+      ${p('The email on your Wealthora account was changed.')}
       ${kvCard([
         ['Old email', d.oldEmail],
         ['New email', d.newEmail],
@@ -932,11 +932,11 @@ function renderEmailChanged(d: EmailSampleData) {
 }
 
 function renderProfileUpdated(d: EmailSampleData) {
-  const accent = '#2DD4BF'
+  const accent = '#D4D9DF'
   return shell({
     accent,
-    preheader: 'Your Growzy profile was updated successfully.',
-    headerBg: `linear-gradient(135deg,#F0FDFA 0%,#CCFBF1 100%)`,
+    preheader: 'Your Wealthora profile was updated successfully.',
+    headerBg: `linear-gradient(135deg,#F2F4F7 0%,#E4E8ED 100%)`,
     headerHtml: `${illus('check', accent)}${h1('Profile updated')}`,
     supportEmail: d.supportEmail,
     security: 'Review the change summary. Unexpected edits may indicate account compromise.',

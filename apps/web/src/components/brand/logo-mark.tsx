@@ -5,7 +5,7 @@ import { cn } from '@/lib/cn'
 export type LogoTone = 'color' | 'mono' | 'light' | 'dark'
 
 /**
- * Growzy mark — geometric “G” fused with growth bars, a security ring, and an AI node.
+ * Wealthora mark — geometric “W” fused with growth bars, a security ring, and an AI node.
  * Original SVG; no stock marks.
  */
 export function LogoMark({
@@ -23,7 +23,7 @@ export function LogoMark({
 
   const isMono = tone === 'mono'
   const isLight = tone === 'light'
-  const fillPlate = isLight ? '#07131C' : isMono ? 'currentColor' : undefined
+  const fillPlate = isLight ? '#07090B' : isMono ? 'currentColor' : undefined
   const strokeMain = isMono || isLight ? 'currentColor' : undefined
 
   return (
@@ -36,9 +36,9 @@ export function LogoMark({
     >
       <defs>
         <linearGradient id={gid} x1="6" y1="4" x2="36" y2="38" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#5EF2C4" />
-          <stop offset="0.45" stopColor="#12D6A0" />
-          <stop offset="1" stopColor="#2AE8FF" />
+          <stop stopColor="#C4CBD3" />
+          <stop offset="0.45" stopColor="#D4D9DF" />
+          <stop offset="1" stopColor="#F2F4F7" />
         </linearGradient>
         <filter id={glowId} x="-40%" y="-40%" width="180%" height="180%">
           <feGaussianBlur stdDeviation="1.6" result="b" />
@@ -73,7 +73,7 @@ export function LogoMark({
       {/* Growth bars (investment) */}
       <g
         filter={tone === 'color' ? `url(#${glowId})` : undefined}
-        stroke={strokeMain ?? '#5EF2C4'}
+        stroke={strokeMain ?? '#D4D9DF'}
         strokeWidth="2.2"
         strokeLinecap="round"
       >
@@ -86,30 +86,24 @@ export function LogoMark({
         <path d="M21 26 V15" className={animated ? 'logo-draw' : undefined} />
       </g>
 
-      {/* Geometric G + security arc */}
+      {/* Geometric W */}
       <path
-        d="M28.5 15.2c-1.1-3.2-4.2-5.4-7.8-5.4-4.9 0-8.7 3.7-8.7 8.7s3.8 8.7 8.7 8.7c3.2 0 5.9-1.6 7.4-4.1"
+        d="M11.5 13.2 L16.4 27.2 L20 17.2 L23.6 27.2 L28.5 13.2"
         stroke={strokeMain ?? '#FFFFFF'}
         strokeWidth="2.35"
         strokeLinecap="round"
+        strokeLinejoin="round"
         fill="none"
         className={animated ? 'logo-draw-g' : undefined}
         filter={tone === 'color' ? `url(#${glowId})` : undefined}
       />
-      <path
-        d="M20.8 20.5 H28.2"
-        stroke={strokeMain ?? '#2AE8FF'}
-        strokeWidth="2.35"
-        strokeLinecap="round"
-        className={animated ? 'logo-draw' : undefined}
-      />
 
       {/* AI node */}
       <circle
-        cx="28.4"
-        cy="20.5"
+        cx="28.5"
+        cy="13.2"
         r="2.15"
-        fill={strokeMain ?? '#5EF2C4'}
+        fill={strokeMain ?? '#C9A45C'}
         filter={tone === 'color' ? `url(#${glowId})` : undefined}
       />
     </svg>

@@ -122,7 +122,7 @@ async function syncLandingFromFrontend(frontend: Record<string, unknown>, actorI
 
   const next = {
     ...prev,
-    companyName: String(heroMeta.companyName ?? prev.companyName ?? 'Growzy'),
+    companyName: String(heroMeta.companyName ?? prev.companyName ?? 'Wealthora'),
     logoUrl: String(hero?.logoUrl ?? prev.logoUrl ?? ''),
     heroTitle: String(hero?.title ?? prev.heroTitle ?? ''),
     heroSubtitle: String(hero?.description ?? prev.heroSubtitle ?? ''),

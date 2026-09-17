@@ -74,7 +74,7 @@ export function InvestorMap({ showHeader = true }: { showHeader?: boolean }) {
         </div>
 
         <div className="relative z-[1] grid min-w-0 gap-4 lg:grid-cols-[1fr_16rem]">
-          <div className="relative aspect-[4/3] w-full min-w-0 overflow-hidden rounded-2xl border border-line bg-[#061018] sm:aspect-[16/10] lg:aspect-[2/1]">
+          <div className="relative aspect-[4/3] w-full min-w-0 overflow-hidden rounded-2xl border border-line bg-[#07090B] sm:aspect-[16/10] lg:aspect-[2/1]">
             <svg
               viewBox={`0 0 ${W} ${H}`}
               className="h-full w-full"
@@ -83,17 +83,17 @@ export function InvestorMap({ showHeader = true }: { showHeader?: boolean }) {
             >
               <defs>
                 <radialGradient id="ocean" cx="50%" cy="45%" r="60%">
-                  <stop offset="0%" stopColor="#0d2833" />
-                  <stop offset="100%" stopColor="#061018" />
+                  <stop offset="0%" stopColor="#0D1115" />
+                  <stop offset="100%" stopColor="#07090B" />
                 </radialGradient>
                 <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#1a4a52" />
-                  <stop offset="100%" stopColor="#123840" />
+                  <stop offset="0%" stopColor="#151A20" />
+                  <stop offset="100%" stopColor="#11161B" />
                 </linearGradient>
                 <linearGradient id="arc" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#2AE8FF" stopOpacity="0.2" />
-                  <stop offset="50%" stopColor="#12D6A0" stopOpacity="0.85" />
-                  <stop offset="100%" stopColor="#5EF2C4" stopOpacity="0.25" />
+                  <stop offset="0%" stopColor="#AAB3BD" stopOpacity="0.18" />
+                  <stop offset="50%" stopColor="#D4D9DF" stopOpacity="0.7" />
+                  <stop offset="100%" stopColor="#C9A45C" stopOpacity="0.18" />
                 </linearGradient>
                 <filter id="pulse" x="-100%" y="-100%" width="300%" height="300%">
                   <feGaussianBlur stdDeviation="3.5" result="b" />
@@ -106,7 +106,7 @@ export function InvestorMap({ showHeader = true }: { showHeader?: boolean }) {
 
               <rect width={W} height={H} fill="url(#ocean)" />
 
-              <g fill="url(#land)" stroke="#2AE8FF" strokeOpacity="0.2" strokeWidth="1">
+              <g fill="url(#land)" stroke="#AAB3BD" strokeOpacity="0.2" strokeWidth="1">
                 <path d="M70 130 C140 85 210 95 270 140 C320 185 300 250 240 270 C170 290 90 240 70 180 Z" />
                 <path d="M200 275 C245 268 275 320 255 375 C235 430 185 455 150 420 C115 385 150 295 200 275 Z" />
                 <path d="M420 115 C475 90 530 100 560 140 C590 180 575 230 530 245 C480 265 430 220 420 165 Z" />
@@ -130,7 +130,7 @@ export function InvestorMap({ showHeader = true }: { showHeader?: boolean }) {
                       strokeOpacity={hot ? 1 : 0.4}
                     />
                     {!prefersReducedMotion ? (
-                      <circle r={hot ? 3 : 2} fill="#5EF2C4" filter="url(#pulse)">
+                      <circle r={hot ? 3 : 2} fill="#D4D9DF" filter="url(#pulse)">
                         <animateMotion
                           dur={`${4 + (i % 3)}s`}
                           repeatCount="indefinite"
@@ -168,7 +168,7 @@ export function InvestorMap({ showHeader = true }: { showHeader?: boolean }) {
                         cx={x}
                         cy={y}
                         r={on ? 20 : 14}
-                        fill="#12D6A0"
+                        fill="#D4D9DF"
                         animate={{ opacity: [0.4, 0.05, 0.4], scale: [0.85, 1.4, 0.85] }}
                         transition={{
                           duration: 2.2,
@@ -182,7 +182,7 @@ export function InvestorMap({ showHeader = true }: { showHeader?: boolean }) {
                       cx={x}
                       cy={y}
                       r={on ? 6 : 4.5}
-                      fill={on ? '#5EF2C4' : '#12D6A0'}
+                      fill={on ? '#F2F4F7' : '#D4D9DF'}
                       filter="url(#pulse)"
                     />
                     <circle cx={x} cy={y} r="1.6" fill="#fff" />

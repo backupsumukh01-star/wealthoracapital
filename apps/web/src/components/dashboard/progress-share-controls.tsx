@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card'
 import { toast } from '@/components/ui/toast'
 import { progressShareService } from '@/services/progress-share.service'
 
-const SHARE_TEXT = 'My investment progress on Growzy Capital.'
+const SHARE_TEXT = 'My investment progress on Wealthora Capital.'
 
 async function copyText(value: string): Promise<boolean> {
   try {
@@ -62,7 +62,7 @@ export function ProgressShareControls({
     try {
       const link = await ensureLink()
       const blob = await progressShareService.fetchImageBlob({ imageUrl: link.imageUrl })
-      downloadBlob(blob, 'growzy-progress.png')
+      downloadBlob(blob, 'wealthora-progress.png')
       toast.success('Progress image downloaded')
     } catch {
       toast.error('Could not download image')
@@ -76,20 +76,20 @@ export function ProgressShareControls({
     try {
       const link = await ensureLink()
       const blob = await progressShareService.fetchImageBlob({ imageUrl: link.imageUrl })
-      const file = new File([blob], 'growzy-progress.png', { type: 'image/png' })
+      const file = new File([blob], 'wealthora-progress.png', { type: 'image/png' })
 
       if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
         try {
           if (navigator.canShare?.({ files: [file] })) {
             await navigator.share({
-              title: 'Growzy Capital',
+              title: 'Wealthora Capital',
               text: SHARE_TEXT,
               files: [file],
             })
             return
           }
           await navigator.share({
-            title: 'Growzy Capital',
+            title: 'Wealthora Capital',
             text: SHARE_TEXT,
             url: link.shareUrl,
           })
@@ -99,7 +99,7 @@ export function ProgressShareControls({
         }
       }
 
-      downloadBlob(blob, 'growzy-progress.png')
+      downloadBlob(blob, 'wealthora-progress.png')
       const ok = await copyText(link.shareUrl)
       if (ok) toast.success('Image downloaded and link copied')
       else toast.success('Image downloaded')

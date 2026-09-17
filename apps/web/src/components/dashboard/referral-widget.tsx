@@ -20,7 +20,7 @@ export function ReferralWidget() {
     <Card variant="accent" padded="md" className="h-full">
       <SectionHeader
         title="Invite friends"
-        description="Share Growzy and earn when they fund."
+        description="Share Wealthora and earn when they fund."
         as="h3"
       />
 

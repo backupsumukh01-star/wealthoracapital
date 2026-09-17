@@ -17,7 +17,7 @@ export function CmsSiteOverlays() {
     (typeof seo.websiteName === 'string' && seo.websiteName) ||
     publicSettings?.companyName ||
     landing.companyName ||
-    'Growzy'
+    'Wealthora'
   const supportEmail =
     (typeof seo.supportEmail === 'string' && seo.supportEmail) ||
     publicSettings?.supportEmail ||

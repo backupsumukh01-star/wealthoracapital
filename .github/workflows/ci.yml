@@ -90,6 +90,6 @@ jobs:
           NEXT_TELEMETRY_DISABLED: '1'
           NEXT_PUBLIC_API_URL: https://api.example.com/api/v1
           NEXT_PUBLIC_SITE_URL: https://app.example.com
-          NEXT_PUBLIC_PLATFORM_NAME: Growzy
+          NEXT_PUBLIC_PLATFORM_NAME: Wealthora Capital
           NEXT_PUBLIC_SUPPORT_EMAIL: support@example.com
           NEXT_PUBLIC_ENABLE_REFERRALS: 'false'

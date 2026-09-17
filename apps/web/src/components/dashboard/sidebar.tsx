@@ -123,13 +123,13 @@ function SidebarLink({ item }: { item: NavItem }) {
         'text-body-sm transition-all duration-[160ms]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
         active
-          ? 'bg-accent-500/12 text-fg shadow-[inset_0_0_0_1px_rgba(18,214,160,0.18)]'
+          ? 'bg-accent-500/12 text-fg shadow-[inset_0_0_0_1px_rgba(212,217,223,0.18)]'
           : 'text-fg-muted hover:bg-hover/60 hover:text-fg',
       )}
     >
       <span
         className={cn(
-          'absolute inset-y-2 left-0 w-0.5 rounded-full bg-accent shadow-[0_0_10px_rgba(18,214,160,0.55)]',
+          'absolute inset-y-2 left-0 w-0.5 rounded-full bg-accent shadow-[0_0_10px_rgba(212,217,223,0.55)]',
           'origin-center transition-all duration-300 ease-out',
           active ? 'scale-y-100 opacity-100' : 'scale-y-50 opacity-0',
         )}

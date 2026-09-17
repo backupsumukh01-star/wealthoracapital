@@ -23,7 +23,7 @@ const fieldBase = [
   'placeholder:text-fg-subtle',
   'border-line-default hover:border-line-strong hover:bg-inset',
   'focus:border-accent focus:bg-inset focus:outline-none',
-  'focus:ring-2 focus:ring-accent/25 focus:shadow-[0_0_0_1px_rgb(18_214_160/0.35),0_0_24px_-8px_rgb(18_214_160/0.35)]',
+  'focus:ring-2 focus:ring-accent/25 focus:shadow-[0_0_0_1px_rgb(212_217_223/0.18),0_0_24px_-8px_rgb(212_217_223/0.10)]',
   'disabled:cursor-not-allowed disabled:opacity-50',
   'aria-[invalid=true]:border-danger aria-[invalid=true]:hover:border-danger',
   'aria-[invalid=true]:focus:ring-danger/30 aria-[invalid=true]:focus:shadow-[0_0_0_1px_rgb(239_68_68/0.4)]',

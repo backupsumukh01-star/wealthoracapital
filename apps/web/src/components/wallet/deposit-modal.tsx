@@ -165,7 +165,7 @@ export function DepositModal({
       case 'rail':
         return {
           title: 'Deposit',
-          description: 'Choose how you want to add funds to your Growzy wallet.',
+          description: 'Choose how you want to add funds to your Wealthora wallet.',
           stepLabel: 'Step 1 of 3',
         }
       case 'inr-channel':
@@ -185,7 +185,7 @@ export function DepositModal({
       case 'imps':
         return {
           title: 'Bank transfer',
-          description: 'IMPS / NEFT / RTGS to the Growzy settlement account.',
+          description: 'IMPS / NEFT / RTGS to the Wealthora settlement account.',
           stepLabel: 'INR · IMPS',
         }
       case 'crypto':

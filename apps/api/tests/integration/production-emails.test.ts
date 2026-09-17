@@ -181,7 +181,7 @@ const FIXTURES: Record<string, Record<string, string>> = {
   'platform-notification': {
     firstName: 'Aisha',
     title: 'Scheduled maintenance',
-    body: 'Growzy will perform maintenance on Saturday 02:00–04:00 UTC. Trading and withdrawals pause during the window.',
+    body: 'Wealthora will perform maintenance on Saturday 02:00–04:00 UTC. Trading and withdrawals pause during the window.',
     kind: 'Maintenance',
   },
 }
@@ -213,7 +213,7 @@ describe('Production email system V2', () => {
       expect(rendered.html).toContain('viewport')
       expect(rendered.html).toContain('max-width:560px')
       expect(rendered.html).toMatch(/@media only screen/)
-      expect(rendered.html).toContain('Growzy')
+      expect(rendered.html).toContain('Wealthora')
       expect(rendered.html).toContain('will never ask for your password or OTP')
       expect(rendered.html).toContain('support@growzycapital.com')
       expect(rendered.text.length).toBeGreaterThan(10)

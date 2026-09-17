@@ -205,7 +205,7 @@ export const DEFAULT_EMAIL_TEMPLATES: DefaultEmailTemplate[] = [
     name: 'Broadcast',
     category: 'MARKETING',
     subject: '{{title}}',
-    bodyHtml: seedLayout('System', '{{title}}', '<p>{{body}}</p>', 'Open Growzy'),
+    bodyHtml: seedLayout('System', '{{title}}', '<p>{{body}}</p>', 'Open Wealthora'),
     bodyText: '{{title}}\n\n{{body}}',
     variables: ['title', 'body', 'companyName'],
   },

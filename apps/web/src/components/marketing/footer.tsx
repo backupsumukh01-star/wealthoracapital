@@ -105,7 +105,7 @@ export function Footer() {
                 ))}
               </ul>
               <p className="mt-3 text-caption text-fg-subtle">
-                {landing.supportEmail || String(seo.supportEmail || '') || 'support@growzy.com'}
+                {landing.supportEmail || String(seo.supportEmail || '') || 'support@wealthoracapital.com'}
                 {seo.supportPhone ? ` · ${String(seo.supportPhone)}` : ''}
                 {seo.supportHours ? ` · ${String(seo.supportHours)}` : ''}
               </p>
@@ -146,7 +146,7 @@ export function Footer() {
             </Link>
           </p>
           <p className="text-caption text-fg-subtle">
-            © {year} {landing.companyName || 'Growzy Capital'}. All rights reserved.
+            © {year} {landing.companyName || 'Wealthora Capital'}. All rights reserved.
           </p>
         </div>
       </div>

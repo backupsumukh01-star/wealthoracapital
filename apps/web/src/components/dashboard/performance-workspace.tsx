@@ -32,7 +32,7 @@ function exportCsv(rows: { date: string; returnPct: string; profit: string }[]) 
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'growzy-performance.csv'
+  a.download = 'wealthora-performance.csv'
   a.click()
   URL.revokeObjectURL(url)
   toast.success('CSV downloaded')

@@ -12,7 +12,7 @@ export function ForexTicker() {
   const quotes = data?.quotes ?? []
 
   return (
-    <div className="w-full min-w-0 overflow-hidden border-b border-white/[0.06] bg-[#07131C]/90 backdrop-blur-xl">
+    <div className="w-full min-w-0 overflow-hidden border-b border-white/[0.06] bg-[#07090B]/90 backdrop-blur-xl">
       <div className="flex h-9 w-full min-w-0 items-center gap-1.5 px-0 sm:h-10 sm:gap-2 sm:px-1 [mask-image:linear-gradient(90deg,transparent,black_2%,black_98%,transparent)]">
         {quotes.length === 0 || offline ? (
           <p className="min-w-0 flex-1 truncate px-3 text-[11px] text-fg-subtle sm:px-4">

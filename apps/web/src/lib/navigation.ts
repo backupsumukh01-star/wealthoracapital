@@ -129,7 +129,7 @@ export const FOOTER_NAV: NavSection[] = [
   {
     label: 'Company',
     items: [
-      { label: 'About Growzy', href: ROUTES.marketing.about },
+      { label: 'About Wealthora', href: ROUTES.marketing.about },
       { label: 'Investors', href: ROUTES.marketing.investors },
       { label: 'Resources', href: ROUTES.marketing.resources },
       { label: 'Contact', href: ROUTES.marketing.contact },

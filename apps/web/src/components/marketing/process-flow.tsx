@@ -26,13 +26,13 @@ export const ProcessFlow = memo(function ProcessFlow({
   const prefersReducedMotion = usePrefersReducedMotion()
 
   const stroke =
-    accent === 'cyan' ? '#2AE8FF' : accent === 'amber' ? '#F5B94C' : '#12D6A0'
+    accent === 'cyan' ? '#AAB3BD' : accent === 'amber' ? '#C9A45C' : '#D4D9DF'
   const glow =
     accent === 'cyan'
-      ? 'rgba(42,232,255,0.45)'
+      ? 'rgba(212,217,223,0.10)'
       : accent === 'amber'
-        ? 'rgba(245,185,76,0.4)'
-        : 'rgba(18,214,160,0.5)'
+        ? 'rgba(201,164,92,0.10)'
+        : 'rgba(212,217,223,0.10)'
 
   return (
     <ol className={cn('relative flex flex-col gap-0', className)}>
@@ -146,7 +146,7 @@ export const ProcessFlowHorizontal = memo(function ProcessFlowHorizontal({
               viewport={{ once: true }}
               transition={{ delay: i * 0.07, duration: 0.4 }}
             >
-              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-500/15 text-accent-200 shadow-[0_0_16px_-4px_rgba(18,214,160,0.55)]">
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-500/15 text-accent-200 shadow-[0_0_16px_-4px_rgba(212,217,223,0.55)]">
                 {Icon ? <Icon className="size-4" aria-hidden /> : (
                   <span className="text-[11px] font-semibold">{i + 1}</span>
                 )}

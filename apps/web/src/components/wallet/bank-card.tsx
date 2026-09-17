@@ -71,7 +71,7 @@ export function BankCard({
         className={cn(
           'w-full rounded-2xl border p-4 text-left transition-all',
           selected
-            ? 'border-accent-600/50 bg-accent-500/10 shadow-[0_0_24px_rgba(18,214,160,0.12)]'
+            ? 'border-accent-600/50 bg-accent-500/10 shadow-[0_0_24px_rgba(212,217,223,0.12)]'
             : 'border-line bg-inset/35 hover:border-line-strong hover:bg-hover/40',
           className,
         )}

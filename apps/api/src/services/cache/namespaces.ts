@@ -1,5 +1,5 @@
 /**
- * Namespaced Redis/cache keys for Growzy performance surfaces.
+ * Namespaced Redis/cache keys for Wealthora performance surfaces.
  * Uses the shared cache client (memory or Redis).
  *
  * NEVER cache: auth sessions as truth source, wallet balances, notifications unread,

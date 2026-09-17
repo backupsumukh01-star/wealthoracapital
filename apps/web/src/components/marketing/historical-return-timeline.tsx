@@ -235,7 +235,7 @@ export const HistoricalReturnTimeline = memo(function HistoricalReturnTimeline()
                   'rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors duration-200',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-base',
                   on
-                    ? 'bg-accent-500/20 text-accent-200 shadow-[0_0_16px_-4px_rgba(18,214,160,0.55)]'
+                    ? 'bg-accent-500/20 text-accent-200 shadow-[0_0_16px_-4px_rgba(212,217,223),0.55)]'
                     : 'text-fg-subtle hover:text-fg',
                 )}
               >
@@ -282,13 +282,13 @@ export const HistoricalReturnTimeline = memo(function HistoricalReturnTimeline()
         >
           <defs>
             <linearGradient id={`${gid}-up`} x1="0" y1="1" x2="0" y2="0">
-              <stop offset="0%" stopColor="#0B6B52" />
-              <stop offset="45%" stopColor="#12D6A0" />
-              <stop offset="100%" stopColor="#5EF2C4" />
+              <stop offset="0%" stopColor="#23966D" />
+              <stop offset="45%" stopColor="#3CCB91" />
+              <stop offset="100%" stopColor="#3CCB91" />
             </linearGradient>
             <linearGradient id={`${gid}-down`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#F07178" />
-              <stop offset="100%" stopColor="#8B2E36" />
+              <stop offset="0%" stopColor="#E05C67" />
+              <stop offset="100%" stopColor="#A83D48" />
             </linearGradient>
             <filter id={`${gid}-glow`} x="-60%" y="-40%" width="220%" height="200%">
               <feGaussianBlur stdDeviation="3.5" result="b" />
@@ -400,7 +400,7 @@ export const HistoricalReturnTimeline = memo(function HistoricalReturnTimeline()
                         x={b.cx}
                         y={b.up ? b.y - 8 : b.y + b.h + 14}
                         textAnchor="middle"
-                        fill={b.up ? '#5EF2C4' : '#F07178'}
+                        fill={b.up ? '#3CCB91' : '#E05C67'}
                         fontSize="11"
                         fontWeight={600}
                         style={{ pointerEvents: 'none' }}
@@ -455,7 +455,7 @@ export const HistoricalReturnTimeline = memo(function HistoricalReturnTimeline()
                   'shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all duration-200',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-base',
                   on
-                    ? 'border-accent-500/50 bg-accent-500/15 text-accent-200 shadow-[0_0_18px_-4px_rgba(18,214,160,0.65)]'
+                    ? 'border-accent-500/50 bg-accent-500/15 text-accent-200 shadow-[0_0_18px_-4px_rgba(212,217,223),0.65)]'
                     : 'border-white/[0.06] bg-white/[0.02] text-fg-subtle hover:border-white/15 hover:text-fg',
                 )}
               >

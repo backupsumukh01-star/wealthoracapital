@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button'
 export const metadata: Metadata = {
   title: 'Investors',
   description:
-    'Community stories, global footprint, investor statistics, and success narratives from the Growzy programme.',
+    'Community stories, global footprint, investor statistics, and success narratives from the Wealthora programme.',
   alternates: { canonical: ROUTES.marketing.investors },
 }
 
@@ -27,7 +27,7 @@ export default function InvestorsPage() {
       <PageHero
         eyebrow="Investors"
         title="A global community inspecting the same tape"
-        description="Statistics, hub activity, and testimonials — illustrative for presentation, designed to match how Growzy talks about community."
+        description="Statistics, hub activity, and testimonials — illustrative for presentation, designed to match how Wealthora talks about community."
       >
         <Button asChild size="lg" className="mt-2 w-full sm:w-auto">
           <Link href={ROUTES.auth.register}>

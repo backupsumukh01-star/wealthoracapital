@@ -12,7 +12,7 @@ export default function ProgressShareRoute() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-dvh bg-[#07131C] px-4 py-10 text-[#F4F8FB]">
+        <main className="min-h-dvh bg-[#07090B] px-4 py-10 text-[#F2F4F7]">
           <div className="mx-auto max-w-lg">
             <div className="aspect-square animate-pulse rounded-2xl bg-white/5" />
           </div>

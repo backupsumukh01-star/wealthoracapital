@@ -37,7 +37,7 @@ export function InvestorAvatar({
       <span
         className={cn(
           'rounded-full bg-gradient-to-br from-accent-400 via-accent-500 to-hl-cyan p-[1.5px]',
-          'shadow-[0_0_16px_-4px_rgba(18,214,160,0.45)]',
+          'shadow-[0_0_16px_-4px_rgba(212,217,223,0.45)]',
         )}
       >
         <Avatar

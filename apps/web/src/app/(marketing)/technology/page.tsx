@@ -50,7 +50,7 @@ export default function TechnologyPage() {
       <Section
         eyebrow="Infrastructure"
         title="Operational posture"
-        description="Principles for how Growzy presents reliability and observability."
+        description="Principles for how Wealthora presents reliability and observability."
         centered
       >
         <div className="card-fill mx-auto flex max-w-2xl flex-col items-start gap-4 p-6 text-left sm:p-8">

@@ -42,7 +42,7 @@ export function NotificationBell({
             className={cn(
               'relative grid h-4 min-w-4 place-items-center rounded-full',
               'bg-accent px-1 text-[9px] font-bold leading-none text-accent-foreground',
-              'ring-2 ring-base shadow-[0_0_10px_rgba(18,214,160,0.45)]',
+              'ring-2 ring-base shadow-[0_0_10px_rgba(212,217,223,0.45)]',
             )}
           >
             {badge}

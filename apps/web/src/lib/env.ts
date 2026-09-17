@@ -26,7 +26,7 @@ const publicEnvSchema = z.object({
           message: 'NEXT_PUBLIC_SITE_URL must not use localhost in production',
         })
     : z.string().url().default('http://localhost:3000'),
-  NEXT_PUBLIC_PLATFORM_NAME: z.string().min(1).default('Growzy'),
+  NEXT_PUBLIC_PLATFORM_NAME: z.string().min(1).default('Wealthora Capital'),
   NEXT_PUBLIC_SUPPORT_EMAIL: z.string().email().default('support@growzycapital.com'),
   NEXT_PUBLIC_ENABLE_REFERRALS: z
     .enum(['true', 'false'])

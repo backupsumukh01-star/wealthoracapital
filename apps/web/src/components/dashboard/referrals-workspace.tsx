@@ -38,7 +38,7 @@ import type {
   ReferralRewardItem,
 } from '@/services/referral.service'
 
-const SHARE_TEXT = 'Join me on Growzy Capital and start your investment journey.'
+const SHARE_TEXT = 'Join me on Wealthora Capital and start your investment journey.'
 
 function redeemErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -165,7 +165,7 @@ function ShareControls({
       if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
         try {
           await navigator.share({
-            title: 'Growzy Capital',
+            title: 'Wealthora Capital',
             text: SHARE_TEXT,
             url: link,
           })

@@ -46,7 +46,7 @@ export function TechnologyStack() {
           className="pointer-events-none absolute inset-0 opacity-40"
           style={{
             background:
-              'radial-gradient(50% 45% at 50% 45%, rgb(18 214 160 / 0.2) 0%, transparent 70%)',
+              'radial-gradient(50% 45% at 50% 45%, rgb(212 217 223 / 0.08) 0%, transparent 70%)',
           }}
           aria-hidden
         />

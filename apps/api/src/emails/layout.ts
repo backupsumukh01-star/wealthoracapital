@@ -11,21 +11,21 @@ export type TimelineStep = {
 }
 
 const COLORS = {
-  bg: '#070A0E',
-  card: '#0F141B',
-  cardAlt: '#151C25',
-  border: '#1E2836',
-  text: '#E8EEF6',
-  muted: '#8B9BB0',
-  subtle: '#5C6B7E',
-  accent: '#2AE8FF',
-  accentDim: '#0E4A55',
-  success: '#3DDC97',
-  warning: '#F5B942',
-  danger: '#FF6B6B',
+  bg: '#07090B',
+  card: '#0D1115',
+  cardAlt: '#11161B',
+  border: '#202A33',
+  text: '#F2F4F7',
+  muted: '#C4CBD3',
+  subtle: '#89939E',
+  accent: '#D4D9DF',
+  accentDim: '#202A33',
+  success: '#3CCB91',
+  warning: '#D9A441',
+  danger: '#E05C67',
   white: '#FFFFFF',
-  otpBg: '#0A1620',
-  gold: '#C9A227',
+  otpBg: '#0A0D10',
+  gold: '#C9A45C',
 }
 
 export function escapeHtml(value: string): string {
@@ -45,15 +45,15 @@ function supportUrl(): string {
 }
 
 function siteUrl(): string {
-  return env.APP_URL.replace(/\/$/, '') || 'https://growzycapital.com'
+  return env.APP_URL.replace(/\/$/, '') || 'https://wealthoracapital.com'
 }
 
 function badgeHtml(category: EmailCategory): string {
   const tones: Record<EmailCategory, { bg: string; fg: string }> = {
     Security: { bg: '#2A1215', fg: COLORS.danger },
     Finance: { bg: '#0E2A24', fg: COLORS.success },
-    Support: { bg: '#122033', fg: COLORS.accent },
-    KYC: { bg: '#1A1830', fg: '#A78BFA' },
+    Support: { bg: '#11161B', fg: COLORS.accent },
+    KYC: { bg: '#151A20', fg: '#AAB3BD' },
     Investment: { bg: '#1F1A0A', fg: COLORS.gold },
     System: { bg: '#1A1F28', fg: COLORS.muted },
   }
@@ -69,7 +69,7 @@ export function statusBadge(
     success: { bg: '#0E2A24', fg: COLORS.success },
     warning: { bg: '#2A210E', fg: COLORS.warning },
     danger: { bg: '#2A1215', fg: COLORS.danger },
-    info: { bg: '#0E2A33', fg: COLORS.accent },
+    info: { bg: '#11161B', fg: COLORS.accent },
     neutral: { bg: '#1A1F28', fg: COLORS.muted },
   }[tone]
   return `<span style="display:inline-block;padding:5px 12px;border-radius:8px;background:${map.bg};color:${map.fg};font-size:12px;font-weight:700;letter-spacing:0.04em">${escapeHtml(label)}</span>`
@@ -138,7 +138,7 @@ function renderCtas(ctas: EmailCta[]): string {
           ? `background:transparent;color:${COLORS.text};border:1px solid ${COLORS.border}`
           : variant === 'danger'
             ? `background:${COLORS.danger};color:${COLORS.white};border:1px solid ${COLORS.danger}`
-            : `background:linear-gradient(135deg,${COLORS.accent} 0%,#1BB8CC 100%);color:#041018;border:1px solid ${COLORS.accent}`
+            : `background:${COLORS.accent};color:#07090B;border:1px solid ${COLORS.accent}`
       return `<a href="${escapeAttr(cta.href)}"
         style="display:inline-block;${styles};font-size:14px;font-weight:700;text-decoration:none;padding:13px 22px;border-radius:10px;margin:0 8px 10px 0">
         ${escapeHtml(cta.label)}
@@ -149,7 +149,7 @@ function renderCtas(ctas: EmailCta[]): string {
 }
 
 /**
- * Shared responsive email shell — dark luxury Growzy branding.
+ * Shared responsive email shell — dark luxury Wealthora branding.
  */
 export function emailLayout(input: {
   category: EmailCategory
@@ -160,7 +160,7 @@ export function emailLayout(input: {
   /** @deprecated prefer ctas[] */
   cta?: EmailCta
 }): string {
-  const brand = env.APP_NAME || 'Growzy'
+  const brand = env.APP_NAME || 'Wealthora Capital'
   const year = new Date().getFullYear()
   const preheader = input.preheader ?? input.title
   const ctas = input.ctas ?? (input.cta ? [input.cta] : [])
@@ -198,14 +198,14 @@ export function emailLayout(input: {
         <table role="presentation" class="container" width="560" cellspacing="0" cellpadding="0" style="width:560px;max-width:560px;background:${COLORS.card};border-radius:20px;overflow:hidden;border:1px solid ${COLORS.border};box-shadow:0 24px 64px rgba(0,0,0,0.45)">
           <!-- Header -->
           <tr>
-            <td class="px" style="padding:28px 32px 20px;background:linear-gradient(145deg,#0A1218 0%,#0F1C24 55%,#0B1520 100%);border-bottom:1px solid ${COLORS.border}">
+            <td class="px" style="padding:28px 32px 20px;background:linear-gradient(145deg,#07090B 0%,#0D1115 55%,#0A0D10 100%);border-bottom:1px solid ${COLORS.border}">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
                   <td valign="middle">
                     <table role="presentation" cellspacing="0" cellpadding="0">
                       <tr>
                         <td valign="middle" style="padding-right:12px">
-                          <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,${COLORS.accent},${COLORS.gold});text-align:center;line-height:36px;font-weight:800;color:#041018;font-size:16px">G</div>
+                          <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,${COLORS.accent},${COLORS.gold});text-align:center;line-height:36px;font-weight:800;color:#07090B;font-size:16px">W</div>
                         </td>
                         <td valign="middle">
                           <p style="margin:0;font-size:18px;font-weight:800;letter-spacing:0.02em;color:${COLORS.white}">${escapeHtml(brand)}</p>
@@ -240,7 +240,7 @@ export function emailLayout(input: {
                 Need help? <a href="${escapeAttr(supportUrl())}" style="color:${COLORS.accent};text-decoration:none;font-weight:600">Contact Support</a>
               </p>
               <p style="margin:12px 0 0;padding:12px 14px;border-radius:10px;background:${COLORS.cardAlt};border:1px solid ${COLORS.border};font-size:12px;line-height:1.5;color:${COLORS.subtle}">
-                <strong style="color:${COLORS.warning}">Security notice:</strong> Growzy will never ask for your password or OTP.
+                <strong style="color:${COLORS.warning}">Security notice:</strong> Wealthora will never ask for your password or OTP.
               </p>
               <p style="margin:16px 0 0;font-size:11px;color:${COLORS.subtle}">© ${year} ${escapeHtml(brand)}. All rights reserved. Sent from ${escapeHtml(sender.email)}.</p>
             </td>

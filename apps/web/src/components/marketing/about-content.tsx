@@ -56,7 +56,7 @@ export function AboutContent() {
             <StaggerItem key={item.title}>
               <Card className="h-full p-6 lg:p-7" interactive>
                 <motion.span
-                  className="grid size-10 place-items-center rounded-lg bg-accent-900/40 text-accent-300 shadow-[0_0_18px_-6px_rgba(18,214,160,0.55)]"
+                  className="grid size-10 place-items-center rounded-lg bg-accent-900/40 text-accent-300 shadow-[0_0_18px_-6px_rgba(212,217,223,0.55)]"
                   animate={
                     prefersReducedMotion
                       ? undefined

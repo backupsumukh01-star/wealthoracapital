@@ -18,7 +18,7 @@ export interface LogoProps {
   markClassName?: string
 }
 
-/** Growzy logo — horizontal (default), stacked, mark-only, or wordmark. */
+/** Wealthora logo — horizontal (default), stacked, mark-only, or wordmark. */
 export function Logo({
   variant = 'horizontal',
   tone = 'color',
@@ -43,11 +43,11 @@ export function Logo({
         resolved === 'stacked' ? 'text-[1.35rem]' : 'text-[1.125rem]',
         tone === 'mono' && 'text-current',
         tone === 'light' && 'text-white',
-        tone === 'dark' && 'text-[#07131C]',
+        tone === 'dark' && 'text-[#07090B]',
         tone === 'color' && 'text-fg',
       )}
     >
-      <span className="bg-gradient-to-r from-[#5EF2C4] via-[#12D6A0] to-[#2AE8FF] bg-clip-text text-transparent">
+      <span className="bg-gradient-to-r from-[#C4CBD3] via-[#D4D9DF] to-[#F2F4F7] bg-clip-text text-transparent">
         {SITE.wordmark.primary}
       </span>
     </span>

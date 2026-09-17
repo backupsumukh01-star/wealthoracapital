@@ -147,7 +147,7 @@ export const dailyOwnerReportService = {
     }
 
     const lines = [
-      `Growzy Daily Report — ${summary.date}`,
+      `Wealthora Daily Report — ${summary.date}`,
       '',
       `New users: ${summary.newUsers}`,
       `New KYC: ${summary.newKyc}`,
@@ -171,7 +171,7 @@ export const dailyOwnerReportService = {
     for (const to of recipients) {
       await emailService.sendAdminAlert({
         to,
-        alertTitle: `Growzy Daily Report — ${summary.date}`,
+        alertTitle: `Wealthora Daily Report — ${summary.date}`,
         alertBody: lines.join('\n'),
         reference: summary.date,
         adminLink: `${env.APP_URL.replace(/\/$/, '')}/admin`,

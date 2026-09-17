@@ -1,6 +1,6 @@
 /**
  * Generates docs/openapi/openapi.json and docs/openapi/openapi.yaml
- * covering every Growzy Express API endpoint (Phases 1-6).
+ * covering every Wealthora Express API endpoint (Phases 1-6).
  *
  * Run: node scripts/generate-openapi.mjs
  */
@@ -2998,11 +2998,11 @@ const tags = [
 const doc = {
   openapi: '3.1.0',
   info: {
-    title: 'Growzy API',
+    title: 'Wealthora API',
     version: '1.0.0',
-    summary: 'Growzy / Meridian FX investment platform API (Phases 1-6)',
+    summary: 'Wealthora Capital / Meridian FX investment platform API (Phases 1-6)',
     description: [
-      '# Growzy API',
+      '# Wealthora API',
       '',
       'Complete OpenAPI **3.1** specification for every Express endpoint.',
       '',
@@ -3039,7 +3039,7 @@ const doc = {
       '',
       'Regenerate: `node scripts/generate-openapi.mjs`',
     ].join('\n'),
-    contact: { name: 'Growzy Engineering' },
+    contact: { name: 'Wealthora Engineering' },
     license: { name: 'Proprietary' },
   },
   servers: [
@@ -3290,7 +3290,7 @@ function buildPostman(openApiDoc) {
   }
   return {
     info: {
-      name: 'Growzy API',
+      name: 'Wealthora API',
       description: openApiDoc.info.description,
       schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
       _postman_id: 'growzy-api-v1',
@@ -3311,7 +3311,7 @@ function buildPostman(openApiDoc) {
 function buildPostmanEnvironment() {
   return {
     id: 'growzy-local',
-    name: 'Growzy Local',
+    name: 'Wealthora Local',
     values: [
       { key: 'baseUrl', value: 'http://localhost:4000', enabled: true, type: 'default' },
       { key: 'accessToken', value: '', enabled: true, type: 'secret' },
@@ -3332,7 +3332,7 @@ function buildInsomnia(openApiDoc) {
   resources.push({
     _id: workspaceId,
     _type: 'workspace',
-    name: 'Growzy API',
+    name: 'Wealthora API',
     description: 'Generated from OpenAPI 3.1',
   })
   resources.push({

@@ -132,7 +132,7 @@ export function LoginForm() {
     <>
       <AuthCard
         title="Welcome back"
-        description="Sign in to your Growzy account."
+        description="Sign in to your Wealthora account."
         footer={
           <>
             No account yet?{' '}

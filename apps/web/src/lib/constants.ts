@@ -4,9 +4,9 @@ import { env } from './env'
 export const SITE = {
   name: env.NEXT_PUBLIC_PLATFORM_NAME,
   /** Legal entity — About, Footer, Terms, Privacy only. */
-  legalName: 'Growzy Capital Partners',
+  legalName: 'Wealthora Capital Partners',
   /** Primary logo wordmark. */
-  wordmark: { primary: 'Growzy', secondary: '' },
+  wordmark: { primary: 'Wealthora', secondary: '' },
   tagline: 'AI-assisted Forex investing with verified daily returns.',
   description:
     'Invest in AI-assisted forex strategies, watch every published trade, and receive ' +

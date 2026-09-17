@@ -104,7 +104,7 @@ export async function buildProgressShareSnapshot(userId: string): Promise<Progre
     earningsTillDate: convertUsdField(earningsUsd, displayCurrency, rates),
     performancePct: performance.roiPct,
     asOfDate: new Date().toISOString().slice(0, 10),
-    brandName: 'Growzy Capital',
+    brandName: 'Wealthora Capital',
   }
 }
 

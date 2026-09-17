@@ -7,9 +7,9 @@ import { useWallet } from '@/features/wallet/hooks'
 import { useSession } from '@/providers/session-provider'
 
 const COLORS = {
-  available: '#12D6A0',
-  invested: '#38BDF8',
-  locked: '#F59E0B',
+  available: '#3CCB91',
+  invested: '#8FA8C0',
+  locked: '#D9A441',
 } as const
 
 export function PortfolioAllocation() {

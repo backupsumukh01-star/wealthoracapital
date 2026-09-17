@@ -1,6 +1,60 @@
 @import 'tailwindcss';
 @import '../styles/tokens.css';
 @import '../styles/typography.css';
+/* Theme: graphite + silver + champagne */
+
+/* Force the luxury palette even if a stale tokens.css layer is cached. */
+:root {
+  --surface-base: #07090b;
+  --surface-raised: #0d1115;
+  --surface-overlay: #11161b;
+  --surface-inset: #0a0d10;
+  --surface-hover: #151a20;
+  --border-subtle: #182027;
+  --border-default: #202a33;
+  --border-strong: #2a3540;
+  --text-primary: #f2f4f7;
+  --text-secondary: #c4cbd3;
+  --text-tertiary: #89939e;
+  --text-disabled: #59636e;
+  --text-inverse: #07090b;
+  --accent-50: #f8f9fb;
+  --accent-100: #f2f4f7;
+  --accent-200: #e4e8ed;
+  --accent-300: #d4d9df;
+  --accent-400: #c4cbd3;
+  --accent-500: #d4d9df;
+  --accent-600: #aab3bd;
+  --accent-700: #89939e;
+  --accent-800: #59636e;
+  --accent-900: #3d454d;
+  --accent: #d4d9df;
+  --accent-foreground: #07090b;
+  --brand-secondary: #aab3bd;
+  --brand-gold: #c9a45c;
+  --brand-gold-light: #e0c27a;
+  --profit: #3ccb91;
+  --profit-bg: rgb(60 203 145 / 0.1);
+  --loss: #e05c67;
+  --loss-bg: rgb(224 92 103 / 0.1);
+  --success: #3ccb91;
+  --success-bg: rgb(60 203 145 / 0.1);
+  --warning: #d9a441;
+  --warning-bg: rgb(217 164 65 / 0.1);
+  --danger: #e05c67;
+  --danger-bg: rgb(224 92 103 / 0.1);
+  --info: #8fa8c0;
+  --info-bg: rgb(143 168 192 / 0.1);
+  --hl-emerald: #3ccb91;
+  --hl-cyan: #aab3bd;
+  --hl-blue: #8fa8c0;
+  --hl-violet: #aab3bd;
+  --hl-amber: #c9a45c;
+  --glow-accent: 0 0 0 1px rgb(212 217 223 / 0.18), 0 8px 28px rgb(212 217 223 / 0.08);
+  --glow-profit: 0 0 0 1px rgb(60 203 145 / 0.18), 0 8px 24px rgb(60 203 145 / 0.08);
+  --glow-gold: 0 0 0 1px rgb(201 164 92 / 0.16), 0 8px 24px rgb(201 164 92 / 0.08);
+  --glow-soft: 0 0 64px rgb(212 217 223 / 0.06);
+}
 
 /* Dark is the default theme, so `:root` already holds the dark values and the
    `dark` class is a no-op. The `light` class is the override. */
@@ -320,8 +374,8 @@
   }
 
   ::selection {
-    background-color: var(--accent-700);
-    color: var(--text-primary);
+    background-color: var(--accent-300);
+    color: var(--text-inverse);
   }
 
   /* Numbers never shift width. */
@@ -415,22 +469,22 @@
   border: 1px solid var(--border-subtle);
   background: linear-gradient(
     165deg,
-    rgb(17 21 31 / 0.95) 0%,
-    rgb(8 10 15 / 0.98) 100%
+    rgb(13 17 21 / 0.95) 0%,
+    rgb(7 9 11 / 0.98) 100%
   );
   box-shadow: var(--elev-2), var(--glow-soft);
 }
 
 @utility panel-gradient-accent {
   border-radius: var(--rad-2xl);
-  border: 1px solid rgb(18 214 160 / 0.28);
+  border: 1px solid rgb(212 217 223 / 0.18);
   background: linear-gradient(
     145deg,
-    rgb(13 133 116 / 0.55) 0%,
-    rgb(6 62 53 / 0.9) 48%,
-    rgb(5 7 12 / 0.98) 100%
+    rgb(21 26 32 / 0.92) 0%,
+    rgb(13 17 21 / 0.96) 48%,
+    rgb(7 9 11 / 0.98) 100%
   );
-  box-shadow: var(--elev-3), 0 0 60px rgb(18 214 160 / 0.14);
+  box-shadow: var(--elev-3), 0 0 48px rgb(212 217 223 / 0.06);
 }
 
 @utility panel-gradient-steel {
@@ -438,21 +492,21 @@
   border: 1px solid var(--border-default);
   background: linear-gradient(
     150deg,
-    rgb(42 50 68 / 0.85) 0%,
-    rgb(17 21 31 / 0.95) 55%,
-    rgb(5 7 12 / 1) 100%
+    rgb(21 26 32 / 0.85) 0%,
+    rgb(13 17 21 / 0.95) 55%,
+    rgb(7 9 11 / 1) 100%
   );
   box-shadow: var(--elev-2);
 }
 
 @utility panel-gradient-profit {
   border-radius: var(--rad-2xl);
-  border: 1px solid rgb(52 211 153 / 0.25);
+  border: 1px solid rgb(60 203 145 / 0.22);
   background: linear-gradient(
     145deg,
-    rgb(15 156 108 / 0.45) 0%,
-    rgb(6 40 30 / 0.92) 55%,
-    rgb(5 7 12 / 0.98) 100%
+    rgb(35 150 109 / 0.22) 0%,
+    rgb(10 16 18 / 0.94) 55%,
+    rgb(7 9 11 / 0.98) 100%
   );
   box-shadow: var(--elev-3);
 }
@@ -470,9 +524,9 @@
     border-radius: inherit;
     background: linear-gradient(
       135deg,
-      rgb(69 214 192 / 0.55),
-      rgb(42 50 68 / 0.2) 40%,
-      rgb(18 214 160 / 0.35)
+      rgb(212 217 223 / 0.42),
+      rgb(32 42 51 / 0.2) 40%,
+      rgb(201 164 92 / 0.18)
     );
     mask:
       linear-gradient(#000 0 0) content-box,
@@ -502,7 +556,7 @@
 @utility bg-radial-accent {
   background-image: radial-gradient(
     60% 60% at 50% 0%,
-    rgb(18 214 160 / 0.16) 0%,
+    rgb(212 217 223 / 0.08) 0%,
     transparent 70%
   );
 }
@@ -614,14 +668,14 @@
   overflow: hidden;
   min-width: 0;
   border-radius: var(--rad-2xl);
-  border: 1px solid rgb(255 255 255 / 0.08);
+  border: 1px solid rgb(255 255 255 / 0.07);
   background:
-    linear-gradient(155deg, rgb(94 242 196 / 0.07) 0%, transparent 38%),
-    linear-gradient(165deg, rgb(255 255 255 / 0.045) 0%, transparent 48%),
-    rgb(16 27 38 / 0.92);
+    linear-gradient(155deg, rgb(212 217 223 / 0.05) 0%, transparent 38%),
+    linear-gradient(165deg, rgb(255 255 255 / 0.035) 0%, transparent 48%),
+    rgb(13 17 21 / 0.94);
   box-shadow:
-    0 0 0 1px rgb(18 214 160 / 0.05),
-    0 10px 28px rgb(0 0 0 / 0.3);
+    0 0 0 1px rgb(212 217 223 / 0.04),
+    0 10px 28px rgb(0 0 0 / 0.32);
   backdrop-filter: blur(16px);
   transition:
     transform 200ms var(--motion-ease-out),
@@ -631,11 +685,11 @@
   @media (hover: hover) and (pointer: fine) {
     &:hover {
       transform: translateY(-2px);
-      border-color: rgb(18 214 160 / 0.22);
+      border-color: rgb(212 217 223 / 0.18);
       box-shadow:
-        0 0 0 1px rgb(18 214 160 / 0.1),
-        0 14px 36px rgb(0 0 0 / 0.36),
-        0 0 40px rgb(18 214 160 / 0.08);
+        0 0 0 1px rgb(212 217 223 / 0.08),
+        0 14px 36px rgb(0 0 0 / 0.38),
+        0 0 32px rgb(212 217 223 / 0.06);
     }
   }
 }
@@ -653,10 +707,10 @@
     border-radius: inherit;
     background: linear-gradient(
       135deg,
-      rgb(52 211 153 / 0.45),
-      rgb(34 211 238 / 0.2),
-      rgb(167 139 250 / 0.35),
-      rgb(18 214 160 / 0.4)
+      rgb(212 217 223 / 0.38),
+      rgb(137 147 158 / 0.16),
+      rgb(201 164 92 / 0.18),
+      rgb(212 217 223 / 0.28)
     );
     background-size: 200% 200%;
     animation: gradient-shift 10s ease-in-out infinite;
@@ -674,9 +728,9 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgb(34 211 238 / 0.35),
-    rgb(18 214 160 / 0.55),
-    rgb(167 139 250 / 0.35),
+    rgb(170 179 189 / 0.28),
+    rgb(212 217 223 / 0.42),
+    rgb(201 164 92 / 0.18),
     transparent
   );
   background-size: 200% 100%;

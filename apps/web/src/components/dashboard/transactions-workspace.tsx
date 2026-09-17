@@ -52,7 +52,7 @@ export function TransactionsWorkspace() {
               const url = URL.createObjectURL(blob)
               const a = document.createElement('a')
               a.href = url
-              a.download = 'growzy-history.csv'
+              a.download = 'wealthora-history.csv'
               a.click()
               URL.revokeObjectURL(url)
               toast.success('History exported')

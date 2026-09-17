@@ -1,5 +1,5 @@
 /**
- * Growzy Admin Operating System — CMS + ops draft state.
+ * Wealthora Admin Operating System — CMS + ops draft state.
  * Defaults seed Demo Mode marketing fixtures (ticker, testimonials, FAQs);
  * live CMS/admin APIs override when they provide a full set.
  */
@@ -370,7 +370,7 @@ function id(prefix: string) {
 function seedLanding(): LandingCms {
   return {
     logoUrl: '/icon',
-    companyName: 'Growzy',
+    companyName: 'Wealthora',
     heroTitle: 'Forex investing with every trade on record',
     heroSubtitle:
       'AI-assisted strategies, human-verified results and transparent historical performance.',
@@ -386,7 +386,7 @@ function seedLanding(): LandingCms {
     riskDisclosure:
       'Forex trading involves substantial risk of loss. Past performance does not guarantee future results. Only invest capital you can afford to lose.',
     footerTagline: 'Transparent forex investing with every trade on record.',
-    supportEmail: 'support@growzy.com',
+    supportEmail: 'support@wealthoracapital.com',
     whatsapp: '+971500000000',
     telegram: 'https://t.me/growzy',
     social: {
@@ -398,7 +398,7 @@ function seedLanding(): LandingCms {
     },
     homepagePopup: {
       enabled: false,
-      title: 'Welcome to Growzy',
+      title: 'Welcome to Wealthora',
       body: 'New investors receive onboarding guidance after email verification.',
       cta: 'Get started',
     },
@@ -458,10 +458,10 @@ export function createDefaultAdminOs(): AdminOsState {
     cryptoWallets: [],
     emailTemplates: buildPremiumEmailTemplateSeed(),
     global: {
-      companyName: 'Growzy',
+      companyName: 'Wealthora',
       logoUrl: '/icon',
       theme: 'dark-glass',
-      supportEmail: 'support@growzy.com',
+      supportEmail: 'support@wealthoracapital.com',
       supportWhatsApp: '+971500000000',
       telegram: 'https://t.me/growzy',
       discord: 'https://discord.gg/growzy',
@@ -516,8 +516,8 @@ export function createDefaultAdminOs(): AdminOsState {
       {
         id: 'PG_about',
         slug: 'about',
-        title: 'About Growzy',
-        body: 'Growzy Capital runs a transparent FX desk with AI assistance and human verification.',
+        title: 'About Wealthora',
+        body: 'Wealthora Capital runs a transparent FX desk with AI assistance and human verification.',
         status: 'PUBLISHED',
         updatedAt: now(),
       },
@@ -525,7 +525,7 @@ export function createDefaultAdminOs(): AdminOsState {
         id: 'PG_terms',
         slug: 'terms',
         title: 'Terms of Service',
-        body: 'By using Growzy you agree to the platform terms, risk disclosure, and acceptable use policy.',
+        body: 'By using Wealthora you agree to the platform terms, risk disclosure, and acceptable use policy.',
         status: 'PUBLISHED',
         updatedAt: now(),
       },
@@ -541,7 +541,7 @@ export function createDefaultAdminOs(): AdminOsState {
         id: 'PG_contact',
         slug: 'contact',
         title: 'Contact',
-        body: 'Email support@growzycapital.com or open a ticket from your dashboard.',
+        body: 'Email support@wealthoracapital.com or open a ticket from your dashboard.',
         status: 'PUBLISHED',
         updatedAt: now(),
       },
@@ -656,7 +656,7 @@ export function pushAudit(
   const row: OsAuditEntry = {
     id: id('AUD'),
     at: now(),
-    admin: entry.admin ?? 'admin@growzy.com',
+    admin: entry.admin ?? 'admin@wealthoracapital.com',
     ip: '203.0.113.10',
     browser: 'Chrome 127 · Windows',
     action: entry.action,

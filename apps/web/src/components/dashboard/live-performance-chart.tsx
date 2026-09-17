@@ -115,7 +115,7 @@ export function LivePerformanceChart() {
         </div>
       </div>
 
-      <div className="mt-5 h-[220px] w-full min-w-0 overflow-hidden transition-[filter] duration-500 group-hover/chart:drop-shadow-[0_0_28px_rgba(18,214,160,0.22)] sm:h-[280px]">
+      <div className="mt-5 h-[220px] w-full min-w-0 overflow-hidden transition-[filter] duration-500 group-hover/chart:drop-shadow-[0_0_28px_rgba(60,203,145,0.12)] sm:h-[280px]">
         {data.length === 0 ? (
           <div className="grid h-full place-items-center text-body-sm text-fg-subtle">
             No performance data yet.
@@ -125,33 +125,33 @@ export function LivePerformanceChart() {
           <AreaChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#12D6A0" stopOpacity={0.35} />
-                <stop offset="70%" stopColor="#12D6A0" stopOpacity={0.04} />
-                <stop offset="100%" stopColor="#12D6A0" stopOpacity={0} />
+                <stop offset="0%" stopColor="#3CCB91" stopOpacity={0.28} />
+                <stop offset="70%" stopColor="#3CCB91" stopOpacity={0.04} />
+                <stop offset="100%" stopColor="#3CCB91" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="equityStroke" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#5EF2C4" />
-                <stop offset="50%" stopColor="#12D6A0" />
-                <stop offset="100%" stopColor="#2AE8FF" />
+                <stop offset="0%" stopColor="#23966D" />
+                <stop offset="50%" stopColor="#3CCB91" />
+                <stop offset="100%" stopColor="#D4D9DF" />
               </linearGradient>
             </defs>
             <CartesianGrid stroke="rgb(255 255 255 / 0.04)" vertical={false} />
             <XAxis
               dataKey="date"
-              tick={{ fill: '#6B7C8F', fontSize: 11 }}
+              tick={{ fill: '#89939E', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
               minTickGap={28}
             />
             <YAxis
               domain={['dataMin - 80', 'dataMax + 80']}
-              tick={{ fill: '#6B7C8F', fontSize: 11 }}
+              tick={{ fill: '#89939E', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
               width={48}
               tickFormatter={(v) => `$${Math.round(Number(v) / 1000)}k`}
             />
-            <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'rgb(18 214 160 / 0.35)' }} />
+            <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'rgb(60 203 145 / 0.28)' }} />
             <Area
               type="monotone"
               dataKey="balanceNum"
@@ -160,7 +160,7 @@ export function LivePerformanceChart() {
               fill="url(#equityFill)"
               animationDuration={900}
               animationEasing="ease-out"
-              activeDot={{ r: 5, fill: '#12D6A0', stroke: '#07131C', strokeWidth: 2 }}
+              activeDot={{ r: 5, fill: '#3CCB91', stroke: '#07090B', strokeWidth: 2 }}
             />
           </AreaChart>
         </ResponsiveContainer>

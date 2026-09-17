@@ -48,7 +48,7 @@ export function GlassCard({
         className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
         style={{
           background:
-            'radial-gradient(120% 80% at 20% 0%, rgb(18 214 160 / 0.12) 0%, transparent 55%)',
+            'radial-gradient(120% 80% at 20% 0%, rgb(212 217 223 / 0.06) 0%, transparent 55%)',
         }}
         aria-hidden
       />

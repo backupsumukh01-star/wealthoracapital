@@ -120,7 +120,7 @@ export function LiveActivityFeed() {
             className={cn(
               'pointer-events-none flex h-[56px] w-[230px] items-center gap-2 overflow-hidden',
               'rounded-2xl border border-accent-500/25 px-2.5',
-              'bg-[rgb(10_20_30/0.82)] shadow-[0_8px_28px_rgb(0_0_0/0.35),0_0_0_1px_rgb(18_214_160/0.08),0_0_24px_-8px_rgb(18_214_160/0.35)]',
+              'bg-[rgb(7_9_11/0.82)] shadow-[0_8px_28px_rgb(0_0_0/0.35),0_0_0_1px_rgb(212_217_223/0.08),0_0_24px_-8px_rgb(212_217_223/0.10)]',
               'backdrop-blur-xl backdrop-saturate-150',
               'will-change-transform',
             )}

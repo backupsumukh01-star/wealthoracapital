@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Growzy — typographic scale (docs/10 §3)
+   Wealthora — typographic scale (docs/10 §3)
 
    1.250 major third from a 16px base. Display sizes use clamp() so the hero
    steps down on mobile without a separate breakpoint rule.

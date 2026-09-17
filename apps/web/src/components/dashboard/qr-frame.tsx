@@ -24,7 +24,7 @@ export function QrFrame({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={src} alt={label} className="size-full object-contain" />
         ) : (
-          <p className="px-3 text-center text-caption text-[#07131C]/70">
+          <p className="px-3 text-center text-caption text-[#07090B]/70">
             QR image unavailable. Use the deposit address below.
           </p>
         )}

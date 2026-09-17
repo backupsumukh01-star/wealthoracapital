@@ -40,9 +40,9 @@ function resolveLaneEmail(configured: string | undefined, lane: EmailSenderLane)
   return LANE_DEFAULTS[lane]
 }
 
-/** Resolve From header for a lane — never invent domains outside growzycapital.com defaults. */
+/** Resolve From header for a lane — never invent domains outside configured defaults. */
 export function resolveSender(lane: EmailSenderLane): { name: string; email: string; formatted: string } {
-  const name = env.SMTP_FROM_NAME || 'Growzy'
+  const name = env.SMTP_FROM_NAME || 'Wealthora Capital'
   const map: Record<EmailSenderLane, string | undefined> = {
     auth: env.EMAIL_FROM_AUTH,
     support: env.EMAIL_FROM_SUPPORT,

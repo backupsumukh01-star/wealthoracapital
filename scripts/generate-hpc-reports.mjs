@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Build institutional Growzy-branded HTML performance reports from existing
+ * Build institutional Wealthora-branded HTML performance reports from existing
  * demo/backtest JSON (does not regenerate trade/backtest data).
  *
  *   node scripts/generate-hpc-reports.mjs
@@ -72,7 +72,7 @@ function svgEquity(gid = 'eqg') {
     const y = pad + (1 - (p.equity - min) / (max - min || 1)) * (h - pad * 2)
     return `${x},${y}`
   })
-  return `<svg viewBox="0 0 ${w} ${h}" class="chart" role="img" aria-label="Equity curve"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#12D6A0" stop-opacity="0.45"/><stop offset="100%" stop-color="#12D6A0" stop-opacity="0"/></linearGradient></defs><polyline fill="none" stroke="#12D6A0" stroke-width="2.5" points="${coords.join(' ')}"/><polygon fill="url(#${gid})" points="${pad},${h - pad} ${coords.join(' ')} ${w - pad},${h - pad}"/></svg>`
+  return `<svg viewBox="0 0 ${w} ${h}" class="chart" role="img" aria-label="Equity curve"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3CCB91" stop-opacity="0.45"/><stop offset="100%" stop-color="#3CCB91" stop-opacity="0"/></linearGradient></defs><polyline fill="none" stroke="#3CCB91" stroke-width="2.5" points="${coords.join(' ')}"/><polygon fill="url(#${gid})" points="${pad},${h - pad} ${coords.join(' ')} ${w - pad},${h - pad}"/></svg>`
 }
 
 function svgMonthlyBars(rows) {
@@ -87,7 +87,7 @@ function svgMonthlyBars(rows) {
       const x = pad + i * bw + 1
       const up = r.returnPct >= 0
       const y = up ? h / 2 - mag : h / 2
-      return `<rect x="${x}" y="${y}" width="${Math.max(bw - 2, 1)}" height="${mag}" rx="2" fill="${up ? '#12D6A0' : '#F07178'}"/>`
+      return `<rect x="${x}" y="${y}" width="${Math.max(bw - 2, 1)}" height="${mag}" rx="2" fill="${up ? '#3CCB91' : '#E05C67'}"/>`
     })
     .join('')
   return `<svg viewBox="0 0 ${w} ${h}" class="chart" role="img" aria-label="Monthly returns"><line x1="${pad}" x2="${w - pad}" y1="${h / 2}" y2="${h / 2}" stroke="rgba(255,255,255,0.15)"/><g>${bars}</g></svg>`
@@ -116,7 +116,7 @@ function svgDrawdown() {
     const y = pad + (dd / max) * (h - pad * 2)
     return `${x},${y}`
   })
-  return `<svg viewBox="0 0 ${w} ${h}" class="chart" role="img" aria-label="Drawdown"><defs><linearGradient id="ddg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F07178" stop-opacity="0.35"/><stop offset="100%" stop-color="#F07178" stop-opacity="0"/></linearGradient></defs><polygon fill="url(#ddg)" points="${pad},${pad} ${coords.join(' ')} ${w - pad},${pad}"/><polyline fill="none" stroke="#F07178" stroke-width="2" points="${coords.join(' ')}"/></svg>`
+  return `<svg viewBox="0 0 ${w} ${h}" class="chart" role="img" aria-label="Drawdown"><defs><linearGradient id="ddg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E05C67" stop-opacity="0.35"/><stop offset="100%" stop-color="#E05C67" stop-opacity="0"/></linearGradient></defs><polygon fill="url(#ddg)" points="${pad},${pad} ${coords.join(' ')} ${w - pad},${pad}"/><polyline fill="none" stroke="#E05C67" stroke-width="2" points="${coords.join(' ')}"/></svg>`
 }
 
 function svgWinLoss() {
@@ -125,7 +125,7 @@ function svgWinLoss() {
   const total = Math.max(wins.length + losses.length, 1)
   const winW = (wins.length / total) * (w - 40)
   const lossW = (losses.length / total) * (w - 40)
-  return `<svg viewBox="0 0 ${w} ${h}" class="chart chart-sm" role="img" aria-label="Winning vs losing"><rect x="20" y="50" width="${winW}" height="28" rx="6" fill="#12D6A0"/><rect x="${20 + winW}" y="50" width="${lossW}" height="28" rx="6" fill="#F07178"/><text x="20" y="110" fill="#9FB0BF" font-size="12">Wins ${wins.length} · Losses ${losses.length}</text></svg>`
+  return `<svg viewBox="0 0 ${w} ${h}" class="chart chart-sm" role="img" aria-label="Winning vs losing"><rect x="20" y="50" width="${winW}" height="28" rx="6" fill="#3CCB91"/><rect x="${20 + winW}" y="50" width="${lossW}" height="28" rx="6" fill="#E05C67"/><text x="20" y="110" fill="#89939E" font-size="12">Wins ${wins.length} · Losses ${losses.length}</text></svg>`
 }
 
 function svgAllocation() {
@@ -135,7 +135,7 @@ function svgAllocation() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 8)
   const total = rows.reduce((s, [, n]) => s + n, 0) || 1
-  const colors = ['#12D6A0', '#2AE8FF', '#5B8DEF', '#A78BFA', '#F5A524', '#F07178', '#34D399', '#94A3B8']
+  const colors = ['#3CCB91', '#D4D9DF', '#8FA8C0', '#AAB3BD', '#C9A45C', '#E05C67', '#3CCB91', '#94A3B8']
   const w = 640
   const h = 200
   const barH = 16
@@ -147,7 +147,7 @@ function svgAllocation() {
       const y = 20 + i * (barH + gap)
       const bw = (n / total) * maxW
       const pct = ((n / total) * 100).toFixed(1)
-      return `<text x="8" y="${y + 12}" fill="#9FB0BF" font-size="11">${pair}</text><rect x="${left}" y="${y}" width="${bw}" height="${barH}" rx="4" fill="${colors[i % colors.length]}"/><text x="${left + bw + 8}" y="${y + 12}" fill="#E8EEF4" font-size="11">${pct}%</text>`
+      return `<text x="8" y="${y + 12}" fill="#89939E" font-size="11">${pair}</text><rect x="${left}" y="${y}" width="${bw}" height="${barH}" rx="4" fill="${colors[i % colors.length]}"/><text x="${left + bw + 8}" y="${y + 12}" fill="#F2F4F7" font-size="11">${pct}%</text>`
     })
     .join('')
   return `<svg viewBox="0 0 ${w} ${h}" class="chart" role="img" aria-label="Asset allocation">${bars}</svg>`
@@ -185,16 +185,16 @@ function tradeSample(n = 24) {
 }
 
 const CSS = `
-:root{--bg:#07131C;--card:#0E1C28;--line:rgba(255,255,255,.08);--fg:#E8EEF4;--muted:#9FB0BF;--accent:#12D6A0;--cyan:#2AE8FF;--loss:#F07178}
+:root{--bg:#07090B;--card:#0D1115;--line:rgba(255,255,255,.08);--fg:#F2F4F7;--muted:#89939E;--accent:#3CCB91;--cyan:#D4D9DF;--loss:#E05C67}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .report-page{position:relative;min-height:100vh;padding:48px 40px 72px;page-break-after:always;overflow:hidden}
 .report-page:last-child{page-break-after:auto}
 .watermark{pointer-events:none;position:absolute;inset:0;display:grid;place-items:center;font-size:64px;font-weight:700;letter-spacing:.2em;color:rgba(255,255,255,.03);transform:rotate(-24deg);text-transform:uppercase}
 .footer{position:absolute;left:40px;right:40px;bottom:28px;display:flex;justify-content:space-between;gap:12px;font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
-.cover{display:flex;flex-direction:column;justify-content:space-between;background:radial-gradient(90% 60% at 50% 0%,rgba(18,214,160,.22),transparent 70%),linear-gradient(160deg,#07131C,#0B1A24 45%,#07131C)}
+.cover{display:flex;flex-direction:column;justify-content:space-between;background:radial-gradient(90% 60% at 50% 0%,rgba(60,203,145,.22),transparent 70%),linear-gradient(160deg,#07090B,#0A0D10 45%,#07090B)}
 .brand{display:flex;align-items:center;gap:12px}
-.logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#12D6A0,#2AE8FF);display:grid;place-items:center;font-weight:800;color:#041018}
+.logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#3CCB91,#D4D9DF);display:grid;place-items:center;font-weight:800;color:#07090B}
 .eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
 h1{font-size:40px;line-height:1.1;margin:12px 0 8px;font-weight:700}
 h2{font-size:22px;margin:0 0 16px}
@@ -219,16 +219,16 @@ table.data td{padding:9px 8px;border-bottom:1px solid var(--line);font-variant-n
 table.data tr.win td.pct,table.data tr.win td.icon{color:var(--accent)}
 table.data tr.loss td.pct,table.data tr.loss td.icon{color:var(--loss)}
 table.data tbody tr:nth-child(even){background:rgba(255,255,255,.035)}
-table.data tbody tr:hover{background:rgba(18,214,160,.06)}
+table.data tbody tr:hover{background:rgba(60,203,145,.06)}
 table.data td.icon{width:18px;text-align:center;font-size:10px}
 .heatmap{width:100%;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
 .heatmap th,.heatmap td{padding:6px 4px;text-align:center;border:1px solid var(--line)}
-.heatmap .hm.pos{background:rgba(18,214,160,var(--a));color:#041018}
+.heatmap .hm.pos{background:rgba(60,203,145,var(--a));color:#07090B}
 .heatmap .hm.neg{background:rgba(240,113,120,var(--a));color:#fff}
 .heatmap .hm.empty{color:var(--muted)}
 .prose{color:var(--muted);font-size:13px;line-height:1.6}
 .prose strong{color:var(--fg)}
-.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid rgba(18,214,160,.35);background:rgba(18,214,160,.1);color:var(--accent);font-size:11px;padding:4px 10px}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid rgba(60,203,145,.35);background:rgba(60,203,145,.1);color:var(--accent);font-size:11px;padding:4px 10px}
 .grid-2{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
 @media (max-width:800px){.report-page{padding:28px 16px 64px}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-2,.meta-grid{grid-template-columns:1fr}h1{font-size:28px}}
 @media print{.report-page{min-height:auto;height:auto}}
@@ -237,7 +237,7 @@ table.data td.icon{width:18px;text-align:center;font-size:10px}
 function shell(title, rid, period, pages) {
   const body = pages
     .map((html, i) => {
-      return `<section class="report-page">${html}<div class="watermark">CONFIDENTIAL</div><footer class="footer"><span>Growzy Capital · ${rid} · v${version}</span><span>Generated ${generatedAt.slice(0, 10)} · Page ${i + 1} of ${pages.length}</span></footer></section>`
+      return `<section class="report-page">${html}<div class="watermark">CONFIDENTIAL</div><footer class="footer"><span>Wealthora Capital · ${rid} · v${version}</span><span>Generated ${generatedAt.slice(0, 10)} · Page ${i + 1} of ${pages.length}</span></footer></section>`
     })
     .join('\n')
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${title}</title><style>${CSS}</style></head><body data-report-id="${rid}" data-period="${period}" data-version="${version}" data-generated="${generatedAt}">${body}</body></html>`
@@ -245,7 +245,7 @@ function shell(title, rid, period, pages) {
 
 function cover({ title, periodLabel, period, rid }) {
   return `<div class="cover report-inner" style="min-height:calc(100vh - 120px);display:flex;flex-direction:column;justify-content:space-between">
-  <div class="brand"><div class="logo">G</div><div><div class="eyebrow">Growzy Capital</div><div style="font-size:13px;color:var(--muted)">Public Performance Archive</div></div></div>
+  <div class="brand"><div class="logo">W</div><div><div class="eyebrow">Wealthora Capital</div><div style="font-size:13px;color:var(--muted)">Public Performance Archive</div></div></div>
   <div>
     <span class="badge">Demo / Backtest Dataset</span>
     <h1>${title}</h1>
@@ -257,7 +257,7 @@ function cover({ title, periodLabel, period, rid }) {
       <div class="meta-card"><span>Report ID</span><strong>${rid}</strong></div>
     </div>
   </div>
-  <p class="prose">Version ${version} · Growzy branding · Confidential watermark applies to all pages.</p>
+  <p class="prose">Version ${version} · Wealthora branding · Confidential watermark applies to all pages.</p>
 </div>`
 }
 
@@ -334,7 +334,7 @@ function closingPages(rid) {
 <h2>Disclaimer</h2>
 <div class="panel prose">
   <p>This document is a <strong>synthetic demo / backtest presentation</strong>. It is not verified live trading history and must not be treated as a promise of future performance. Forex trading involves substantial risk of loss.</p>
-  <p>© Growzy Capital · Confidential · For educational / product-demo use.</p>
+  <p>© Wealthora Capital · Confidential · For educational / product-demo use.</p>
 </div>`,
   ]
 }

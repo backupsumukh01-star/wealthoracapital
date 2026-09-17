@@ -98,7 +98,7 @@ export function WealthQuickActions({
                   item.accent
                     ? 'bg-accent-500/20 text-accent-200'
                     : 'bg-hover text-fg-muted group-hover:bg-accent-500/15 group-hover:text-accent-200',
-                  'group-hover:shadow-[0_0_16px_-4px_rgba(18,214,160,0.45)]',
+                  'group-hover:shadow-[0_0_16px_-4px_rgba(212,217,223,0.45)]',
                 )}
               >
                 <Icon className="size-5" aria-hidden />

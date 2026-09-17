@@ -109,10 +109,10 @@ export function UserAnalyticsCharts({ className }: { className?: string }) {
                   width={44}
                   tickFormatter={(v) => `$${Number(v).toFixed(0)}`}
                 />
-                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgb(18 214 160 / 0.08)' }} />
+                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgb(60 203 145 / 0.08)' }} />
                 <Bar
                   dataKey="profitNum"
-                  fill="#12D6A0"
+                  fill="#3CCB91"
                   radius={[6, 6, 0, 0]}
                   animationDuration={800}
                   animationEasing="ease-out"
@@ -139,8 +139,8 @@ export function UserAnalyticsCharts({ className }: { className?: string }) {
               <AreaChart data={daily} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="analyticsCumFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2AE8FF" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#2AE8FF" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#D4D9DF" stopOpacity={0.28} />
+                    <stop offset="100%" stopColor="#D4D9DF" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="rgb(255 255 255 / 0.04)" vertical={false} />
@@ -158,11 +158,11 @@ export function UserAnalyticsCharts({ className }: { className?: string }) {
                   width={44}
                   tickFormatter={(v) => `$${Number(v).toFixed(0)}`}
                 />
-                <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'rgb(42 232 255 / 0.35)' }} />
+                <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'rgb(212 217 223 / 0.28)' }} />
                 <Area
                   type="monotone"
                   dataKey="cumulativeNum"
-                  stroke="#2AE8FF"
+                  stroke="#D4D9DF"
                   strokeWidth={2.25}
                   fill="url(#analyticsCumFill)"
                   animationDuration={900}
@@ -194,8 +194,8 @@ export function UserAnalyticsCharts({ className }: { className?: string }) {
                   width={44}
                   tickFormatter={(v) => `$${Number(v).toFixed(0)}`}
                 />
-                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgb(18 214 160 / 0.08)' }} />
-                <Bar dataKey="profitNum" fill="#5EF2C4" radius={[6, 6, 0, 0]} animationDuration={700} />
+                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgb(60 203 145 / 0.08)' }} />
+                <Bar dataKey="profitNum" fill="#3CCB91" radius={[6, 6, 0, 0]} animationDuration={700} />
               </BarChart>
             </ResponsiveContainer>
           </div>

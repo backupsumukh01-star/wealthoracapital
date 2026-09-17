@@ -94,7 +94,7 @@ export function LogoIntro() {
 
   return (
     <motion.div
-      className="fixed inset-0 z-[200] grid place-items-center bg-[#07131C]"
+      className="fixed inset-0 z-[200] grid place-items-center bg-[#07090B]"
       initial={{ opacity: 1 }}
       animate={{ opacity: phase === 'fade' ? 0 : 1 }}
       transition={{ duration: FADE_MS / 1000, ease: [0.16, 1, 0.3, 1] }}
@@ -120,7 +120,7 @@ export function LogoIntro() {
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           className="relative"
         >
-          <div className="absolute -inset-8 rounded-full bg-[#12D6A0]/25 blur-3xl" />
+          <div className="absolute -inset-8 rounded-full bg-[#D4D9DF]/10 blur-3xl" />
           <LogoMark className="size-20 sm:size-24" tone="color" animated />
         </motion.div>
 
@@ -130,7 +130,7 @@ export function LogoIntro() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         >
-          <span className="bg-gradient-to-r from-[#5EF2C4] via-[#12D6A0] to-[#2AE8FF] bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-[#C4CBD3] via-[#D4D9DF] to-[#F2F4F7] bg-clip-text text-transparent">
             {SITE.wordmark.primary}
           </span>
         </motion.p>

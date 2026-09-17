@@ -44,7 +44,7 @@ export function PremiumEmptyState({
         aria-hidden
         className="relative mb-5 grid size-[4.5rem] place-items-center overflow-hidden rounded-3xl border border-white/8 bg-inset/60 shadow-e2"
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_30%,rgba(18,214,160,0.32),transparent_62%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_30%,rgba(212,217,223,0.32),transparent_62%)]" />
         <div className="absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
         <Icon className="relative size-7 text-accent-300" strokeWidth={1.5} />
       </div>

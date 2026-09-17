@@ -12,7 +12,7 @@ export function AuthIllustration() {
   return (
     <div className="relative flex h-full flex-col justify-between p-10 xl:p-14">
       <div className="space-y-3">
-        <p className="text-overline text-accent-300">Growzy</p>
+        <p className="text-overline text-accent-300">Wealthora</p>
         <p className="text-display-md max-w-md text-fg">{SITE.tagline}</p>
         <p className="prose-measure text-body-md text-fg-muted">{SITE.description}</p>
       </div>

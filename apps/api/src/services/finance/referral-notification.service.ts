@@ -38,7 +38,7 @@ export const referralNotificationService = {
 
       await emailService.sendRaw({
         to: user.email,
-        subject: 'Your Growzy referral programme is unlocked',
+        subject: 'Your Wealthora referral programme is unlocked',
         text: [
           `Hi ${user.firstName},`,
           '',
@@ -118,7 +118,7 @@ export const referralNotificationService = {
       const refereeName = `${reward.referee.firstName} ${reward.referee.lastName}`.trim()
       await emailService.sendRaw({
         to: reward.referrer.email,
-        subject: 'You earned a Growzy referral reward',
+        subject: 'You earned a Wealthora referral reward',
         text: [
           `Hi ${reward.referrer.firstName},`,
           '',

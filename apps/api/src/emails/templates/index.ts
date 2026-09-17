@@ -45,7 +45,7 @@ function miniPerformanceGraph(pcts: string): string {
   const bars = values
     .map((v) => {
       const h = Math.max(8, Math.round((Math.abs(v) / max) * 48))
-      const color = v >= 0 ? '#3DDC97' : '#FF6B6B'
+      const color = v >= 0 ? '#3CCB91' : '#E05C67'
       return `<td valign="bottom" align="center" style="padding:0 3px"><div style="width:10px;height:${h}px;background:${color};border-radius:3px 3px 0 0"></div></td>`
     })
     .join('')
@@ -64,7 +64,7 @@ export function renderEmailTemplate(
       const link = appUrl(`/verify-email?token=${encodeURIComponent(v.token ?? '')}`)
       return {
         subject: `Verify your ${env.APP_NAME} email`,
-        text: `Hi ${v.firstName},\n\nVerify your email: ${link}\n\nExpires in 24 hours.\n\nGrowzy will never ask for your password or OTP.`,
+        text: `Hi ${v.firstName},\n\nVerify your email: ${link}\n\nExpires in 24 hours.\n\nWealthora will never ask for your password or OTP.`,
         html: emailLayout({
           category: 'Security',
           title: 'Verify your email',
@@ -150,7 +150,7 @@ export function renderEmailTemplate(
           title: 'Security alert',
           preheader: 'Important security notice for your account',
           bodyHtml: `${greeting(v.firstName ?? '')}${highlightCard(
-            `<p style="margin:0;color:#E8EEF6;font-size:14px">${escapeHtml(v.message ?? '')}</p>`,
+            `<p style="margin:0;color:#F2F4F7;font-size:14px">${escapeHtml(v.message ?? '')}</p>`,
           )}`,
           ctas: [{ label: 'Review security', href: secureAccountUrl() }],
         }),
@@ -164,7 +164,7 @@ export function renderEmailTemplate(
           title: 'Your login code',
           preheader: 'Use this one-time code to finish signing in — expires in 10 minutes',
           bodyHtml: `${greeting(v.firstName ?? '')}${paragraph(
-            'Enter this code to complete sign-in. It expires in <strong style="color:#E8EEF6">10 minutes</strong>.',
+            'Enter this code to complete sign-in. It expires in <strong style="color:#F2F4F7">10 minutes</strong>.',
           )}${otpCard(v.otp ?? '------')}${detailRows([
             ['IP address', v.ip ?? '—'],
             ['Browser', v.browser ?? '—'],
@@ -173,7 +173,7 @@ export function renderEmailTemplate(
             ['Device', v.device ?? '—'],
             ['Time', v.time ?? new Date().toISOString()],
           ])}${paragraph(
-            `<span style="color:#FF6B6B">If this wasn't you</span>, secure your account immediately.`,
+            `<span style="color:#E05C67">If this wasn't you</span>, secure your account immediately.`,
           )}`,
           ctas: [{ label: 'Secure account', href: secureAccountUrl(), variant: 'danger' }],
         }),
@@ -195,7 +195,7 @@ export function renderEmailTemplate(
             ['Withdrawal ID', v.withdrawalId ?? '—'],
             ['Expiry', '10 minutes'],
           ])}${highlightCard(
-            `<p style="margin:0;color:#F5B942;font-size:13px"><strong>Security warning:</strong> Growzy staff will never ask for this code. If you did not initiate a withdrawal, secure your account now.</p>`,
+            `<p style="margin:0;color:#D9A441;font-size:13px"><strong>Security warning:</strong> Wealthora staff will never ask for this code. If you did not initiate a withdrawal, secure your account now.</p>`,
           )}`,
           ctas: [{ label: 'Secure account', href: secureAccountUrl(), variant: 'secondary' }],
         }),
@@ -382,11 +382,11 @@ export function renderEmailTemplate(
           title: 'KYC approved',
           preheader: 'Congratulations — you are verified',
           bodyHtml: `${greeting(v.firstName ?? '')}${paragraph(
-            '<strong style="color:#3DDC97">Congratulations.</strong> Your identity verification was approved.',
+            '<strong style="color:#3CCB91">Congratulations.</strong> Your identity verification was approved.',
           )}${highlightCard(
             `<p style="margin:0 0 8px">${statusBadge('Verified', 'success')}</p>
-             <p style="margin:0;color:#E8EEF6;font-size:15px;font-weight:700">${escapeHtml(v.verifiedName || v.firstName || 'Investor')}</p>
-             <p style="margin:6px 0 0;font-size:12px;color:#8B9BB0">Approved ${escapeHtml(v.approvedAt || 'just now')}</p>`,
+             <p style="margin:0;color:#F2F4F7;font-size:15px;font-weight:700">${escapeHtml(v.verifiedName || v.firstName || 'Investor')}</p>
+             <p style="margin:6px 0 0;font-size:12px;color:#89939E">Approved ${escapeHtml(v.approvedAt || 'just now')}</p>`,
           )}`,
           ctas: [
             { label: 'Start investing', href: dashboardUrl('/dashboard/wallet') },
@@ -403,7 +403,7 @@ export function renderEmailTemplate(
           title: 'KYC rejected',
           preheader: 'Action required — please re-upload your documents',
           bodyHtml: `${greeting(v.firstName ?? '')}${paragraph(
-            'Your identity verification was <strong style="color:#FF6B6B">rejected</strong>. Please review the reason and upload corrected documents.',
+            'Your identity verification was <strong style="color:#E05C67">rejected</strong>. Please review the reason and upload corrected documents.',
           )}${statusBadge('REJECTED', 'danger')}${detailRows([
             ['User name', v.firstName ?? ''],
             ['Submission date', v.submittedAt ?? '—'],
@@ -431,9 +431,9 @@ export function renderEmailTemplate(
           bodyHtml: `${greeting(v.firstName ?? '')}${paragraph(
             `Today's trading return <strong>+${escapeHtml(v.returnPct ?? '0.00')}%</strong>. You earned <strong>$${escapeHtml(v.profit ?? '0.00')}</strong>.`,
           )}${highlightCard(
-            `<p style="margin:0 0 4px;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#8B9BB0">Profit earned</p>
-             <p style="margin:0;font-size:32px;font-weight:800;color:#3DDC97">$${escapeHtml(v.profit ?? '0.00')}</p>
-             <p style="margin:8px 0 0;font-size:14px;color:#E8EEF6">Return +${escapeHtml(v.returnPct ?? '0.00')}%</p>
+            `<p style="margin:0 0 4px;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#89939E">Profit earned</p>
+             <p style="margin:0;font-size:32px;font-weight:800;color:#3CCB91">$${escapeHtml(v.profit ?? '0.00')}</p>
+             <p style="margin:8px 0 0;font-size:14px;color:#F2F4F7">Return +${escapeHtml(v.returnPct ?? '0.00')}%</p>
              ${miniPerformanceGraph(v.sparkline ?? '')}`,
           )}${detailRows([
             ['User name', v.firstName ?? ''],
@@ -511,9 +511,9 @@ export function renderEmailTemplate(
           )}${detailRows([
             ['Ticket number', v.reference ?? ''],
             ['Subject', v.subject ?? ''],
-            ['Agent', v.agentName ?? 'Growzy Support'],
+            ['Agent', v.agentName ?? 'Wealthora Support'],
           ])}${highlightCard(
-            `<p style="margin:0;color:#E8EEF6;font-size:14px;line-height:1.6;white-space:pre-wrap">${escapeHtml(v.message ?? '')}</p>`,
+            `<p style="margin:0;color:#F2F4F7;font-size:14px;line-height:1.6;white-space:pre-wrap">${escapeHtml(v.message ?? '')}</p>`,
           )}`,
           ctas: [{ label: 'View ticket', href: dashboardUrl('/dashboard/support') }],
         }),
@@ -530,7 +530,7 @@ export function renderEmailTemplate(
       }
       const link = v.adminLink || `${env.APP_URL.replace(/\/$/, '')}/admin`
       return {
-        subject: `[Growzy Alert] ${v.alertTitle}`,
+        subject: `[Wealthora Alert] ${v.alertTitle}`,
         text: `${v.alertTitle}\n\n${v.alertBody}${v.reference ? `\n\nRef: ${v.reference}` : ''}\n\nAdmin: ${link}`,
         html: emailLayout({
           category: 'System',
@@ -560,7 +560,7 @@ export function renderEmailTemplate(
             v.kind ?? 'Announcement',
             'info',
           )}${paragraph(`<span style="white-space:pre-wrap">${escapeHtml(v.body ?? '')}</span>`)}`,
-          ctas: [{ label: 'Open Growzy', href: dashboardUrl() }],
+          ctas: [{ label: 'Open Wealthora', href: dashboardUrl() }],
         }),
       }
     case 'custom':

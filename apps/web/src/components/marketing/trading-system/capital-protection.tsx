@@ -163,7 +163,7 @@ export function CapitalProtection() {
                     <motion.div
                       className={cn(
                         'h-full rounded-full bg-gradient-to-r from-accent-700 to-hl-emerald',
-                        'shadow-[0_0_12px_rgba(18,214,160,0.45)]',
+                        'shadow-[0_0_12px_rgba(212,217,223,0.45)]',
                       )}
                       initial={prefersReducedMotion ? { width: `${card.progress}%` } : { width: 0 }}
                       whileInView={{ width: `${card.progress}%` }}

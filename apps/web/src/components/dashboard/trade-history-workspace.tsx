@@ -41,13 +41,13 @@ const FILTERS: { id: FilterId; label: string }[] = [
 const PAGE_SIZE = 6
 
 const PAIR_TONE: Record<string, string> = {
-  'EUR/USD': 'from-blue-400/30 to-blue-600/20 text-blue-200',
-  'GBP/USD': 'from-violet-400/30 to-violet-600/20 text-violet-200',
-  'USD/JPY': 'from-rose-400/30 to-rose-600/20 text-rose-200',
-  'XAU/USD': 'from-amber-400/30 to-amber-600/20 text-amber-200',
-  'AUD/USD': 'from-emerald-400/30 to-emerald-600/20 text-emerald-200',
-  'BTC/USD': 'from-orange-400/30 to-orange-600/20 text-orange-200',
-  'ETH/USD': 'from-indigo-400/30 to-indigo-600/20 text-indigo-200',
+  'EUR/USD': 'from-accent-400/30 to-accent-700/20 text-accent-200',
+  'GBP/USD': 'from-hl-blue/30 to-hl-blue/15 text-hl-blue',
+  'USD/JPY': 'from-fg-muted/30 to-fg-muted/15 text-fg-secondary',
+  'XAU/USD': 'from-hl-amber/30 to-hl-amber/15 text-hl-amber',
+  'AUD/USD': 'from-profit/30 to-profit/15 text-profit',
+  'BTC/USD': 'from-warning/30 to-warning/15 text-warning',
+  'ETH/USD': 'from-hl-cyan/30 to-hl-cyan/15 text-hl-cyan',
 }
 
 function pairInitials(pair: string) {

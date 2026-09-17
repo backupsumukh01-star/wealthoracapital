@@ -574,7 +574,7 @@ export const PLATFORM_FEATURES = [
 
 export const LANDING_FAQS = [
   {
-    question: 'How does Growzy generate returns?',
+    question: 'How does Wealthora generate returns?',
     answer:
       'AI-assisted models propose FX setups across major and minor pairs. A human trading desk reviews, executes and closes positions. At the end of each trading day an operator verifies the net result and applies that percentage to every eligible funded wallet.',
   },

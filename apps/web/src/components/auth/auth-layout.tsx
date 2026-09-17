@@ -37,7 +37,7 @@ export function AuthLayout({
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
           background:
-            'radial-gradient(50% 40% at 20% 10%, rgb(18 214 160 / 0.18) 0%, transparent 60%), radial-gradient(40% 35% at 80% 80%, rgb(42 232 255 / 0.12) 0%, transparent 65%)',
+            'radial-gradient(50% 40% at 20% 10%, rgb(212 217 223 / 0.08) 0%, transparent 60%), radial-gradient(40% 35% at 80% 80%, rgb(201 164 92 / 0.06) 0%, transparent 65%)',
         }}
         aria-hidden
       />

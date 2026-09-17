@@ -34,7 +34,7 @@ export function FloatingParticles() {
             top: p.y,
             width: p.size,
             height: p.size,
-            boxShadow: '0 0 12px rgb(18 214 160 / 0.35)',
+            boxShadow: '0 0 12px rgb(212 217 223 / 0.12)',
           }}
           animate={{ y: [0, -14, 0], opacity: [0.25, 0.7, 0.25] }}
           transition={{

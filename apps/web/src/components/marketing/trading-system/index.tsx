@@ -17,7 +17,7 @@ import { TechnologyStack } from './tech-stack'
 import { WhyWePublish } from './why-publish'
 import { TradingWorkflow } from './workflow'
 
-/** Premium deep-dive: how Growzy’s trading system works — visual, interactive, demo-only. */
+/** Premium deep-dive: how Wealthora’s trading system works — visual, interactive, demo-only. */
 export function TradingSystemSection({
   showIntro = true,
 }: {
@@ -67,7 +67,7 @@ export function TradingSystemSection({
                 left: `${glow.x}%`,
                 top: `${glow.y}%`,
                 background:
-                  'radial-gradient(circle, rgb(18 214 160 / 0.14) 0%, transparent 68%)',
+                  'radial-gradient(circle, rgb(212 217 223 / 0.07) 0%, transparent 68%)',
               }}
             />
           ) : null}

@@ -119,8 +119,8 @@ export function PortfolioHero({
           </motion.p>
           <h1 className="mt-1 text-heading-lg text-fg sm:text-heading-xl">
             Welcome back to{' '}
-            <span className="bg-gradient-to-r from-[#5EF2C4] via-[#12D6A0] to-[#2AE8FF] bg-clip-text text-transparent">
-              Growzy
+            <span className="bg-gradient-to-r from-[#C4CBD3] via-[#D4D9DF] to-[#F2F4F7] bg-clip-text text-transparent">
+              Wealthora
             </span>
           </h1>
           <p className="mt-1.5 text-caption text-fg-subtle">

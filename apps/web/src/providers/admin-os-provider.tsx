@@ -552,7 +552,7 @@ export function AdminOsProvider({ children }: { children: ReactNode }) {
             ...entry,
             id: adminOsId('WL'),
             at: adminOsNow(),
-            admin: 'admin@growzy.com',
+            admin: 'admin@wealthoracapital.com',
           }
           const timeline = {
             id: adminOsId('UT'),
@@ -731,7 +731,7 @@ export function AdminOsProvider({ children }: { children: ReactNode }) {
           const url = URL.createObjectURL(blob)
           const a = document.createElement('a')
           a.href = url
-          a.download = `growzy-backup-${scope}-${Date.now()}.json`
+          a.download = `wealthora-backup-${scope}-${Date.now()}.json`
           a.click()
           URL.revokeObjectURL(url)
         }

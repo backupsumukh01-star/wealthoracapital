@@ -69,7 +69,7 @@ function baseSnapshot(over: Partial<ProgressShareSnapshot> = {}): ProgressShareS
     earningsTillDate: '542.50',
     performancePct: '10.850000',
     asOfDate: '2026-08-11',
-    brandName: 'Growzy Capital',
+    brandName: 'Wealthora Capital',
     ...over,
   }
 }
@@ -102,7 +102,7 @@ describe('Progress share image content', () => {
         earningsTillDate: '50452',
       }),
     )
-    expect(svg).toContain('Growzy Capital')
+    expect(svg).toContain('Wealthora Capital')
     expect(svg).toContain('EARNINGS TILL DATE')
     expect(svg).toContain('INR')
     expect(svg).toContain('width="1080"')

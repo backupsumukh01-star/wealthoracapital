@@ -36,7 +36,7 @@ export const progressShareController = {
     res.setHeader('Content-Type', 'image/png')
     res.setHeader('Cache-Control', 'private, max-age=300')
     res.setHeader('X-Content-Type-Options', 'nosniff')
-    res.setHeader('Content-Disposition', 'inline; filename="growzy-progress.png"')
+    res.setHeader('Content-Disposition', 'inline; filename="wealthora-progress.png"')
     res.status(200).send(png)
   }),
 }

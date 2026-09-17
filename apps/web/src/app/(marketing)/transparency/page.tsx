@@ -69,7 +69,7 @@ export default function TransparencyPage() {
       <Section
         eyebrow="Proof of transparency"
         title="What you can verify"
-        description="Surfaces that mirror how Growzy presents auditability in-product."
+        description="Surfaces that mirror how Wealthora presents auditability in-product."
       >
         <StaggerGroup className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {PROOFS.map((item) => (

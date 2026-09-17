@@ -32,8 +32,8 @@ export function LiveReturnBadge({
         'relative inline-flex items-center gap-1.5 overflow-hidden rounded-full border px-3 py-1',
         'text-caption tabular-nums',
         positive
-          ? 'border-profit/35 bg-profit/10 text-profit shadow-[0_0_20px_-6px_rgba(18,214,160,0.55)]'
-          : 'border-loss/35 bg-loss/10 text-loss shadow-[0_0_20px_-6px_rgba(248,113,113,0.45)]',
+          ? 'border-profit/35 bg-profit/10 text-profit shadow-[0_0_20px_-6px_rgba(60,203,145,0.08)]'
+          : 'border-loss/35 bg-loss/10 text-loss shadow-[0_0_20px_-6px_rgba(224,92,103,0.08)]',
         className,
       )}
       animate={
@@ -42,14 +42,14 @@ export function LiveReturnBadge({
           : {
               boxShadow: positive
                 ? [
-                    '0 0 14px -8px rgba(18,214,160,0.35)',
-                    '0 0 22px -4px rgba(18,214,160,0.65)',
-                    '0 0 14px -8px rgba(18,214,160,0.35)',
+                    '0 0 14px -8px rgba(60,203,145,0.08)',
+                    '0 0 22px -4px rgba(60,203,145,0.12)',
+                    '0 0 14px -8px rgba(60,203,145,0.08)',
                   ]
                 : [
-                    '0 0 14px -8px rgba(248,113,113,0.3)',
-                    '0 0 22px -4px rgba(248,113,113,0.55)',
-                    '0 0 14px -8px rgba(248,113,113,0.3)',
+                    '0 0 14px -8px rgba(224,92,103,0.08)',
+                    '0 0 22px -4px rgba(224,92,103,0.12)',
+                    '0 0 14px -8px rgba(224,92,103,0.08)',
                   ],
             }
       }
@@ -61,8 +61,8 @@ export function LiveReturnBadge({
           className={cn(
             'pointer-events-none absolute inset-0 opacity-40',
             positive
-              ? 'bg-[radial-gradient(circle_at_30%_50%,rgba(18,214,160,0.35),transparent_65%)]'
-              : 'bg-[radial-gradient(circle_at_30%_50%,rgba(248,113,113,0.3),transparent_65%)]',
+              ? 'bg-[radial-gradient(circle_at_30%_50%,rgba(60,203,145,0.35),transparent_65%)]'
+              : 'bg-[radial-gradient(circle_at_30%_50%,rgba(224,92,103,0.3),transparent_65%)]',
           )}
         />
       ) : null}

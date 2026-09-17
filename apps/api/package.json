@@ -2,7 +2,7 @@
   "name": "@meridian/api",
   "version": "0.1.0",
   "private": true,
-  "description": "Growzy / Meridian FX Express API — Phase 1 auth + Phase 2 user/admin foundation",
+  "description": "Wealthora Capital / Meridian FX Express API — Phase 1 auth + Phase 2 user/admin foundation",
   "type": "module",
   "main": "./dist/server.js",
   "scripts": {

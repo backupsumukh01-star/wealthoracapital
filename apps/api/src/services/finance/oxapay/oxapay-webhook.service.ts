@@ -148,7 +148,7 @@ async function mergeDepositGatewayMeta(
 }
 
 /**
- * Verify GET /payment/{track_id} against the Growzy deposit before any credit.
+ * Verify GET /payment/{track_id} against the Wealthora deposit before any credit.
  * Returns null reason when OK; otherwise a discrepancy code.
  */
 export function verifyOxapayPaymentAgainstDeposit(input: {

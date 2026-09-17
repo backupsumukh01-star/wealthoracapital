@@ -33,7 +33,7 @@ export function StatusTimeline({
               className={cn(
                 'relative z-10 grid size-6 shrink-0 place-items-center rounded-full border text-[10px]',
                 done && 'border-accent-500 bg-accent-500/20 text-accent-200',
-                current && 'border-accent-400 bg-accent-500/25 text-accent-100 shadow-[0_0_12px_rgba(18,214,160,0.35)]',
+                current && 'border-accent-400 bg-accent-500/25 text-accent-100 shadow-[0_0_12px_rgba(212,217,223,0.35)]',
                 !done && !current && 'border-line bg-inset text-fg-subtle',
               )}
             >
