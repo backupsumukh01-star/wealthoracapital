@@ -14,7 +14,7 @@ import type { AdminHealthSnapshot, PlatformCmsDocument, SearchHit } from '@/type
 export type AdminUserHistoryActivity = 'DEPOSIT' | 'PROFIT' | 'WITHDRAWAL' | 'REFERRAL'
 
 export type AdminUserHistoryPayload = {
-  user: { id: string; firstName: string; lastName: string }
+  user: { id: string; firstName: string; lastName: string; createdByAdminId?: string | null }
   wallet: {
     balance: string
     available: string
@@ -32,6 +32,55 @@ export type AdminUserHistoryPayload = {
     note: string | null
     reference: string | null
   }>
+}
+
+export type AdminHistoricalImportSummary = {
+  deposits: number
+  depositTotal: string
+  withdrawals: number
+  withdrawalTotal: string
+  profitRecords: number
+  profitTotal: string
+  referralRecords: number
+  referralTotal: string
+  validRows: number
+  skippedRows: number
+  invalidRows: number
+  rows: number
+}
+
+export type AdminHistoricalImportRecord = {
+  id: string
+  importId: string
+  fileName: string
+  status: 'PREVIEW' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | string
+  rowCount: number
+  validCount: number
+  invalidCount: number
+  skippedCount: number
+  importedCount: number
+  summary: AdminHistoricalImportSummary | Record<string, unknown>
+  createdAt: string
+  confirmedAt: string | null
+  completedAt: string | null
+  errorMessage: string | null
+  user: { id: string; name: string }
+  uploadedBy: { id: string; name: string; email: string }
+  preview?: {
+    ignoredUserIds?: boolean
+    user?: { id: string; name: string }
+    rows?: Array<{
+      rowNumber: number
+      activity: string
+      occurredAt: string
+      amount: string
+      orderId: string
+      outcome: string
+      skipReason: string | null
+    }>
+    invalid?: Array<{ rowNumber: number; reason: string }>
+  }
+  confirmation?: string
 }
 
 export type AdminHandoverMode = 'TEST_DATA_RESET' | 'FULL_HANDOVER_RESET'
@@ -405,6 +454,61 @@ export const adminService = {
       method: 'POST',
       body,
     }),
+
+  downloadHistoryImportTemplate: async (id: string, format: 'csv' | 'xlsx') => {
+    const { env } = await import('@/lib/env')
+    const filename =
+      format === 'csv'
+        ? 'wealthora-historical-import-sample.csv'
+        : 'wealthora-historical-import-sample.xlsx'
+    const response = await fetch(
+      `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.admin.users}/${id}/history/import/template.${format}`,
+      { credentials: 'include', cache: 'no-store' },
+    )
+    if (!response.ok) {
+      throw new Error('Could not download the template.')
+    }
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  },
+
+  previewHistoryImport: (id: string, file: File) => {
+    const body = new FormData()
+    body.append('file', file)
+    return apiClient<AdminHistoricalImportRecord>(
+      `${API_ROUTES.admin.users}/${id}/history/import/preview`,
+      { method: 'POST', body, timeoutMs: 60_000 },
+    )
+  },
+
+  historyImports: (id: string) =>
+    apiClient<{ items: AdminHistoricalImportRecord[] }>(
+      `${API_ROUTES.admin.users}/${id}/history/imports`,
+    ),
+
+  historyImport: (id: string, importId: string) =>
+    apiClient<AdminHistoricalImportRecord>(
+      `${API_ROUTES.admin.users}/${id}/history/imports/${importId}`,
+    ),
+
+  confirmHistoryImport: (id: string, importId: string) =>
+    apiClient<AdminHistoricalImportRecord>(
+      `${API_ROUTES.admin.users}/${id}/history/imports/${importId}/confirm`,
+      { method: 'POST', timeoutMs: 120_000 },
+    ),
+
+  cancelHistoryImport: (id: string, importId: string) =>
+    apiClient<AdminHistoricalImportRecord>(
+      `${API_ROUTES.admin.users}/${id}/history/imports/${importId}/cancel`,
+      { method: 'POST' },
+    ),
 
   enableUser: (id: string, reason?: string) =>
     apiClient<User>(`${API_ROUTES.admin.users}/${id}/enable`, {

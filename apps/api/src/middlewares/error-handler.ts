@@ -1,5 +1,6 @@
 import { ERROR_CODES } from '@meridian/shared'
 import type { NextFunction, Request, Response } from 'express'
+import multer from 'multer'
 import { ZodError } from 'zod'
 
 import { recordSystemLog } from '../observability/log-buffer.js'
@@ -85,6 +86,18 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
       logger.warn({ err, ...ctx, code: err.code }, err.message)
     }
     sendFailure(res, err.statusCode, err.code, err.message, err.details, req.requestId)
+    return
+  }
+
+  if (err instanceof multer.MulterError) {
+    sendFailure(
+      res,
+      400,
+      ERROR_CODES.VALIDATION_ERROR,
+      err.code === 'LIMIT_FILE_SIZE' ? 'File exceeds 2MB.' : 'Upload failed.',
+      undefined,
+      req.requestId,
+    )
     return
   }
 

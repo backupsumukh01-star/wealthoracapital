@@ -3,7 +3,7 @@ import { Router } from 'express'
 import { adminDashboardController } from '../controllers/admin-dashboard.controller.js'
 import { adminHealthController } from '../controllers/admin-health.controller.js'
 import { adminOpsMetricsController } from '../controllers/admin-ops-metrics.controller.js'
-import { adminUsersController } from '../controllers/admin-users.controller.js'
+import { adminUsersController, handleHistoryImportUpload } from '../controllers/admin-users.controller.js'
 import { authenticate } from '../middlewares/authenticate.js'
 import { PERMISSIONS } from '../config/permissions.js'
 import { requireAdminAccess, requirePermission } from '../middlewares/require-permission.js'
@@ -30,6 +30,7 @@ import {
   adminUserListQuerySchema,
   adminUserNoteSchema,
   idParamSchema,
+  adminImportIdParamSchema,
 } from '../validators/admin.validators.js'
 
 export const adminRouter = Router()
@@ -86,6 +87,56 @@ adminRouter.post(
   requirePermission(PERMISSIONS['users.edit']),
   validate(adminCreateUserSchema),
   adminUsersController.create,
+)
+
+adminRouter.get(
+  '/users/:id/history/import/template.csv',
+  requirePermission(PERMISSIONS['users.history_import']),
+  validate(idParamSchema, 'params'),
+  adminUsersController.historyImportTemplateCsv,
+)
+
+adminRouter.get(
+  '/users/:id/history/import/template.xlsx',
+  requirePermission(PERMISSIONS['users.history_import']),
+  validate(idParamSchema, 'params'),
+  adminUsersController.historyImportTemplateXlsx,
+)
+
+adminRouter.post(
+  '/users/:id/history/import/preview',
+  requirePermission(PERMISSIONS['users.history_import']),
+  validate(idParamSchema, 'params'),
+  handleHistoryImportUpload,
+  adminUsersController.historyImportPreview,
+)
+
+adminRouter.get(
+  '/users/:id/history/imports',
+  requirePermission(PERMISSIONS['users.history_import']),
+  validate(idParamSchema, 'params'),
+  adminUsersController.historyImports,
+)
+
+adminRouter.get(
+  '/users/:id/history/imports/:importId',
+  requirePermission(PERMISSIONS['users.history_import']),
+  validate(adminImportIdParamSchema, 'params'),
+  adminUsersController.historyImportGet,
+)
+
+adminRouter.post(
+  '/users/:id/history/imports/:importId/confirm',
+  requirePermission(PERMISSIONS['users.history_import']),
+  validate(adminImportIdParamSchema, 'params'),
+  adminUsersController.historyImportConfirm,
+)
+
+adminRouter.post(
+  '/users/:id/history/imports/:importId/cancel',
+  requirePermission(PERMISSIONS['users.history_import']),
+  validate(adminImportIdParamSchema, 'params'),
+  adminUsersController.historyImportCancel,
 )
 
 adminRouter.get(

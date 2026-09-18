@@ -39,6 +39,11 @@ type HistoryBody = {
   amount: string
   currency: 'USD' | 'INR'
   note?: string
+  reference?: string
+  userReference?: string
+  returnPct?: string
+  idempotencyKey?: string
+  source?: 'ADMIN_BACKFILL' | 'HISTORICAL_IMPORT'
 }
 
 type Ctx = { ip?: string | null; userAgent?: string | null }
@@ -267,10 +272,25 @@ async function listRecords(userId: string): Promise<AdminUserHistoryRecord[]> {
   return records
 }
 
+async function runHistoryTx<T>(
+  tx: Prisma.TransactionClient | undefined,
+  fn: (client: Prisma.TransactionClient) => Promise<T>,
+): Promise<T> {
+  if (tx) return fn(tx)
+  return prisma.$transaction(fn)
+}
+
 async function requireInvestor(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, firstName: true, lastName: true, role: true, deletedAt: true },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      role: true,
+      deletedAt: true,
+      createdByAdminId: true,
+    },
   })
   if (!user || user.deletedAt) throw notFound('User not found.')
   if (user.role !== 'USER') throw badRequest('Historical records can only be added to investor accounts.')
@@ -282,13 +302,24 @@ export const adminUserHistoryService = {
     const user = await requireInvestor(userId)
     const [wallet, records] = await Promise.all([walletSnapshot(userId), listRecords(userId)])
     return {
-      user: { id: user.id, firstName: user.firstName, lastName: user.lastName },
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        createdByAdminId: user.createdByAdminId,
+      },
       wallet,
       records,
     }
   },
 
-  async create(actorId: string, userId: string, body: HistoryBody, context: Ctx) {
+  async create(
+    actorId: string,
+    userId: string,
+    body: HistoryBody,
+    context: Ctx,
+    options?: { tx?: Prisma.TransactionClient; skipSideEffects?: boolean },
+  ) {
     const user = await requireInvestor(userId)
     if (Number.isNaN(body.occurredAt.getTime())) {
       throw badRequest('Enter a valid historical date and time.')
@@ -301,17 +332,21 @@ export const adminUserHistoryService = {
     let withdrawalReference: string | null = null
     const stamp = occurredAt.toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)
     const nonce = randomUUID().replace(/-/g, '').slice(0, 10)
-    const idempotency = `h:${body.activity.toLowerCase().slice(0, 3)}:${userId.replace(/-/g, '')}:${stamp}:${nonce}`
+    const idempotency =
+      body.idempotencyKey?.slice(0, 120) ||
+      `h:${body.activity.toLowerCase().slice(0, 3)}:${userId.replace(/-/g, '')}:${stamp}:${nonce}`
+    const source = body.source ?? 'ADMIN_BACKFILL'
+    const customRef = body.reference?.trim().toUpperCase().slice(0, 32) || null
 
     await ledgerService.ensureWalletsForUser(userId)
 
     if (body.activity === 'DEPOSIT') {
       const paymentMethodId = await historicalPaymentMethodId()
-      depositReference = await prisma.$transaction(async (tx) => {
+      depositReference = await runHistoryTx(options?.tx, async (tx) => {
         const wallet = await ledgerService.getInvestmentWallet(userId, tx)
         const deposit = await tx.deposit.create({
           data: {
-            reference: depositRef(),
+            reference: customRef || depositRef(),
             userId,
             walletId: wallet.id,
             paymentMethodId,
@@ -322,10 +357,12 @@ export const adminUserHistoryService = {
             lockDays: DEPOSIT_LOCK_DAYS_DEFAULT,
             fundsUnlockAt: computeFundsUnlockAt(occurredAt),
             status: 'APPROVED',
+            userReference: body.userReference?.trim().slice(0, 120) || null,
             notes: body.note?.trim() || null,
             internalNotes: NOTE_FALLBACK,
             submissionDetails: {
               historical: true,
+              source,
               inputCurrency: body.currency,
               inputAmount: body.amount,
             },
@@ -362,7 +399,7 @@ export const adminUserHistoryService = {
             amount: moneyString(amountUsd),
             currency: 'USD',
             message: `Deposit ${deposit.reference} confirmed`,
-            metadata: { historical: true, activity: 'DEPOSIT' },
+            metadata: { historical: true, activity: 'DEPOSIT', source },
             createdAt: occurredAt,
           },
         })
@@ -370,7 +407,8 @@ export const adminUserHistoryService = {
       })
     } else if (body.activity === 'PROFIT') {
       const day = utcDay(occurredAt)
-      await prisma.$transaction(async (tx) => {
+      const profitPct = body.returnPct?.trim() || '0'
+      await runHistoryTx(options?.tx, async (tx) => {
         const wallet = await ledgerService.getInvestmentWallet(userId, tx)
         const daily = await tx.dailyReturn.upsert({
           where: { date: day },
@@ -381,7 +419,7 @@ export const adminUserHistoryService = {
           data: {
             dailyReturnId: daily.id,
             date: day,
-            returnPct: '0',
+            returnPct: profitPct,
             returnBasis: 'BALANCE',
             status: 'COMPLETED',
             eligibleWallets: 1,
@@ -417,7 +455,7 @@ export const adminUserHistoryService = {
             userId,
             date: day,
             eligibleBalance: moneyString(wallet.availableBalance),
-            returnPct: '0',
+            returnPct: profitPct,
             grossAmount: moneyString(amountUsd),
             amount: moneyString(amountUsd),
             balanceAfter: moneyString(after.availableBalance),
@@ -435,18 +473,18 @@ export const adminUserHistoryService = {
             amount: moneyString(amountUsd),
             currency: 'USD',
             message: note,
-            metadata: { historical: true, activity: 'PROFIT' },
+            metadata: { historical: true, activity: 'PROFIT', source },
             createdAt: occurredAt,
           },
         })
       })
     } else if (body.activity === 'WITHDRAWAL') {
       const payoutMethodId = await historicalPayoutMethodId(userId)
-      withdrawalReference = await prisma.$transaction(async (tx) => {
+      withdrawalReference = await runHistoryTx(options?.tx, async (tx) => {
         const wallet = await ledgerService.getInvestmentWallet(userId, tx)
         const withdrawal = await tx.withdrawal.create({
           data: {
-            reference: withdrawalRef(),
+            reference: customRef || withdrawalRef(),
             userId,
             walletId: wallet.id,
             payoutMethodId,
@@ -456,7 +494,7 @@ export const adminUserHistoryService = {
             currency: 'USD',
             status: 'PAID',
             destinationLabel: 'USDT wallet',
-            destinationSnapshot: { historical: true },
+            destinationSnapshot: { historical: true, source },
             internalNotes: note,
             idempotencyKey: idempotency,
             reviewedById: actorId,
@@ -494,14 +532,14 @@ export const adminUserHistoryService = {
             amount: moneyString(amountUsd),
             currency: 'USD',
             message: note,
-            metadata: { historical: true, activity: 'WITHDRAWAL' },
+            metadata: { historical: true, activity: 'WITHDRAWAL', source },
             createdAt: occurredAt,
           },
         })
         return withdrawal.reference
       })
     } else {
-      await prisma.$transaction(async (tx) => {
+      await runHistoryTx(options?.tx, async (tx) => {
         const wallet = await ledgerService.getReferralWallet(userId, tx)
         const txn = await ledgerService.creditAvailable(tx, {
           userId,
@@ -524,13 +562,14 @@ export const adminUserHistoryService = {
             amount: moneyString(amountUsd),
             currency: 'USD',
             message: note,
-            metadata: { historical: true, activity: 'REFERRAL' },
+            metadata: { historical: true, activity: 'REFERRAL', source },
             createdAt: occurredAt,
           },
         })
       })
     }
 
+    if (!options?.skipSideEffects) {
     await auditService.record({
       actorId,
       targetUserId: userId,
@@ -617,12 +656,138 @@ export const adminUserHistoryService = {
         createdAt: occurredAt,
       })
     }
+    }
+
+    if (options?.skipSideEffects) {
+      return {
+        user: {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          createdByAdminId: user.createdByAdminId,
+        },
+        wallet: {
+          balance: '0',
+          available: '0',
+          deposited: '0',
+          profit: '0',
+          withdrawn: '0',
+          referralWallet: '0',
+        },
+        records: [],
+      }
+    }
 
     const [wallet, records] = await Promise.all([walletSnapshot(userId), listRecords(userId)])
     return {
-      user: { id: user.id, firstName: user.firstName, lastName: user.lastName },
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        createdByAdminId: user.createdByAdminId,
+      },
       wallet,
       records,
     }
+  },
+
+  async createMany(
+    actorId: string,
+    userId: string,
+    rows: HistoryBody[],
+    context: Ctx,
+  ) {
+    await requireInvestor(userId)
+    await ledgerService.ensureWalletsForUser(userId)
+    await prisma.$transaction(
+      async (tx) => {
+        for (const body of rows) {
+          await adminUserHistoryService.create(actorId, userId, body, context, {
+            tx,
+            skipSideEffects: true,
+          })
+        }
+      },
+      { timeout: 120_000, maxWait: 20_000 },
+    )
+    for (const body of rows) {
+      const occurredAt = body.occurredAt
+      const orderId = body.reference?.trim().toUpperCase() || null
+      if (body.activity === 'DEPOSIT') {
+        await activityService.record({
+          userId,
+          actorId: userId,
+          kind: 'DEPOSIT_SUBMITTED',
+          title: 'Deposit submitted',
+          description: orderId,
+          ip: context.ip,
+          userAgent: context.userAgent,
+          createdAt: occurredAt,
+        })
+        await activityService.record({
+          userId,
+          actorId: userId,
+          kind: 'DEPOSIT_APPROVED',
+          title: 'Deposit confirmed by provider',
+          description: orderId,
+          ip: context.ip,
+          userAgent: context.userAgent,
+          createdAt: new Date(occurredAt.getTime() + 1000),
+        })
+      } else if (body.activity === 'WITHDRAWAL') {
+        await activityService.record({
+          userId,
+          actorId: userId,
+          kind: 'WITHDRAWAL_SUBMITTED',
+          title: 'Withdrawal submitted',
+          description: orderId,
+          ip: context.ip,
+          userAgent: context.userAgent,
+          createdAt: occurredAt,
+        })
+        await activityService.record({
+          userId,
+          actorId: userId,
+          kind: 'WITHDRAWAL_PAID',
+          title: 'Withdrawal paid',
+          description: orderId,
+          ip: context.ip,
+          userAgent: context.userAgent,
+          createdAt: new Date(occurredAt.getTime() + 1000),
+        })
+      } else if (body.activity === 'PROFIT') {
+        await activityService.record({
+          userId,
+          actorId: userId,
+          kind: 'DAILY_RETURN_APPLIED',
+          title: 'Daily profit credited',
+          description: `Profit ${body.amount}`,
+          ip: context.ip,
+          userAgent: context.userAgent,
+          createdAt: occurredAt,
+        })
+      } else {
+        await activityService.record({
+          userId,
+          actorId: userId,
+          kind: 'WALLET_ADJUSTMENT',
+          title: 'Referral bonus credited',
+          description: body.amount,
+          ip: context.ip,
+          userAgent: context.userAgent,
+          createdAt: occurredAt,
+        })
+      }
+    }
+    await auditService.record({
+      actorId,
+      targetUserId: userId,
+      action: 'user.history.import',
+      module: 'users',
+      newValue: { rows: rows.length },
+      ip: context.ip,
+      userAgent: context.userAgent,
+    })
+    return this.get(userId)
   },
 }

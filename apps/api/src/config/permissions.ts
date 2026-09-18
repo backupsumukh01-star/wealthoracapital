@@ -11,6 +11,7 @@ export const PERMISSIONS = {
   'users.suspend': 'users.suspend',
   'users.delete': 'users.delete',
   'users.restore': 'users.restore',
+  'users.history_import': 'users.history_import',
   'audit.view': 'audit.view',
   'activity.view': 'activity.view',
   'roles.view': 'roles.view',

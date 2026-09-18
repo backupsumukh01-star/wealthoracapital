@@ -69,6 +69,15 @@ describe('RBAC permissions', () => {
     )
   })
 
+  it('FINANCE staff cannot import historical spreadsheets', () => {
+    expect(hasPermission({ role: 'ADMIN', staffRole: 'FINANCE' }, 'users.history_import')).toBe(false)
+    expect(hasPermission({ role: 'USER', staffRole: null }, 'users.history_import')).toBe(false)
+    expect(hasPermission({ role: 'ADMIN', staffRole: null }, 'users.history_import')).toBe(true)
+    expect(hasPermission({ role: 'SUPER_ADMIN', staffRole: 'SUPER_ADMIN' }, 'users.history_import')).toBe(
+      true,
+    )
+  })
+
   it('prevents privilege escalation: investor lacks users.delete', () => {
     expect(hasPermission({ role: 'USER', staffRole: null }, 'users.delete')).toBe(false)
     expect(hasPermission({ role: 'USER', staffRole: null }, 'users.suspend')).toBe(false)

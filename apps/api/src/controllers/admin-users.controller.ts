@@ -1,8 +1,14 @@
+import multer from 'multer'
+import type { NextFunction, Request, Response } from 'express'
+import type { z } from 'zod'
+
 import { adminUserHistoryService } from '../services/admin-user-history.service.js'
+import { historicalImportService } from '../services/historical-import.service.js'
 import { adminUsersService } from '../services/admin-users.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import { requestContext } from '../utils/request-context.js'
 import { sendSuccess } from '../utils/response.js'
+import { badRequest } from '../utils/errors.js'
 import type {
   adminCreateUserSchema,
   adminStatusReasonSchema,
@@ -11,7 +17,6 @@ import type {
   adminUserListQuerySchema,
   adminUserNoteSchema,
 } from '../validators/admin.validators.js'
-import type { z } from 'zod'
 
 type ListQuery = z.infer<typeof adminUserListQuerySchema>
 type CreateBody = z.infer<typeof adminCreateUserSchema>
@@ -186,4 +191,83 @@ export const adminUsersController = {
     )
     sendSuccess(res, data, 201)
   }),
+
+  historyImportTemplateCsv: asyncHandler(async (req, res) => {
+    await historicalImportService.list(req.params.id!)
+    const file = historicalImportService.templateCsv()
+    res.setHeader('Content-Type', file.contentType)
+    res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`)
+    res.send(file.body)
+  }),
+
+  historyImportTemplateXlsx: asyncHandler(async (req, res) => {
+    await historicalImportService.list(req.params.id!)
+    const file = historicalImportService.templateXlsx()
+    res.setHeader('Content-Type', file.contentType)
+    res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`)
+    res.send(file.body)
+  }),
+
+  historyImportPreview: asyncHandler(async (req, res) => {
+    const file = req.file
+    if (!file) throw badRequest('Spreadsheet file is required.')
+    const data = await historicalImportService.preview(
+      req.user!.id,
+      req.params.id!,
+      {
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        buffer: file.buffer,
+        size: file.size,
+      },
+      requestContext(req),
+    )
+    sendSuccess(res, data, 201)
+  }),
+
+  historyImports: asyncHandler(async (req, res) => {
+    sendSuccess(res, await historicalImportService.list(req.params.id!))
+  }),
+
+  historyImportGet: asyncHandler(async (req, res) => {
+    sendSuccess(
+      res,
+      await historicalImportService.get(req.user!.id, req.params.id!, req.params.importId!),
+    )
+  }),
+
+  historyImportConfirm: asyncHandler(async (req, res) => {
+    sendSuccess(
+      res,
+      await historicalImportService.confirm(
+        req.user!.id,
+        req.params.id!,
+        req.params.importId!,
+        requestContext(req),
+      ),
+    )
+  }),
+
+  historyImportCancel: asyncHandler(async (req, res) => {
+    sendSuccess(res, await historicalImportService.cancel(req.params.id!, req.params.importId!))
+  }),
+}
+
+export const historyImportUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+})
+
+export function handleHistoryImportUpload(req: Request, res: Response, next: NextFunction) {
+  historyImportUpload.single('file')(req, res, (err: unknown) => {
+    if (!err) {
+      next()
+      return
+    }
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      next(badRequest('File exceeds 2MB.'))
+      return
+    }
+    next(badRequest(err instanceof Error ? err.message : 'Upload failed.'))
+  })
 }

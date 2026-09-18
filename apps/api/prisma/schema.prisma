@@ -432,6 +432,8 @@ model User {
   referralRewardsGenerated ReferralReward[]   @relation("ReferralReferee")
   /// Sales Portal first-touch row. Adds no column on users.
   salesAttribution       SalesAttribution?
+  historicalImportsAsTarget HistoricalImport[] @relation("HistoricalImportTarget")
+  historicalImportsUploaded HistoricalImport[] @relation("HistoricalImportActor")
 
   @@index([status])
   @@index([role])
@@ -1234,6 +1236,41 @@ model ProfitDistribution {
   @@index([userId, date])
   @@index([date])
   @@map("profit_distributions")
+}
+
+enum HistoricalImportStatus {
+  PREVIEW
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+/// Admin-only spreadsheet import of historical ledger rows for Create-user accounts.
+model HistoricalImport {
+  id             String                 @id @default(uuid()) @db.Uuid
+  reference      String                 @unique @db.VarChar(32)
+  userId         String                 @map("user_id") @db.Uuid
+  user           User                   @relation("HistoricalImportTarget", fields: [userId], references: [id], onDelete: Cascade)
+  uploadedById   String                 @map("uploaded_by_id") @db.Uuid
+  uploadedBy     User                   @relation("HistoricalImportActor", fields: [uploadedById], references: [id], onDelete: Restrict)
+  fileName       String                 @map("file_name") @db.VarChar(200)
+  fileSha256     String                 @map("file_sha256") @db.VarChar(64)
+  status         HistoricalImportStatus @default(PREVIEW)
+  rowCount       Int                    @map("row_count")
+  validCount     Int                    @map("valid_count")
+  invalidCount   Int                    @map("invalid_count")
+  skippedCount   Int                    @map("skipped_count")
+  importedCount  Int                    @default(0) @map("imported_count")
+  summary        Json
+  preview        Json
+  errorMessage   String?                @map("error_message") @db.VarChar(2000)
+  createdAt      DateTime               @default(now()) @map("created_at")
+  confirmedAt    DateTime?              @map("confirmed_at")
+  completedAt    DateTime?              @map("completed_at")
+
+  @@index([userId, createdAt])
+  @@index([uploadedById, createdAt])
+  @@map("historical_imports")
 }
 
 model PortfolioSnapshot {

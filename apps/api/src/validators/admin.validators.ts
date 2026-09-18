@@ -191,3 +191,8 @@ export const adminUserHistoryCreateSchema = z.object({
 export const idParamSchema = z.object({
   id: z.string().uuid(),
 })
+
+export const adminImportIdParamSchema = z.object({
+  id: z.string().uuid(),
+  importId: z.string().uuid(),
+})

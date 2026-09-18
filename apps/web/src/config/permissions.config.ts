@@ -8,6 +8,7 @@ export const PERMISSIONS = [
   'users.suspend',
   'users.delete',
   'users.restore',
+  'users.history_import',
   'audit.view',
   'activity.view',
   'roles.view',

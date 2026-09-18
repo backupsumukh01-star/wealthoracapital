@@ -141,6 +141,7 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
     await ensureCsrfToken()
   }
   const csrf = await ensureCsrfToken()
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
 
   let response: Response
   try {
@@ -154,12 +155,12 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
         headers: {
           Accept: 'application/json',
           'Cache-Control': 'no-cache',
-          ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+          ...(body === undefined || isFormData ? {} : { 'Content-Type': 'application/json' }),
           ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
           ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
           ...headers,
         },
-        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        ...(body === undefined ? {} : { body: isFormData ? (body as FormData) : JSON.stringify(body) }),
       },
       timeoutMs,
     )

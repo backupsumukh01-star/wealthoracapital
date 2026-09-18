@@ -426,6 +426,13 @@ export function AdminUserDetailWorkspace() {
                 <Link href={ROUTES.admin.userHistory(userId)}>Historical data</Link>
               </Button>
             ) : null}
+            {user.role === 'USER' && Boolean((user as { createdByAdminId?: string | null }).createdByAdminId) ? (
+              <PermissionGate permission="users.history_import">
+                <Button size="sm" variant="secondary" asChild>
+                  <Link href={`${ROUTES.admin.userHistory(userId)}#import`}>Import Historical Data</Link>
+                </Button>
+              </PermissionGate>
+            ) : null}
             {user.status === ('SUSPENDED' satisfies UserStatus) || user.status === 'BLOCKED' ? (
               <Button
                 size="sm"
