@@ -31,8 +31,10 @@ import { PageHeader, SectionHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { FormField } from '@/components/ui/form-field'
+import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { PasswordField } from '@/components/auth/password-field'
 import { adminQueryKeys, useAdminUser } from '@/features/admin/hooks'
 import { PermissionGate } from '@/features/auth/guards'
 import { peekAdminListLocation } from '@/lib/admin-nav'
@@ -51,6 +53,16 @@ export function AdminUserDetailWorkspace() {
   const [noteDraft, setNoteDraft] = useState('')
   const [roleDraft, setRoleDraft] = useState<'USER' | 'ADMIN' | 'SUPER_ADMIN'>('USER')
   const [staffRoleDraft, setStaffRoleDraft] = useState<string>('')
+  const [firstNameDraft, setFirstNameDraft] = useState('')
+  const [lastNameDraft, setLastNameDraft] = useState('')
+  const [emailDraft, setEmailDraft] = useState('')
+  const [phoneDraft, setPhoneDraft] = useState('')
+  const [countryDraft, setCountryDraft] = useState('IN')
+  const [timezoneDraft, setTimezoneDraft] = useState('UTC')
+  const [passwordDraft, setPasswordDraft] = useState('')
+  const [adjustAmount, setAdjustAmount] = useState('')
+  const [adjustDirection, setAdjustDirection] = useState<'CREDIT' | 'DEBIT'>('CREDIT')
+  const [adjustReason, setAdjustReason] = useState('')
 
   type AdminUserDetail = NonNullable<typeof user> & {
     countryName?: string | null
@@ -107,6 +119,15 @@ export function AdminUserDetailWorkspace() {
       createdAt: string
       author: { id: string; name: string; email: string } | null
     }>
+    transactionHistory?: Array<{
+      id: string
+      event: string
+      status: string | null
+      amount: string | null
+      currency: string | null
+      message: string | null
+      createdAt: string
+    }>
     deposits?: AdminDepositRow[]
     withdrawals?: AdminWithdrawalRow[]
     trades?: Array<{
@@ -126,6 +147,12 @@ export function AdminUserDetailWorkspace() {
     if (!user) return
     setRoleDraft(user.role)
     setStaffRoleDraft(user.staffRole ?? '')
+    setFirstNameDraft(user.firstName)
+    setLastNameDraft(user.lastName)
+    setEmailDraft(user.email)
+    setPhoneDraft(user.phone ?? '')
+    setCountryDraft((user.country || 'IN').toUpperCase())
+    setTimezoneDraft(user.timezone || 'UTC')
   }, [user])
 
   const { data: kycDetail, isLoading: kycLoading } = useQuery({
@@ -172,6 +199,49 @@ export function AdminUserDetailWorkspace() {
       }
     },
     onError: (err: Error) => toast.error(err.message || 'Role update failed'),
+  })
+
+  const saveProfile = useMutation({
+    mutationFn: () =>
+      adminService.updateUser(userId, {
+        firstName: firstNameDraft.trim(),
+        lastName: lastNameDraft.trim(),
+        email: emailDraft.trim().toLowerCase(),
+        phone: phoneDraft.trim() ? phoneDraft.trim() : null,
+        country: countryDraft || 'IN',
+        timezone: timezoneDraft.trim() || 'UTC',
+        ...(passwordDraft.trim() ? { password: passwordDraft } : {}),
+      }),
+    onSuccess: () => {
+      setPasswordDraft('')
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.user(userId) })
+      toast.success('User details saved')
+    },
+    onError: (err: Error) => toast.error(err.message || 'Could not save user'),
+  })
+
+  const adjustWallet = useMutation({
+    mutationFn: () => {
+      const numeric = Number.parseFloat(adjustAmount)
+      if (!Number.isFinite(numeric) || numeric <= 0) {
+        return Promise.reject(new Error('Enter a positive amount'))
+      }
+      if (!adjustReason.trim()) {
+        return Promise.reject(new Error('A reason is required'))
+      }
+      return adminService.adjustWallet(userId, {
+        amount: Math.abs(numeric).toFixed(2),
+        direction: adjustDirection,
+        reason: adjustReason.trim(),
+      })
+    },
+    onSuccess: () => {
+      setAdjustAmount('')
+      setAdjustReason('')
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.user(userId) })
+      toast.success('Wallet adjusted')
+    },
+    onError: (err: Error) => toast.error(err.message || 'Wallet adjust failed'),
   })
 
   const forceLogout = useMutation({
@@ -289,6 +359,7 @@ export function AdminUserDetailWorkspace() {
   }>
   const timeline = detail?.activityTimeline ?? []
   const adminNotes = detail?.adminNotes ?? []
+  const txHistory = detail?.transactionHistory ?? []
 
   if (isLoading) {
     return (
@@ -311,7 +382,6 @@ export function AdminUserDetailWorkspace() {
 
   const kycStatus = mapKycStatus(user.kycStatus)
   const accountStatus = mapAccountStatus(user.status, user.kycStatus)
-  const showMarketLists = accountStatus === 'VERIFIED' || kycStatus === 'APPROVED'
   const username = user.email.split('@')[0] || user.id
   const available = (detail?.availableBalance ?? '0.00') as MoneyString
   const walletBalance = (detail?.walletBalance ?? available) as MoneyString
@@ -382,6 +452,7 @@ export function AdminUserDetailWorkspace() {
           <TabsTrigger value="kyc">KYC</TabsTrigger>
           <TabsTrigger value="deposits">Deposits</TabsTrigger>
           <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
+          <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="wallet">Wallet</TabsTrigger>
           <TabsTrigger value="returns">Returns</TabsTrigger>
           <TabsTrigger value="trades">Trade History</TabsTrigger>
@@ -429,31 +500,116 @@ export function AdminUserDetailWorkspace() {
           </div>
 
           <AdminPanel>
-            <AdminPanelHeader title="Personal details" />
-            <dl className="grid gap-3 px-4 py-4 text-caption sm:grid-cols-2 sm:px-5">
-              {(
-                [
-                  ['User ID', user.id],
-                  ['Username', `@${username}`],
-                  ['Email', user.email],
-                  ['Phone', user.phone ?? '—'],
-                  ['Country', countryLabel],
-                  ['City', detail?.city ?? '—'],
-                  ['Address', detail?.address ?? '—'],
-                  ['Occupation', detail?.occupation ?? '—'],
-                  ['Date of birth', detail?.dateOfBirth ?? '—'],
-                  ['Timezone', user.timezone],
-                  ['Role', user.role],
-                  ['Staff role', user.staffRole ?? '—'],
-                  ['Registered', formatDateTime(user.createdAt)],
-                  ['Last login', detail?.lastLoginAt ? formatDateTime(detail.lastLoginAt) : '—'],
-                ] as Array<[string, string]>
-              ).map(([k, v]) => (
-                <div key={k}>
-                  <dt className="text-fg-subtle">{k}</dt>
-                  <dd className="mt-0.5 text-fg">{v}</dd>
+            <AdminPanelHeader
+              title="Personal details"
+              description="Edit the investor record. They keep using the same login page."
+            />
+            <PermissionGate
+              permission="users.edit"
+              fallback={
+                <dl className="grid gap-3 px-4 py-4 text-caption sm:grid-cols-2 sm:px-5">
+                  {(
+                    [
+                      ['User ID', user.id],
+                      ['Username', `@${username}`],
+                      ['Email', user.email],
+                      ['Phone', user.phone ?? '—'],
+                      ['Country', countryLabel],
+                      ['City', detail?.city ?? '—'],
+                      ['Address', detail?.address ?? '—'],
+                      ['Occupation', detail?.occupation ?? '—'],
+                      ['Date of birth', detail?.dateOfBirth ?? '—'],
+                      ['Timezone', user.timezone],
+                      ['Role', user.role],
+                      ['Staff role', user.staffRole ?? '—'],
+                      ['Registered', formatDateTime(user.createdAt)],
+                      ['Last login', detail?.lastLoginAt ? formatDateTime(detail.lastLoginAt) : '—'],
+                    ] as Array<[string, string]>
+                  ).map(([k, v]) => (
+                    <div key={k}>
+                      <dt className="text-fg-subtle">{k}</dt>
+                      <dd className="mt-0.5 text-fg">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+              }
+            >
+              <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
+                <FormField label="First name" required>
+                  <Input value={firstNameDraft} onChange={(e) => setFirstNameDraft(e.target.value)} />
+                </FormField>
+                <FormField label="Last name" required>
+                  <Input value={lastNameDraft} onChange={(e) => setLastNameDraft(e.target.value)} />
+                </FormField>
+                <FormField label="Email" required>
+                  <Input type="email" value={emailDraft} onChange={(e) => setEmailDraft(e.target.value)} />
+                </FormField>
+                <FormField label="Phone">
+                  <Input type="tel" value={phoneDraft} onChange={(e) => setPhoneDraft(e.target.value)} />
+                </FormField>
+                <FormField label="Country">
+                  <Input
+                    maxLength={2}
+                    value={countryDraft}
+                    onChange={(e) => setCountryDraft(e.target.value.toUpperCase())}
+                    placeholder="IN"
+                  />
+                </FormField>
+                <FormField label="Timezone">
+                  <Input value={timezoneDraft} onChange={(e) => setTimezoneDraft(e.target.value)} />
+                </FormField>
+                <FormField
+                  label="New password"
+                  hint="Leave blank to keep the current password. Same rules as registration."
+                >
+                  <PasswordField
+                    autoComplete="new-password"
+                    value={passwordDraft}
+                    onChange={(e) => setPasswordDraft(e.target.value)}
+                  />
+                </FormField>
+                <div className="grid gap-3 text-caption sm:col-span-2 sm:grid-cols-2">
+                  <div>
+                    <p className="text-fg-subtle">User ID</p>
+                    <p className="mt-0.5 break-all font-mono text-[11px] text-fg">{user.id}</p>
+                  </div>
+                  <div>
+                    <p className="text-fg-subtle">Username</p>
+                    <p className="mt-0.5 text-fg">@{username}</p>
+                  </div>
+                  <div>
+                    <p className="text-fg-subtle">Registered</p>
+                    <p className="mt-0.5 text-fg">{formatDateTime(user.createdAt)}</p>
+                  </div>
+                  <div>
+                    <p className="text-fg-subtle">Last login</p>
+                    <p className="mt-0.5 text-fg">
+                      {detail?.lastLoginAt ? formatDateTime(detail.lastLoginAt) : '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-fg-subtle">City</p>
+                    <p className="mt-0.5 text-fg">{detail?.city ?? '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-fg-subtle">Address</p>
+                    <p className="mt-0.5 text-fg">{detail?.address ?? '—'}</p>
+                  </div>
                 </div>
-              ))}
+              </div>
+              <div className="flex justify-end border-t border-white/[0.06] px-4 py-4 sm:px-5">
+                <Button
+                  type="button"
+                  size="sm"
+                  loading={saveProfile.isPending}
+                  loadingText="Saving"
+                  onClick={() => saveProfile.mutate()}
+                >
+                  Save details
+                </Button>
+              </div>
+            </PermissionGate>
+            <dl className="grid gap-3 border-t border-white/[0.06] px-4 py-4 text-caption sm:grid-cols-2 sm:px-5">
               <div>
                 <dt className="text-fg-subtle">Total deposited</dt>
                 <dd className="mt-0.5">
@@ -728,6 +884,46 @@ export function AdminUserDetailWorkspace() {
           </AdminPanel>
         </TabsContent>
 
+        <TabsContent value="transactions">
+          <AdminPanel>
+            <AdminPanelHeader
+              title="Transaction history"
+              description={`${txHistory.length} ledger event${txHistory.length === 1 ? '' : 's'}`}
+            />
+            {txHistory.length === 0 ? (
+              <EmptyState
+                title="No transactions"
+                description="Deposits, withdrawals, returns, and wallet adjustments will appear here."
+              />
+            ) : (
+              <ul className="divide-y divide-white/[0.05] px-4 sm:px-5">
+                {txHistory.map((row) => (
+                  <li
+                    key={row.id}
+                    className="flex flex-wrap items-center justify-between gap-3 py-3 text-caption"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium text-fg">{row.event}</p>
+                      <p className="text-fg-subtle">
+                        {row.status ?? '—'}
+                        {row.message ? ` · ${row.message}` : ''}
+                      </p>
+                      <p className="text-fg-subtle">{formatDateTime(row.createdAt)}</p>
+                    </div>
+                    <div className="text-right">
+                      {row.amount ? (
+                        <Money value={row.amount as MoneyString} size="sm" signed />
+                      ) : (
+                        <span className="text-fg-subtle">—</span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </AdminPanel>
+        </TabsContent>
+
         <TabsContent value="wallet">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[
@@ -747,6 +943,54 @@ export function AdminUserDetailWorkspace() {
               </AdminPanel>
             ))}
           </div>
+          <PermissionGate permission="finance.adjust">
+            <AdminPanel>
+              <AdminPanelHeader
+                title="Adjust wallet"
+                description="Credit or debit the investment wallet. Requires an audit reason."
+              />
+              <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
+                <FormField label="Amount (USD)" required>
+                  <Input
+                    numeric
+                    inputMode="decimal"
+                    value={adjustAmount}
+                    onChange={(e) => setAdjustAmount(e.target.value)}
+                    placeholder="100.00"
+                  />
+                </FormField>
+                <FormField label="Direction">
+                  <select
+                    className="h-12 w-full rounded-xl border border-line-default bg-inset/80 px-3.5 text-base text-fg"
+                    value={adjustDirection}
+                    onChange={(e) => setAdjustDirection(e.target.value as 'CREDIT' | 'DEBIT')}
+                  >
+                    <option value="CREDIT">Credit</option>
+                    <option value="DEBIT">Debit</option>
+                  </select>
+                </FormField>
+                <FormField label="Reason" className="sm:col-span-2" required>
+                  <Textarea
+                    value={adjustReason}
+                    onChange={(e) => setAdjustReason(e.target.value)}
+                    rows={2}
+                    placeholder="Why this adjustment is being made"
+                  />
+                </FormField>
+              </div>
+              <div className="flex justify-end border-t border-white/[0.06] px-4 py-4 sm:px-5">
+                <Button
+                  type="button"
+                  size="sm"
+                  loading={adjustWallet.isPending}
+                  loadingText="Applying"
+                  onClick={() => adjustWallet.mutate()}
+                >
+                  Apply adjustment
+                </Button>
+              </div>
+            </AdminPanel>
+          </PermissionGate>
         </TabsContent>
 
         <TabsContent value="returns">
@@ -755,7 +999,7 @@ export function AdminUserDetailWorkspace() {
               title="Profit distribution history"
               description="Approved return distributions credited to this investor."
             />
-            {!showMarketLists || returns.length === 0 ? (
+            {returns.length === 0 ? (
               <EmptyState
                 title="No returns yet"
                 description="Returns appear after the investor is verified and eligible."
@@ -808,7 +1052,7 @@ export function AdminUserDetailWorkspace() {
         <TabsContent value="trades">
           <AdminPanel>
             <AdminPanelHeader title="Trade history" description="Published platform trades from API." />
-            {!showMarketLists || trades.length === 0 ? (
+            {trades.length === 0 ? (
               <EmptyState title="No trades" description="Trades unlock after verification." />
             ) : (
               <ul className="divide-y divide-white/[0.05] px-4 sm:px-5">

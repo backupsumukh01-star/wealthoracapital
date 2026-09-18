@@ -63,7 +63,7 @@ export const adminUserListQuerySchema = z.object({
 
 const adminPasswordSchema = z
   .string()
-  .min(AUTH_LIMITS.minPasswordLength, `Password must be at least ${AUTH_LIMITS.minPasswordLength} characters.`)
+  .min(8, 'Password must be at least 8 characters.')
   .max(AUTH_LIMITS.maxPasswordLength, `Password must be at most ${AUTH_LIMITS.maxPasswordLength} characters.`)
   .regex(/[a-z]/, 'Password must include a lowercase letter.')
   .regex(/[A-Z]/, 'Password must include an uppercase letter.')
@@ -113,6 +113,13 @@ export const adminUpdateUserSchema = z.object({
     .nullable()
     .optional(),
   timezone: z.string().trim().min(1).max(64).optional(),
+  email: z
+    .string()
+    .trim()
+    .email('Enter a valid email address.')
+    .transform((value) => value.toLowerCase())
+    .optional(),
+  password: z.preprocess(emptyToUndefined, adminPasswordSchema.optional()),
   role: roleSchema.optional(),
   staffRole: staffRoleSchema.nullable().optional(),
 })

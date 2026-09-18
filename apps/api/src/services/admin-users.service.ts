@@ -15,6 +15,7 @@ import { auditService } from './audit.service.js'
 import { notificationService } from './notification.service.js'
 import { opsAlertService } from './ops-alert.service.js'
 import { passwordService } from './password.service.js'
+import { ledgerService } from './finance/ledger.service.js'
 import {
   batchUserFinance,
   mapPayoutMethod,
@@ -147,6 +148,8 @@ export const adminUsersService = {
       riskAcceptedAt: now,
     })
 
+    await ledgerService.ensureWalletsForUser(user.id)
+
     await auditService.record({
       actorId,
       targetUserId: user.id,
@@ -275,7 +278,7 @@ export const adminUsersService = {
       throw notFound('User not found.')
     }
 
-    const [finance, profile, kyc, payoutMethods, deposits, withdrawals, profits, tickets, sessions, activities, tradeAllocations] =
+    const [finance, profile, kyc, payoutMethods, deposits, withdrawals, profits, tickets, sessions, activities, tradeAllocations, txHistory] =
       await Promise.all([
         singleUserFinance(id),
         prisma.userProfile.findUnique({ where: { userId: id } }),
@@ -382,6 +385,11 @@ export const adminUsersService = {
               },
             },
           },
+        }),
+        prisma.transactionHistory.findMany({
+          where: { userId: id },
+          orderBy: { createdAt: 'desc' },
+          take: 100,
         }),
       ])
 
@@ -531,6 +539,15 @@ export const adminUsersService = {
               }
             : null,
         })),
+      transactionHistory: txHistory.map((row) => ({
+        id: row.id,
+        event: row.event,
+        status: row.status,
+        amount: row.amount != null ? moneyDisplay(row.amount) : null,
+        currency: row.currency,
+        message: row.message,
+        createdAt: row.createdAt.toISOString(),
+      })),
     }
   },
 
@@ -576,6 +593,8 @@ export const adminUsersService = {
       phone?: string | null
       country?: string | null
       timezone?: string
+      email?: string
+      password?: string
       role?: Role
       staffRole?: User['staffRole']
     },
@@ -609,12 +628,31 @@ export const adminUsersService = {
       }
     }
 
+    if (patch.email && patch.email !== existing.email) {
+      const taken = await userRepository.findByEmail(patch.email)
+      if (taken && taken.id !== id) {
+        throw conflict('An account with this email already exists.')
+      }
+    }
+    if (patch.phone !== undefined && patch.phone && patch.phone !== existing.phone) {
+      const phoneOwner = await userRepository.findByPhone(patch.phone)
+      if (phoneOwner && phoneOwner.id !== id) {
+        throw conflict('An account with this phone number already exists.')
+      }
+    }
+
+    const passwordHash = patch.password ? await passwordService.hash(patch.password) : undefined
+
     const updated = await userRepository.update(id, {
       ...(patch.firstName !== undefined ? { firstName: patch.firstName } : {}),
       ...(patch.lastName !== undefined ? { lastName: patch.lastName } : {}),
       ...(patch.phone !== undefined ? { phone: patch.phone } : {}),
       ...(patch.country !== undefined ? { country: patch.country } : {}),
       ...(patch.timezone !== undefined ? { timezone: patch.timezone } : {}),
+      ...(patch.email !== undefined ? { email: patch.email } : {}),
+      ...(passwordHash
+        ? { passwordHash, passwordChangedAt: new Date(), failedLoginCount: 0, lockedUntil: null }
+        : {}),
       ...(patch.role !== undefined ? { role: patch.role } : {}),
       ...(patch.staffRole !== undefined ? { staffRole: patch.staffRole } : {}),
     })
@@ -622,7 +660,7 @@ export const adminUsersService = {
     // Role / staffRole changes invalidate every JWT session so the next request
     // cannot keep stale privileges from an access-token cookie.
     let revokedSessions = 0
-    if (elevatingRole || elevatingStaff) {
+    if (elevatingRole || elevatingStaff || passwordHash) {
       revokedSessions = await sessionRepository.revokeAllForUser(id)
     }
 
@@ -643,7 +681,9 @@ export const adminUsersService = {
       title:
         elevatingRole || elevatingStaff
           ? 'Role updated — all sessions terminated'
-          : 'Profile updated by admin',
+          : passwordHash
+            ? 'Password reset by admin — all sessions terminated'
+            : 'Profile updated by admin',
       ip: context.ip,
       userAgent: context.userAgent,
     })

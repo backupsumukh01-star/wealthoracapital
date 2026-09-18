@@ -377,6 +377,8 @@ export const adminService = {
       phone: string | null
       country: string | null
       timezone: string
+      email: string
+      password: string
       role: User['role']
       staffRole: User['staffRole']
     }>,

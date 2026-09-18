@@ -121,7 +121,7 @@ export function AdminCreateUserWorkspace() {
             <FormField
               label="Password"
               required
-              hint="Same rules as registration: 10+ characters, upper, lower, number, and a special character."
+              hint="Same rules as registration: 8+ characters, upper, lower, number, and a special character."
             >
               <PasswordField
                 autoComplete="new-password"
