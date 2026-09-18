@@ -56,7 +56,8 @@ async function diskUsagePct(root: string): Promise<number | null> {
 }
 
 /**
- * Periodic production watchdog — memory / CPU / disk / DB / email queue.
+ * Periodic production watchdog — CPU / disk / DB / email queue.
+ * Memory is recorded for System Health only; it does not send ops mail.
  * Never throws to the scheduler.
  */
 export const stabilityMonitorService = {
@@ -95,17 +96,6 @@ export const stabilityMonitorService = {
       const free = os.freemem()
       const systemUsedPct = ((total - free) / total) * 100
       const heapPct = (mem.heapUsed / mem.heapTotal) * 100
-
-      if (systemUsedPct >= 85 || heapPct >= 90) {
-        await alertOnce('memory-high', {
-          title: 'Memory exceeds threshold',
-          action: `System memory ${systemUsedPct.toFixed(1)}% · heap ${heapPct.toFixed(1)}%`,
-          details: {
-            RSS: `${Math.round(mem.rss / 1024 / 1024)} MB`,
-            'Suggested cause': 'Memory leak, large upload, or undersized instance',
-          },
-        })
-      }
 
       const load1 = os.loadavg()[0] ?? 0
       const cores = Math.max(1, os.cpus().length)
@@ -167,6 +157,8 @@ export const stabilityMonitorService = {
         message: 'Stability monitor tick',
         meta: {
           systemUsedPct: Math.round(systemUsedPct),
+          heapPct: Math.round(heapPct),
+          rssMb: Math.round(mem.rss / 1024 / 1024),
           cpuPct: Math.round(cpuPct),
           diskPct,
         },
