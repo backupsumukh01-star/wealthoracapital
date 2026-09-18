@@ -23,6 +23,7 @@ import { progressShareRouter } from './progress-share.routes.js'
 import { referralRouter } from './referral.routes.js'
 import { reportRouter } from './report.routes.js'
 import { returnsRouter } from './returns.routes.js'
+import { salesRouter } from './sales.routes.js'
 import { settingsRouter } from './settings.routes.js'
 import { currencyRouter } from './currency.routes.js'
 import { supportRouter } from './support.routes.js'
@@ -71,6 +72,7 @@ export function createApiRouter(): Router {
   router.use('/v1/settings', settingsRouter)
   router.use('/v1/currency', currencyRouter)
   router.use('/v1/reports', reportRouter)
+  router.use('/v1/sales', salesRouter)
   // Mount /downloads before /cms. Express treats `/v1/cms` as a prefix, so
   // `/v1/cms/downloads/public` would otherwise hit CMS staff auth and 401.
   router.use('/v1/cms/downloads', cmsDownloadRouter)

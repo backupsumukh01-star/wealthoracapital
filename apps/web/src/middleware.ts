@@ -16,6 +16,8 @@ import { ROUTES } from '@meridian/shared'
 
 const INVESTOR_COOKIE = 'mfx_at'
 const ADMIN_COOKIE = 'mfx_at'
+/** Isolated Salesman access cookie. Never treat this as investor/admin `mfx_at`. */
+const SALES_COOKIE = 'wealthora_sales_at'
 
 const INVESTOR_PROTECTED = [
   ROUTES.dashboard.root,
@@ -64,6 +66,35 @@ export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
   const hasInvestor = request.cookies.has(INVESTOR_COOKIE)
   const hasAdmin = request.cookies.has(ADMIN_COOKIE)
+  const hasSales = request.cookies.has(SALES_COOKIE)
+
+  const isSalesOwnerArea =
+    pathname === ROUTES.sales.owner.root || pathname.startsWith(`${ROUTES.sales.owner.root}/`)
+  const isSalesLogin =
+    pathname === ROUTES.sales.login || pathname.startsWith(`${ROUTES.sales.login}/`)
+  const isSalesArea = pathname === ROUTES.sales.root || pathname.startsWith(`${ROUTES.sales.root}/`)
+
+  // Owner portal reuses Admin/Super Admin cookies. Salesman cookies are not sufficient.
+  if (isSalesOwnerArea && !hasAdmin) {
+    const url = request.nextUrl.clone()
+    url.pathname = ROUTES.admin.login
+    url.search = `?next=${encodeURIComponent(pathname + search)}`
+    return withDocumentCacheHeaders(NextResponse.redirect(url))
+  }
+
+  if (isSalesLogin && hasSales) {
+    const url = request.nextUrl.clone()
+    url.pathname = ROUTES.sales.dashboard
+    url.search = ''
+    return withDocumentCacheHeaders(NextResponse.redirect(url))
+  }
+
+  if (isSalesArea && !isSalesLogin && !isSalesOwnerArea && !hasSales) {
+    const url = request.nextUrl.clone()
+    url.pathname = ROUTES.sales.login
+    url.search = `?next=${encodeURIComponent(pathname + search)}`
+    return withDocumentCacheHeaders(NextResponse.redirect(url))
+  }
 
   const isAdminArea =
     pathname === ROUTES.admin.root || pathname.startsWith(`${ROUTES.admin.root}/`)

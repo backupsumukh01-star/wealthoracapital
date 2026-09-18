@@ -15,6 +15,9 @@ process.env.COOKIE_DOMAIN = ''
 process.env.COOKIE_SECURE = 'false'
 process.env.JWT_ACCESS_SECRET ||= 'test-access-secret-min-32-characters-long!!'
 process.env.JWT_REFRESH_SECRET ||= 'test-refresh-secret-min-32-characters-long!'
+process.env.JWT_SALES_SECRET ||= 'test-wealthora-sales-access-secret-min-32!!'
+process.env.JWT_SALES_ISSUER ||= 'wealthora-sales'
+process.env.JWT_SALES_AUDIENCE ||= 'wealthora-sales'
 process.env.DATABASE_URL ||=
   process.env.TEST_DATABASE_URL ||
   'postgresql://meridian:meridian@localhost:5432/meridian?schema=public'

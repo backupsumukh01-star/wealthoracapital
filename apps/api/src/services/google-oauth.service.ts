@@ -14,6 +14,7 @@ import { logger } from '../utils/logger.js'
 import { activityService } from './activity.service.js'
 import { authService } from './auth.service.js'
 import { opsAlertService } from './ops-alert.service.js'
+import { salesAttributionService } from './sales-attribution.service.js'
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
@@ -311,15 +312,10 @@ export const googleOAuthService = {
       })
     }
 
-    let referredById: string | null = null
     const incomingReferral = normalizeOAuthReferralCode(options.referralCode)
-    if (incomingReferral) {
-      const referrer = await userRepository.findByReferralCode(incomingReferral)
-      if (!referrer) {
-        throw badRequest('Invalid referral code.')
-      }
-      referredById = referrer.id
-    }
+    const resolved = await salesAttributionService.resolveRegistrationCode(incomingReferral)
+    const referredById = resolved.kind === 'investor' ? resolved.referrerId : null
+    const salesmanId = resolved.kind === 'salesman' ? resolved.salesmanId : null
 
     const { firstName, lastName } = splitName(profile.givenName, profile.familyName, profile.email)
     const referralCode = await allocateReferralCode()
@@ -338,6 +334,10 @@ export const googleOAuthService = {
       termsAcceptedAt: now,
       riskAcceptedAt: now,
     })
+
+    if (salesmanId) {
+      await salesAttributionService.attributeNewInvestor(user.id, salesmanId)
+    }
 
     await emailService.sendWelcomeEmail({
       to: user.email,

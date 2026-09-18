@@ -37,6 +37,11 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
   skipRefresh?: boolean
   /** Internal: one CSRF re-bootstrap after CSRF_REJECTED. */
   skipCsrfRetry?: boolean
+  /**
+   * Silent-refresh endpoint. Investor/admin sessions use `/auth/refresh`.
+   * Salesman sessions must pass `/sales/auth/refresh` so `mfx_rt` is never used.
+   */
+  refreshPath?: string
   /** Override default request timeout (ms). */
   timeoutMs?: number
 }
@@ -46,7 +51,8 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
  * refresh call, not six racing rotations that trigger reuse detection against each other
  * (docs/08 §5).
  */
-let refreshInFlight: Promise<boolean> | null = null
+const refreshInFlightByPath = new Map<string, Promise<boolean>>()
+const INVESTOR_REFRESH_PATH = '/auth/refresh'
 
 const DEFAULT_TIMEOUT_MS = 30_000
 
@@ -55,9 +61,12 @@ function isMutatingMethod(method: string | undefined): boolean {
   return m !== 'GET' && m !== 'HEAD' && m !== 'OPTIONS'
 }
 
-async function refreshSession(): Promise<boolean> {
+async function refreshSession(refreshPath: string): Promise<boolean> {
+  const existing = refreshInFlightByPath.get(refreshPath)
+  if (existing) return existing
+
   const csrf = await ensureCsrfToken()
-  refreshInFlight ??= fetch(`${env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
+  const pending = fetch(`${env.NEXT_PUBLIC_API_URL}${refreshPath}`, {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -79,10 +88,11 @@ async function refreshSession(): Promise<boolean> {
     })
     .catch(() => false)
     .finally(() => {
-      refreshInFlight = null
+      refreshInFlightByPath.delete(refreshPath)
     })
 
-  return refreshInFlight
+  refreshInFlightByPath.set(refreshPath, pending)
+  return pending
 }
 
 async function fetchWithTimeout(
@@ -113,6 +123,7 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
     idempotencyKey,
     skipRefresh,
     skipCsrfRetry,
+    refreshPath = INVESTOR_REFRESH_PATH,
     headers,
     timeoutMs = DEFAULT_TIMEOUT_MS,
     ...rest
@@ -199,7 +210,7 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
 
   // Retry once, and only once, behind a silent refresh.
   if (response.status === 401 && code === ERROR_CODES.TOKEN_EXPIRED && !skipRefresh) {
-    const refreshed = await refreshSession()
+    const refreshed = await refreshSession(refreshPath)
     if (refreshed) {
       return apiClient<T>(path, { ...options, skipRefresh: true })
     }

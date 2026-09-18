@@ -22,6 +22,14 @@ const securityHeaders = [
 ]
 
 const isProd = process.env.NODE_ENV === 'production'
+/**
+ * HSTS + CSP `upgrade-insecure-requests` belong on TLS-terminated hosts (Render).
+ * Local `next start` / Playwright serve HTTP. WebKit honors the upgrade and then
+ * fails with "SSL connect error" on https://localhost, so the app never hydrates
+ * and login stays on the Suspense fallback. Chromium skips the upgrade on localhost.
+ */
+const tlsTerminated =
+  process.env.RENDER === 'true' || process.env.FORCE_HTTPS_HEADERS === 'true'
 
 /** Deployment identity — changes every Render/Git build so hashed chunks never collide across deploys. */
 function resolveBuildId(): string {
@@ -106,20 +114,21 @@ const nextConfig: NextConfig = {
               "img-src 'self' data: blob: https:",
               `connect-src ${apiConnectSrc()}`,
               "frame-ancestors 'none'",
-              'upgrade-insecure-requests',
+              ...(tlsTerminated ? ['upgrade-insecure-requests'] : []),
             ].join('; '),
           },
         ]
       : []
 
-    const hsts = isProd
-      ? [
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=31536000; includeSubDomains; preload',
-          },
-        ]
-      : []
+    const hsts =
+      isProd && tlsTerminated
+        ? [
+            {
+              key: 'Strict-Transport-Security',
+              value: 'max-age=31536000; includeSubDomains; preload',
+            },
+          ]
+        : []
 
     return [
       // Hashed webpack/turbopack chunks — cache forever; filename changes every deploy.

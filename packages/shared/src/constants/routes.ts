@@ -136,6 +136,31 @@ export const ROUTES = {
       handover: '/admin/settings/handover',
     },
   },
+
+  /**
+   * Isolated Sales Portal. Salesman cookies are not investor `mfx_at`.
+   * Owner pages reuse existing Admin/Super Admin authentication.
+   */
+  sales: {
+    login: '/sales/login',
+    root: '/sales',
+    dashboard: '/sales/dashboard',
+    network: '/sales/network',
+    customers: '/sales/customers',
+    customer: (userId: string) => `/sales/customers/${userId}`,
+    investments: '/sales/investments',
+    performance: '/sales/performance',
+    referral: '/sales/referral',
+    profile: '/sales/profile',
+    owner: {
+      root: '/sales/owner',
+      salesmen: '/sales/owner/salesmen',
+      salesman: (salesmanId: string) => `/sales/owner/salesmen/${salesmanId}`,
+      salesmanNetwork: (salesmanId: string) => `/sales/owner/salesmen/${salesmanId}/network`,
+      networks: '/sales/owner/networks',
+      reports: '/sales/owner/reports',
+    },
+  },
 } as const
 
 /** API paths, relative to the versioned base URL. */
@@ -311,5 +336,22 @@ export const API_ROUTES = {
     announcements: '/admin/announcements',
     reports: '/admin/reports',
     opsMetrics: '/admin/ops/metrics',
+  },
+  sales: {
+    auth: {
+      login: '/sales/auth/login',
+      logout: '/sales/auth/logout',
+      refresh: '/sales/auth/refresh',
+    },
+    me: '/sales/me',
+    meNetwork: '/sales/me/network',
+    meNetworkMembers: '/sales/me/network/members',
+    meNetworkSummary: '/sales/me/network/summary',
+    ownerSalesmen: '/sales/owner/salesmen',
+    ownerNetwork: (salesmanId: string) => `/sales/owner/salesmen/${salesmanId}/network`,
+    ownerNetworkMembers: (salesmanId: string) =>
+      `/sales/owner/salesmen/${salesmanId}/network/members`,
+    ownerNetworkSummary: (salesmanId: string) =>
+      `/sales/owner/salesmen/${salesmanId}/network/summary`,
   },
 } as const

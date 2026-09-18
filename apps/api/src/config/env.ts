@@ -19,6 +19,10 @@ const envSchema = z.object({
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   JWT_ISSUER: z.string().default('meridian-fx'),
   JWT_AUDIENCE: z.string().default('meridian-fx-web'),
+  /** Isolated Sales Portal JWT — never reuse JWT_ACCESS_SECRET. Required; no production default. */
+  JWT_SALES_SECRET: z.string().min(32, 'JWT_SALES_SECRET must be at least 32 characters'),
+  JWT_SALES_ISSUER: z.string().default('wealthora-sales'),
+  JWT_SALES_AUDIENCE: z.string().default('wealthora-sales'),
 
   COOKIE_DOMAIN: z.string().optional().default(''),
   COOKIE_SECURE: z
@@ -194,7 +198,8 @@ function parseEnv(): Env {
   if (
     parsed.data.NODE_ENV === 'production' &&
     (parsed.data.JWT_ACCESS_SECRET.includes('change-me') ||
-      parsed.data.JWT_REFRESH_SECRET.includes('change-me'))
+      parsed.data.JWT_REFRESH_SECRET.includes('change-me') ||
+      parsed.data.JWT_SALES_SECRET.includes('change-me'))
   ) {
     throw new Error('Production JWT secrets must be rotated away from placeholder values')
   }

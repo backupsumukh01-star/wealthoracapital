@@ -9,6 +9,15 @@ export interface AuthUser {
   permissions: string[]
 }
 
+export interface SalesAuthIdentity {
+  id: string
+  email: string
+  name: string
+  code: string
+  status: 'ACTIVE' | 'DISABLED'
+  sessionId: string
+}
+
 declare global {
   namespace Express {
     interface Locals {
@@ -17,6 +26,7 @@ declare global {
 
     interface Request {
       user?: AuthUser
+      salesman?: SalesAuthIdentity
       requestId?: string
     }
   }

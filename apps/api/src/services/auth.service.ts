@@ -30,6 +30,7 @@ import type {
 import { activityService } from './activity.service.js'
 import { opsAlertService } from './ops-alert.service.js'
 import { passwordService } from './password.service.js'
+import { salesAttributionService } from './sales-attribution.service.js'
 import { tokenService } from './token.service.js'
 
 async function allocateReferralCode(): Promise<string> {
@@ -262,14 +263,9 @@ export const authService = {
       }
     }
 
-    let referredById: string | null = null
-    if (input.referralCode) {
-      const referrer = await userRepository.findByReferralCode(input.referralCode.toUpperCase())
-      if (!referrer) {
-        throw badRequest('Invalid referral code.')
-      }
-      referredById = referrer.id
-    }
+    const resolved = await salesAttributionService.resolveRegistrationCode(input.referralCode)
+    const referredById = resolved.kind === 'investor' ? resolved.referrerId : null
+    const salesmanId = resolved.kind === 'salesman' ? resolved.salesmanId : null
 
     const passwordHash = await passwordService.hash(input.password)
     const referralCode = await allocateReferralCode()
@@ -289,6 +285,10 @@ export const authService = {
       termsAcceptedAt: input.acceptTerms === false ? null : now,
       riskAcceptedAt: input.acceptRisk === false ? null : now,
     })
+
+    if (salesmanId) {
+      await salesAttributionService.attributeNewInvestor(user.id, salesmanId)
+    }
 
     logger.info(
       {

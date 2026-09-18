@@ -425,6 +425,8 @@ model User {
   supportTicketsAssigned SupportTicket[]      @relation("SupportAssignee")
   referralRewardsEarned  ReferralReward[]      @relation("ReferralReferrer")
   referralRewardsGenerated ReferralReward[]   @relation("ReferralReferee")
+  /// Sales Portal first-touch row. Adds no column on users.
+  salesAttribution       SalesAttribution?
 
   @@index([status])
   @@index([role])
@@ -1842,3 +1844,73 @@ model ReconciliationRun {
   @@index([createdAt])
   @@map("reconciliation_runs")
 }
+
+/// Sales Portal — isolated from investor User.role / StaffRole.
+enum SalesmanStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum SalesAttributionSource {
+  SALESMAN_LINK
+}
+
+/// Sales agent identity. Not a User. Codes are not users.referral_code.
+model Salesman {
+  id               String         @id @default(uuid()) @db.Uuid
+  email            String         @unique @db.Citext
+  passwordHash     String         @map("password_hash")
+  name             String         @db.VarChar(120)
+  /// Prefixed salesman code (e.g. S…). Never written to users.referral_code.
+  code             String         @unique @db.VarChar(16)
+  status           SalesmanStatus @default(ACTIVE)
+  /// Admin User.id that created this row. Plain UUID — no User relation.
+  createdByAdminId String?        @map("created_by_admin_id") @db.Uuid
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  sessions      SalesmanSession[]
+  attributions  SalesAttribution[]
+
+  @@index([status])
+  @@map("salesmen")
+}
+
+/// Isolated refresh sessions for salesman login. Not users.sessions / mfx_at.
+model SalesmanSession {
+  id               String    @id @default(uuid()) @db.Uuid
+  salesmanId       String    @map("salesman_id") @db.Uuid
+  salesman         Salesman  @relation(fields: [salesmanId], references: [id], onDelete: Cascade)
+  refreshTokenHash String    @unique @map("refresh_token_hash")
+  familyId         String    @map("family_id") @db.Uuid
+  userAgent        String?   @map("user_agent") @db.VarChar(400)
+  ip               String?
+  expiresAt        DateTime  @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  replacedById     String?   @map("replaced_by_id") @db.Uuid
+  lastUsedAt       DateTime  @default(now()) @map("last_used_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@index([salesmanId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@map("salesman_sessions")
+}
+
+/// First-touch salesman network seed. Does not set users.referred_by_id.
+model SalesAttribution {
+  id           String                  @id @default(uuid()) @db.Uuid
+  userId       String                  @unique @map("user_id") @db.Uuid
+  user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  salesmanId   String                  @map("salesman_id") @db.Uuid
+  salesman     Salesman                @relation(fields: [salesmanId], references: [id], onDelete: Restrict)
+  source       SalesAttributionSource  @default(SALESMAN_LINK)
+  attributedAt DateTime                @default(now()) @map("attributed_at")
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+
+  @@index([salesmanId])
+  @@index([salesmanId, attributedAt])
+  @@map("sales_attributions")
+}
+

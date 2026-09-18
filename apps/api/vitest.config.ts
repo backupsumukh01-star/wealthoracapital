@@ -20,6 +20,9 @@ export default defineConfig({
       // Host-only cookies in tests — parent shells may export COOKIE_DOMAIN for prod-like local.
       COOKIE_DOMAIN: '',
       COOKIE_SECURE: 'false',
+      JWT_SALES_SECRET: 'test-wealthora-sales-access-secret-min-32!!',
+      JWT_SALES_ISSUER: 'wealthora-sales',
+      JWT_SALES_AUDIENCE: 'wealthora-sales',
     },
     coverage: {
       provider: 'v8',
