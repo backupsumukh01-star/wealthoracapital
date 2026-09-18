@@ -35,6 +35,8 @@ describe('Plisio HMAC + status helpers', () => {
     expect(normalizePlisioStatus('completed')).toBe('completed')
     expect(normalizePlisioStatus('pending internal')).toBe('pending internal')
     expect(normalizePlisioStatus('cancelled duplicate')).toBe('cancelled duplicate')
+    expect(normalizePlisioStatus('mismatch')).toBe('mismatch')
+    expect(normalizePlisioStatus('Overpaid')).toBe('mismatch')
     expect(normalizePlisioStatus('nope')).toBe('unknown')
   })
 

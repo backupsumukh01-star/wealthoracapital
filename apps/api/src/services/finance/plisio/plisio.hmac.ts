@@ -49,10 +49,16 @@ export function signPlisioJsonCallback(
 
 export function normalizePlisioStatus(raw: string | undefined | null): PlisioStatus | 'unknown' {
   const value = String(raw ?? '').trim().toLowerCase()
+  if (value === 'overpaid') return 'mismatch'
   if ((PLISIO_STATUSES as readonly string[]).includes(value)) {
     return value as PlisioStatus
   }
   return 'unknown'
+}
+
+/** Invoice is paid in full, including Plisio "mismatch" (overpaid). Extra crypto is not credited. */
+export function isPlisioPaidStatus(status: PlisioStatus | 'unknown'): boolean {
+  return status === 'completed' || status === 'mismatch'
 }
 
 export function buildPlisioWebhookEventId(input: {

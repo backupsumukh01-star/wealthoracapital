@@ -10,6 +10,7 @@ import { depositService } from '../deposit.service.js'
 import { plisioClient } from './plisio.client.js'
 import {
   buildPlisioWebhookEventId,
+  isPlisioPaidStatus,
   normalizePlisioStatus,
   verifyPlisioJsonCallback,
 } from './plisio.hmac.js'
@@ -177,7 +178,7 @@ export function verifyPlisioOperationAgainstDeposit(input: {
   }
 
   const status = normalizePlisioStatus(operation.status || webhook?.status)
-  if (status !== 'completed') {
+  if (!isPlisioPaidStatus(status)) {
     return { ok: false, reason: `payment_status_${status}` }
   }
 
@@ -232,7 +233,7 @@ export const plisioWebhookService = {
     const eventId = buildPlisioWebhookEventId({
       txnId,
       status: payload.status,
-      txHash: normalizedStatus === 'completed' ? txHash : null,
+      txHash: isPlisioPaidStatus(normalizedStatus) ? txHash : null,
     })
 
     logger.info(
@@ -412,11 +413,10 @@ export const plisioWebhookService = {
       normalizedStatus === 'pending' ||
       normalizedStatus === 'pending internal' ||
       normalizedStatus === 'cancelled duplicate' ||
-      normalizedStatus === 'mismatch' ||
       normalizedStatus === 'error' ||
       normalizedStatus === 'unknown'
     ) {
-      if (normalizedStatus === 'mismatch' || normalizedStatus === 'error') {
+      if (normalizedStatus === 'error') {
         await prisma.deposit.updateMany({
           where: { id: deposit.id, status: { in: ['PENDING', 'UNDER_REVIEW'] } },
           data: {

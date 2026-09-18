@@ -93,4 +93,21 @@ describe('verifyPlisioOperationAgainstDeposit', () => {
       }),
     ).toEqual({ ok: false, reason: 'order_number_mismatch' })
   })
+
+  it('accepts Plisio mismatch (overpaid) and still credits the invoice USD amount', () => {
+    const operation: PlisioOperation = {
+      id: 'txn-1',
+      status: 'mismatch',
+      psys_cid: 'USDT_BSC',
+      currency: 'USDT_BSC',
+    }
+    expect(
+      verifyPlisioOperationAgainstDeposit({
+        deposit: base,
+        operation,
+        txnId: 'txn-1',
+        webhook: { ...webhook, status: 'completed' },
+      }),
+    ).toEqual({ ok: true })
+  })
 })
