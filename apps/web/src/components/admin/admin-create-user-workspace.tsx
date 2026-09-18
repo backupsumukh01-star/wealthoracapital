@@ -12,27 +12,10 @@ import { PageHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { adminQueryKeys } from '@/features/admin/hooks'
 import { ApiError } from '@/lib/api-client'
 import { adminService } from '@/services/admin.service'
 import { useQueryClient } from '@tanstack/react-query'
-
-const COUNTRIES: Array<{ code: string; label: string }> = [
-  { code: 'IN', label: 'India' },
-  { code: 'US', label: 'United States' },
-  { code: 'GB', label: 'United Kingdom' },
-  { code: 'AE', label: 'United Arab Emirates' },
-  { code: 'SG', label: 'Singapore' },
-  { code: 'AU', label: 'Australia' },
-  { code: 'CA', label: 'Canada' },
-]
 
 export function AdminCreateUserWorkspace() {
   const router = useRouter()
@@ -42,13 +25,21 @@ export function AdminCreateUserWorkspace() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [phone, setPhone] = useState('')
-  const [country, setCountry] = useState('IN')
+  const [country, setCountry] = useState('')
+  const [referralCode, setReferralCode] = useState('')
+  const [accountOpened, setAccountOpened] = useState('')
   const [saving, setSaving] = useState(false)
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
       toast.error('First name, last name, email, and password are required.')
+      return
+    }
+
+    const countryCode = country.trim().toUpperCase()
+    if (countryCode && countryCode.length !== 2) {
+      toast.error('Country must be a 2-letter ISO code, for example IN.')
       return
     }
 
@@ -60,11 +51,13 @@ export function AdminCreateUserWorkspace() {
         email: email.trim().toLowerCase(),
         password,
         ...(phone.trim() ? { phone: phone.trim() } : {}),
-        country,
+        ...(countryCode ? { country: countryCode } : {}),
+        ...(referralCode.trim() ? { referralCode: referralCode.trim() } : {}),
+        ...(accountOpened ? { accountOpened } : {}),
       })
       await queryClient.invalidateQueries({ queryKey: adminQueryKeys.users() })
       toast.success('Investor created', {
-        description: 'They can sign in on the existing login page.',
+        description: 'KYC is skipped. They can sign in on the existing login page.',
       })
       router.push(ROUTES.admin.user(user.id))
     } catch (err) {
@@ -129,7 +122,7 @@ export function AdminCreateUserWorkspace() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </FormField>
-            <FormField label="Phone">
+            <FormField label="Phone" hint="Optional">
               <Input
                 type="tel"
                 autoComplete="tel"
@@ -137,22 +130,33 @@ export function AdminCreateUserWorkspace() {
                 onChange={(e) => setPhone(e.target.value)}
               />
             </FormField>
-            <FormField label="Country">
-              <Select value={country} onValueChange={setCountry}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Country" />
-                </SelectTrigger>
-                <SelectContent>
-                  {COUNTRIES.map((item) => (
-                    <SelectItem key={item.code} value={item.code}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <FormField label="Country" hint="Optional ISO code, for example IN">
+              <Input
+                autoComplete="country"
+                maxLength={2}
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+              />
+            </FormField>
+            <FormField label="Referral code" hint="Optional existing member code">
+              <Input
+                autoComplete="off"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value)}
+              />
+            </FormField>
+            <FormField
+              label="Account opened"
+              hint="Optional. The existing referral page uses this as the join date."
+            >
+              <Input
+                type="datetime-local"
+                value={accountOpened}
+                onChange={(e) => setAccountOpened(e.target.value)}
+              />
             </FormField>
           </div>
-          <div className="flex justify-end border-t border-white/[0.06] px-4 py-4 sm:px-5">
+          <div className="flex border-t border-white/[0.06] px-4 py-4 sm:px-5">
             <Button type="submit" size="sm" loading={saving} loadingText="Creating user">
               Create user
             </Button>

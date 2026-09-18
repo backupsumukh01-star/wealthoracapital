@@ -28,6 +28,7 @@ export const adminQueryKeys = {
   activity: (filters?: Record<string, unknown>) => [...adminQueryKeys.all, 'activity', filters ?? {}] as const,
   users: (filters?: Record<string, unknown>) => [...adminQueryKeys.all, 'users', filters ?? {}] as const,
   user: (id: string) => [...adminQueryKeys.all, 'user', id] as const,
+  userHistory: (id: string) => [...adminQueryKeys.all, 'user', id, 'history'] as const,
   deposits: (filters?: Record<string, unknown>) =>
     [...adminQueryKeys.all, 'deposits', filters ?? {}] as const,
   deposit: (id: string) => [...adminQueryKeys.all, 'deposit', id] as const,

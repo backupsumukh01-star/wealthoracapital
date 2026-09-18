@@ -421,6 +421,11 @@ export function AdminUserDetailWorkspace() {
           <div className="flex flex-wrap items-center gap-2">
             <AdminKycPill status={kycStatus} />
             <AdminAccountPill status={accountStatus} />
+            {user.role === 'USER' ? (
+              <Button size="sm" variant="secondary" asChild>
+                <Link href={ROUTES.admin.userHistory(userId)}>Historical data</Link>
+              </Button>
+            ) : null}
             {user.status === ('SUSPENDED' satisfies UserStatus) || user.status === 'BLOCKED' ? (
               <Button
                 size="sm"

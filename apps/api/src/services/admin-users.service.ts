@@ -113,6 +113,8 @@ export const adminUsersService = {
       password: string
       phone?: string
       country?: string
+      referralCode?: string
+      accountOpened?: Date
     },
     context: { ip?: string | null; userAgent?: string | null },
   ) {
@@ -127,7 +129,22 @@ export const adminUsersService = {
       }
     }
 
+    let referredById: string | null = null
+    if (body.referralCode) {
+      const referrer = await userRepository.findByReferralCode(body.referralCode)
+      if (!referrer) {
+        throw badRequest('Invalid referral code.')
+      }
+      if (referrer.email.toLowerCase() === body.email.toLowerCase()) {
+        throw badRequest('A user cannot be referred by their own code.')
+      }
+      referredById = referrer.id
+    }
+
     const now = new Date()
+    const openedAt = body.accountOpened && !Number.isNaN(body.accountOpened.getTime())
+      ? body.accountOpened
+      : now
     const passwordHash = await passwordService.hash(body.password)
     const referralCode = await allocateReferralCode()
     const country = (body.country || DEFAULT_COUNTRY).toUpperCase()
@@ -141,11 +158,14 @@ export const adminUsersService = {
       country,
       role: 'USER',
       status: 'ACTIVE',
+      kycStatus: 'APPROVED',
       emailVerifiedAt: now,
       passwordChangedAt: now,
       referralCode,
-      termsAcceptedAt: now,
-      riskAcceptedAt: now,
+      ...(referredById ? { referredBy: { connect: { id: referredById } } } : {}),
+      termsAcceptedAt: openedAt,
+      riskAcceptedAt: openedAt,
+      createdAt: openedAt,
     })
 
     await ledgerService.ensureWalletsForUser(user.id)
@@ -167,6 +187,24 @@ export const adminUsersService = {
       ip: context.ip,
       userAgent: context.userAgent,
     })
+    await activityService.record({
+      userId: user.id,
+      actorId,
+      kind: 'KYC_APPROVED',
+      title: 'KYC skipped — account created by admin',
+      ip: context.ip,
+      userAgent: context.userAgent,
+    })
+    if (referredById) {
+      void import('./finance/referral-notification.service.js').then(
+        ({ referralNotificationService }) => {
+          void referralNotificationService.onReferredUserRegistered({
+            referrerId: referredById!,
+            refereeId: user.id,
+          })
+        },
+      )
+    }
     await opsAlertService.notify({
       event: 'USER_REGISTERED',
       title: 'User created by admin',

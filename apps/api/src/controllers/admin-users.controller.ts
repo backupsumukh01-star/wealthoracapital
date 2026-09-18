@@ -1,3 +1,4 @@
+import { adminUserHistoryService } from '../services/admin-user-history.service.js'
 import { adminUsersService } from '../services/admin-users.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import { requestContext } from '../utils/request-context.js'
@@ -6,6 +7,7 @@ import type {
   adminCreateUserSchema,
   adminStatusReasonSchema,
   adminUpdateUserSchema,
+  adminUserHistoryCreateSchema,
   adminUserListQuerySchema,
   adminUserNoteSchema,
 } from '../validators/admin.validators.js'
@@ -16,6 +18,7 @@ type CreateBody = z.infer<typeof adminCreateUserSchema>
 type UpdateBody = z.infer<typeof adminUpdateUserSchema>
 type ReasonBody = z.infer<typeof adminStatusReasonSchema>
 type NoteBody = z.infer<typeof adminUserNoteSchema>
+type HistoryBody = z.infer<typeof adminUserHistoryCreateSchema>
 
 export const adminUsersController = {
   create: asyncHandler(async (req, res) => {
@@ -166,5 +169,21 @@ export const adminUsersController = {
       requestContext(req),
     )
     sendSuccess(res, data)
+  }),
+
+  history: asyncHandler(async (req, res) => {
+    const data = await adminUserHistoryService.get(req.params.id!)
+    sendSuccess(res, data)
+  }),
+
+  createHistory: asyncHandler(async (req, res) => {
+    const body = req.body as HistoryBody
+    const data = await adminUserHistoryService.create(
+      req.user!.id,
+      req.params.id!,
+      body,
+      requestContext(req),
+    )
+    sendSuccess(res, data, 201)
   }),
 }

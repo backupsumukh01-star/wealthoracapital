@@ -26,6 +26,7 @@ import {
   adminCreateUserSchema,
   adminStatusReasonSchema,
   adminUpdateUserSchema,
+  adminUserHistoryCreateSchema,
   adminUserListQuerySchema,
   adminUserNoteSchema,
   idParamSchema,
@@ -85,6 +86,21 @@ adminRouter.post(
   requirePermission(PERMISSIONS['users.edit']),
   validate(adminCreateUserSchema),
   adminUsersController.create,
+)
+
+adminRouter.get(
+  '/users/:id/history',
+  requirePermission(PERMISSIONS['users.view']),
+  validate(idParamSchema, 'params'),
+  adminUsersController.history,
+)
+
+adminRouter.post(
+  '/users/:id/history',
+  requirePermission(PERMISSIONS['finance.adjust']),
+  validate(idParamSchema, 'params'),
+  validate(adminUserHistoryCreateSchema),
+  adminUsersController.createHistory,
 )
 
 adminRouter.get(

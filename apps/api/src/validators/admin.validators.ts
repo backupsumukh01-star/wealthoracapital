@@ -99,6 +99,14 @@ export const adminCreateUserSchema = z.object({
       .transform((value) => value.toUpperCase())
       .optional(),
   ),
+  referralCode: z.preprocess((val) => {
+    if (val === undefined || val === null) return undefined
+    if (typeof val !== 'string') return val
+    const trimmed = val.trim()
+    if (!trimmed) return undefined
+    return trimmed.toUpperCase()
+  }, z.string().min(4, 'Invalid referral code.').max(16, 'Invalid referral code.').optional()),
+  accountOpened: z.preprocess(emptyToUndefined, z.coerce.date().optional()),
 })
 
 export const adminUpdateUserSchema = z.object({
@@ -167,6 +175,17 @@ export const adminActivityQuerySchema = z.object({
 
 export const adminUserNoteSchema = z.object({
   note: z.string().trim().min(1).max(4000),
+})
+
+export const adminUserHistoryCreateSchema = z.object({
+  activity: z.enum(['DEPOSIT', 'PROFIT', 'WITHDRAWAL', 'REFERRAL']),
+  occurredAt: z.coerce.date(),
+  amount: z
+    .string()
+    .regex(/^\d+(\.\d{1,8})?$/, 'Amount must be a positive decimal string.')
+    .refine((value) => Number(value) > 0, 'Amount must be greater than zero.'),
+  currency: z.enum(['USD', 'INR']).default('USD'),
+  note: z.preprocess(emptyToUndefined, z.string().trim().max(2000).optional()),
 })
 
 export const idParamSchema = z.object({

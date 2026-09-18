@@ -11,6 +11,29 @@ import {
 import { apiClient } from './http'
 import type { AdminHealthSnapshot, PlatformCmsDocument, SearchHit } from '@/types/domain'
 
+export type AdminUserHistoryActivity = 'DEPOSIT' | 'PROFIT' | 'WITHDRAWAL' | 'REFERRAL'
+
+export type AdminUserHistoryPayload = {
+  user: { id: string; firstName: string; lastName: string }
+  wallet: {
+    balance: string
+    available: string
+    deposited: string
+    profit: string
+    withdrawn: string
+    referralWallet: string
+  }
+  records: Array<{
+    id: string
+    activity: AdminUserHistoryActivity
+    amount: string
+    currency: 'USD'
+    occurredAt: string
+    note: string | null
+    reference: string | null
+  }>
+}
+
 export type AdminHandoverMode = 'TEST_DATA_RESET' | 'FULL_HANDOVER_RESET'
 
 export type AdminHandoverPreview = {
@@ -357,8 +380,28 @@ export const adminService = {
     password: string
     phone?: string
     country?: string
+    referralCode?: string
+    accountOpened?: string
   }) =>
     apiClient<User>(API_ROUTES.admin.users, {
+      method: 'POST',
+      body,
+    }),
+
+  userHistory: (id: string) =>
+    apiClient<AdminUserHistoryPayload>(`${API_ROUTES.admin.users}/${id}/history`),
+
+  createUserHistory: (
+    id: string,
+    body: {
+      activity: AdminUserHistoryActivity
+      occurredAt: string
+      amount: string
+      currency: 'USD' | 'INR'
+      note?: string
+    },
+  ) =>
+    apiClient<AdminUserHistoryPayload>(`${API_ROUTES.admin.users}/${id}/history`, {
       method: 'POST',
       body,
     }),
