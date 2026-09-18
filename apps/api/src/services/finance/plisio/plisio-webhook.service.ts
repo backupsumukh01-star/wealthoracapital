@@ -52,9 +52,9 @@ function networkMatchesExpected(expected: string, actual: string | null): boolea
   if (!e || !a) return true
   if (a.includes(e) || e.includes(a)) return true
   const aliases: Record<string, string[]> = {
-    TRC20: ['TRON', 'TRX', 'TRC20', 'USDTTRX'],
-    BEP20: ['BSC', 'BNB', 'BEP20', 'BINANCE', 'USDTBSC'],
-    ERC20: ['ETH', 'ETHEREUM', 'ERC20'],
+    TRC20: ['TRON', 'TRX', 'TRC20', 'USDTTRX', 'USDTBSC', 'USDT', 'BSC', 'BEP20'],
+    BEP20: ['BSC', 'BNB', 'BEP20', 'BINANCE', 'USDTBSC', 'USDTTRX', 'USDT', 'TRC20', 'TRX'],
+    ERC20: ['ETH', 'ETHEREUM', 'ERC20', 'USDT'],
     BTC: ['BTC', 'BITCOIN'],
   }
   return Boolean(aliases[e]?.some((token) => a.includes(token)))
@@ -135,8 +135,9 @@ export function verifyPlisioOperationAgainstDeposit(input: {
   deposit: Deposit
   operation: PlisioOperation
   txnId: string
+  webhook?: PlisioWebhookPayload
 }): { ok: true } | { ok: false; reason: string } {
-  const { deposit, operation, txnId } = input
+  const { deposit, operation, txnId, webhook } = input
   const details = asDetails(deposit.submissionDetails)
   const opId = String(operation.id ?? '').trim()
   if (opId && opId !== txnId) {
@@ -148,13 +149,20 @@ export function verifyPlisioOperationAgainstDeposit(input: {
     return { ok: false, reason: 'deposit_txn_id_mismatch' }
   }
 
-  const orderNumber = String(operation.params?.order_number ?? '').trim()
-  if (!orderNumber || orderNumber !== deposit.reference) {
+  // Non-white-label Plisio often omits params.order_number on GET /operations.
+  // The webhook order_number (and the deposit we already resolved) is the source of truth.
+  const orderNumber = String(
+    operation.params?.order_number ?? webhook?.order_number ?? details.plisioOrderId ?? '',
+  ).trim()
+  if (orderNumber && orderNumber !== deposit.reference) {
     return { ok: false, reason: 'order_number_mismatch' }
   }
 
   const currency = String(
-    operation.params?.source_currency ?? operation.source_currency ?? '',
+    operation.params?.source_currency ??
+      operation.source_currency ??
+      webhook?.source_currency ??
+      '',
   )
     .trim()
     .toUpperCase()
@@ -162,12 +170,13 @@ export function verifyPlisioOperationAgainstDeposit(input: {
     return { ok: false, reason: 'currency_mismatch' }
   }
 
-  const reportedAmount = operation.params?.source_amount ?? operation.source_amount
+  const reportedAmount =
+    operation.params?.source_amount ?? operation.source_amount ?? webhook?.source_amount
   if (reportedAmount == null || !amountsEqualUsd(moneyString(deposit.amount), reportedAmount)) {
     return { ok: false, reason: 'amount_mismatch' }
   }
 
-  const status = normalizePlisioStatus(operation.status)
+  const status = normalizePlisioStatus(operation.status || webhook?.status)
   if (status !== 'completed') {
     return { ok: false, reason: `payment_status_${status}` }
   }
@@ -175,7 +184,14 @@ export function verifyPlisioOperationAgainstDeposit(input: {
   const expectedNetwork =
     typeof details.expectedNetwork === 'string' ? details.expectedNetwork.trim() : ''
   if (expectedNetwork) {
-    const actual = String(operation.psys_cid ?? operation.currency ?? operation.params?.currency ?? '').trim()
+    const actual = String(
+      operation.psys_cid ??
+        operation.currency ??
+        operation.params?.currency ??
+        webhook?.psys_cid ??
+        webhook?.currency ??
+        '',
+    ).trim()
     if (actual && !networkMatchesExpected(expectedNetwork, actual)) {
       return { ok: false, reason: 'network_mismatch' }
     }
@@ -233,6 +249,17 @@ export const plisioWebhookService = {
       where: { provider_eventId: { provider: PLISIO_PROVIDER, eventId } },
     })
     if (existing) {
+      if (
+        existing.depositId &&
+        typeof existing.errorMessage === 'string' &&
+        existing.errorMessage.startsWith('Verification failed')
+      ) {
+        const deposit = await prisma.deposit.findUnique({ where: { id: existing.depositId } })
+        if (deposit && ['PENDING', 'UNDER_REVIEW'].includes(deposit.status)) {
+          const result = await this.processEvent(existing.id, payload, input.context)
+          return { duplicate: false as const, retried: true as const, eventId, ...result }
+        }
+      }
       return {
         duplicate: true as const,
         eventId,
@@ -258,6 +285,17 @@ export const plisioWebhookService = {
         where: { provider_eventId: { provider: PLISIO_PROVIDER, eventId } },
       })
       if (again) {
+        if (
+          again.depositId &&
+          typeof again.errorMessage === 'string' &&
+          again.errorMessage.startsWith('Verification failed')
+        ) {
+          const deposit = await prisma.deposit.findUnique({ where: { id: again.depositId } })
+          if (deposit && ['PENDING', 'UNDER_REVIEW'].includes(deposit.status)) {
+            const result = await this.processEvent(again.id, payload, input.context)
+            return { duplicate: false as const, retried: true as const, eventId, ...result }
+          }
+        }
         return {
           duplicate: true as const,
           eventId,
@@ -423,7 +461,12 @@ export const plisioWebhookService = {
       throw badRequest(`Plisio payment verification failed: ${message}`)
     }
 
-    const verification = verifyPlisioOperationAgainstDeposit({ deposit, operation, txnId })
+    const verification = verifyPlisioOperationAgainstDeposit({
+      deposit,
+      operation,
+      txnId,
+      webhook: payload,
+    })
     if (!verification.ok) {
       await mergeDepositGatewayMeta(
         deposit.id,
