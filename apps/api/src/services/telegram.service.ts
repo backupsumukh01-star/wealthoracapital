@@ -29,6 +29,9 @@ function pairTargets(tokens: string[], chatIds: string[]): BotTarget[] {
   return targets
 }
 
+const ALL_BOT_KINDS: TelegramBotKind[] = ['KYC', 'DEPOSIT', 'WITHDRAWAL']
+const unconfiguredWarned = new Set<TelegramBotKind>()
+
 function botTargets(kind: TelegramBotKind): BotTarget[] {
   const map: Record<TelegramBotKind, { token: string; chatId: string }> = {
     KYC: { token: env.TELEGRAM_KYC_BOT_TOKEN.trim(), chatId: env.TELEGRAM_KYC_CHAT_ID.trim() },
@@ -45,6 +48,23 @@ function botTargets(kind: TelegramBotKind): BotTarget[] {
   return pairTargets(parseCsv(cfg.token), parseCsv(cfg.chatId))
 }
 
+async function telegramErrorDescription(response: Response): Promise<string | undefined> {
+  try {
+    const json: unknown = await response.json()
+    if (
+      json &&
+      typeof json === 'object' &&
+      'description' in json &&
+      typeof (json as { description: unknown }).description === 'string'
+    ) {
+      return (json as { description: string }).description.slice(0, 200)
+    }
+  } catch {
+    // Ignore non-JSON Telegram error bodies.
+  }
+  return undefined
+}
+
 /** Escape Telegram MarkdownV2 special characters in plain text segments. */
 export function escapeTelegramMarkdown(text: string): string {
   return text.replace(/[_*[\]()~`>#+\-=|{}.!\\]/g, (ch) => `\\${ch}`)
@@ -59,10 +79,17 @@ export const telegramService = {
     return botTargets(kind).length > 0
   },
 
+  configuredKinds(): TelegramBotKind[] {
+    return ALL_BOT_KINDS.filter((kind) => botTargets(kind).length > 0)
+  },
+
   async send(kind: TelegramBotKind, text: string): Promise<{ sent: boolean; skipped: boolean }> {
     const targets = botTargets(kind)
     if (targets.length === 0) {
-      logger.debug({ kind }, 'Telegram bot not configured; skipping')
+      if (!unconfiguredWarned.has(kind)) {
+        unconfiguredWarned.add(kind)
+        logger.warn({ kind }, 'Telegram bot not configured; skipping')
+      }
       return { sent: false, skipped: true }
     }
 
@@ -82,7 +109,10 @@ export const telegramService = {
           }),
         })
         if (!response.ok) {
-          logger.warn({ kind, status: response.status }, 'Telegram sendMessage failed')
+          logger.warn(
+            { kind, status: response.status, description: await telegramErrorDescription(response) },
+            'Telegram sendMessage failed',
+          )
           continue
         }
         anySent = true

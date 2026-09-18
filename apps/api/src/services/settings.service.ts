@@ -9,7 +9,7 @@ import {
 } from '@meridian/shared'
 
 import { prisma } from '../database/prisma.js'
-import { moneyDisplay, d } from '../utils/money.js'
+import { moneyDisplay, moneyString, d } from '../utils/money.js'
 import { DEFAULT_USD_INR_RATE, rateDisplay } from '../utils/fx.js'
 import { userRepository } from '../repositories/user.repository.js'
 import { profileRepository } from '../repositories/profile.repository.js'
@@ -215,6 +215,19 @@ export const settingsService = {
     context: Ctx,
   ) {
     const existing = await this.getOrInitPlatformSettings()
+    const nextMinDeposit = body.minDeposit !== undefined ? d(body.minDeposit) : d(existing.minDeposit)
+    const nextMaxDeposit = body.maxDeposit !== undefined ? d(body.maxDeposit) : d(existing.maxDeposit)
+    if (nextMinDeposit.gt(nextMaxDeposit)) {
+      throw badRequest('Minimum deposit cannot be greater than maximum deposit.')
+    }
+    const nextMinWithdrawal =
+      body.minWithdrawal !== undefined ? d(body.minWithdrawal) : d(existing.minWithdrawal)
+    const nextMaxWithdrawal =
+      body.maxWithdrawal !== undefined ? d(body.maxWithdrawal) : d(existing.maxWithdrawal)
+    if (nextMinWithdrawal.gt(nextMaxWithdrawal)) {
+      throw badRequest('Minimum withdrawal cannot be greater than maximum withdrawal.')
+    }
+
     const { rates, usdInr } = mergeRatesUpdate(
       existing.currencyRates,
       body.usdInrRate,
@@ -247,6 +260,24 @@ export const settingsService = {
         updatedById: actorId,
       },
     })
+
+    // Keep payment-method floors/ceilings aligned with the platform limits the admin just saved.
+    if (body.minDeposit !== undefined || body.maxDeposit !== undefined) {
+      await prisma.paymentMethod.updateMany({
+        where: { deletedAt: null },
+        data: {
+          ...(body.minDeposit !== undefined ? { minAmount: moneyString(nextMinDeposit) } : {}),
+          ...(body.maxDeposit !== undefined ? { maxAmount: moneyString(nextMaxDeposit) } : {}),
+        },
+      })
+      if (body.minDeposit !== undefined) {
+        await prisma.walletAddress.updateMany({
+          where: { deletedAt: null, minAmount: { not: null } },
+          data: { minAmount: moneyString(nextMinDeposit) },
+        })
+      }
+    }
+
     await auditService.record({
       actorId,
       action: 'settings.update',

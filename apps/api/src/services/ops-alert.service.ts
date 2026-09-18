@@ -86,11 +86,20 @@ function formatWhen(d = new Date()) {
   }
 }
 
-function telegramBotForEvent(event: OpsAlertEvent): TelegramBotKind | null {
+function preferredTelegramBot(event: OpsAlertEvent): TelegramBotKind | null {
   if (event.startsWith('KYC_')) return 'KYC'
   if (event.startsWith('DEPOSIT_') || event === 'PAYMENT_WEBHOOK_FAILED') return 'DEPOSIT'
   if (event.startsWith('WITHDRAWAL_')) return 'WITHDRAWAL'
   return null
+}
+
+/** Specific KYC/deposit/withdrawal bots when set; otherwise every configured bot. */
+function telegramBotsForEvent(event: OpsAlertEvent): TelegramBotKind[] {
+  const configured = telegramService.configuredKinds()
+  if (configured.length === 0) return []
+  const preferred = preferredTelegramBot(event)
+  if (preferred && configured.includes(preferred)) return [preferred]
+  return configured
 }
 
 function asDetails(value: unknown): Record<string, unknown> {
@@ -213,34 +222,56 @@ export const opsAlertService = {
 
       const alertBody = rows.map(([k, v]) => `${k}: ${v}`).join('\n')
 
-      if (to.length === 0) {
-        logger.debug({ event: payload.event }, 'No ADMIN_ALERT_EMAILS; skipping ops alert email')
-      } else {
-        for (const email of to) {
-          await emailService.sendAdminAlert({
-            to: email,
-            alertTitle: payload.title,
-            alertBody,
-            reference: payload.reference ?? payload.userId ?? undefined,
-            adminLink: link,
-            fields: Object.fromEntries(rows),
-          })
-        }
-      }
-
-      const bot = telegramBotForEvent(payload.event)
-      if (bot) {
-        const eventKey =
-          payload.idempotencyKey?.trim() ||
-          `${payload.event}:${payload.reference ?? payload.userId ?? 'na'}:${when.date}:${when.time}`
-        const channel = `TELEGRAM_${bot}`
-        const claimed = await claimOpsNotificationDelivery(channel, eventKey)
-        if (claimed) {
-          await telegramService.send(bot, formatTelegramText(rows, payload.title))
-        } else {
-          logger.debug({ event: payload.event, eventKey }, 'Telegram alert deduped')
-        }
-      }
+      // Email and Telegram must not block each other (Resend 429 currently
+      // throws and was swallowing Telegram entirely).
+      await Promise.all([
+        (async () => {
+          if (to.length === 0) {
+            logger.debug({ event: payload.event }, 'No ADMIN_ALERT_EMAILS; skipping ops alert email')
+            return
+          }
+          for (const email of to) {
+            try {
+              await emailService.sendAdminAlert({
+                to: email,
+                alertTitle: payload.title,
+                alertBody,
+                reference: payload.reference ?? payload.userId ?? undefined,
+                adminLink: link,
+                fields: Object.fromEntries(rows),
+              })
+            } catch (err) {
+              logger.warn(
+                { err, event: payload.event },
+                'ops alert email failed; Telegram still attempted',
+              )
+            }
+          }
+        })(),
+        (async () => {
+          try {
+            const bots = telegramBotsForEvent(payload.event)
+            if (bots.length === 0) {
+              logger.debug({ event: payload.event }, 'No Telegram bots configured; skipping')
+              return
+            }
+            const eventKey =
+              payload.idempotencyKey?.trim() ||
+              `${payload.event}:${payload.reference ?? payload.userId ?? 'na'}:${when.date}:${when.time}`
+            const text = formatTelegramText(rows, payload.title)
+            for (const bot of bots) {
+              const claimed = await claimOpsNotificationDelivery(`TELEGRAM_${bot}`, eventKey)
+              if (!claimed) {
+                logger.debug({ event: payload.event, eventKey }, 'Telegram alert deduped')
+                continue
+              }
+              await telegramService.send(bot, text)
+            }
+          } catch (err) {
+            logger.warn({ err, event: payload.event }, 'ops alert telegram failed')
+          }
+        })(),
+      ])
 
       if (payload.recordActivity && payload.userId) {
         await activityService.record({

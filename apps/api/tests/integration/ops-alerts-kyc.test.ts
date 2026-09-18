@@ -112,4 +112,100 @@ describe('opsAlertService.notify fan-out', () => {
 
     expect(sentTo).toEqual(['a@growzycapital.com', 'b@growzycapital.com'])
   })
+
+  it('still sends telegram when admin alert email throws', async () => {
+    vi.resetModules()
+    process.env.ADMIN_ALERT_EMAILS = 'a@growzycapital.com'
+
+    const telegramCalls: Array<{ kind: string; text: string }> = []
+    vi.doMock('../../src/emails/email.service.js', () => ({
+      emailService: {
+        sendAdminAlert: async () => {
+          throw new Error('daily_quota_exceeded')
+        },
+      },
+    }))
+    vi.doMock('../../src/services/telegram.service.js', () => ({
+      telegramService: {
+        isConfigured: () => true,
+        configuredKinds: () => ['KYC'],
+        send: async (kind: string, text: string) => {
+          telegramCalls.push({ kind, text })
+          return { sent: true, skipped: false }
+        },
+      },
+    }))
+    vi.doMock('../../src/services/ops-notification-delivery.service.js', () => ({
+      claimOpsNotificationDelivery: async () => true,
+    }))
+    vi.doMock('../../src/services/activity.service.js', () => ({
+      activityService: { record: async () => undefined },
+    }))
+    vi.doMock('../../src/services/audit.service.js', () => ({
+      auditService: { record: async () => undefined },
+    }))
+    vi.doMock('../../src/database/prisma.js', () => ({
+      prisma: { user: { findFirst: async () => null } },
+    }))
+
+    const { opsAlertService } = await import('../../src/services/ops-alert.service.js')
+    await expect(
+      opsAlertService.notify({
+        event: 'KYC_SUBMITTED',
+        title: 'KYC submitted',
+        action: 'Investor submitted KYC',
+        userName: 'Test User',
+        userEmail: 'test@example.com',
+        idempotencyKey: 'test.kyc.email-fail',
+        adminPath: '/admin/kyc/u1',
+      }),
+    ).resolves.toBeUndefined()
+
+    expect(telegramCalls).toHaveLength(1)
+    expect(telegramCalls[0]?.kind).toBe('KYC')
+    expect(telegramCalls[0]?.text).toContain('KYC submitted')
+  })
+
+  it('sends registration alerts to any configured telegram bot', async () => {
+    vi.resetModules()
+    process.env.ADMIN_ALERT_EMAILS = ''
+
+    const telegramCalls: Array<{ kind: string }> = []
+    vi.doMock('../../src/emails/email.service.js', () => ({
+      emailService: { sendAdminAlert: async () => undefined },
+    }))
+    vi.doMock('../../src/services/telegram.service.js', () => ({
+      telegramService: {
+        isConfigured: (kind: string) => kind === 'DEPOSIT',
+        configuredKinds: () => ['DEPOSIT'],
+        send: async (kind: string) => {
+          telegramCalls.push({ kind })
+          return { sent: true, skipped: false }
+        },
+      },
+    }))
+    vi.doMock('../../src/services/ops-notification-delivery.service.js', () => ({
+      claimOpsNotificationDelivery: async () => true,
+    }))
+    vi.doMock('../../src/services/activity.service.js', () => ({
+      activityService: { record: async () => undefined },
+    }))
+    vi.doMock('../../src/services/audit.service.js', () => ({
+      auditService: { record: async () => undefined },
+    }))
+    vi.doMock('../../src/database/prisma.js', () => ({
+      prisma: { user: { findFirst: async () => null } },
+    }))
+
+    const { opsAlertService } = await import('../../src/services/ops-alert.service.js')
+    await opsAlertService.notify({
+      event: 'USER_REGISTERED',
+      title: 'New registration',
+      action: 'Investor registered',
+      userEmail: 'new@example.com',
+      idempotencyKey: 'test.register.telegram',
+    })
+
+    expect(telegramCalls).toEqual([{ kind: 'DEPOSIT' }])
+  })
 })

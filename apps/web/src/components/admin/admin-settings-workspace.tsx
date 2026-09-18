@@ -180,19 +180,22 @@ function PlatformSection() {
         USD: '1',
         INR: usdInrRate.trim() || currencyRates.INR || '93',
       }
+      const cleanedRates = Object.fromEntries(
+        Object.entries(nextRates).filter(([, value]) => /^\d+(\.\d+)?$/.test(value) && Number(value) > 0),
+      )
       await settingsService.adminUpdate({
         minDeposit: minDeposit.trim(),
         maxDeposit: maxDeposit.trim(),
         minWithdrawal: minWithdraw.trim(),
         maxWithdrawal: maxWithdraw.trim(),
-        usdInrRate: nextRates.INR,
-        currencyRates: nextRates,
+        usdInrRate: cleanedRates.INR || usdInrRate.trim() || '93',
+        currencyRates: cleanedRates,
         maintenanceMode: maintenance,
       })
       toast.success('Platform settings saved')
       await queryClient.invalidateQueries({ queryKey: ['admin', 'settings', 'platform'] })
-    } catch {
-      toast.error('Could not save settings')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not save settings')
     } finally {
       setSaving(false)
     }
@@ -340,6 +343,7 @@ function PlatformSection() {
             />
           </FormField>
         </div>
+        <SaveBar onSave={() => void save()} disabled={saving || isLoading} />
       </AdminPanel>
       <AdminPanel>
         <AdminPanelHeader title="Withdrawal limits" />

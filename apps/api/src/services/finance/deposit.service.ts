@@ -1,12 +1,26 @@
 import { createHash, randomUUID } from 'node:crypto'
 import path from 'node:path'
 import type { DepositStatus, Prisma } from '@prisma/client'
-import {
-  CRYPTO_DEPOSIT_MIN_USD,
-  isCryptoDepositMethodType,
-} from '@meridian/shared'
-
 import { prisma } from '../../database/prisma.js'
+import { env } from '../../config/env.js'
+import { transactionalMailer } from '../../emails/transactional.js'
+import { activityService } from '../activity.service.js'
+import { auditService } from '../audit.service.js'
+import { notificationService } from '../notification.service.js'
+import { filesService } from '../files.service.js'
+import { storage } from '../storage/index.js'
+import { assertUploadMagicBytes } from '../../utils/upload-magic.js'
+import { badRequest, conflict, forbidden, notFound } from '../../utils/errors.js'
+import { logger } from '../../utils/logger.js'
+import { d, moneyDisplay, moneyString } from '../../utils/money.js'
+import { DEFAULT_USD_INR_RATE, inrStorage, usdToInr } from '../../utils/fx.js'
+import { settingsService } from '../settings.service.js'
+import { buildDepositProofImageUrl, mapDeposit } from './finance.mappers.js'
+import { mapPaymentMethodDetailed } from './payment-method.mapper.js'
+import { ledgerService } from './ledger.service.js'
+import { paymentMethodService } from './payment-method.service.js'
+import { referralService } from './referral.service.js'
+import { DEPOSIT_LOCK_DAYS_DEFAULT, computeFundsUnlockAt } from './currency.service.js'
 import { env } from '../../config/env.js'
 import { transactionalMailer } from '../../emails/transactional.js'
 import { activityService } from '../activity.service.js'
@@ -111,16 +125,17 @@ export const depositService = {
       where: { id: body.methodId, isActive: true, deletedAt: null },
     })
     if (!method) throw badRequest('Payment method is unavailable.')
-    // Crypto rails use a fixed $1 floor for gateway testing (method row is synced via migration).
-    // Non-crypto rails keep their configured payment-method minimum.
-    const minAmount = isCryptoDepositMethodType(method.type)
-      ? d(CRYPTO_DEPOSIT_MIN_USD)
-      : d(method.minAmount)
+
+    const platform = await settingsService.getOrInitPlatformSettings()
+    const platformMin = d(platform.minDeposit)
+    const platformMax = d(platform.maxDeposit)
+    const minAmount = platformMin.isFinite() && platformMin.gt(0) ? platformMin : d('0.01')
+    const maxAmount = platformMax.isFinite() && platformMax.gt(0) ? platformMax : d('100000')
     if (amount.lt(minAmount)) {
       throw badRequest(`Minimum deposit is ${moneyDisplay(minAmount)}.`)
     }
-    if (method.maxAmount && amount.gt(d(method.maxAmount))) {
-      throw badRequest(`Maximum deposit is ${moneyDisplay(method.maxAmount)}.`)
+    if (amount.gt(maxAmount)) {
+      throw badRequest(`Maximum deposit is ${moneyDisplay(maxAmount)}.`)
     }
 
     if (body.txHash) {
@@ -128,7 +143,6 @@ export const depositService = {
       if (dupHash) throw conflict('This transaction hash was already used.')
     }
 
-    const platform = await settingsService.getOrInitPlatformSettings()
     const rate = d(platform.usdInrRate ?? DEFAULT_USD_INR_RATE)
     // Always derive INR server-side — never trust client amountInr (forgery / rate tampering).
     const amountInr = usdToInr(amount, rate)

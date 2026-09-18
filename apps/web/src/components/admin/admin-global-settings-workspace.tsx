@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
@@ -8,11 +10,57 @@ import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
 import { useAdminOs } from '@/providers/admin-os-provider'
+import { ApiError } from '@/lib/api-client'
+import { settingsService } from '@/services/settings.service'
 
 export function AdminGlobalSettingsWorkspace() {
   const { state, updateGlobal, updateToggles, updateSiteSeo } = useAdminOs()
   const g = state.global
   const seo = state.siteSeo
+  const queryClient = useQueryClient()
+  const { data: platform, isLoading: limitsLoading } = useQuery({
+    queryKey: ['admin', 'settings', 'platform'],
+    queryFn: () => settingsService.adminGet(),
+  })
+  const [minDeposit, setMinDeposit] = useState('')
+  const [maxDeposit, setMaxDeposit] = useState('')
+  const [minWithdraw, setMinWithdraw] = useState('')
+  const [maxWithdraw, setMaxWithdraw] = useState('')
+  const [limitsHydrated, setLimitsHydrated] = useState(false)
+  const [savingLimits, setSavingLimits] = useState(false)
+
+  useEffect(() => {
+    if (!platform || limitsHydrated) return
+    setMinDeposit(platform.limits.minDeposit)
+    setMaxDeposit(platform.limits.maxDeposit)
+    setMinWithdraw(platform.limits.minWithdrawal)
+    setMaxWithdraw(platform.limits.maxWithdrawal)
+    setLimitsHydrated(true)
+  }, [platform, limitsHydrated])
+
+  async function saveFinancialLimits() {
+    setSavingLimits(true)
+    try {
+      const updated = await settingsService.adminUpdate({
+        minDeposit: minDeposit.trim(),
+        maxDeposit: maxDeposit.trim(),
+        minWithdrawal: minWithdraw.trim(),
+        maxWithdrawal: maxWithdraw.trim(),
+      })
+      setMinDeposit(updated.limits.minDeposit)
+      setMaxDeposit(updated.limits.maxDeposit)
+      setMinWithdraw(updated.limits.minWithdrawal)
+      setMaxWithdraw(updated.limits.maxWithdrawal)
+      toast.success('Deposit and withdrawal limits saved')
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'settings', 'platform'] })
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : 'Could not save deposit / withdrawal limits',
+      )
+    } finally {
+      setSavingLimits(false)
+    }
+  }
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -98,21 +146,43 @@ export function AdminGlobalSettingsWorkspace() {
       </AdminPanel>
 
       <AdminPanel>
-        <AdminPanelHeader title="Financial limits" />
+        <AdminPanelHeader
+          title="Financial limits"
+          description="Saved to production. New deposits and withdrawals use these amounts immediately."
+        />
         <div className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3 sm:p-5">
-          {(
-            [
-              ['minDeposit', 'Min deposit'],
-              ['maxDeposit', 'Max deposit'],
-              ['minWithdrawal', 'Min withdrawal'],
-              ['maxWithdrawal', 'Max withdrawal'],
-              ['dailyWithdrawalLimit', 'Daily withdrawal limit'],
-            ] as const
-          ).map(([key, label]) => (
-            <FormField key={key} label={label}>
-              <Input value={g[key]} onChange={(e) => updateGlobal({ [key]: e.target.value })} />
-            </FormField>
-          ))}
+          <FormField label="Min deposit (USD)">
+            <Input
+              inputMode="decimal"
+              value={minDeposit}
+              disabled={limitsLoading || !limitsHydrated}
+              onChange={(e) => setMinDeposit(e.target.value.replace(/[^\d.]/g, ''))}
+            />
+          </FormField>
+          <FormField label="Max deposit (USD)">
+            <Input
+              inputMode="decimal"
+              value={maxDeposit}
+              disabled={limitsLoading || !limitsHydrated}
+              onChange={(e) => setMaxDeposit(e.target.value.replace(/[^\d.]/g, ''))}
+            />
+          </FormField>
+          <FormField label="Min withdrawal (USD)">
+            <Input
+              inputMode="decimal"
+              value={minWithdraw}
+              disabled={limitsLoading || !limitsHydrated}
+              onChange={(e) => setMinWithdraw(e.target.value.replace(/[^\d.]/g, ''))}
+            />
+          </FormField>
+          <FormField label="Max withdrawal (USD)">
+            <Input
+              inputMode="decimal"
+              value={maxWithdraw}
+              disabled={limitsLoading || !limitsHydrated}
+              onChange={(e) => setMaxWithdraw(e.target.value.replace(/[^\d.]/g, ''))}
+            />
+          </FormField>
           <FormField label="Supported coins">
             <Input
               value={g.supportedCoins.join(', ')}
@@ -133,6 +203,15 @@ export function AdminGlobalSettingsWorkspace() {
               }
             />
           </FormField>
+        </div>
+        <div className="border-t border-white/[0.06] px-4 py-4 sm:px-5">
+          <Button
+            type="button"
+            onClick={() => void saveFinancialLimits()}
+            disabled={savingLimits || limitsLoading || !limitsHydrated}
+          >
+            {savingLimits ? 'Saving…' : 'Save deposit & withdrawal limits'}
+          </Button>
         </div>
       </AdminPanel>
 
@@ -193,8 +272,12 @@ export function AdminGlobalSettingsWorkspace() {
           ))}
         </div>
         <div className="border-t border-white/[0.06] px-4 py-4 sm:px-5">
-          <Button type="button" onClick={() => toast.success('Global settings saved')}>
-            Save all
+          <Button
+            type="button"
+            onClick={() => void saveFinancialLimits()}
+            disabled={savingLimits || limitsLoading || !limitsHydrated}
+          >
+            {savingLimits ? 'Saving…' : 'Save all'}
           </Button>
         </div>
       </AdminPanel>

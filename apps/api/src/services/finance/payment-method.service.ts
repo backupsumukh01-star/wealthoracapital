@@ -6,7 +6,8 @@ import { opsAlertService } from '../ops-alert.service.js'
 import { badRequest, notFound } from '../../utils/errors.js'
 import { d, moneyDisplay, moneyString } from '../../utils/money.js'
 import { mapPaymentMethodDetailed } from './payment-method.mapper.js'
-import { CRYPTO_DEPOSIT_MIN_USD, isCryptoDepositMethodType } from '@meridian/shared'
+import { isCryptoDepositMethodType } from '@meridian/shared'
+import { settingsService } from '../settings.service.js'
 
 type Ctx = { ip?: string | null; userAgent?: string | null }
 
@@ -122,13 +123,18 @@ export const paymentMethodService = {
       orderBy: [{ priority: 'asc' }, { name: 'asc' }],
     })
 
+    const platform = await settingsService.getOrInitPlatformSettings()
+    const platformMin = d(platform.minDeposit)
+    const platformMax = d(platform.maxDeposit)
+    const minAmount =
+      platformMin.isFinite() && platformMin.gt(0) ? moneyDisplay(platformMin) : moneyDisplay(1)
+    const maxAmount =
+      platformMax.isFinite() && platformMax.gt(0) ? moneyDisplay(platformMax) : null
+
     return methods
       .map((m) => {
         const mapped = mapPaymentMethodDetailed(m)
-        if (isCryptoDepositMethodType(mapped.type)) {
-          return { ...mapped, minAmount: moneyDisplay(CRYPTO_DEPOSIT_MIN_USD) }
-        }
-        return mapped
+        return { ...mapped, minAmount, maxAmount: maxAmount ?? mapped.maxAmount }
       })
       .filter((m) => {
         if (isCryptoDepositMethodType(m.type)) {

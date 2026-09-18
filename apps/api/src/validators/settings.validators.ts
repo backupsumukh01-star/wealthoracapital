@@ -6,6 +6,12 @@ const positiveRate = z
   .regex(/^\d+(\.\d{1,8})?$/, 'Exchange rate must be a positive decimal.')
   .refine((v) => Number(v) > 0, 'Exchange rate must be greater than zero.')
 
+const positiveMoney = z
+  .string()
+  .trim()
+  .regex(/^\d+(\.\d{1,8})?$/, 'Amount must be a positive decimal.')
+  .refine((v) => Number(v) > 0, 'Amount must be greater than zero.')
+
 export const updateMySettingsSchema = z.object({
   timezone: z.string().trim().min(1).max(64).optional(),
   language: z.string().trim().min(2).max(10).optional(),
@@ -22,10 +28,10 @@ export const adminSettingsUpdateSchema = z.object({
   maintenanceMode: z.boolean().optional(),
   networks: z.array(z.string().trim().min(1).max(40)).optional(),
   coins: z.array(z.string().trim().min(1).max(20)).optional(),
-  minDeposit: z.string().optional(),
-  maxDeposit: z.string().optional(),
-  minWithdrawal: z.string().optional(),
-  maxWithdrawal: z.string().optional(),
+  minDeposit: positiveMoney.optional(),
+  maxDeposit: positiveMoney.optional(),
+  minWithdrawal: positiveMoney.optional(),
+  maxWithdrawal: positiveMoney.optional(),
   /** Desk USD→INR rate; must be a positive decimal string. Synced into currencyRates.INR. */
   usdInrRate: positiveRate.optional(),
   /** Full display-rate map (units of currency per 1 USD). Does not rewrite history. */
