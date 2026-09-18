@@ -1,5 +1,6 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { Readable } from 'node:stream'
+import type { ReadableStream as NodeWebReadableStream } from 'node:stream/web'
 
 import {
   DeleteObjectCommand,
@@ -118,7 +119,7 @@ export class S3StorageDriver implements StorageDriver {
     // SDK may return a web ReadableStream in some runtimes.
     const webStream = body as { transformToWebStream?: () => ReadableStream }
     if (typeof webStream.transformToWebStream === 'function') {
-      return Readable.fromWeb(webStream.transformToWebStream() as import('stream/web').ReadableStream)
+      return Readable.fromWeb(webStream.transformToWebStream() as NodeWebReadableStream)
     }
     const bytes = await (body as { transformToByteArray: () => Promise<Uint8Array> }).transformToByteArray()
     return Readable.from(Buffer.from(bytes))

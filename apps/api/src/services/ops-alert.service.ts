@@ -1,3 +1,5 @@
+import type { ActivityKind } from '@prisma/client'
+
 import { env } from '../config/env.js'
 import { logger } from '../utils/logger.js'
 import { emailService } from '../emails/email.service.js'
@@ -59,7 +61,7 @@ export type OpsAlertPayload = {
   idempotencyKey?: string | null
   /** Also write platform activity for the live feed (requires userId). */
   recordActivity?: boolean
-  activityKind?: import('@prisma/client').ActivityKind
+  activityKind?: ActivityKind
 }
 
 function recipients(): string[] {

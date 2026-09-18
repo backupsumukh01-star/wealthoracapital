@@ -6,6 +6,12 @@ import { createHash, randomUUID } from 'node:crypto'
 import { describe, expect, it, beforeAll } from 'vitest'
 
 import { d } from '../../utils/money.js'
+import type * as prismaModule from '../../database/prisma.js'
+import type * as ledgerModule from '../finance/ledger.service.js'
+import type * as withdrawalModule from '../finance/withdrawal.service.js'
+import type * as performanceModule from './performance.service.js'
+import type * as distributionModule from './distribution.service.js'
+import type * as emailOtpModule from '../email-otp.service.js'
 
 const hasDb = Boolean(process.env.DATABASE_URL)
 
@@ -14,12 +20,12 @@ function hashOtp(otp: string) {
 }
 
 describe.skipIf(!hasDb)('performance vs withdrawal regression', () => {
-  let prisma: typeof import('../../database/prisma.js').prisma
-  let ledgerService: typeof import('../finance/ledger.service.js').ledgerService
-  let withdrawalService: typeof import('../finance/withdrawal.service.js').withdrawalService
-  let performanceService: typeof import('./performance.service.js').performanceService
-  let distributionService: typeof import('./distribution.service.js').distributionService
-  let emailOtpService: typeof import('../email-otp.service.js').emailOtpService
+  let prisma: typeof prismaModule.prisma
+  let ledgerService: typeof ledgerModule.ledgerService
+  let withdrawalService: typeof withdrawalModule.withdrawalService
+  let performanceService: typeof performanceModule.performanceService
+  let distributionService: typeof distributionModule.distributionService
+  let emailOtpService: typeof emailOtpModule.emailOtpService
 
   beforeAll(async () => {
     ;({ prisma } = await import('../../database/prisma.js'))

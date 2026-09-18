@@ -1,5 +1,6 @@
 import { env } from '../../config/env.js'
 import type { EmailTemplateName } from '../email.types.js'
+import type { EmailCategory } from '../sender.js'
 import {
   detailRows,
   emailLayout,
@@ -573,7 +574,7 @@ export function renderEmailTemplate(
 }
 
 /** Category map for sender routing. */
-export const TEMPLATE_CATEGORY: Record<Exclude<EmailTemplateName, 'custom'>, import('../sender.js').EmailCategory> = {
+export const TEMPLATE_CATEGORY: Record<Exclude<EmailTemplateName, 'custom'>, EmailCategory> = {
   'email-verification': 'Security',
   'password-reset': 'Security',
   welcome: 'Security',

@@ -7,12 +7,13 @@ import { createApp } from '../../../app.js'
 import { env } from '../../../config/env.js'
 import { moneyString } from '../../../utils/money.js'
 import { oxapayHmacSha512Hex } from './oxapay.hmac.js'
+import type * as oxapayClientModule from './oxapay.client.js'
 
 const app = createApp()
 const MERCHANT_KEY = 'test-oxapay-merchant-key-for-vitest!!'
 
 vi.mock('./oxapay.client.js', async () => {
-  const actual = await vi.importActual<typeof import('./oxapay.client.js')>('./oxapay.client.js')
+  const actual = await vi.importActual<typeof oxapayClientModule>('./oxapay.client.js')
   return {
     ...actual,
     oxapayClient: {
