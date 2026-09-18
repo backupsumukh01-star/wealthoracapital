@@ -328,6 +328,7 @@ export const googleOAuthService = {
       lastName,
       role: 'USER',
       status: 'ACTIVE',
+      kycStatus: 'NOT_STARTED',
       emailVerifiedAt: now,
       referralCode,
       ...(referredById ? { referredBy: { connect: { id: referredById } } } : {}),

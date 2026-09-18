@@ -13,6 +13,7 @@ export const salesQueryKeys = {
   me: () => [...salesQueryKeys.all, 'me'] as const,
   networkSummary: () => [...salesQueryKeys.all, 'me', 'network-summary'] as const,
   networkMembers: () => [...salesQueryKeys.all, 'me', 'network-members'] as const,
+  networkMember: (userId: string) => [...salesQueryKeys.all, 'me', 'network-member', userId] as const,
   owner: {
     salesmen: () => [...salesQueryKeys.all, 'owner', 'salesmen'] as const,
     summary: (salesmanId: string) =>
@@ -78,6 +79,19 @@ export function useSalesNetworkMembers() {
   return useQuery({
     queryKey: salesQueryKeys.networkMembers(),
     queryFn: () => salesService.networkMembers(),
+    staleTime: QUERY_STALE_TIME.fast,
+    retry: (failureCount, error) => {
+      if (error instanceof ApiError && error.status < 500) return false
+      return failureCount < 1
+    },
+  })
+}
+
+export function useSalesNetworkMember(userId: string | undefined) {
+  return useQuery({
+    queryKey: salesQueryKeys.networkMember(userId ?? ''),
+    queryFn: () => salesService.networkMember(userId!),
+    enabled: Boolean(userId),
     staleTime: QUERY_STALE_TIME.fast,
     retry: (failureCount, error) => {
       if (error instanceof ApiError && error.status < 500) return false

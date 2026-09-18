@@ -16,7 +16,6 @@ export default defineConfig({
       PAYMENT_AUTO_CONFIRM_DEPOSITS: 'false',
       OXAPAY_MERCHANT_API_KEY: 'test-oxapay-merchant-key-for-vitest!!',
       OXAPAY_SANDBOX: 'true',
-      PLISIO_API_KEY: 'test-plisio-secret-key-for-vitest!!',
       // Host-only cookies in tests — parent shells may export COOKIE_DOMAIN for prod-like local.
       COOKIE_DOMAIN: '',
       COOKIE_SECURE: 'false',

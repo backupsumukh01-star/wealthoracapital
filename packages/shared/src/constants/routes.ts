@@ -191,8 +191,6 @@ export const API_ROUTES = {
     methods: '/deposits/methods',
     oxapay: '/deposits/oxapay',
     oxapayStatus: '/deposits/oxapay/status',
-    plisio: '/deposits/plisio',
-    plisioStatus: '/deposits/plisio/status',
     cancel: (id: string) => `/deposits/${id}/cancel`,
     proof: (id: string) => `/deposits/${id}/proof`,
     /** Authenticated binary stream for payment proof preview/download. */
@@ -346,11 +344,14 @@ export const API_ROUTES = {
     me: '/sales/me',
     meNetwork: '/sales/me/network',
     meNetworkMembers: '/sales/me/network/members',
+    meNetworkMember: (userId: string) => `/sales/me/network/members/${userId}`,
     meNetworkSummary: '/sales/me/network/summary',
     ownerSalesmen: '/sales/owner/salesmen',
     ownerNetwork: (salesmanId: string) => `/sales/owner/salesmen/${salesmanId}/network`,
     ownerNetworkMembers: (salesmanId: string) =>
       `/sales/owner/salesmen/${salesmanId}/network/members`,
+    ownerNetworkMember: (salesmanId: string, userId: string) =>
+      `/sales/owner/salesmen/${salesmanId}/network/members/${userId}`,
     ownerNetworkSummary: (salesmanId: string) =>
       `/sales/owner/salesmen/${salesmanId}/network/summary`,
   },

@@ -2,6 +2,7 @@ import { API_ROUTES } from '@meridian/shared'
 
 import { apiClient } from '@/lib/api-client'
 import type {
+  SalesNetworkMemberDetail,
   SalesNetworkMembersResponse,
   SalesNetworkSummaryResponse,
   SalesOwnerSalesmenResponse,
@@ -17,6 +18,9 @@ export const salesOwnerService = {
 
   networkMembers: (salesmanId: string) =>
     apiClient<SalesNetworkMembersResponse>(API_ROUTES.sales.ownerNetworkMembers(salesmanId)),
+
+  networkMember: (salesmanId: string, userId: string) =>
+    apiClient<SalesNetworkMemberDetail>(API_ROUTES.sales.ownerNetworkMember(salesmanId, userId)),
 
   networkSummary: (salesmanId: string) =>
     apiClient<SalesNetworkSummaryResponse>(API_ROUTES.sales.ownerNetworkSummary(salesmanId)),

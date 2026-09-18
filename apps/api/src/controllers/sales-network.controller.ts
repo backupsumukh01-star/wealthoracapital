@@ -37,4 +37,17 @@ export const salesNetworkController = {
     const data = await salesNetworkService.getNetwork(req.params.salesmanId!)
     sendSuccess(res, { salesman: data.salesman, summary: data.summary })
   }),
+
+  meMemberDetail: asyncHandler(async (req, res) => {
+    const data = await salesNetworkService.getMemberDetail(req.salesman!.id, req.params.userId!)
+    sendSuccess(res, data)
+  }),
+
+  ownerMemberDetail: asyncHandler(async (req, res) => {
+    const data = await salesNetworkService.getMemberDetail(
+      req.params.salesmanId!,
+      req.params.userId!,
+    )
+    sendSuccess(res, data)
+  }),
 }

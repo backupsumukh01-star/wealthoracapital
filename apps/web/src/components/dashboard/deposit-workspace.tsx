@@ -43,10 +43,10 @@ import { toast } from '@/components/ui/toast'
 import {
   useCancelDeposit,
   useCreateDeposit,
-  useCreatePlisioDeposit,
+  useCreateOxapayDeposit,
   useDepositMethods,
   useDeposits,
-  usePlisioStatus,
+  useOxapayStatus,
   useUploadDepositProof,
 } from '@/features/deposits/hooks'
 import { ApiError } from '@/lib/api-client'
@@ -238,11 +238,11 @@ function DepositHistory() {
 
 function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
   const createDeposit = useCreateDeposit()
-  const createPlisio = useCreatePlisioDeposit()
+  const createOxapay = useCreateOxapayDeposit()
   const uploadProof = useUploadDepositProof()
   const cancelDeposit = useCancelDeposit()
-  const { data: plisioStatus } = usePlisioStatus()
-  const plisioEnabled = Boolean(plisioStatus?.enabled)
+  const { data: oxapayStatus } = useOxapayStatus()
+  const oxapayEnabled = Boolean(oxapayStatus?.enabled)
 
   const [step, setStep] = useState<Step>('method')
   const [rail, setRail] = useState<Rail | null>(null)
@@ -322,7 +322,7 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
     setStep('details')
   }
 
-  async function startPlisioCheckout() {
+  async function startOxapayCheckout() {
     if (!selected || rail !== 'CRYPTO') return
     if (amountError) {
       toast.error(amountError)
@@ -330,7 +330,7 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
     }
     setSubmitting(true)
     try {
-      const deposit = await createPlisio.mutateAsync({
+      const deposit = await createOxapay.mutateAsync({
         amount: depositUsd.trim(),
         methodId: selected.id,
         notes: notes.trim() || undefined,
@@ -341,7 +341,7 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
       }
       setSubmitted(deposit)
       setStep('gateway')
-      toast.success('Checkout ready', 'Complete payment in the Plisio window.')
+      toast.success('Checkout ready', 'Complete payment in the OxaPay window.')
       window.location.assign(paymentUrl)
     } catch (error) {
       toast.error(
@@ -601,12 +601,12 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
                 autoFocus
               />
             </FormField>
-            {rail === 'CRYPTO' && plisioEnabled ? (
+            {rail === 'CRYPTO' && oxapayEnabled ? (
               <div className="space-y-2">
                 <Button
                   type="button"
                   className="w-full"
-                  onClick={() => void startPlisioCheckout()}
+                  onClick={() => void startOxapayCheckout()}
                   disabled={Boolean(amountError) || submitting}
                 >
                   {submitting ? 'Opening checkout…' : 'Pay with crypto checkout'}
@@ -639,8 +639,8 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
           <div className="mx-auto max-w-md space-y-4 text-center">
             <CheckCircle2 className="text-accent-300 mx-auto size-10" aria-hidden />
             <SectionHeader
-              title="Complete payment in Plisio"
-              description="Your balance updates only after Plisio confirms the payment on the server. Returning to this site alone does not credit funds."
+              title="Complete payment in OxaPay"
+              description="Your balance updates only after OxaPay confirms the payment on the server. Returning to this site alone does not credit funds."
               as="h3"
             />
             <p className="text-caption text-fg-subtle">

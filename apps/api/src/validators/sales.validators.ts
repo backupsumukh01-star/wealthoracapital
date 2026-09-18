@@ -12,3 +12,12 @@ export const salesLoginSchema = z.object({
 export const salesmanIdParamSchema = z.object({
   salesmanId: z.string().uuid(),
 })
+
+export const salesNetworkUserIdParamSchema = z.object({
+  userId: z.string().uuid(),
+})
+
+export const ownerNetworkUserParamSchema = z.object({
+  salesmanId: z.string().uuid(),
+  userId: z.string().uuid(),
+})

@@ -37,9 +37,14 @@ export function SalesProfileWorkspace() {
               <dt className="text-caption text-fg-subtle">Sales code</dt>
               <dd className="text-body-sm">{salesman.code}</dd>
             </div>
+            <div>
+              <dt className="text-caption text-fg-subtle">Referral link</dt>
+              <dd className="break-all text-body-sm">{salesman.referralLink}</dd>
+            </div>
           </dl>
           <p className="text-caption text-fg-muted">
-            Password changes are not available in this portal.
+            This profile is view-only. Password changes and account deletion are not available in
+            this portal.
           </p>
         </Card>
       ) : null}

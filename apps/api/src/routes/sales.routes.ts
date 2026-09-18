@@ -7,7 +7,13 @@ import { authenticateSales, optionalAuthenticateSales } from '../middlewares/aut
 import { authRateLimiter } from '../middlewares/rate-limit.js'
 import { requireAdminAccess } from '../middlewares/require-permission.js'
 import { validate } from '../middlewares/validate.js'
-import { salesmanIdParamSchema, salesLoginSchema } from '../validators/sales.validators.js'
+import { rejectSalesMutations } from '../middlewares/reject-sales-mutations.js'
+import {
+  ownerNetworkUserParamSchema,
+  salesmanIdParamSchema,
+  salesLoginSchema,
+  salesNetworkUserIdParamSchema,
+} from '../validators/sales.validators.js'
 
 export const salesRouter = Router()
 
@@ -22,12 +28,18 @@ salesRouter.post('/auth/logout', optionalAuthenticateSales, salesAuthController.
 
 salesRouter.post('/auth/refresh', salesAuthController.refresh)
 
-salesRouter.get('/me', authenticateSales, salesAuthController.me)
+salesRouter.use(rejectSalesMutations)
 
+salesRouter.get('/me', authenticateSales, salesAuthController.me)
 salesRouter.get('/me/network', authenticateSales, salesNetworkController.meNetwork)
 salesRouter.get('/me/network/members', authenticateSales, salesNetworkController.meMembers)
+salesRouter.get(
+  '/me/network/members/:userId',
+  authenticateSales,
+  validate(salesNetworkUserIdParamSchema, 'params'),
+  salesNetworkController.meMemberDetail,
+)
 salesRouter.get('/me/network/summary', authenticateSales, salesNetworkController.meSummary)
-
 salesRouter.get('/owner/salesmen', authenticate, requireAdminAccess, salesNetworkController.ownerSalesmen)
 
 salesRouter.get(
@@ -52,4 +64,12 @@ salesRouter.get(
   requireAdminAccess,
   validate(salesmanIdParamSchema, 'params'),
   salesNetworkController.ownerSummary,
+)
+
+salesRouter.get(
+  '/owner/salesmen/:salesmanId/network/members/:userId',
+  authenticate,
+  requireAdminAccess,
+  validate(ownerNetworkUserParamSchema, 'params'),
+  salesNetworkController.ownerMemberDetail,
 )

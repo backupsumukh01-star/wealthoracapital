@@ -161,6 +161,7 @@ describe('Salesman authentication isolation', () => {
     expect(me.body.data.salesman.email.toLowerCase()).toBe(salesman.email.toLowerCase())
     expect(me.body.data.salesman.code).toBe(salesman.code)
     expect(me.body.data.salesman.status).toBe('ACTIVE')
+    expect(me.body.data.salesman.referralLink).toMatch(/\/register\?ref=/)
     expect(me.body.data.salesman.passwordHash).toBeUndefined()
   })
 

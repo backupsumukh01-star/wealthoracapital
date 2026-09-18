@@ -280,6 +280,7 @@ export const authService = {
       country: input.country ?? null,
       role: 'USER',
       status: 'PENDING_VERIFICATION',
+      kycStatus: 'NOT_STARTED',
       referralCode,
       ...(referredById ? { referredBy: { connect: { id: referredById } } } : {}),
       termsAcceptedAt: input.acceptTerms === false ? null : now,

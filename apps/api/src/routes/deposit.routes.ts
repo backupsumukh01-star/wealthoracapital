@@ -3,14 +3,12 @@ import { Router } from 'express'
 import { PERMISSIONS } from '../config/permissions.js'
 import { depositUpload, financeController } from '../controllers/finance.controller.js'
 import { oxapayController } from '../controllers/oxapay.controller.js'
-import { plisioController } from '../controllers/plisio.controller.js'
 import { authenticate } from '../middlewares/authenticate.js'
 import { requirePermission } from '../middlewares/require-permission.js'
 import { validate } from '../middlewares/validate.js'
 import {
   createDepositSchema,
   createOxapayDepositSchema,
-  createPlisioDepositSchema,
   idParamSchema,
 } from '../validators/finance.validators.js'
 
@@ -33,17 +31,6 @@ depositRouter.post(
   requirePermission(PERMISSIONS['deposits.create']),
   validate(createOxapayDepositSchema),
   oxapayController.createDeposit,
-)
-depositRouter.get(
-  '/plisio/status',
-  requirePermission(PERMISSIONS['deposits.view']),
-  plisioController.status,
-)
-depositRouter.post(
-  '/plisio',
-  requirePermission(PERMISSIONS['deposits.create']),
-  validate(createPlisioDepositSchema),
-  plisioController.createDeposit,
 )
 depositRouter.get(
   '/',

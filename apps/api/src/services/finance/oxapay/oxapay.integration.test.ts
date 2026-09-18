@@ -100,6 +100,44 @@ describe('OxaPay gateway deposits', () => {
     env.OXAPAY_SANDBOX = prevSandbox
   })
 
+  it('exposes OxaPay as the only crypto checkout provider', async () => {
+    const { agent } = await bootstrapCryptoInvestor()
+    const status = await agent.get('/api/v1/deposits/oxapay/status')
+    expect(status.status).toBe(200)
+    expect(status.body.data.enabled).toBe(true)
+    expect(status.body.data.provider).toBe('oxapay')
+
+    const plisioCreate = await agent.post('/api/v1/deposits/plisio').send({
+      amount: '1.00',
+      methodId: randomUUID(),
+      idempotencyKey: `plisio-${randomUUID()}`,
+    })
+    expect(plisioCreate.status).toBe(404)
+
+    const plisioStatus = await agent.get('/api/v1/deposits/plisio/status')
+    expect(plisioStatus.status).toBe(404)
+
+    const plisioWebhook = await request(app)
+      .post('/api/v1/webhooks/plisio')
+      .set('Content-Type', 'application/json')
+      .send({})
+    expect(plisioWebhook.status).toBe(404)
+  })
+
+  it('rejects unsigned OxaPay webhooks', async () => {
+    const body = JSON.stringify({
+      track_id: randomUUID(),
+      status: 'Paid',
+      order_id: 'DEP-X',
+      type: 'invoice',
+    })
+    const res = await request(app)
+      .post('/api/v1/webhooks/oxapay')
+      .set('Content-Type', 'application/json')
+      .send(body)
+    expect(res.status).toBe(401)
+  })
+
   it('creates invoice with order_id = deposit.reference and returns payment_url', async () => {
     const { agent, methodId, prisma } = await bootstrapCryptoInvestor()
     const { oxapayClient } = await import('./oxapay.client.js')

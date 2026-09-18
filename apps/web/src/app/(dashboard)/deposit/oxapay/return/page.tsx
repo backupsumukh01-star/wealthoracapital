@@ -47,7 +47,7 @@ function OxapayReturnInner() {
     <div className="space-y-6">
       <PageHeader
         title="Crypto payment status"
-        description="This page never credits your balance. Funds update only after Plisio server confirmation."
+        description="This page never credits your balance. Funds update only after OxaPay server confirmation."
       />
       <Card variant="glass" className="mx-auto max-w-lg space-y-4 p-6">
         {isLoading && !deposit ? (

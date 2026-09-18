@@ -7,6 +7,7 @@ import { renderVariables } from '../../emails/render.js'
 import { env } from '../../config/env.js'
 import { badRequest, notFound } from '../../utils/errors.js'
 import { logger } from '../../utils/logger.js'
+import { outboxRetryDelayMs } from './outbox-retry.js'
 
 const MAX_ATTEMPTS = 5
 
@@ -170,12 +171,14 @@ export const emailOutboxService = {
       } catch (error) {
         const attempts = row.attempts + 1
         const message = error instanceof Error ? error.message : 'Unknown error'
+        const retryAt = new Date(Date.now() + outboxRetryDelayMs(attempts, message))
         await prisma.emailOutbox.update({
           where: { id: row.id },
           data: {
             status: attempts >= MAX_ATTEMPTS ? 'FAILED' : 'QUEUED',
             attempts,
             lastError: message.slice(0, 1000),
+            scheduledAt: attempts >= MAX_ATTEMPTS ? row.scheduledAt : retryAt,
           },
         })
         logger.error({ error, outboxId: row.id }, 'Email outbox delivery failed')

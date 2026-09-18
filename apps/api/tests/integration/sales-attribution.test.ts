@@ -334,6 +334,6 @@ describe('Salesman attribution (first-touch, not investor referral)', () => {
       userId: randomUUID(),
       salesmanId: randomUUID(),
     })
-    expect([401, 404]).toContain(res.status)
+    expect([401, 404, 405]).toContain(res.status)
   })
 })

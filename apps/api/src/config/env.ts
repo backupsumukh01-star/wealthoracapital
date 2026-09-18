@@ -136,15 +136,6 @@ const envSchema = z.object({
     .url()
     .default('https://api.oxapay.com/v1'),
 
-  /**
-   * Plisio crypto gateway (invoice + HMAC-SHA1 json callbacks).
-   * Leave PLISIO_API_KEY empty to disable the Plisio checkout path.
-   */
-  PLISIO_API_KEY: z.string().optional().default(''),
-  PLISIO_CALLBACK_URL: z.string().optional().default(''),
-  PLISIO_RETURN_URL: z.string().optional().default(''),
-  PLISIO_API_BASE_URL: z.string().url().default('https://api.plisio.net/api/v1'),
-
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
   /** Market quotes: `public` = free delayed sources; `finnhub` needs MARKET_DATA_API_KEY. */
@@ -236,11 +227,10 @@ function parseEnv(): Env {
     parsed.data.NODE_ENV === 'production' &&
     parsed.data.PAYMENT_AUTO_CONFIRM_DEPOSITS &&
     !parsed.data.PAYMENT_WEBHOOK_SECRET &&
-    !parsed.data.OXAPAY_MERCHANT_API_KEY &&
-    !parsed.data.PLISIO_API_KEY
+    !parsed.data.OXAPAY_MERCHANT_API_KEY
   ) {
     throw new Error(
-      'PAYMENT_AUTO_CONFIRM_DEPOSITS requires PAYMENT_WEBHOOK_SECRET, OXAPAY_MERCHANT_API_KEY, or PLISIO_API_KEY in production',
+      'PAYMENT_AUTO_CONFIRM_DEPOSITS requires PAYMENT_WEBHOOK_SECRET or OXAPAY_MERCHANT_API_KEY in production',
     )
   }
 

@@ -60,7 +60,10 @@ function NodeCard({
                 Level {member.level}
               </Badge>
             </div>
-            <p className="truncate text-caption text-fg-subtle">{member.email}</p>
+            <p className="truncate text-caption text-fg-subtle">@{member.username}</p>
+            <p className="text-caption text-fg-muted">
+              referred {member.directReferralCount} · network {member.networkMemberCount}
+            </p>
             <dl className="grid grid-cols-1 gap-1 text-caption sm:grid-cols-3">
               <div className="min-w-0">
                 <dt className="text-fg-subtle">Approved deposits</dt>

@@ -2,6 +2,7 @@ import { ERROR_CODES } from '@meridian/shared'
 import { randomUUID } from 'node:crypto'
 import type { Salesman, SalesmanSession } from '@prisma/client'
 
+import { env } from '../config/env.js'
 import { DUMMY_PASSWORD_HASH } from '../config/constants.js'
 import { prisma } from '../database/prisma.js'
 import { passwordService } from './password.service.js'
@@ -23,12 +24,14 @@ export type SalesAuthTokens = {
 }
 
 function publicSalesman(row: Salesman) {
+  const site = env.APP_URL.replace(/\/$/, '')
   return {
     id: row.id,
     name: row.name,
     email: row.email,
     code: row.code,
     status: row.status,
+    referralLink: `${site}/register?ref=${encodeURIComponent(row.code)}`,
   }
 }
 

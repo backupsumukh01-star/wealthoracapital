@@ -133,6 +133,7 @@ describe('Google OAuth', () => {
     expect(user?.googleId).toBe(googleSub)
     expect(user?.passwordHash).toBeNull()
     expect(user?.emailVerifiedAt).toBeTruthy()
+    expect(user?.kycStatus).toBe('NOT_STARTED')
   })
 
   it('links Google to an existing email/password account', async () => {

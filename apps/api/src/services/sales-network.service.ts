@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client'
 
 import { prisma } from '../database/prisma.js'
 import { batchUserFinance } from './admin-users-finance.js'
+import { salesUsernameFromEmail } from './sales-privacy.js'
 import { d, moneyDisplay } from '../utils/money.js'
 import { notFound } from '../utils/errors.js'
 
@@ -14,18 +15,35 @@ export type SalesNetworkSummary = {
   netFunds: string
 }
 
+export type SalesMoneyEvent = {
+  date: string
+  amount: string
+  status: string
+  reference: string
+}
+
 export type SalesNetworkMember = {
   userId: string
   parentUserId: string | null
   level: number
   isDirect: boolean
   name: string
-  email: string
+  username: string
   referralCode: string | null
   registrationDate: string
+  currentBalance: string
   approvedDeposits: string
   paidWithdrawals: string
   netFunds: string
+  directReferralCount: number
+  networkMemberCount: number
+}
+
+export type SalesNetworkMemberDetail = {
+  salesman: SalesNetworkResult['salesman']
+  member: SalesNetworkMember
+  depositHistory: SalesMoneyEvent[]
+  withdrawalHistory: SalesMoneyEvent[]
 }
 
 export type SalesNetworkResult = {
@@ -134,6 +152,21 @@ export const salesNetworkService = {
     }
 
     const userIds = cteRows.map((row) => row.user_id)
+    const descendantCount = new Map<string, number>()
+    const childCount = new Map<string, number>()
+    for (const row of cteRows) {
+      const path = Array.isArray(row.path) ? row.path.map(String) : []
+      for (const ancestorId of path) {
+        if (ancestorId !== row.user_id) {
+          descendantCount.set(ancestorId, (descendantCount.get(ancestorId) ?? 0) + 1)
+        }
+      }
+      const parentId = row.is_direct ? null : row.parent_user_id
+      if (parentId) {
+        childCount.set(parentId, (childCount.get(parentId) ?? 0) + 1)
+      }
+    }
+
     const [users, finance] = await Promise.all([
       prisma.user.findMany({
         where: { id: { in: userIds } },
@@ -162,6 +195,7 @@ export const salesNetworkService = {
       const snap = finance.get(user.id)
       const approvedDeposits = snap?.totalDeposited ?? moneyDisplay(0)
       const paidWithdrawals = snap?.totalWithdrawn ?? moneyDisplay(0)
+      const currentBalance = snap?.walletBalance ?? moneyDisplay(0)
       const net = d(approvedDeposits).minus(d(paidWithdrawals))
       totalDeposits = totalDeposits.plus(d(approvedDeposits))
       totalWithdrawals = totalWithdrawals.plus(d(paidWithdrawals))
@@ -172,12 +206,15 @@ export const salesNetworkService = {
         level,
         isDirect: Boolean(row.is_direct) || level === 0,
         name: `${user.firstName} ${user.lastName}`.trim(),
-        email: user.email,
+        username: salesUsernameFromEmail(user.email),
         referralCode: user.referralCode,
         registrationDate: user.createdAt.toISOString(),
+        currentBalance,
         approvedDeposits,
         paidWithdrawals,
         netFunds: moneyDisplay(net),
+        directReferralCount: childCount.get(user.id) ?? 0,
+        networkMemberCount: descendantCount.get(user.id) ?? 0,
       })
     }
 
@@ -191,5 +228,45 @@ export const salesNetworkService = {
     }
 
     return { salesman, summary, members }
+  },
+
+  async getMemberDetail(salesmanId: string, userId: string): Promise<SalesNetworkMemberDetail> {
+    const network = await this.getNetwork(salesmanId)
+    const member = network.members.find((row) => row.userId === userId)
+    if (!member) {
+      throw notFound('Customer not in this sales network.')
+    }
+
+    const [deposits, withdrawals] = await Promise.all([
+      prisma.deposit.findMany({
+        where: { userId },
+        select: { createdAt: true, amount: true, status: true, reference: true },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+      }),
+      prisma.withdrawal.findMany({
+        where: { userId },
+        select: { createdAt: true, amount: true, status: true, reference: true },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+      }),
+    ])
+
+    return {
+      salesman: network.salesman,
+      member,
+      depositHistory: deposits.map((row) => ({
+        date: row.createdAt.toISOString(),
+        amount: moneyDisplay(row.amount),
+        status: row.status,
+        reference: row.reference,
+      })),
+      withdrawalHistory: withdrawals.map((row) => ({
+        date: row.createdAt.toISOString(),
+        amount: moneyDisplay(row.amount),
+        status: row.status,
+        reference: row.reference,
+      })),
+    }
   },
 }

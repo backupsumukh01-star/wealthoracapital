@@ -56,6 +56,9 @@ export function VerifiedInvestorGate({
   children: ReactNode
   fallback?: ReactNode
 }) {
+  const { session, isLoading } = useSession()
+  if (isLoading) return <>{fallback}</>
+  if (session?.user.kycStatus !== 'APPROVED') return <>{fallback}</>
   return <ProtectedRoute fallback={fallback}>{children}</ProtectedRoute>
 }
 
@@ -134,22 +137,28 @@ export function AdminPermissionRouteGuard({ children }: { children: ReactNode })
 export function InvestorPermissionRouteGuard({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { isAuthenticated, isLoading, canAny, can } = useSession()
+  const { isAuthenticated, isLoading, canAny, can, session, isStaff } = useSession()
 
   useEffect(() => {
     if (isLoading || !isAuthenticated) return
+    const kycStatus = session?.user.kycStatus
+    const isInvestor = session?.user.role === 'USER' && !isStaff
+    if (isInvestor && kycStatus && kycStatus !== 'APPROVED') {
+      if (pathname !== ROUTES.auth.onboarding) {
+        router.replace(ROUTES.auth.onboarding)
+      }
+      return
+    }
     const required = matchRoutePermission(pathname, INVESTOR_ROUTE_PERMISSIONS)
     if (!required) return
     const ok = Array.isArray(required) ? canAny(required) : can(required)
     if (!ok) {
-      // Prefer profile as fallback — every authenticated user has profile.view.
-      // Avoid redirect loops when the current path already is the fallback.
       const fallback = ROUTES.dashboard.settings.profile
       if (pathname !== fallback) {
         router.replace(fallback)
       }
     }
-  }, [pathname, isLoading, isAuthenticated, can, canAny, router])
+  }, [pathname, isLoading, isAuthenticated, can, canAny, router, session, isStaff])
 
   return <>{children}</>
 }

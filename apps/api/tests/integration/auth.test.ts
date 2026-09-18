@@ -123,6 +123,7 @@ describe('Auth flows', () => {
     expect(user!.passwordHash).toMatch(/^\$2[aby]\$/)
     expect(user!.status).toBe('PENDING_VERIFICATION')
     expect(user!.emailVerifiedAt).toBeNull()
+    expect(user!.kycStatus).toBe('NOT_STARTED')
 
     const tokens = await prisma.verificationToken.findMany({
       where: { userId: user!.id, type: 'EMAIL_VERIFICATION' },
@@ -169,10 +170,22 @@ describe('Auth flows', () => {
     const refreshed = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
     expect(refreshed.emailVerifiedAt).toBeTruthy()
     expect(refreshed.status).toBe('ACTIVE')
+    expect(refreshed.kycStatus).toBe('NOT_STARTED')
 
     const login = await request(app).post('/api/v1/auth/login').send({ email, password })
     expect(login.status).toBe(200)
     expect(login.body.data.user.email.toLowerCase()).toBe(email)
+    expect(login.body.data.user.kycStatus).toBe('NOT_STARTED')
+
+    const wallet = await request.agent(app)
+    await wallet.post('/api/v1/auth/login').send({ email, password })
+    const deposit = await wallet.post('/api/v1/deposits').send({
+      amount: '100.00',
+      methodId: randomUUID(),
+      idempotencyKey: `kyc-${randomUUID()}`,
+    })
+    expect(deposit.status).toBe(403)
+    expect(String(deposit.body.error?.message ?? '')).toMatch(/KYC/i)
   })
 
   it('resend verification is rate-limited per account cooldown', async () => {

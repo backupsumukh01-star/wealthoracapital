@@ -37,7 +37,8 @@ export function SalesCustomerList({
       if (level !== 'all' && member.level !== Number(level)) return false
       if (!needle) return true
       return (
-        member.name.toLowerCase().includes(needle) || member.email.toLowerCase().includes(needle)
+        member.name.toLowerCase().includes(needle) ||
+        member.username.toLowerCase().includes(needle)
       )
     })
   }, [level, members, query, relation])
@@ -49,7 +50,7 @@ export function SalesCustomerList({
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search name or email"
+          placeholder="Search name or username"
           aria-label="Search customers"
         />
         <div className="flex min-w-0 flex-wrap gap-2">
@@ -112,8 +113,15 @@ export function SalesCustomerList({
                     Level {member.level}
                   </Badge>
                 </div>
-                <p className="mt-1 truncate text-caption text-fg-subtle">{member.email}</p>
-                <dl className="mt-3 grid grid-cols-1 gap-1 text-caption sm:grid-cols-3">
+                <p className="mt-1 truncate text-caption text-fg-subtle">@{member.username}</p>
+                <p className="text-caption text-fg-muted">
+                  referred {member.directReferralCount} · network {member.networkMemberCount}
+                </p>
+                <dl className="mt-3 grid grid-cols-1 gap-1 text-caption sm:grid-cols-4">
+                  <div>
+                    <dt className="text-fg-subtle">Balance</dt>
+                    <dd className="tabular-nums">{formatMoney(member.currentBalance)}</dd>
+                  </div>
                   <div>
                     <dt className="text-fg-subtle">Deposits</dt>
                     <dd className="tabular-nums">{formatMoney(member.approvedDeposits)}</dd>

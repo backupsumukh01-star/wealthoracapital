@@ -4,6 +4,7 @@ import { salesApiClient } from '@/features/sales/sales-api-client'
 import type {
   SalesLoginResponse,
   SalesMeResponse,
+  SalesNetworkMemberDetail,
   SalesNetworkMembersResponse,
   SalesNetworkSummaryResponse,
 } from '@/features/sales/types'
@@ -25,6 +26,9 @@ export const salesService = {
 
   networkMembers: () =>
     salesApiClient<SalesNetworkMembersResponse>(API_ROUTES.sales.meNetworkMembers),
+
+  networkMember: (userId: string) =>
+    salesApiClient<SalesNetworkMemberDetail>(API_ROUTES.sales.meNetworkMember(userId)),
 
   networkSummary: () =>
     salesApiClient<SalesNetworkSummaryResponse>(API_ROUTES.sales.meNetworkSummary),
