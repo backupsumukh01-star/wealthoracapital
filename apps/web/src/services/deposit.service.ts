@@ -23,11 +23,15 @@ export type CreateOxapayDepositBody = {
   idempotencyKey: string
 }
 
+export type CreatePlisioDepositBody = CreateOxapayDepositBody
+
 export type OxapayStatusResponse = {
   enabled: boolean
   sandbox: boolean
   provider: string
 }
+
+export type PlisioStatusResponse = OxapayStatusResponse
 
 async function apiFormData<T>(path: string, form: FormData): Promise<T> {
   const run = async (forceCsrf: boolean) => {
@@ -88,6 +92,16 @@ export const depositService = {
 
   createOxapay: (body: CreateOxapayDepositBody) =>
     apiClient<Deposit>(API_ROUTES.deposits.oxapay, {
+      method: 'POST',
+      body,
+      idempotencyKey: body.idempotencyKey,
+    }),
+
+  plisioStatus: () =>
+    apiClient<PlisioStatusResponse>(API_ROUTES.deposits.plisioStatus),
+
+  createPlisio: (body: CreatePlisioDepositBody) =>
+    apiClient<Deposit>(API_ROUTES.deposits.plisio, {
       method: 'POST',
       body,
       idempotencyKey: body.idempotencyKey,

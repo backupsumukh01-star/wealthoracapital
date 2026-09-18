@@ -164,6 +164,8 @@ export const API_ROUTES = {
     methods: '/deposits/methods',
     oxapay: '/deposits/oxapay',
     oxapayStatus: '/deposits/oxapay/status',
+    plisio: '/deposits/plisio',
+    plisioStatus: '/deposits/plisio/status',
     cancel: (id: string) => `/deposits/${id}/cancel`,
     proof: (id: string) => `/deposits/${id}/proof`,
     /** Authenticated binary stream for payment proof preview/download. */

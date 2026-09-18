@@ -38,6 +38,9 @@ export const createOxapayDepositSchema = z.object({
   idempotencyKey: z.string().min(8).max(120),
 })
 
+/** Plisio crypto gateway deposit — same body as OxaPay checkout. */
+export const createPlisioDepositSchema = createOxapayDepositSchema
+
 export const createWithdrawalSchema = z.object({
   amount: money,
   /** Optional INR snapshot from the dual-currency form; server recomputes if omitted. */

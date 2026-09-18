@@ -122,10 +122,13 @@ async function enrichDepositDetails(
   if (!next['OxaPay track ID'] && typeof meta.oxapayTrackId === 'string') {
     next['OxaPay track ID'] = meta.oxapayTrackId
   }
+  if (!next['Plisio txn ID'] && typeof meta.plisioTxnId === 'string') {
+    next['Plisio txn ID'] = meta.plisioTxnId
+  }
   if (!next['Transaction hash'] && deposit.txHash) {
     next['Transaction hash'] = deposit.txHash
   }
-  if (!next['Auto-confirmed'] && meta.oxapayConfirmedAt) {
+  if (!next['Auto-confirmed'] && (meta.oxapayConfirmedAt || meta.plisioConfirmedAt)) {
     next['Auto-confirmed'] = 'yes'
   }
   if (!next.Amount) {

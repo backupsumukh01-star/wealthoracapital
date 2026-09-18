@@ -14,7 +14,7 @@ import { useSession } from '@/providers/session-provider'
 
 function OxapayReturnInner() {
   const params = useSearchParams()
-  const ref = (params.get('ref') ?? params.get('order_id') ?? '').trim()
+  const ref = (params.get('ref') ?? params.get('order_id') ?? params.get('order_number') ?? '').trim()
   const { session } = useSession()
   const { data, isLoading, refetch, isFetching } = useDeposits(undefined, {
     enabled: Boolean(session),
@@ -47,7 +47,7 @@ function OxapayReturnInner() {
     <div className="space-y-6">
       <PageHeader
         title="Crypto payment status"
-        description="This page never credits your balance. Funds update only after OxaPay server confirmation."
+        description="This page never credits your balance. Funds update only after Plisio server confirmation."
       />
       <Card variant="glass" className="mx-auto max-w-lg space-y-4 p-6">
         {isLoading && !deposit ? (

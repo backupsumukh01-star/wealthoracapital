@@ -54,10 +54,14 @@ export function mapDeposit(deposit: DepositWithMethod) {
   const amountUsd = usdDisplay(deposit.amount)
   const amountInr = deposit.amountInr != null ? inrDisplay(deposit.amountInr) : null
   const gateway = nonempty(details?.gateway)
-  const paymentUrl = nonempty(details?.oxapayPaymentUrl) ?? nonempty(details?.paymentUrl)
+  const paymentUrl =
+    nonempty(details?.plisioInvoiceUrl) ??
+    nonempty(details?.oxapayPaymentUrl) ??
+    nonempty(details?.paymentUrl)
   const oxapayTrackId =
+    nonempty(details?.plisioTxnId) ??
     nonempty(details?.oxapayTrackId) ??
-    (gateway === 'oxapay' ? nonempty(deposit.userReference) : null)
+    (gateway === 'oxapay' || gateway === 'plisio' ? nonempty(deposit.userReference) : null)
 
   return {
     id: deposit.id,
