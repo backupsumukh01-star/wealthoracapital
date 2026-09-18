@@ -25,6 +25,16 @@ const DEFAULT_MAX = d('100000')
 const DEFAULT_FEE_PCT = d('0')
 const DAILY_LIMIT = d('50000')
 
+async function platformWithdrawalBounds() {
+  const platform = await settingsService.getOrInitPlatformSettings()
+  const min = d(platform.minWithdrawal)
+  const max = d(platform.maxWithdrawal)
+  return {
+    min: min.isFinite() && min.gt(0) ? min : DEFAULT_MIN,
+    max: max.isFinite() && max.gt(0) ? max : DEFAULT_MAX,
+  }
+}
+
 function withdrawalRef(): string {
   return `WD-${randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase()}`
 }
@@ -95,9 +105,10 @@ export const withdrawalService = {
     const used = d(withdrawnToday._sum.amount ?? 0)
     const eligibility = await getWithdrawalEligibility(userId)
     const latestRail = await getLatestQualifyingDepositRail(userId)
+    const bounds = await platformWithdrawalBounds()
     return {
-      min: moneyDisplay(DEFAULT_MIN),
-      max: moneyDisplay(DEFAULT_MAX),
+      min: moneyDisplay(bounds.min),
+      max: moneyDisplay(bounds.max),
       dailyRemaining: moneyDisplay(DecimalMax(DAILY_LIMIT.minus(used), d(0))),
       feePct: moneyDisplay(DEFAULT_FEE_PCT),
       availableBalance: moneyDisplay(wallet.availableBalance),
@@ -382,8 +393,9 @@ export const withdrawalService = {
 
     const amount = d(body.amount)
     if (!amount.isFinite() || amount.lte(0)) throw badRequest('Invalid withdrawal amount.')
-    if (amount.lt(DEFAULT_MIN)) throw badRequest(`Minimum withdrawal is ${moneyDisplay(DEFAULT_MIN)}.`)
-    if (amount.gt(DEFAULT_MAX)) throw badRequest(`Maximum withdrawal is ${moneyDisplay(DEFAULT_MAX)}.`)
+    const bounds = await platformWithdrawalBounds()
+    if (amount.lt(bounds.min)) throw badRequest(`Minimum withdrawal is ${moneyDisplay(bounds.min)}.`)
+    if (amount.gt(bounds.max)) throw badRequest(`Maximum withdrawal is ${moneyDisplay(bounds.max)}.`)
 
     const payout = await prisma.payoutMethod.findFirst({
       where: { id: body.payoutMethodId, userId, deletedAt: null },
