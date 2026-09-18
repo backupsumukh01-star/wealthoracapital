@@ -217,10 +217,13 @@ export function AdminGlobalSettingsWorkspace() {
 
       <AdminPanel>
         <AdminPanelHeader title="Security & KYC" />
+        <p className="px-4 pt-4 text-caption text-fg-muted sm:px-5">
+          KYC cannot be turned off for the platform. Admin Create user skips KYC for that
+          investor only. Public registration, login, and Google signup still require KYC.
+        </p>
         <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5">
           {(
             [
-              ['kycRequired', 'KYC required'],
               ['twoFaRequired', '2FA required'],
               ['maintenanceMode', 'Maintenance mode'],
             ] as const
@@ -235,7 +238,6 @@ export function AdminGlobalSettingsWorkspace() {
                     updateToggles({ maintenance: e.target.checked })
                     updateSiteSeo({ maintenanceMode: e.target.checked })
                   }
-                  if (key === 'kycRequired') updateToggles({ kyc: e.target.checked })
                 }}
               />
               {label}

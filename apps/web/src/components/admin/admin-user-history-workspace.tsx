@@ -100,7 +100,7 @@ export function AdminUserHistoryWorkspace() {
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="Historical data"
-        description="Inserts records into the existing deposit, profit, withdrawal, referral, and ledger tables. No payment gateway or payout is called."
+        description="Add or change historical deposits, profit, withdrawals, and referrals after the investor exists. No payment gateway or payout is called."
         eyebrow={
           <Link href={ROUTES.admin.user(userId)} className="hover:text-fg">
             ← {name}

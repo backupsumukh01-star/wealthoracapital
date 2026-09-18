@@ -295,7 +295,10 @@ export const settingsService = {
   },
 
   async updateFeatureFlags(actorId: string, body: Record<string, boolean>, context: Ctx) {
-    for (const [key, enabled] of Object.entries(body)) {
+    // KYC is never a platform skip. Admin Create user approves that one account;
+    // self-registration and login still require KYC.
+    const next = { ...body, kyc: true }
+    for (const [key, enabled] of Object.entries(next)) {
       await prisma.featureFlag.upsert({
         where: { key },
         create: { key, enabled, updatedById: actorId },
@@ -306,7 +309,7 @@ export const settingsService = {
       actorId,
       action: 'settings.feature_flags_update',
       module: 'settings',
-      newValue: body,
+      newValue: next,
       ip: context.ip,
       userAgent: context.userAgent,
     })

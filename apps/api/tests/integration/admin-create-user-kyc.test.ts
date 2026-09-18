@@ -72,5 +72,25 @@ describe('Admin manual user creation KYC exemption', () => {
     const publicUser = await prisma.user.findFirstOrThrow({ where: { email: publicEmail } })
     expect(publicUser.kycStatus).toBe('NOT_STARTED')
     expect(publicUser.emailVerifiedAt).toBeNull()
+
+    const history = await agent
+      .post(`/api/v1/admin/users/${row.id}/history`)
+      .set('x-csrf-token', csrf)
+      .send({
+        activity: 'DEPOSIT',
+        occurredAt: '2024-01-15T10:00:00.000Z',
+        amount: '100.00',
+        currency: 'USD',
+        note: 'Backfill after admin create',
+      })
+    expect([200, 201]).toContain(history.status)
+    expect(history.body.data.records).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          activity: 'DEPOSIT',
+          amount: expect.any(String),
+        }),
+      ]),
+    )
   })
 })

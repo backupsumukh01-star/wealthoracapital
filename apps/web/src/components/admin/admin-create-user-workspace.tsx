@@ -57,9 +57,9 @@ export function AdminCreateUserWorkspace() {
       })
       await queryClient.invalidateQueries({ queryKey: adminQueryKeys.users() })
       toast.success('Investor created', {
-        description: 'KYC is skipped. They can sign in on the existing login page.',
+        description: 'KYC is skipped for this admin-created account. Add historical data next.',
       })
-      router.push(ROUTES.admin.user(user.id))
+      router.push(ROUTES.admin.userHistory(user.id))
     } catch (err) {
       toast.error(
         err instanceof ApiError
@@ -77,7 +77,7 @@ export function AdminCreateUserWorkspace() {
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="Create user"
-        description="Creates a normal investor in the existing account system. They sign in on the existing login page."
+        description="Manual admin accounts skip KYC and can receive historical data after create. Public registration, login, and Google signup still require KYC."
         eyebrow={
           <Link href={ROUTES.admin.users} className="hover:text-fg">
             ← Users

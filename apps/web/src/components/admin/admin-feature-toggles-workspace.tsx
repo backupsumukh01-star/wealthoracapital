@@ -19,7 +19,6 @@ const LABELS: Record<string, string> = {
   support: 'Support',
   trading: 'Trading',
   maintenance: 'Maintenance mode',
-  kyc: 'KYC',
   reports: 'Reports',
   notifications: 'Notifications',
   email: 'Email',
@@ -34,7 +33,9 @@ export function AdminFeatureTogglesWorkspace() {
     queryFn: () => settingsService.featureFlags(),
   })
 
-  const keys = Array.from(new Set([...DEFAULT_KEYS, ...Object.keys(flags)]))
+  const keys = Array.from(new Set([...DEFAULT_KEYS, ...Object.keys(flags)])).filter(
+    (key) => key !== 'kyc',
+  )
 
   const updateMutation = useMutation({
     mutationFn: (next: Record<string, boolean>) => settingsService.updateFeatureFlags(next),
@@ -72,7 +73,7 @@ export function AdminFeatureTogglesWorkspace() {
                   aria-checked={on}
                   disabled={updateMutation.isPending}
                   onClick={() => {
-                    const next = { ...flags, [key]: !on }
+                    const next = { ...flags, [key]: !on, kyc: true }
                     updateMutation.mutate(next)
                     toast.message(`${LABELS[key] ?? key} ${!on ? 'enabled' : 'disabled'}`)
                   }}

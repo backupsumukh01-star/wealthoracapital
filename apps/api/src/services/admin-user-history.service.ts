@@ -297,7 +297,9 @@ export const adminUserHistoryService = {
     const { amountUsd, amountInr } = await resolveUsdAmount(body)
     const note = body.note?.trim() || NOTE_FALLBACK
     const occurredAt = body.occurredAt
-    const idempotency = `historical:${body.activity.toLowerCase()}:${userId}:${occurredAt.toISOString()}:${randomUUID()}`
+    const stamp = occurredAt.toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)
+    const nonce = randomUUID().replace(/-/g, '').slice(0, 10)
+    const idempotency = `h:${body.activity.toLowerCase().slice(0, 3)}:${userId.replace(/-/g, '')}:${stamp}:${nonce}`
 
     await ledgerService.ensureWalletsForUser(userId)
 
