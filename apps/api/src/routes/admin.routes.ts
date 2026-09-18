@@ -23,6 +23,7 @@ import { adminTradingRouter } from './admin-trading.routes.js'
 import {
   adminActivityQuerySchema,
   adminAuditQuerySchema,
+  adminCreateUserSchema,
   adminStatusReasonSchema,
   adminUpdateUserSchema,
   adminUserListQuerySchema,
@@ -77,6 +78,13 @@ adminRouter.get(
   requirePermission(PERMISSIONS['users.view']),
   validate(adminUserListQuerySchema, 'query'),
   adminUsersController.list,
+)
+
+adminRouter.post(
+  '/users',
+  requirePermission(PERMISSIONS['users.edit']),
+  validate(adminCreateUserSchema),
+  adminUsersController.create,
 )
 
 adminRouter.get(

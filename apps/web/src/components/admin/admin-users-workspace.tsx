@@ -28,6 +28,7 @@ import {
 import { cn } from '@/lib/cn'
 import { formatDateTime } from '@/lib/format'
 import { useAdminUsers } from '@/features/admin/hooks'
+import { PermissionGate } from '@/features/auth/guards'
 
 type FilterChip = 'all' | 'verified' | 'pending' | 'suspended' | 'rejected'
 
@@ -202,9 +203,16 @@ export function AdminUsersWorkspace() {
         title="Users"
         description="Searchable directory of investors — KYC, balances, and account state."
         actions={
-          <Button asChild variant="secondary" size="sm">
-            <Link href={ROUTES.admin.kyc}>KYC queue</Link>
-          </Button>
+          <>
+            <PermissionGate permission="users.edit">
+              <Button asChild size="sm">
+                <Link href={ROUTES.admin.newUser}>Create user</Link>
+              </Button>
+            </PermissionGate>
+            <Button asChild variant="secondary" size="sm">
+              <Link href={ROUTES.admin.kyc}>KYC queue</Link>
+            </Button>
+          </>
         }
       />
 

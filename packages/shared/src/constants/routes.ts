@@ -77,6 +77,7 @@ export const ROUTES = {
     root: '/admin',
     login: '/admin/login',
     users: '/admin/users',
+    newUser: '/admin/users/new',
     user: (userId: string) => `/admin/users/${userId}`,
     kyc: '/admin/kyc',
     kycReview: (userId: string) => `/admin/kyc/${userId}`,

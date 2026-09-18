@@ -3,6 +3,7 @@ import { asyncHandler } from '../utils/async-handler.js'
 import { requestContext } from '../utils/request-context.js'
 import { sendSuccess } from '../utils/response.js'
 import type {
+  adminCreateUserSchema,
   adminStatusReasonSchema,
   adminUpdateUserSchema,
   adminUserListQuerySchema,
@@ -11,11 +12,21 @@ import type {
 import type { z } from 'zod'
 
 type ListQuery = z.infer<typeof adminUserListQuerySchema>
+type CreateBody = z.infer<typeof adminCreateUserSchema>
 type UpdateBody = z.infer<typeof adminUpdateUserSchema>
 type ReasonBody = z.infer<typeof adminStatusReasonSchema>
 type NoteBody = z.infer<typeof adminUserNoteSchema>
 
 export const adminUsersController = {
+  create: asyncHandler(async (req, res) => {
+    const data = await adminUsersService.create(
+      req.user!.id,
+      req.body as CreateBody,
+      requestContext(req),
+    )
+    sendSuccess(res, data, 201)
+  }),
+
   list: asyncHandler(async (req, res) => {
     const query = req.query as unknown as ListQuery
     const result = await adminUsersService.list({

@@ -350,6 +350,19 @@ export const adminService = {
       body: { reason },
     }),
 
+  createUser: (body: {
+    firstName: string
+    lastName: string
+    email: string
+    password: string
+    phone?: string
+    country?: string
+  }) =>
+    apiClient<User>(API_ROUTES.admin.users, {
+      method: 'POST',
+      body,
+    }),
+
   enableUser: (id: string, reason?: string) =>
     apiClient<User>(`${API_ROUTES.admin.users}/${id}/enable`, {
       method: 'POST',

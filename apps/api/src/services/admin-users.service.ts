@@ -1,16 +1,20 @@
 import type { Role, StaffRole, User, UserStatus } from '@prisma/client'
+import { randomUUID } from 'node:crypto'
 
+import { AUTH_LIMITS } from '../config/constants.js'
 import { prisma } from '../database/prisma.js'
 import { toPublicUser } from '../models/user.mapper.js'
 import { sessionRepository } from '../repositories/session.repository.js'
 import { userRepository, type UserListFilters } from '../repositories/user.repository.js'
-import { badRequest, forbidden, notFound } from '../utils/errors.js'
+import { generateReferralCode } from '../utils/crypto.js'
+import { badRequest, conflict, forbidden, notFound } from '../utils/errors.js'
 import { d, moneyDisplay } from '../utils/money.js'
 import { storage } from './storage/index.js'
 import { activityService } from './activity.service.js'
 import { auditService } from './audit.service.js'
 import { notificationService } from './notification.service.js'
 import { opsAlertService } from './ops-alert.service.js'
+import { passwordService } from './password.service.js'
 import {
   batchUserFinance,
   mapPayoutMethod,
@@ -89,7 +93,91 @@ function formatAddress(parts: Array<string | null | undefined>) {
   return cleaned.length ? cleaned.join(', ') : null
 }
 
+async function allocateReferralCode(): Promise<string> {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const code = generateReferralCode(AUTH_LIMITS.referralCodeLength)
+    const existing = await userRepository.findByReferralCode(code)
+    if (!existing) return code
+  }
+  return generateReferralCode(AUTH_LIMITS.referralCodeLength) + randomUUID().slice(0, 4)
+}
+
 export const adminUsersService = {
+  async create(
+    actorId: string,
+    body: {
+      firstName: string
+      lastName: string
+      email: string
+      password: string
+      phone?: string
+      country?: string
+    },
+    context: { ip?: string | null; userAgent?: string | null },
+  ) {
+    const existing = await userRepository.findByEmail(body.email)
+    if (existing) {
+      throw conflict('An account with this email already exists.')
+    }
+    if (body.phone?.trim()) {
+      const phoneOwner = await userRepository.findByPhone(body.phone.trim())
+      if (phoneOwner) {
+        throw conflict('An account with this phone number already exists.')
+      }
+    }
+
+    const now = new Date()
+    const passwordHash = await passwordService.hash(body.password)
+    const referralCode = await allocateReferralCode()
+    const country = (body.country || DEFAULT_COUNTRY).toUpperCase()
+
+    const user = await userRepository.create({
+      email: body.email,
+      passwordHash,
+      firstName: body.firstName,
+      lastName: body.lastName,
+      phone: body.phone?.trim() || null,
+      country,
+      role: 'USER',
+      status: 'ACTIVE',
+      emailVerifiedAt: now,
+      passwordChangedAt: now,
+      referralCode,
+      termsAcceptedAt: now,
+      riskAcceptedAt: now,
+    })
+
+    await auditService.record({
+      actorId,
+      targetUserId: user.id,
+      action: 'user.create',
+      module: 'users',
+      newValue: snapshotUser(user),
+      ip: context.ip,
+      userAgent: context.userAgent,
+    })
+    await activityService.record({
+      userId: user.id,
+      actorId,
+      kind: 'REGISTRATION',
+      title: 'Account created by admin',
+      ip: context.ip,
+      userAgent: context.userAgent,
+    })
+    await opsAlertService.notify({
+      event: 'USER_REGISTERED',
+      title: 'User created by admin',
+      action: 'New investor account created by operator',
+      userId: user.id,
+      userName: `${user.firstName} ${user.lastName}`.trim(),
+      userEmail: user.email,
+      adminPath: `/admin/users/${user.id}`,
+      recordActivity: false,
+    })
+
+    return toPublicUser(user)
+  },
+
   async list(input: {
     filters: UserListFilters
     page: number
