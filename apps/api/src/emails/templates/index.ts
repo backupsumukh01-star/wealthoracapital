@@ -83,20 +83,20 @@ export function renderEmailTemplate(
       const link = `${env.APP_URL}/reset-password?token=${encodeURIComponent(v.token ?? '')}`
       return {
         subject: `Reset your ${env.APP_NAME} password`,
-        text: `Hi ${v.firstName},\n\nReset: ${link}\nExpires in 1 hour.\nIP: ${v.ip ?? '—'}\nBrowser: ${v.browser ?? '—'}`,
+        text: `Hi ${v.firstName},\n\nSet or reset your password: ${link}\nExpires in 1 hour.\nIP: ${v.ip ?? '—'}\nBrowser: ${v.browser ?? '—'}`,
         html: emailLayout({
           category: 'Security',
-          title: 'Reset your password',
-          preheader: 'Password reset link — expires in 1 hour',
+          title: 'Set or reset your password',
+          preheader: 'Password link — expires in 1 hour',
           bodyHtml: `${greeting(v.firstName ?? '')}${paragraph(
-            'We received a request to reset your password. If you did not request this, you can ignore this email.',
+            'Use the button below to set a new password for your account. This also works if you signed in with Google and have not created a password yet. If you did not request this, you can ignore this email.',
           )}${detailRows([
             ['Expiry', v.expiry ?? '1 hour'],
             ['IP address', v.ip ?? '—'],
             ['Browser', v.browser ?? '—'],
             ['Time', v.time ?? new Date().toISOString()],
           ])}`,
-          ctas: [{ label: 'Reset password', href: link }],
+          ctas: [{ label: 'Set password', href: link }],
         }),
       }
     }

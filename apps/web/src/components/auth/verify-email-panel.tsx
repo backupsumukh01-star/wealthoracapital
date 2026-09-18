@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { ROUTES } from '@meridian/shared'
 import { toast } from 'sonner'
@@ -81,7 +82,7 @@ export function VerifyEmailPanel() {
         token
           ? 'That verification link is invalid or has expired. Request a new one below.'
           : email
-            ? `We sent a verification link to ${email}. Open it on this device to continue.`
+            ? `We sent a setup link to ${email}. Open it to verify your email or set your password, then sign in.`
             : 'Enter your email to resend the verification link.'
       }
     >
@@ -149,6 +150,15 @@ export function VerifyEmailPanel() {
           ? `Resend available in ${cooldown}s`
           : 'Resend verification email'}
       </Button>
+      <p className="pt-2 text-center text-sm text-muted">
+        Already have an account, or signed in with Google?{' '}
+        <Link
+          href={ROUTES.auth.forgotPassword}
+          className="rounded-sm text-accent-300 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Set or reset your password
+        </Link>
+      </p>
     </AuthCard>
   )
 }

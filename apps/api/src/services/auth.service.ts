@@ -182,6 +182,19 @@ async function createPasswordResetToken(userId: string): Promise<string> {
   return raw
 }
 
+async function sendPasswordResetForUser(user: {
+  id: string
+  email: string
+  firstName: string
+}): Promise<void> {
+  const token = await createPasswordResetToken(user.id)
+  await emailService.sendPasswordResetEmail({
+    to: user.email,
+    firstName: user.firstName,
+    token,
+  })
+}
+
 export const authService = {
   /** Issue access + refresh cookies/session for an already-authenticated user (password or OAuth). */
   async issueTokensForUser(user: User, context: SessionContext) {
@@ -219,6 +232,19 @@ export const authService = {
     }
 
     if (existing) {
+      // Google / OAuth accounts have no password yet — send a set-password link
+      // so they can finish email signup without a dead-end "verify" screen.
+      if (!existing.passwordHash) {
+        await sendPasswordResetForUser(existing).catch((err) => {
+          logger.warn({ err, email: input.email }, 'Set-password email failed for existing verified account')
+        })
+        logger.info(
+          { email: input.email, userId: existing.id },
+          'Registration for existing verified email without password — sent set-password email',
+        )
+        return { userId: randomUUID(), emailSent: true }
+      }
+
       await emailService.sendRegistrationAttemptEmail({
         to: existing.email,
         firstName: existing.firstName,
@@ -613,16 +639,15 @@ export const authService = {
 
   async forgotPassword(input: ForgotPasswordInput): Promise<void> {
     const user = await userRepository.findByEmail(input.email)
-    if (!user || !user.passwordHash) {
+    // Send even when passwordHash is null (Google-only accounts) so they can set a password.
+    if (!user) {
       return
     }
-    const token = await createPasswordResetToken(user.id)
-    await emailService.sendPasswordResetEmail({
-      to: user.email,
-      firstName: user.firstName,
-      token,
-    })
-    logger.info({ userId: user.id }, 'Password reset email sent')
+    await sendPasswordResetForUser(user)
+    logger.info(
+      { userId: user.id, hadPassword: Boolean(user.passwordHash) },
+      'Password reset email sent',
+    )
   },
 
   async resetPassword(input: ResetPasswordInput): Promise<void> {
@@ -633,9 +658,17 @@ export const authService = {
     }
 
     const passwordHash = await passwordService.hash(input.password)
-    await userRepository.updatePassword(record.userId, passwordHash)
+    const user = await userRepository.updatePassword(record.userId, passwordHash)
     await verificationTokenRepository.markUsed(record.id)
     await sessionRepository.revokeAllForUser(record.userId)
+
+    // Clicking a reset link proves inbox ownership — activate so they can sign in
+    // even if the original verification email never arrived.
+    if (!user.emailVerifiedAt) {
+      await userRepository.markEmailVerified(user.id)
+      logger.info({ userId: user.id }, 'Email marked verified via password reset')
+    }
+
     logger.info({ userId: record.userId }, 'Password reset completed')
     await activityService.record({
       userId: record.userId,

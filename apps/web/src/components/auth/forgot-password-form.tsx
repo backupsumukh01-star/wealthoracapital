@@ -34,7 +34,7 @@ export function ForgotPasswordForm() {
     return (
       <SuccessState
         title="Check your inbox"
-        description="If an account exists for that email, we sent a link to reset your password. The link expires in 1 hour."
+        description="If an account exists for that email, we sent a link to set or reset your password. The link expires in 1 hour."
         primaryAction={{
           label: 'Back to login',
           href: ROUTES.auth.login,
@@ -46,7 +46,7 @@ export function ForgotPasswordForm() {
   return (
     <AuthCard
       title="Forgot password"
-      description="Enter your email. We will send you a link to reset your password."
+      description="Enter your email. We will send a link so you can set or reset your password anytime — including Google accounts."
       footer={
         <>
           Remembered it?{' '}

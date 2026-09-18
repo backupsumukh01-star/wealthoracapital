@@ -89,8 +89,8 @@ export function RegisterForm() {
       toast.success('Account created', {
         description:
           result.emailSent === false
-            ? 'We could not send the verification email yet. Use Resend on the next screen.'
-            : 'Check your email to verify your address, then sign in.',
+            ? 'We could not send the setup email yet. Use Resend on the next screen.'
+            : 'Check your email to finish setup, then sign in.',
       })
       router.push(
         `${ROUTES.auth.verifyEmail}?email=${encodeURIComponent(values.email.trim().toLowerCase())}&from=register`,

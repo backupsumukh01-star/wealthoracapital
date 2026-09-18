@@ -231,6 +231,148 @@ describe('Auth flows', () => {
     expect(loginNew.body.error.code).toBe('EMAIL_NOT_VERIFIED')
   })
 
+  it('forgot password issues a reset token for Google-only accounts with no password', async () => {
+    const email = uniqueEmail()
+    const { prisma } = await import('../../src/database/prisma.js')
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: null,
+        firstName: 'Google',
+        lastName: 'Only',
+        status: 'ACTIVE',
+        emailVerifiedAt: new Date(),
+        referralCode: randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase(),
+      },
+    })
+
+    const res = await request(app).post('/api/v1/auth/forgot-password').send({ email })
+    expect(res.status).toBe(200)
+
+    const tokens = await prisma.verificationToken.findMany({
+      where: { userId: user.id, type: 'PASSWORD_RESET' },
+    })
+    expect(tokens.some((t) => t.expiresAt > new Date() && !t.usedAt)).toBe(true)
+  })
+
+  it('password reset sets a password on Google-only accounts and allows login', async () => {
+    const email = uniqueEmail()
+    const newPassword = 'GooglePass1!'
+    const { prisma } = await import('../../src/database/prisma.js')
+    const { tokenService } = await import('../../src/services/token.service.js')
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: null,
+        firstName: 'Google',
+        lastName: 'SetPwd',
+        status: 'ACTIVE',
+        emailVerifiedAt: new Date(),
+        referralCode: randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase(),
+      },
+    })
+
+    const raw = tokenService.createOpaqueRefreshToken().raw
+    await prisma.verificationToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: tokenService.hashToken(raw),
+        type: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() + 3_600_000),
+      },
+    })
+
+    const reset = await request(app).post('/api/v1/auth/reset-password').send({
+      token: raw,
+      password: newPassword,
+    })
+    expect(reset.status).toBe(200)
+
+    const login = await request(app).post('/api/v1/auth/login').send({
+      email,
+      password: newPassword,
+    })
+    expect(login.status).toBe(200)
+    expect(login.body.data.user.email.toLowerCase()).toBe(email)
+  })
+
+  it('password reset verifies pending accounts so they can log in', async () => {
+    const email = uniqueEmail()
+    const password = 'SecurePass1!'
+    const newPassword = 'ResetPass1!'
+
+    await request(app).post('/api/v1/auth/register').send({
+      email,
+      password,
+      firstName: 'Qa',
+      lastName: 'Reset',
+      acceptTerms: true,
+      acceptRisk: true,
+    })
+
+    const { prisma } = await import('../../src/database/prisma.js')
+    const { tokenService } = await import('../../src/services/token.service.js')
+    const user = await prisma.user.findFirstOrThrow({ where: { email } })
+
+    const raw = tokenService.createOpaqueRefreshToken().raw
+    await prisma.verificationToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: tokenService.hashToken(raw),
+        type: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() + 3_600_000),
+      },
+    })
+
+    const reset = await request(app).post('/api/v1/auth/reset-password').send({
+      token: raw,
+      password: newPassword,
+    })
+    expect(reset.status).toBe(200)
+
+    const refreshed = await prisma.user.findUniqueOrThrow({ where: { id: user.id } })
+    expect(refreshed.emailVerifiedAt).toBeTruthy()
+    expect(refreshed.status).toBe('ACTIVE')
+
+    const login = await request(app).post('/api/v1/auth/login').send({
+      email,
+      password: newPassword,
+    })
+    expect(login.status).toBe(200)
+  })
+
+  it('registering an existing Google account sends a set-password email instead of a dead end', async () => {
+    const email = uniqueEmail()
+    const { prisma } = await import('../../src/database/prisma.js')
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: null,
+        firstName: 'Google',
+        lastName: 'Register',
+        status: 'ACTIVE',
+        emailVerifiedAt: new Date(),
+        referralCode: randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase(),
+      },
+    })
+
+    const res = await request(app).post('/api/v1/auth/register').send({
+      email,
+      password: 'NewPassword1!',
+      firstName: 'Google',
+      lastName: 'Register',
+      acceptTerms: true,
+      acceptRisk: true,
+    })
+    expect([200, 201]).toContain(res.status)
+    expect(res.body.success).toBe(true)
+
+    const tokens = await prisma.verificationToken.findMany({
+      where: { userId: user.id, type: 'PASSWORD_RESET' },
+    })
+    expect(tokens.some((t) => t.expiresAt > new Date() && !t.usedAt)).toBe(true)
+  })
+
   it('protected routes reject missing auth cookie', async () => {
     const res = await request(app).get('/api/v1/wallet')
     expect(res.status).toBe(401)
