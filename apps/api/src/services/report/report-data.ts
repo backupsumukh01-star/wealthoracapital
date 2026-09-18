@@ -2,6 +2,7 @@ import type { ReportType } from '@prisma/client'
 
 import { prisma } from '../../database/prisma.js'
 import { moneyDisplay } from '../../utils/money.js'
+import { realInvestorUser } from '../demo-investor.js'
 
 export interface ReportDataResult {
   rows: Array<Record<string, unknown>>
@@ -245,6 +246,7 @@ export async function fetchReportRows(
         prisma.deposit.findMany({
           where: {
             createdAt: range,
+            user: realInvestorUser,
             ...userFilter,
             ...(params.status ? { status: params.status as never } : {}),
             ...(params.amount ? { amount: params.amount } : {}),
@@ -260,6 +262,7 @@ export async function fetchReportRows(
         prisma.withdrawal.findMany({
           where: {
             createdAt: range,
+            user: realInvestorUser,
             ...userFilter,
             ...(params.status ? { status: params.status as never } : {}),
             ...(params.amount ? { amount: params.amount } : {}),

@@ -2,6 +2,7 @@ import { prisma } from '../database/prisma.js'
 import { logger } from '../utils/logger.js'
 import { emailService } from '../emails/email.service.js'
 import { opsAlertService } from './ops-alert.service.js'
+import { realDepositWhere, realWithdrawalWhere } from './demo-investor.js'
 import { env } from '../config/env.js'
 
 function startOfUtcDay(d = new Date()) {
@@ -54,11 +55,11 @@ export const dailyOwnerReportService = {
         },
       }),
       prisma.deposit.findMany({
-        where: { createdAt: { gte: from, lt: to } },
+        where: realDepositWhere({ createdAt: { gte: from, lt: to } }),
         select: { amount: true, status: true },
       }),
       prisma.withdrawal.findMany({
-        where: { createdAt: { gte: from, lt: to } },
+        where: realWithdrawalWhere({ createdAt: { gte: from, lt: to } }),
         select: { amount: true, status: true },
       }),
       prisma.trade.count({ where: { createdAt: { gte: from, lt: to } } }),

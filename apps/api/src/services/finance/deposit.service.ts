@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import path from 'node:path'
-import type { DepositStatus, Prisma } from '@prisma/client'
+import type { DepositStatus } from '@prisma/client'
 import { prisma } from '../../database/prisma.js'
 import { env } from '../../config/env.js'
 import { transactionalMailer } from '../../emails/transactional.js'
@@ -21,6 +21,7 @@ import { ledgerService } from './ledger.service.js'
 import { paymentMethodService } from './payment-method.service.js'
 import { referralService } from './referral.service.js'
 import { DEPOSIT_LOCK_DAYS_DEFAULT, computeFundsUnlockAt } from './currency.service.js'
+import { realDepositWhere, isDemoInvestor } from '../demo-investor.js'
 
 type Ctx = { ip?: string | null; userAgent?: string | null }
 
@@ -31,7 +32,7 @@ function depositRef(): string {
 async function requireActiveInvestor(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, status: true, kycStatus: true },
+    select: { id: true, status: true, kycStatus: true, createdByAdminId: true },
   })
   if (!user) throw notFound('User not found.')
   if (user.status !== 'ACTIVE') throw forbidden('Account is not active.')
@@ -89,7 +90,8 @@ export const depositService = {
     },
     context: Ctx,
   ) {
-    await requireActiveInvestor(userId)
+    const investor = await requireActiveInvestor(userId)
+    const demo = Boolean(investor.createdByAdminId)
     const existing = await prisma.deposit.findUnique({
       where: { idempotencyKey: body.idempotencyKey },
       include: { paymentMethod: { select: { id: true, name: true, type: true } } },
@@ -165,16 +167,18 @@ export const depositService = {
         })
 
         await ledgerService.adjustPending(tx, wallet.id, amount)
-        await tx.approvalQueue.create({
-          data: {
-            entityType: 'DEPOSIT',
-            entityId: created.id,
-            depositId: created.id,
-            status: 'PENDING',
-            requiredRole: 'FINANCE',
-            priority: 100,
-          },
-        })
+        if (!demo) {
+          await tx.approvalQueue.create({
+            data: {
+              entityType: 'DEPOSIT',
+              entityId: created.id,
+              depositId: created.id,
+              status: 'PENDING',
+              requiredRole: 'FINANCE',
+              priority: 100,
+            },
+          })
+        }
         await tx.transactionHistory.create({
           data: {
             userId,
@@ -469,7 +473,7 @@ export const depositService = {
     limit: number
     cursor?: string
   }) {
-    const where: Prisma.DepositWhereInput = {
+    const where = realDepositWhere({
       ...(query.status ? { status: query.status } : {}),
       ...(query.paymentMethodId ? { paymentMethodId: query.paymentMethodId } : {}),
       ...(query.reviewerId ? { reviewedById: query.reviewerId } : {}),
@@ -501,7 +505,7 @@ export const depositService = {
             ],
           }
         : {}),
-    }
+    })
 
     const skip = (query.page - 1) * query.limit
     const [items, total] = await Promise.all([
@@ -561,13 +565,14 @@ export const depositService = {
             lastName: true,
             phone: true,
             kycStatus: true,
+            createdByAdminId: true,
           },
         },
         reviews: { orderBy: { createdAt: 'desc' } },
         queue: true,
       },
     })
-    if (!deposit) throw notFound('Deposit not found.')
+    if (!deposit || deposit.user.createdByAdminId) throw notFound('Deposit not found.')
     const adminProofUrl = `${env.API_URL.replace(/\/$/, '')}/api/v1/admin/deposits/${deposit.id}/proof`
     let signedFallback: string | null = null
     if (deposit.proofKey && deposit.proofKey.trim()) {
@@ -594,11 +599,12 @@ export const depositService = {
         : {}
     const mapped = mapDeposit(deposit)
     const proofImageUrl = mapped.hasProof ? adminProofUrl : null
+    const { createdByAdminId: _demoFlag, ...publicUser } = deposit.user
     return {
       ...mapped,
       user: {
-        ...deposit.user,
-        phone: (deposit.user as { phone?: string | null }).phone ?? null,
+        ...publicUser,
+        phone: publicUser.phone ?? null,
       },
       internalNotes: deposit.internalNotes,
       notes: deposit.notes,
@@ -635,6 +641,7 @@ export const depositService = {
       include: { paymentMethod: { select: { id: true, name: true, type: true } } },
     })
     if (!deposit) throw notFound('Deposit not found.')
+    if (await isDemoInvestor(deposit.userId)) throw notFound('Deposit not found.')
 
     if (body.decision === 'APPROVE' || body.decision === 'FORCE_COMPLETE') {
       // FORCE_COMPLETE uses the same status gate as APPROVE — never credit cancelled/rejected rows.

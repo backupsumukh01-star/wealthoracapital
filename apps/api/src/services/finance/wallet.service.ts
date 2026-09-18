@@ -6,6 +6,7 @@ import { badRequest, forbidden, notFound } from '../../utils/errors.js'
 import { d, moneyDisplay } from '../../utils/money.js'
 import { ledgerService } from './ledger.service.js'
 import { mapLedgerEntry, mapWalletAggregate } from './finance.mappers.js'
+import { realInvestorUser } from '../demo-investor.js'
 
 async function requireKycApproved(userId: string) {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { kycStatus: true } })
@@ -154,18 +155,17 @@ export const walletService = {
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(q!)
     const where: Prisma.WalletWhereInput = {
       kind: 'INVESTMENT',
-      ...(q
+      user: q
         ? {
-            user: {
-              OR: [
-                ...(qIsUuid ? [{ id: q }] : []),
-                { email: { contains: q, mode: 'insensitive' as const } },
-                { firstName: { contains: q, mode: 'insensitive' as const } },
-                { lastName: { contains: q, mode: 'insensitive' as const } },
-              ],
-            },
+            ...realInvestorUser,
+            OR: [
+              ...(qIsUuid ? [{ id: q }] : []),
+              { email: { contains: q, mode: 'insensitive' as const } },
+              { firstName: { contains: q, mode: 'insensitive' as const } },
+              { lastName: { contains: q, mode: 'insensitive' as const } },
+            ],
           }
-        : {}),
+        : realInvestorUser,
     }
     const [rows, total] = await Promise.all([
       prisma.wallet.findMany({

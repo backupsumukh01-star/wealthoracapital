@@ -13,6 +13,7 @@ import { scheduler } from '../jobs/scheduler.js'
 import { getErrorLogs, getSystemLogs, recordSystemLog } from '../observability/log-buffer.js'
 import { processStability } from '../observability/process-stability.js'
 import { getRedis, pingRedis } from './redis/client.js'
+import { realDepositWhere, realWithdrawalWhere } from './demo-investor.js'
 
 export type HealthTone = 'healthy' | 'warning' | 'critical'
 
@@ -250,24 +251,31 @@ export const adminHealthService = {
       prisma.emailOutbox.count({
         where: { status: 'SENT', sentAt: { gte: dayStart, lt: dayEnd } },
       }),
-      prisma.deposit.count({ where: { createdAt: { gte: dayStart, lt: dayEnd } } }),
+      prisma.deposit.count({
+        where: realDepositWhere({ createdAt: { gte: dayStart, lt: dayEnd } }),
+      }),
       prisma.deposit.aggregate({
-        where: { createdAt: { gte: dayStart, lt: dayEnd } },
+        where: realDepositWhere({ createdAt: { gte: dayStart, lt: dayEnd } }),
         _sum: { amount: true },
       }),
-      prisma.withdrawal.count({ where: { createdAt: { gte: dayStart, lt: dayEnd } } }),
+      prisma.withdrawal.count({
+        where: realWithdrawalWhere({ createdAt: { gte: dayStart, lt: dayEnd } }),
+      }),
       prisma.withdrawal.aggregate({
-        where: { createdAt: { gte: dayStart, lt: dayEnd } },
+        where: realWithdrawalWhere({ createdAt: { gte: dayStart, lt: dayEnd } }),
         _sum: { amount: true },
       }),
       prisma.kycSubmission.count({
         where: { status: { in: ['PENDING', 'SUBMITTED', 'UNDER_REVIEW', 'NEED_MORE_INFO'] } },
       }),
       prisma.deposit.count({
-        where: { status: 'REJECTED', createdAt: { gte: dayStart, lt: dayEnd } },
+        where: realDepositWhere({ status: 'REJECTED', createdAt: { gte: dayStart, lt: dayEnd } }),
       }),
       prisma.withdrawal.count({
-        where: { status: 'REJECTED', createdAt: { gte: dayStart, lt: dayEnd } },
+        where: realWithdrawalWhere({
+          status: 'REJECTED',
+          createdAt: { gte: dayStart, lt: dayEnd },
+        }),
       }),
       prisma.session.count({
         where: { revokedAt: null, expiresAt: { gt: new Date() } },

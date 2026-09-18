@@ -398,6 +398,11 @@ model User {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
+  /// Set when an operator creates the investor from Admin → Create user.
+  /// Demo accounts look like real investors to themselves; their deposits and
+  /// withdrawals are hidden from admin queues and do not page operators.
+  createdByAdminId String? @map("created_by_admin_id") @db.Uuid
+
   // UserSession — existing Session model (refresh-token sessions)
   sessions               Session[]
   verificationTokens     VerificationToken[]
@@ -435,6 +440,7 @@ model User {
   @@index([createdAt])
   @@index([country])
   @@index([phone])
+  @@index([createdByAdminId])
   @@map("users")
 }
 

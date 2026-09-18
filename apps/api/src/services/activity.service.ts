@@ -28,6 +28,7 @@ const CATEGORY_KINDS: Record<ActivityCategory, ActivityKind[]> = {
     'TRADE_OPENED',
     'TRADE_CLOSED',
     'TRADE_PUBLISHED',
+    'WALLET_ADJUSTMENT',
   ],
   security: [
     'LOGIN',
@@ -50,6 +51,7 @@ export const activityService = {
     metadata?: Record<string, unknown>
     ip?: string | null
     userAgent?: string | null
+    createdAt?: Date
   }): Promise<void> {
     await activityRepository.create({
       user: { connect: { id: input.userId } },
@@ -60,6 +62,7 @@ export const activityService = {
       ...(input.metadata ? { metadata: input.metadata as Prisma.InputJsonValue } : {}),
       ip: input.ip ?? null,
       userAgent: input.userAgent?.slice(0, 400) ?? null,
+      ...(input.createdAt ? { createdAt: input.createdAt } : {}),
     })
   },
 

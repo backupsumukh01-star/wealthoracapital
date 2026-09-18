@@ -33,7 +33,7 @@ describe('Admin manual user creation KYC exemption', () => {
   it('approves KYC only for admin-created users, not public registration', async () => {
     const adminEmail = uniqueEmail('adm')
     const adminPassword = 'SecurePass1!'
-    await registerActive(adminEmail, adminPassword)
+    const admin = await registerActive(adminEmail, adminPassword)
     const agent = request.agent(app)
     const login = await agent.post('/api/v1/auth/login').send({
       email: adminEmail,
@@ -58,6 +58,20 @@ describe('Admin manual user creation KYC exemption', () => {
     expect(row.emailVerifiedAt).toBeTruthy()
     expect(row.status).toBe('ACTIVE')
     expect(row.role).toBe('USER')
+    expect(row.createdByAdminId).toBe(admin.id)
+
+    const titles = await prisma.activityLog.findMany({
+      where: { userId: row.id },
+      select: { kind: true, title: true },
+    })
+    expect(titles).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'REGISTRATION', title: 'Account created' }),
+        expect.objectContaining({ kind: 'KYC_APPROVED', title: 'KYC approved' }),
+      ]),
+    )
+    expect(titles.some((t) => t.title.includes('created by admin'))).toBe(false)
+    expect(titles.some((t) => t.title.toLowerCase().includes('historical'))).toBe(false)
 
     const publicEmail = uniqueEmail('pub')
     const publicReg = await request(app).post('/api/v1/auth/register').send({
@@ -92,5 +106,28 @@ describe('Admin manual user creation KYC exemption', () => {
         }),
       ]),
     )
+
+    const afterHistory = await prisma.activityLog.findMany({
+      where: { userId: row.id },
+      select: { kind: true, title: true, description: true },
+    })
+    expect(afterHistory.some((t) => t.title.toLowerCase().includes('historical'))).toBe(false)
+    expect(afterHistory).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'DEPOSIT_SUBMITTED', title: 'Deposit submitted' }),
+        expect.objectContaining({ kind: 'DEPOSIT_APPROVED', title: 'Deposit confirmed by provider' }),
+      ]),
+    )
+    const submitted = afterHistory.find((t) => t.kind === 'DEPOSIT_SUBMITTED')
+    expect(submitted?.description).toMatch(/^DEP-[A-Z0-9]+$/)
+
+    const demoDeposit = await prisma.deposit.findFirstOrThrow({ where: { userId: row.id } })
+    const adminDeposits = await agent.get('/api/v1/admin/deposits').set('x-csrf-token', csrf)
+    expect(adminDeposits.status).toBe(200)
+    const listedIds = (adminDeposits.body.data.items as Array<{ id: string }>).map((item) => item.id)
+    expect(listedIds).not.toContain(demoDeposit.id)
+
+    const hidden = await agent.get(`/api/v1/admin/deposits/${demoDeposit.id}`).set('x-csrf-token', csrf)
+    expect(hidden.status).toBe(404)
   })
 })

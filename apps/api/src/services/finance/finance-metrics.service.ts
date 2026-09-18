@@ -1,5 +1,6 @@
 import { prisma } from '../../database/prisma.js'
 import { d, moneyDisplay } from '../../utils/money.js'
+import { realDepositWhere, realInvestorUser, realWithdrawalWhere } from '../demo-investor.js'
 
 function dayBounds() {
   const start = new Date()
@@ -25,29 +26,36 @@ export const financeMetricsService = {
       profitAgg,
     ] = await Promise.all([
       prisma.deposit.aggregate({
-        where: { createdAt: { gte: start, lt: end }, status: 'APPROVED' },
+        where: realDepositWhere({ createdAt: { gte: start, lt: end }, status: 'APPROVED' }),
         _sum: { creditedAmount: true, amount: true },
         _count: { _all: true },
       }),
       prisma.withdrawal.aggregate({
-        where: { paidAt: { gte: start, lt: end }, status: { in: ['PAID', 'COMPLETED'] } },
+        where: realWithdrawalWhere({
+          paidAt: { gte: start, lt: end },
+          status: { in: ['PAID', 'COMPLETED'] },
+        }),
         _sum: { amount: true },
         _count: { _all: true },
       }),
-      prisma.deposit.count({ where: { status: { in: ['PENDING', 'UNDER_REVIEW'] } } }),
+      prisma.deposit.count({
+        where: realDepositWhere({ status: { in: ['PENDING', 'UNDER_REVIEW'] } }),
+      }),
       prisma.withdrawal.count({
-        where: { status: { in: ['PENDING', 'UNDER_REVIEW', 'APPROVED', 'PROCESSING'] } },
+        where: realWithdrawalWhere({
+          status: { in: ['PENDING', 'UNDER_REVIEW', 'APPROVED', 'PROCESSING'] },
+        }),
       }),
       prisma.deposit.aggregate({
-        where: { status: 'APPROVED' },
+        where: realDepositWhere({ status: 'APPROVED' }),
         _sum: { creditedAmount: true, amount: true },
       }),
       prisma.withdrawal.aggregate({
-        where: { status: { in: ['PAID', 'COMPLETED'] } },
+        where: realWithdrawalWhere({ status: { in: ['PAID', 'COMPLETED'] } }),
         _sum: { amount: true },
       }),
       prisma.wallet.aggregate({
-        where: { kind: 'INVESTMENT' },
+        where: { kind: 'INVESTMENT', user: realInvestorUser },
         _sum: {
           balance: true,
           availableBalance: true,

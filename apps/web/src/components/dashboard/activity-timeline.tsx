@@ -37,6 +37,7 @@ function categoryForKind(kind: string): ActivityFilter {
   if (
     kind === 'DAILY_RETURN_APPLIED' ||
     kind === 'DISTRIBUTION_COMPLETE' ||
+    kind === 'WALLET_ADJUSTMENT' ||
     kind.startsWith('TRADE_')
   ) {
     return 'profit'

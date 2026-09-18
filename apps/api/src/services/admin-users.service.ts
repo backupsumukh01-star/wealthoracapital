@@ -161,6 +161,7 @@ export const adminUsersService = {
       kycStatus: 'APPROVED',
       emailVerifiedAt: now,
       passwordChangedAt: now,
+      createdByAdminId: actorId,
       referralCode,
       ...(referredById ? { referredBy: { connect: { id: referredById } } } : {}),
       termsAcceptedAt: openedAt,
@@ -183,7 +184,7 @@ export const adminUsersService = {
       userId: user.id,
       actorId,
       kind: 'REGISTRATION',
-      title: 'Account created by admin',
+      title: 'Account created',
       ip: context.ip,
       userAgent: context.userAgent,
     })
@@ -191,7 +192,7 @@ export const adminUsersService = {
       userId: user.id,
       actorId,
       kind: 'KYC_APPROVED',
-      title: 'KYC skipped — account created by admin',
+      title: 'KYC approved',
       ip: context.ip,
       userAgent: context.userAgent,
     })

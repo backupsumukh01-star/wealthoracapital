@@ -2,6 +2,7 @@ import { prisma } from '../database/prisma.js'
 import { activityService } from './activity.service.js'
 import { cache } from './cache/index.js'
 import { moneyDisplay, d } from '../utils/money.js'
+import { realDepositWhere, realInvestorUser, realWithdrawalWhere } from './demo-investor.js'
 
 type PeriodKey = 'today' | 'yesterday' | 'week' | 'month' | 'all'
 
@@ -38,7 +39,7 @@ function pctChange(current: number, previous: number): number {
 }
 
 async function depositStats(from: Date | null, to: Date | null) {
-  const where = {
+  const where = realDepositWhere({
     ...(from || to
       ? {
           createdAt: {
@@ -47,7 +48,7 @@ async function depositStats(from: Date | null, to: Date | null) {
           },
         }
       : {}),
-  }
+  })
   const [total, approved, rejected, pending, sumAll, sumApproved] = await Promise.all([
     prisma.deposit.count({ where }),
     prisma.deposit.count({ where: { ...where, status: 'APPROVED' } }),
@@ -72,7 +73,7 @@ async function depositStats(from: Date | null, to: Date | null) {
 }
 
 async function withdrawalStats(from: Date | null, to: Date | null) {
-  const where = {
+  const where = realWithdrawalWhere({
     ...(from || to
       ? {
           createdAt: {
@@ -81,7 +82,7 @@ async function withdrawalStats(from: Date | null, to: Date | null) {
           },
         }
       : {}),
-  }
+  })
   const [total, approved, rejected, pending, paid, sumAll, sumPaid] = await Promise.all([
     prisma.withdrawal.count({ where }),
     prisma.withdrawal.count({
@@ -141,13 +142,15 @@ async function periodFinancials(period: PeriodKey) {
     withdrawalStats(from, to),
     profitDistributed(from, to),
     prisma.deposit.count({
-      where: { status: { in: ['PENDING', 'UNDER_REVIEW'] } },
+      where: realDepositWhere({ status: { in: ['PENDING', 'UNDER_REVIEW'] } }),
     }),
     prisma.withdrawal.count({
-      where: { status: { in: ['PENDING', 'UNDER_REVIEW', 'APPROVED', 'PROCESSING'] } },
+      where: realWithdrawalWhere({
+        status: { in: ['PENDING', 'UNDER_REVIEW', 'APPROVED', 'PROCESSING'] },
+      }),
     }),
     prisma.wallet.aggregate({
-      where: { kind: 'INVESTMENT' },
+      where: { kind: 'INVESTMENT', user: realInvestorUser },
       _sum: { availableBalance: true, lockedBalance: true, investedAmount: true },
     }),
   ])
@@ -198,7 +201,7 @@ export const dashboardService = {
    * Short TTL cache (10s) — UI polls every 30s.
    */
   async getOpsSnapshot() {
-    const cacheKey = 'admin:dashboard:ops-v3'
+    const cacheKey = 'admin:dashboard:ops-v4'
     const cached = await cache.get<Awaited<ReturnType<typeof this.buildOpsSnapshot>>>(cacheKey)
     if (cached) return cached
     const data = await this.buildOpsSnapshot()
@@ -270,28 +273,28 @@ export const dashboardService = {
         },
       }),
       prisma.deposit.count({
-        where: {
+        where: realDepositWhere({
           status: { in: ['PENDING', 'UNDER_REVIEW'] },
           createdAt: { gte: today, lt: tomorrow },
-        },
+        }),
       }),
       prisma.deposit.count({
-        where: {
+        where: realDepositWhere({
           status: { in: ['PENDING', 'UNDER_REVIEW'] },
           createdAt: { gte: yesterday, lt: today },
-        },
+        }),
       }),
       prisma.withdrawal.count({
-        where: {
+        where: realWithdrawalWhere({
           status: { in: ['PENDING', 'UNDER_REVIEW'] },
           createdAt: { gte: today, lt: tomorrow },
-        },
+        }),
       }),
       prisma.withdrawal.count({
-        where: {
+        where: realWithdrawalWhere({
           status: { in: ['PENDING', 'UNDER_REVIEW'] },
           createdAt: { gte: yesterday, lt: today },
-        },
+        }),
       }),
       depositStats(today, tomorrow),
       depositStats(yesterday, today),
@@ -318,37 +321,37 @@ export const dashboardService = {
         },
       }),
       prisma.deposit.count({
-        where: { status: 'APPROVED', reviewedAt: { gte: today, lt: tomorrow } },
+        where: realDepositWhere({ status: 'APPROVED', reviewedAt: { gte: today, lt: tomorrow } }),
       }),
       prisma.deposit.count({
-        where: { status: 'APPROVED', reviewedAt: { gte: yesterday, lt: today } },
+        where: realDepositWhere({ status: 'APPROVED', reviewedAt: { gte: yesterday, lt: today } }),
       }),
       prisma.deposit.count({
-        where: { status: 'REJECTED', reviewedAt: { gte: today, lt: tomorrow } },
+        where: realDepositWhere({ status: 'REJECTED', reviewedAt: { gte: today, lt: tomorrow } }),
       }),
       prisma.deposit.count({
-        where: { status: 'REJECTED', reviewedAt: { gte: yesterday, lt: today } },
+        where: realDepositWhere({ status: 'REJECTED', reviewedAt: { gte: yesterday, lt: today } }),
       }),
       prisma.withdrawal.count({
-        where: {
+        where: realWithdrawalWhere({
           status: { in: ['APPROVED', 'PAID', 'COMPLETED'] },
           reviewedAt: { gte: today, lt: tomorrow },
-        },
+        }),
       }),
       prisma.withdrawal.count({
-        where: {
+        where: realWithdrawalWhere({
           status: { in: ['APPROVED', 'PAID', 'COMPLETED'] },
           reviewedAt: { gte: yesterday, lt: today },
-        },
+        }),
       }),
       prisma.withdrawal.count({
-        where: { status: 'REJECTED', reviewedAt: { gte: today, lt: tomorrow } },
+        where: realWithdrawalWhere({ status: 'REJECTED', reviewedAt: { gte: today, lt: tomorrow } }),
       }),
       prisma.withdrawal.count({
-        where: { status: 'REJECTED', reviewedAt: { gte: yesterday, lt: today } },
+        where: realWithdrawalWhere({ status: 'REJECTED', reviewedAt: { gte: yesterday, lt: today } }),
       }),
       prisma.deposit.findMany({
-        where: { status: { in: ['PENDING', 'UNDER_REVIEW'] } },
+        where: realDepositWhere({ status: { in: ['PENDING', 'UNDER_REVIEW'] } }),
         orderBy: { createdAt: 'desc' },
         take: 8,
         include: {
@@ -357,7 +360,7 @@ export const dashboardService = {
         },
       }),
       prisma.withdrawal.findMany({
-        where: { status: { in: ['PENDING', 'UNDER_REVIEW'] } },
+        where: realWithdrawalWhere({ status: { in: ['PENDING', 'UNDER_REVIEW'] } }),
         orderBy: { createdAt: 'desc' },
         take: 8,
         include: {
@@ -796,14 +799,14 @@ export const dashboardService = {
 
     const [deposits, withdrawals, users, profits, kycApproved, firstFunded] = await Promise.all([
       prisma.deposit.findMany({
-        where: { createdAt: { gte: from, lt: to }, status: 'APPROVED' },
+        where: realDepositWhere({ createdAt: { gte: from, lt: to }, status: 'APPROVED' }),
         select: { createdAt: true, amount: true },
       }),
       prisma.withdrawal.findMany({
-        where: {
+        where: realWithdrawalWhere({
           createdAt: { gte: from, lt: to },
           status: { in: ['PAID', 'COMPLETED'] },
-        },
+        }),
         select: { createdAt: true, amount: true },
       }),
       prisma.user.findMany({

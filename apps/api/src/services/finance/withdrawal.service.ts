@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import type { PaymentMethodType, Prisma, WithdrawalStatus } from '@prisma/client'
+import type { PaymentMethodType, WithdrawalStatus } from '@prisma/client'
 
 import { prisma } from '../../database/prisma.js'
 import { transactionalMailer } from '../../emails/transactional.js'
@@ -17,6 +17,7 @@ import {
   getWithdrawalEligibility,
   payoutRailFromType,
 } from './currency.service.js'
+import { realWithdrawalWhere, isDemoInvestor } from '../demo-investor.js'
 
 type Ctx = { ip?: string | null; userAgent?: string | null }
 
@@ -80,7 +81,7 @@ function normalizePayoutDetails(type: PaymentMethodType, details: Record<string,
 async function requireActiveInvestor(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, status: true, kycStatus: true },
+    select: { id: true, status: true, kycStatus: true, createdByAdminId: true },
   })
   if (!user) throw notFound('User not found.')
   if (user.status !== 'ACTIVE') throw forbidden('Account is not active.')
@@ -380,7 +381,8 @@ export const withdrawalService = {
     },
     context: Ctx,
   ) {
-    await requireActiveInvestor(userId)
+    const investor = await requireActiveInvestor(userId)
+    const demo = Boolean(investor.createdByAdminId)
     const existing = await prisma.withdrawal.findUnique({
       where: { idempotencyKey: body.idempotencyKey },
     })
@@ -521,6 +523,46 @@ export const withdrawalService = {
           idempotencyKey: `withdrawal:${created.id}:lock`,
         })
 
+        if (demo) {
+          await ledgerService.completeWithdrawal(tx, {
+            userId,
+            walletId: wallet.id,
+            amount,
+            description: `Withdrawal ${created.reference} paid`,
+            referenceType: 'WITHDRAWAL',
+            referenceId: created.id,
+            createdById: userId,
+            idempotencyKey: `withdrawal:${created.id}:complete`,
+          })
+          await tx.withdrawal.update({
+            where: { id: created.id },
+            data: { transactionId: txn.id, status: 'PAID', paidAt: new Date() },
+          })
+          await tx.transactionHistory.create({
+            data: {
+              transactionId: txn.id,
+              userId,
+              event: 'WITHDRAWAL_SUBMITTED',
+              status: 'PAID',
+              amount: moneyString(amount),
+              currency: 'USD',
+              message: `Withdrawal ${created.reference} submitted`,
+            },
+          })
+          await tx.transactionHistory.create({
+            data: {
+              transactionId: txn.id,
+              userId,
+              event: 'WITHDRAWAL_PAID',
+              status: 'PAID',
+              amount: moneyString(amount),
+              currency: 'USD',
+              message: `Withdrawal ${created.reference} paid`,
+            },
+          })
+          return tx.withdrawal.findUniqueOrThrow({ where: { id: created.id } })
+        }
+
         await tx.withdrawal.update({
           where: { id: created.id },
           data: { transactionId: txn.id, status: 'UNDER_REVIEW' },
@@ -574,6 +616,41 @@ export const withdrawalService = {
       ip: context.ip,
       userAgent: context.userAgent,
     })
+    if (demo) {
+      await activityService.record({
+        userId,
+        actorId: userId,
+        kind: 'WITHDRAWAL_PAID',
+        title: 'Withdrawal paid',
+        description: withdrawal.reference,
+        ip: context.ip,
+        userAgent: context.userAgent,
+      })
+      await auditService.record({
+        actorId: userId,
+        targetUserId: userId,
+        action: 'withdrawal.create',
+        module: 'finance',
+        newValue: { id: withdrawal.id, amount: moneyDisplay(amount), demo: true },
+        ip: context.ip,
+        userAgent: context.userAgent,
+      })
+      await notificationService.notify({
+        userId,
+        kind: 'FINANCE',
+        title: 'Withdrawal submitted',
+        body: `Your withdrawal ${withdrawal.reference} is under review.`,
+        metadata: { type: 'WITHDRAWAL_SUBMITTED', withdrawalId: withdrawal.id },
+      })
+      await notificationService.notify({
+        userId,
+        kind: 'FINANCE',
+        title: 'Withdrawal paid',
+        body: `Your withdrawal ${withdrawal.reference} has been paid.`,
+        metadata: { type: 'WITHDRAWAL_PAID', withdrawalId: withdrawal.id },
+      })
+      return mapWithdrawal(withdrawal)
+    }
     await auditService.record({
       actorId: userId,
       targetUserId: userId,
@@ -669,7 +746,7 @@ export const withdrawalService = {
     page: number
     limit: number
   }) {
-    const where: Prisma.WithdrawalWhereInput = {
+    const where = realWithdrawalWhere({
       // Admin "Pending" tab uses PENDING; create flow moves rows to UNDER_REVIEW.
       ...(query.status
         ? query.status === 'PENDING'
@@ -704,7 +781,7 @@ export const withdrawalService = {
             ],
           }
         : {}),
-    }
+    })
 
     const skip = (query.page - 1) * query.limit
     const [items, total] = await Promise.all([
@@ -755,20 +832,23 @@ export const withdrawalService = {
     const row = await prisma.withdrawal.findUnique({
       where: { id },
       include: {
-        user: { select: { id: true, email: true, firstName: true, lastName: true, kycStatus: true } },
+        user: {
+          select: { id: true, email: true, firstName: true, lastName: true, kycStatus: true, createdByAdminId: true },
+        },
         payoutMethod: true,
         reviews: { orderBy: { createdAt: 'desc' } },
         queue: true,
       },
     })
-    if (!row) throw notFound('Withdrawal not found.')
+    if (!row || row.user.createdByAdminId) throw notFound('Withdrawal not found.')
+    const { createdByAdminId: _demoFlag, ...publicUser } = row.user
     const wallet = await prisma.wallet.findUnique({
       where: { userId_kind: { userId: row.userId, kind: 'INVESTMENT' } },
       select: { availableBalance: true, balance: true },
     })
     return {
       ...mapWithdrawal(row),
-      user: row.user,
+      user: publicUser,
       internalNotes: row.internalNotes,
       payoutMethod: mapPayoutMethod(row.payoutMethod),
       destinationSnapshot: row.destinationSnapshot,
@@ -792,6 +872,7 @@ export const withdrawalService = {
   ) {
     const row = await prisma.withdrawal.findUnique({ where: { id: withdrawalId } })
     if (!row) throw notFound('Withdrawal not found.')
+    if (await isDemoInvestor(row.userId)) throw notFound('Withdrawal not found.')
 
     if (body.decision === 'APPROVE') {
       const updated = await prisma.$transaction(async (tx) => {

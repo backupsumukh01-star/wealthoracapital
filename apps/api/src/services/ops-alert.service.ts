@@ -162,6 +162,23 @@ export const opsAlertService = {
 
   async notify(payload: OpsAlertPayload): Promise<void> {
     try {
+      if (
+        payload.userId &&
+        (payload.event.startsWith('DEPOSIT_') || payload.event.startsWith('WITHDRAWAL_'))
+      ) {
+        const demo = await prisma.user.findFirst({
+          where: { id: payload.userId, createdByAdminId: { not: null }, deletedAt: null },
+          select: { id: true },
+        })
+        if (demo) {
+          logger.debug(
+            { event: payload.event, userId: payload.userId },
+            'Skipping ops alert for admin-created demo investor',
+          )
+          return
+        }
+      }
+
       const to = recipients()
       const when = formatWhen()
       let userName = payload.userName ?? null
