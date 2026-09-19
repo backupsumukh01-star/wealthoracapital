@@ -266,6 +266,12 @@ test('public website prefers canonical demo over publicMeta', () => {
   const hooks = fs.readFileSync(path.join(repoRoot, 'apps/web/src/features/landing/hooks.ts'), 'utf8')
   const hpc = fs.readFileSync(path.join(repoRoot, 'apps/web/src/features/hpc/use-hpc-data.ts'), 'utf8')
   assert.ok(liveStats.includes('demoHistoryUsable'))
+  assert.ok(
+    fs
+      .readFileSync(path.join(repoRoot, 'apps/web/src/components/marketing/live-trades-preview.tsx'), 'utf8')
+      .includes('demoHistoryUsable'),
+    'homepage trade cards must prefer the canonical demo blotter',
+  )
   assert.ok(liveStats.includes('if (demo.length >= 12) return demo'))
   assert.ok(hpc.includes('demoFull'))
   assert.ok(hooks.includes('buildLandingLiveStats'))

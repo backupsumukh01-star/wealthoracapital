@@ -9,6 +9,7 @@ import { Section } from '@/components/common/section'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { demoHistoryUsable } from '@/features/landing/live-stats'
 import { usePublicPerformance } from '@/features/performance/hooks'
 import { usePublicTradeStats, usePublicTradesInfinite } from '@/features/trades/hooks'
 import { useDemoDashboardStats, useDemoTrades } from '@/lib/demo-backtest'
@@ -127,7 +128,7 @@ function computeStatsFromTrades(trades: DeskTrade[]) {
   }
 }
 
-/** Live desk feed — public API first, seeded demo dataset fallback. */
+/** Public desk feed — canonical demo blotter when present, live API only as fallback. */
 export function LiveTradesPreview() {
   const apiInfinite = usePublicTradesInfinite({ limit: 40 })
   const { data: apiStats } = usePublicTradeStats()
@@ -140,15 +141,17 @@ export function LiveTradesPreview() {
     [apiInfinite.data],
   )
 
-  const useDemo = !apiInfinite.isLoading && apiTrades.length === 0
+  const demoOk = demoHistoryUsable(demoStats)
+  const useDemo = demoOk || (!apiInfinite.isLoading && apiTrades.length === 0)
 
   const deskTrades = useMemo(() => {
-    if (apiTrades.length > 0) {
-      return apiTrades.map((t) => toDeskFromApi(t as Trade & { status?: string }))
+    if (useDemo) {
+      return [...demoTrades]
+        .sort((a, b) => String(b.tradeDate).localeCompare(String(a.tradeDate)))
+        .map(toDeskFromDemo)
     }
-    // Newest first from demo JSON
-    return [...demoTrades].reverse().map(toDeskFromDemo)
-  }, [apiTrades, demoTrades])
+    return apiTrades.map((t) => toDeskFromApi(t as Trade & { status?: string }))
+  }, [useDemo, apiTrades, demoTrades])
 
   const [visible, setVisible] = useState(40)
   const listRef = useRef<HTMLUListElement | null>(null)
@@ -180,54 +183,58 @@ export function LiveTradesPreview() {
 
   const localStats = useMemo(() => computeStatsFromTrades(deskTrades), [deskTrades])
 
-  const winRate =
-    (apiStats?.winRatePct && Number(apiStats.winRatePct) > 0
-      ? Number(apiStats.winRatePct)
-      : null) ??
-    (pub?.meta?.winRatePct && Number(pub.meta.winRatePct) > 0
-      ? Number(pub.meta.winRatePct)
-      : null) ??
-    demoStats?.winRatePct ??
-    localStats?.winRatePct ??
-    0
+  const winRate = useDemo
+    ? (demoStats?.winRatePct ?? localStats?.winRatePct ?? 0)
+    : ((apiStats?.winRatePct && Number(apiStats.winRatePct) > 0
+        ? Number(apiStats.winRatePct)
+        : null) ??
+      (pub?.meta?.winRatePct && Number(pub.meta.winRatePct) > 0
+        ? Number(pub.meta.winRatePct)
+        : null) ??
+      localStats?.winRatePct ??
+      0)
 
-  const tradeCount =
-    (apiStats?.tradeCount && apiStats.tradeCount > 0 ? apiStats.tradeCount : null) ??
-    (pub?.meta?.tradeCount && pub.meta.tradeCount > 0 ? pub.meta.tradeCount : null) ??
-    demoStats?.tradeCount ??
-    localStats?.tradeCount ??
-    0
+  const tradeCount = useDemo
+    ? (demoStats?.tradeCount ?? localStats?.tradeCount ?? 0)
+    : ((apiStats?.tradeCount && apiStats.tradeCount > 0 ? apiStats.tradeCount : null) ??
+      (pub?.meta?.tradeCount && pub.meta.tradeCount > 0 ? pub.meta.tradeCount : null) ??
+      localStats?.tradeCount ??
+      0)
 
-  const avgReturn =
-    (apiStats?.avgReturnPct && Math.abs(Number(apiStats.avgReturnPct)) > 0
-      ? Number(apiStats.avgReturnPct)
-      : null) ??
-    localStats?.avgReturnPct ??
-    0
+  const avgReturn = useDemo
+    ? (localStats?.avgReturnPct ?? 0)
+    : ((apiStats?.avgReturnPct && Math.abs(Number(apiStats.avgReturnPct)) > 0
+        ? Number(apiStats.avgReturnPct)
+        : null) ??
+      localStats?.avgReturnPct ??
+      0)
 
-  const published =
-    (apiStats?.closedTrades && apiStats.closedTrades > 0 ? apiStats.closedTrades : null) ??
-    tradeCount
+  const published = useDemo
+    ? tradeCount
+    : ((apiStats?.closedTrades && apiStats.closedTrades > 0 ? apiStats.closedTrades : null) ??
+      tradeCount)
 
-  const best =
-    (apiStats?.bestTradeReturnPct != null && Number(apiStats.bestTradeReturnPct) !== 0
-      ? Number(apiStats.bestTradeReturnPct)
-      : null) ??
-    (pub?.analytics.bestTrade?.returnPct != null
-      ? Number(pub.analytics.bestTrade.returnPct)
-      : null) ??
-    localStats?.bestPct ??
-    0
+  const best = useDemo
+    ? (localStats?.bestPct ?? 0)
+    : ((apiStats?.bestTradeReturnPct != null && Number(apiStats.bestTradeReturnPct) !== 0
+        ? Number(apiStats.bestTradeReturnPct)
+        : null) ??
+      (pub?.analytics.bestTrade?.returnPct != null
+        ? Number(pub.analytics.bestTrade.returnPct)
+        : null) ??
+      localStats?.bestPct ??
+      0)
 
-  const worst =
-    (apiStats?.worstTradeReturnPct != null && Number(apiStats.worstTradeReturnPct) !== 0
-      ? Number(apiStats.worstTradeReturnPct)
-      : null) ??
-    (pub?.analytics.worstTrade?.returnPct != null
-      ? Number(pub.analytics.worstTrade.returnPct)
-      : null) ??
-    localStats?.worstPct ??
-    0
+  const worst = useDemo
+    ? (localStats?.worstPct ?? 0)
+    : ((apiStats?.worstTradeReturnPct != null && Number(apiStats.worstTradeReturnPct) !== 0
+        ? Number(apiStats.worstTradeReturnPct)
+        : null) ??
+      (pub?.analytics.worstTrade?.returnPct != null
+        ? Number(pub.analytics.worstTrade.returnPct)
+        : null) ??
+      localStats?.worstPct ??
+      0)
 
   const avgWin = localStats?.avgWinPct ?? 0
   const avgLoss = localStats?.avgLossPct ?? 0
