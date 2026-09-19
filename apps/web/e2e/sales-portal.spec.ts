@@ -103,9 +103,12 @@ test.describe('Sales Portal route protection', () => {
     })
   })
 
-  test('logged-out owner area redirects to admin login', async ({ page }) => {
+  test('logged-out owner area redirects to admin login with next=/sales/owner', async ({
+    page,
+  }) => {
     await page.goto('/sales/owner')
     await expect(page).toHaveURL(/\/admin\/login/)
+    expect(new URL(page.url()).searchParams.get('next')).toBe('/sales/owner')
   })
 
   test('salesman cookie cannot open owner pages', async ({ page }) => {

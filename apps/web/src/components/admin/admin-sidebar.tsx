@@ -45,7 +45,13 @@ export function AdminSidebar({ className }: { className?: string }) {
 
       <AdminNav className="flex-1 overflow-y-auto px-3 py-5" />
 
-      <div className="border-t border-line p-3">
+      <div className="border-t border-line p-3 space-y-1">
+        <Link
+          href={ROUTES.sales.owner.root}
+          className="flex items-center gap-3 rounded-md px-3 py-2.5 text-body-sm text-fg-muted transition-colors hover:bg-hover hover:text-fg"
+        >
+          Sales Owner portal
+        </Link>
         <Link
           href={ROUTES.dashboard.root}
           className="flex items-center gap-3 rounded-md px-3 py-2.5 text-body-sm text-fg-muted transition-colors hover:bg-hover hover:text-fg"

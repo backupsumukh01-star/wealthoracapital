@@ -9,6 +9,7 @@ import { LogoMark } from '@/components/common/logo'
 import { SocialLoginButtons } from '@/components/auth/social-login-buttons'
 import { Alert } from '@/components/ui/alert'
 import { env } from '@/lib/env'
+import { isSalesOwnerNext, safeStaffNext } from '@/lib/staff-next'
 import { useSession } from '@/providers/session-provider'
 
 const OAUTH_ERRORS: Record<string, string> = {
@@ -31,15 +32,17 @@ export function AdminLoginForm() {
   const { isAuthenticated, isStaff, isLoading } = useSession()
   const oauth = searchParams.get('oauth')
   const error = oauth ? OAUTH_ERRORS[oauth] ?? OAUTH_ERRORS.oauth_failed : null
+  const next = safeStaffNext(searchParams.get('next'))
+  const salesOwner = isSalesOwnerNext(next)
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && isStaff) {
-      router.replace(ROUTES.admin.root)
+      router.replace(next)
     }
-  }, [isLoading, isAuthenticated, isStaff, router])
+  }, [isLoading, isAuthenticated, isStaff, next, router])
 
   function handleGoogle() {
-    const redirectTo = `${env.NEXT_PUBLIC_SITE_URL}${ROUTES.auth.oauthCallback}?next=admin`
+    const redirectTo = `${env.NEXT_PUBLIC_SITE_URL}${ROUTES.auth.oauthCallback}?next=${encodeURIComponent(next)}`
     window.location.href = `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.auth.google}?redirect=${encodeURIComponent(redirectTo)}`
   }
 
@@ -58,10 +61,16 @@ export function AdminLoginForm() {
             <LogoMark className="relative size-12" />
           </div>
           <div>
-            <p className="text-overline text-warning">Operator console</p>
-            <h1 className="mt-1 text-heading-xl text-fg">Admin sign-in</h1>
+            <p className="text-overline text-warning">
+              {salesOwner ? 'Sales Owner' : 'Operator console'}
+            </p>
+            <h1 className="mt-1 text-heading-xl text-fg">
+              {salesOwner ? 'Sales Owner sign-in' : 'Admin sign-in'}
+            </h1>
             <p className="mt-1 text-body-sm text-fg-muted">
-              Sign in with an allowlisted Google account. No password on this page.
+              {salesOwner
+                ? 'Use your allowlisted Google admin account. After sign-in you will open the Sales Owner portal, not the admin console.'
+                : 'Sign in with an allowlisted Google account. No password on this page.'}
             </p>
           </div>
         </div>

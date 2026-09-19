@@ -78,10 +78,9 @@ export function PerformanceWorkspace() {
   const winningDays = creditedDays.filter((row) => Number(row.profit) > 0)
   const chartWinRate =
     creditedDays.length > 0 ? ((winningDays.length / creditedDays.length) * 100).toFixed(1) : null
+  const summaryWinRate = Number(summary?.winRatePct ?? 0)
   const winRate =
-    Number(summary?.winRatePct ?? 0) > 0
-      ? Number(summary.winRatePct).toFixed(1)
-      : (chartWinRate ?? '0.0')
+    summaryWinRate > 0 ? summaryWinRate.toFixed(1) : (chartWinRate ?? '0.0')
   const chartBest = (charts?.dailyProfit ?? []).reduce<{
     date: string
     returnPct: string

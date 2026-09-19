@@ -9,6 +9,7 @@ import { AuthCard } from '@/components/auth/auth-card'
 import { Spinner } from '@/components/ui/spinner'
 import { authQueryKeys } from '@/features/auth/hooks'
 import { ensureCsrfToken } from '@/lib/csrf'
+import { isStaffOauthNext, safeStaffNext } from '@/lib/staff-next'
 import { authService } from '@/services/auth.service'
 
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
@@ -35,8 +36,10 @@ function OAuthCallbackInner() {
     if (error) {
       const reason = OAUTH_ERROR_MESSAGES[error] ? error : 'oauth_failed'
       const next = searchParams.get('next')
-      if (next === 'admin') {
-        router.replace(`${ROUTES.admin.login}?oauth=${encodeURIComponent(reason)}`)
+      if (isStaffOauthNext(next)) {
+        const staffNext = safeStaffNext(next)
+        const loginNext = next === 'admin' ? '' : `&next=${encodeURIComponent(staffNext)}`
+        router.replace(`${ROUTES.admin.login}?oauth=${encodeURIComponent(reason)}${loginNext}`)
         return
       }
       if (reason === 'invalid_referral') {
@@ -68,12 +71,12 @@ function OAuthCallbackInner() {
           session.user.role === 'SUPER_ADMIN' ||
           Boolean(session.user.staffRole)
 
-        if (next === 'admin') {
+        if (isStaffOauthNext(next)) {
           if (!isStaff) {
             router.replace(`${ROUTES.admin.login}?oauth=forbidden`)
             return
           }
-          router.replace(ROUTES.admin.root)
+          router.replace(safeStaffNext(next))
           return
         }
 
@@ -84,8 +87,10 @@ function OAuthCallbackInner() {
       .catch(() => {
         queryClient.setQueryData(authQueryKeys.session(), null)
         const next = searchParams.get('next')
-        if (next === 'admin') {
-          router.replace(`${ROUTES.admin.login}?oauth=oauth_failed`)
+        if (isStaffOauthNext(next)) {
+          const staffNext = safeStaffNext(next)
+          const loginNext = next === 'admin' ? '' : `&next=${encodeURIComponent(staffNext)}`
+          router.replace(`${ROUTES.admin.login}?oauth=oauth_failed${loginNext}`)
           return
         }
         router.replace(`${ROUTES.auth.login}?oauth=oauth_failed`)
