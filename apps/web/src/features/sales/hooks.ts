@@ -112,6 +112,40 @@ export function useOwnerSalesmen() {
   })
 }
 
+export function useCreateSalesman() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { name: string; email: string; code?: string }) =>
+      salesOwnerService.createSalesman(body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: salesQueryKeys.owner.salesmen() })
+    },
+  })
+}
+
+export function useUpdateSalesman() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: {
+      salesmanId: string
+      body: { name?: string; email?: string; status?: 'ACTIVE' | 'DISABLED' }
+    }) => salesOwnerService.updateSalesman(input.salesmanId, input.body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: salesQueryKeys.owner.salesmen() })
+    },
+  })
+}
+
+export function useResetSalesmanPassword() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (salesmanId: string) => salesOwnerService.resetPassword(salesmanId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: salesQueryKeys.owner.salesmen() })
+    },
+  })
+}
+
 export function useOwnerNetworkSummary(salesmanId: string | undefined) {
   return useQuery({
     queryKey: salesQueryKeys.owner.summary(salesmanId ?? ''),

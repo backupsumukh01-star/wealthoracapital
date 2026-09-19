@@ -62,11 +62,23 @@ export function OwnerDashboardWorkspace() {
                     {summary ? (
                       <dl className="grid grid-cols-2 gap-2 text-caption">
                         <div>
+                          <dt className="text-fg-subtle">Direct</dt>
+                          <dd className="tabular-nums">{summary.directMembers.toLocaleString()}</dd>
+                        </div>
+                        <div>
                           <dt className="text-fg-subtle">Members</dt>
                           <dd className="tabular-nums">{summary.totalMembers.toLocaleString()}</dd>
                         </div>
                         <div>
-                          <dt className="text-fg-subtle">Net funds</dt>
+                          <dt className="text-fg-subtle">Deposits</dt>
+                          <dd className="tabular-nums">{formatMoney(summary.totalApprovedDeposits)}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-fg-subtle">Withdrawals</dt>
+                          <dd className="tabular-nums">{formatMoney(summary.totalPaidWithdrawals)}</dd>
+                        </div>
+                        <div className="col-span-2">
+                          <dt className="text-fg-subtle">Network funds</dt>
                           <dd className="tabular-nums">{formatMoney(summary.netFunds)}</dd>
                         </div>
                       </dl>

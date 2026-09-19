@@ -31,7 +31,7 @@ export const registerSchema = z.object({
     const trimmed = val.trim()
     if (!trimmed) return undefined
     return trimmed.toUpperCase()
-  }, z.string().min(4, 'Invalid referral code.').max(16, 'Invalid referral code.').optional()),
+  }, z.string().min(2, 'Invalid referral code.').max(16, 'Invalid referral code.').optional()),
   acceptTerms: z.boolean().optional(),
   acceptRisk: z.boolean().optional(),
 })

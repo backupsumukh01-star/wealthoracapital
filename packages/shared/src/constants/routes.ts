@@ -347,6 +347,8 @@ export const API_ROUTES = {
     meNetworkMember: (userId: string) => `/sales/me/network/members/${userId}`,
     meNetworkSummary: '/sales/me/network/summary',
     ownerSalesmen: '/sales/owner/salesmen',
+    ownerSalesman: (salesmanId: string) => `/sales/owner/salesmen/${salesmanId}`,
+    ownerSalesmanPassword: (salesmanId: string) => `/sales/owner/salesmen/${salesmanId}/password`,
     ownerNetwork: (salesmanId: string) => `/sales/owner/salesmen/${salesmanId}/network`,
     ownerNetworkMembers: (salesmanId: string) =>
       `/sales/owner/salesmen/${salesmanId}/network/members`,

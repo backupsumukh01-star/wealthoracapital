@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client'
 
 import { prisma } from '../database/prisma.js'
 import { batchUserFinance } from './admin-users-finance.js'
+import { salesmanReferralLink } from './sales-identity.js'
 import { salesUsernameFromEmail } from './sales-privacy.js'
 import { d, moneyDisplay } from '../utils/money.js'
 import { notFound } from '../utils/errors.js'
@@ -18,6 +19,7 @@ export type SalesNetworkSummary = {
 export type SalesMoneyEvent = {
   date: string
   amount: string
+  currency: string
   status: string
   reference: string
 }
@@ -29,6 +31,7 @@ export type SalesNetworkMember = {
   isDirect: boolean
   name: string
   username: string
+  parentName: string | null
   referralCode: string | null
   registrationDate: string
   currentBalance: string
@@ -93,6 +96,7 @@ export const salesNetworkService = {
         code: row.code,
         status: row.status,
         createdAt: row.createdAt.toISOString(),
+        referralLink: salesmanReferralLink(row.code),
       })),
     }
   },
@@ -200,13 +204,16 @@ export const salesNetworkService = {
       totalDeposits = totalDeposits.plus(d(approvedDeposits))
       totalWithdrawals = totalWithdrawals.plus(d(paidWithdrawals))
       if (level > maxDepth) maxDepth = level
+      const parentId = row.is_direct ? null : row.parent_user_id
+      const parent = parentId ? userById.get(parentId) : undefined
       members.push({
         userId: user.id,
-        parentUserId: row.is_direct ? null : row.parent_user_id,
+        parentUserId: parentId,
         level,
         isDirect: Boolean(row.is_direct) || level === 0,
         name: `${user.firstName} ${user.lastName}`.trim(),
         username: salesUsernameFromEmail(user.email),
+        parentName: parent ? `${parent.firstName} ${parent.lastName}`.trim() : null,
         referralCode: user.referralCode,
         registrationDate: user.createdAt.toISOString(),
         currentBalance,
@@ -240,13 +247,13 @@ export const salesNetworkService = {
     const [deposits, withdrawals] = await Promise.all([
       prisma.deposit.findMany({
         where: { userId },
-        select: { createdAt: true, amount: true, status: true, reference: true },
+        select: { createdAt: true, amount: true, currency: true, status: true, reference: true },
         orderBy: { createdAt: 'desc' },
         take: 100,
       }),
       prisma.withdrawal.findMany({
         where: { userId },
-        select: { createdAt: true, amount: true, status: true, reference: true },
+        select: { createdAt: true, amount: true, currency: true, status: true, reference: true },
         orderBy: { createdAt: 'desc' },
         take: 100,
       }),
@@ -258,12 +265,14 @@ export const salesNetworkService = {
       depositHistory: deposits.map((row) => ({
         date: row.createdAt.toISOString(),
         amount: moneyDisplay(row.amount),
+        currency: row.currency,
         status: row.status,
         reference: row.reference,
       })),
       withdrawalHistory: withdrawals.map((row) => ({
         date: row.createdAt.toISOString(),
         amount: moneyDisplay(row.amount),
+        currency: row.currency,
         status: row.status,
         reference: row.reference,
       })),

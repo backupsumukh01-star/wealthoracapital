@@ -303,7 +303,7 @@ test.describe('Sales Portal empty and loading copy', () => {
     expect(overflow).toBe(false)
   })
 
-  for (const width of [375, 390, 414] as const) {
+  for (const width of [375, 390, 414, 1280, 1440] as const) {
     test(`login remains readable at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 })
       await page.goto('/sales/login')

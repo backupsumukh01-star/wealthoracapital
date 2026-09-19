@@ -40,6 +40,10 @@ describe('Sales Portal routes', () => {
     expect(API_ROUTES.sales.meNetworkMembers).toBe('/sales/me/network/members')
     expect(API_ROUTES.sales.meNetworkSummary).toBe('/sales/me/network/summary')
     expect(API_ROUTES.sales.ownerSalesmen).toBe('/sales/owner/salesmen')
+    expect(API_ROUTES.sales.ownerSalesman('abc')).toBe('/sales/owner/salesmen/abc')
+    expect(API_ROUTES.sales.ownerSalesmanPassword('abc')).toBe(
+      '/sales/owner/salesmen/abc/password',
+    )
     expect(API_ROUTES.sales.ownerNetwork('abc')).toBe('/sales/owner/salesmen/abc/network')
     expect(API_ROUTES.sales.ownerNetworkMembers('abc')).toBe(
       '/sales/owner/salesmen/abc/network/members',

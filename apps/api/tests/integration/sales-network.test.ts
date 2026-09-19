@@ -395,4 +395,60 @@ describe('Salesman network reporting (read-only)', () => {
     const post = await agent.post('/api/v1/sales/me/network').send({})
     expect([404, 405]).toContain(post.status)
   })
+
+  it('stops walking referredById after depth 32 and names tree parents', async () => {
+    const a = await createSalesman()
+    const chain: string[] = []
+    let parentId: string | undefined
+    for (let i = 0; i < 34; i += 1) {
+      const user = await createInvestor({
+        firstName: `D${i}`,
+        lastName: 'Node',
+        referredById: parentId,
+      })
+      chain.push(user.id)
+      parentId = user.id
+    }
+    await attribute(chain[0]!, a.salesman.id)
+    const agentA = await loginSales(a.salesman.email, a.password)
+    const res = await agentA.get('/api/v1/sales/me/network')
+    expect(res.status).toBe(200)
+    const members = res.body.data.members as Array<{
+      userId: string
+      level: number
+      parentName: string | null
+    }>
+    expect(members).toHaveLength(33)
+    expect(res.body.data.summary.maxDepth).toBe(32)
+    expect(members.map((row) => row.userId)).not.toContain(chain[33])
+    expect(members[0]?.parentName).toBeNull()
+    expect(members[1]?.parentName).toBe('D0 Node')
+    expect(members[32]?.level).toBe(32)
+  })
+
+  it('returns currency on customer deposit and withdrawal history', async () => {
+    const a = await createSalesman()
+    const root = await createInvestor({ firstName: 'Cash', lastName: 'Root' })
+    await attribute(root.id, a.salesman.id)
+    await addDeposit(root.id, '50', 'APPROVED')
+    await addWithdrawal(root.id, '10', 'PAID')
+    const agentA = await loginSales(a.salesman.email, a.password)
+    const detail = await agentA.get(`/api/v1/sales/me/network/members/${root.id}`)
+    expect(detail.status).toBe(200)
+    expect(detail.body.data.depositHistory[0]).toMatchObject({
+      currency: 'USD',
+      status: 'APPROVED',
+    })
+    expect(detail.body.data.withdrawalHistory[0]).toMatchObject({
+      currency: 'USD',
+      status: 'PAID',
+    })
+  })
+
+  it('allows HEAD on salesman network routes', async () => {
+    const a = await createSalesman()
+    const agent = await loginSales(a.salesman.email, a.password)
+    const head = await agent.head('/api/v1/sales/me/network')
+    expect(head.status).toBe(200)
+  })
 })

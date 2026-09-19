@@ -165,7 +165,7 @@ function normalizeOAuthReferralCode(raw: string | undefined): string | undefined
   if (!raw) return undefined
   const code = raw.trim().toUpperCase()
   if (!code) return undefined
-  if (code.length < 4 || code.length > 16) {
+  if (code.length < 2 || code.length > 16) {
     throw badRequest('Invalid referral code.')
   }
   return code

@@ -1,23 +1,33 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { formatMoney, ROUTES } from '@meridian/shared'
+import { formatMoney, ROUTES, salesReferralUrl } from '@meridian/shared'
+import { toast } from 'sonner'
 
 import { PageHeader } from '@/components/common/page-header'
-import { SalesOwnerSwitcher } from '@/components/sales/sales-owner-shell'
 import { SalesCustomerList } from '@/components/sales/sales-customer-list'
+import { SalesOwnerSwitcher } from '@/components/sales/sales-owner-shell'
 import { SalesEmptyNetwork, SalesQueryError } from '@/components/sales/sales-query-state'
 import { SalesSummaryCards, SalesSummarySkeleton } from '@/components/sales/sales-summary-cards'
+import { SalesTemporaryPasswordAlert } from '@/components/sales/sales-temporary-password-alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { FormField } from '@/components/ui/form-field'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   useOwnerNetworkMembers,
   useOwnerNetworkSummary,
   useOwnerSalesmen,
+  useResetSalesmanPassword,
+  useUpdateSalesman,
 } from '@/features/sales/hooks'
+import { ApiError } from '@/lib/api-client'
+import { env } from '@/lib/env'
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 
 export function OwnerSalesmanDetailWorkspace() {
   const params = useParams<{ salesmanId: string }>()
@@ -25,7 +35,55 @@ export function OwnerSalesmanDetailWorkspace() {
   const listQuery = useOwnerSalesmen()
   const summaryQuery = useOwnerNetworkSummary(salesmanId || undefined)
   const membersQuery = useOwnerNetworkMembers(salesmanId || undefined)
+  const updateSalesman = useUpdateSalesman()
+  const resetPassword = useResetSalesmanPassword()
   const salesman = listQuery.data?.salesmen.find((row) => row.id === salesmanId)
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null)
+  const referralLink = salesman
+    ? salesman.referralLink ?? salesReferralUrl(env.NEXT_PUBLIC_SITE_URL, salesman.code)
+    : ''
+  const { copied, copy } = useCopyToClipboard()
+
+  useEffect(() => {
+    if (!salesman) return
+    setName(salesman.name)
+    setEmail(salesman.email)
+  }, [salesman])
+
+  async function onSaveProfile() {
+    try {
+      await updateSalesman.mutateAsync({
+        salesmanId,
+        body: { name: name.trim(), email: email.trim() },
+      })
+      toast.success('Salesman profile updated.')
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : 'Could not update salesman.')
+    }
+  }
+
+  async function onToggleStatus() {
+    if (!salesman) return
+    const status = salesman.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE'
+    try {
+      await updateSalesman.mutateAsync({ salesmanId, body: { status } })
+      toast.success(status === 'DISABLED' ? 'Salesman disabled.' : 'Salesman enabled.')
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : 'Could not update status.')
+    }
+  }
+
+  async function onResetPassword() {
+    try {
+      const result = await resetPassword.mutateAsync(salesmanId)
+      setTemporaryPassword(result.temporaryPassword ?? null)
+      toast.success('Password reset. Copy the one-time password now.')
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : 'Could not reset password.')
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -36,7 +94,7 @@ export function OwnerSalesmanDetailWorkspace() {
           </Link>
         }
         title={salesman?.name ?? summaryQuery.data?.salesman.name ?? 'Salesman'}
-        description="Read-only salesman profile and network reporting."
+        description="Owner management and read-only network reporting for this salesman."
         actions={
           <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto">
             <SalesOwnerSwitcher salesmen={listQuery.data?.salesmen ?? []} currentId={salesmanId} />
@@ -53,16 +111,69 @@ export function OwnerSalesmanDetailWorkspace() {
         <SalesQueryError error={listQuery.error} onRetry={() => void listQuery.refetch()} />
       ) : null}
 
+      {temporaryPassword ? (
+        <SalesTemporaryPasswordAlert
+          password={temporaryPassword}
+          onDismiss={() => setTemporaryPassword(null)}
+        />
+      ) : null}
+
       {salesman ? (
-        <Card padded="md" className="space-y-2">
+        <Card padded="md" className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-medium text-fg">{salesman.name}</p>
             <Badge tone={salesman.status === 'ACTIVE' ? 'success' : 'danger'} size="sm">
               {salesman.status}
             </Badge>
           </div>
-          <p className="break-all text-caption text-fg-subtle">{salesman.email}</p>
-          <p className="text-caption text-fg-muted">Code {salesman.code}</p>
+          <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <dt className="text-caption text-fg-subtle">Code</dt>
+              <dd className="text-body-sm">{salesman.code}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-caption text-fg-subtle">Referral link</dt>
+              <dd className="flex min-w-0 items-start gap-2">
+                <span className="break-all text-caption text-fg-muted">{referralLink}</span>
+                <Button type="button" size="sm" variant="ghost" onClick={() => void copy(referralLink)}>
+                  {copied ? 'Copied' : 'Copy'}
+                </Button>
+              </dd>
+            </div>
+          </dl>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField label="Name">
+              <Input value={name} onChange={(event) => setName(event.target.value)} />
+            </FormField>
+            <FormField label="Email">
+              <Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+            </FormField>
+          </div>
+          <div className="flex min-w-0 flex-wrap gap-2">
+            <Button
+              type="button"
+              onClick={() => void onSaveProfile()}
+              disabled={updateSalesman.isPending || !name.trim() || !email.trim()}
+            >
+              Save profile
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void onToggleStatus()}
+              disabled={updateSalesman.isPending}
+            >
+              {salesman.status === 'ACTIVE' ? 'Disable' : 'Enable'}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void onResetPassword()}
+              disabled={resetPassword.isPending}
+            >
+              {resetPassword.isPending ? 'Resetting…' : 'Reset password'}
+            </Button>
+          </div>
         </Card>
       ) : listQuery.isLoading ? (
         <Skeleton className="h-24 w-full" />

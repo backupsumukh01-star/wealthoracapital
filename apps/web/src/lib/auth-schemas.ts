@@ -41,8 +41,8 @@ export const registerSchema = z
         const trimmed = (value ?? '').trim().toUpperCase()
         return trimmed.length === 0 ? undefined : trimmed
       })
-      .refine((value) => value === undefined || (value.length >= 4 && value.length <= 16), {
-        message: 'Enter a valid referral code (4–16 characters)',
+      .refine((value) => value === undefined || (value.length >= 2 && value.length <= 16), {
+        message: 'Enter a valid referral code (2–16 characters)',
       }),
     acceptTerms: z
       .boolean()

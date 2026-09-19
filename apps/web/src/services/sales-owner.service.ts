@@ -5,6 +5,7 @@ import type {
   SalesNetworkMemberDetail,
   SalesNetworkMembersResponse,
   SalesNetworkSummaryResponse,
+  SalesOwnerSalesmanMutationResponse,
   SalesOwnerSalesmenResponse,
 } from '@/features/sales/types'
 
@@ -15,6 +16,26 @@ import type {
 export const salesOwnerService = {
   listSalesmen: () =>
     apiClient<SalesOwnerSalesmenResponse>(API_ROUTES.sales.ownerSalesmen),
+
+  createSalesman: (body: { name: string; email: string; code?: string }) =>
+    apiClient<SalesOwnerSalesmanMutationResponse>(API_ROUTES.sales.ownerSalesmen, {
+      method: 'POST',
+      body,
+    }),
+
+  updateSalesman: (
+    salesmanId: string,
+    body: { name?: string; email?: string; status?: 'ACTIVE' | 'DISABLED' },
+  ) =>
+    apiClient<SalesOwnerSalesmanMutationResponse>(API_ROUTES.sales.ownerSalesman(salesmanId), {
+      method: 'PATCH',
+      body,
+    }),
+
+  resetPassword: (salesmanId: string) =>
+    apiClient<SalesOwnerSalesmanMutationResponse>(API_ROUTES.sales.ownerSalesmanPassword(salesmanId), {
+      method: 'POST',
+    }),
 
   networkMembers: (salesmanId: string) =>
     apiClient<SalesNetworkMembersResponse>(API_ROUTES.sales.ownerNetworkMembers(salesmanId)),
