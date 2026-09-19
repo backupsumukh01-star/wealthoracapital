@@ -305,6 +305,9 @@ describe('Admin historical spreadsheet import', () => {
     expect(referralNetwork.totalReferrals).toBe(1)
     expect(referralNetwork.activeReferrals).toBe(1)
     expect(referralNetwork.referrals.some((row) => row.displayName.toLowerCase().includes('imported'))).toBe(true)
+    expect(Number(referralNetwork.referrals[0]?.referralEarnings)).toBe(50)
+    expect(Number(referralNetwork.referrals[0]?.approvedDepositAmount)).toBe(1000)
+    expect(await prisma.referralReward.count({ where: { referrerId: target.id } })).toBe(0)
 
     const series = await performanceService.series(target.id, 'all')
     const balances = series.points.map((p) => Number(p.balance))
@@ -339,7 +342,12 @@ describe('Admin historical spreadsheet import', () => {
     const deposited = activity.items.find((item) => item.kind === 'DEPOSIT_APPROVED')
     expect(deposited?.description).toMatch(/1000/)
     const rewardList = await referralService.listRewards(target.id, { limit: 20 })
-    expect(rewardList.items.some((item) => item.sourceDepositReference === 'HISTORICAL')).toBe(true)
+    const historicalReward = rewardList.items.find((item) => item.sourceDepositReference === 'HISTORICAL')
+    expect(historicalReward).toBeTruthy()
+    expect(Number(historicalReward?.rewardAmount)).toBe(50)
+    expect(Number(historicalReward?.sourceAmount)).toBe(1000)
+    expect(historicalReward?.percentApplied).toBe('5.0000')
+    expect(Number(referralWallet.availableBalance)).toBe(50)
 
     const audit = await prisma.historicalImport.findFirstOrThrow({ where: { id: preview.body.data.id } })
     expect(audit.status).toBe('COMPLETED')
@@ -491,6 +499,10 @@ describe('Admin historical spreadsheet import', () => {
     const rewards = await referralService.listRewards(target.id, { limit: 20 })
     const historical = rewards.items.find((item) => item.sourceDepositReference === 'HISTORICAL')
     expect(historical?.status).toBe('AVAILABLE')
+    expect(Number(historical?.rewardAmount)).toBe(50)
+    expect(Number(historical?.sourceAmount)).toBe(1000)
+    expect(Number(before.referrals[0]?.approvedDepositAmount)).toBe(1000)
+    expect(Number(before.referrals[0]?.referralEarnings)).toBe(50)
     await referralService.redeem(target.id, historical!.id)
 
     const after = await referralService.network(target.id)
@@ -503,6 +515,63 @@ describe('Admin historical spreadsheet import', () => {
     expect(Number(summary.totalReferralEarned)).toBe(50)
     const listed = await referralService.listRewards(target.id, { limit: 20 })
     expect(listed.items.find((item) => item.id === historical!.id)?.status).toBe('REDEEMED')
+    expect(Number(listed.items.find((item) => item.id === historical!.id)?.sourceAmount)).toBe(1000)
+    expect(Number(listed.items.find((item) => item.id === historical!.id)?.rewardAmount)).toBe(50)
+  })
+
+  it('reconstructs referred deposit as earned × 20 for historical referrals', async () => {
+    await ensureSystemAccounts()
+    const adminEmail = uniqueEmail('imp_ref20')
+    await registerActive(adminEmail)
+    const { agent, csrf } = await loginAgent(adminEmail)
+    const target = await createAdminUser(agent, csrf)
+    const preview = await agent
+      .post(`/api/v1/admin/users/${target.id}/history/import/preview`)
+      .set('x-csrf-token', csrf)
+      .attach(
+        'file',
+        Buffer.from(
+          csv([
+            [...HEADERS, 'Referral Commission'],
+            ['2026-03-05', 'REFERRAL', '100', 'USD', 'CREDITED', oid('REF5'), 'REF-5', 'note', '5'],
+            ['2026-03-06', 'REFERRAL', '200', 'USD', 'CREDITED', oid('REF10'), 'REF-10', 'note', '10'],
+          ]),
+        ),
+        'ref20.csv',
+      )
+    expect(preview.status).toBe(201)
+    const confirm = await agent
+      .post(`/api/v1/admin/users/${target.id}/history/imports/${preview.body.data.id}/confirm`)
+      .set('x-csrf-token', csrf)
+    expect([200, 201]).toContain(confirm.status)
+
+    const referralWallet = await prisma.wallet.findUniqueOrThrow({
+      where: { userId_kind: { userId: target.id, kind: 'REFERRAL' } },
+    })
+    expect(Number(referralWallet.availableBalance)).toBe(15)
+    expect(await prisma.referralReward.count({ where: { referrerId: target.id } })).toBe(0)
+
+    const summary = await referralService.summary(target.id)
+    expect(Number(summary.totalReferralEarned)).toBe(15)
+    expect(Number(summary.availableReferral)).toBe(15)
+
+    const network = await referralService.network(target.id)
+    expect(Number(network.totalEarnings)).toBe(15)
+    const byEarned = new Map(
+      network.referrals.map((row) => [Number(row.referralEarnings), Number(row.approvedDepositAmount)]),
+    )
+    expect(byEarned.get(5)).toBe(100)
+    expect(byEarned.get(10)).toBe(200)
+
+    const rewards = await referralService.listRewards(target.id, { limit: 20 })
+    const historical = rewards.items.filter((item) => item.sourceDepositReference === 'HISTORICAL')
+    const rewardByEarned = new Map(
+      historical.map((item) => [Number(item.rewardAmount), Number(item.sourceAmount)]),
+    )
+    expect(rewardByEarned.get(5)).toBe(100)
+    expect(rewardByEarned.get(10)).toBe(200)
+    expect(historical.every((item) => item.percentApplied === '5.0000')).toBe(true)
+    expect(Number(referralWallet.availableBalance)).toBe(15)
   })
 
   it('keeps normal investor registration working', async () => {

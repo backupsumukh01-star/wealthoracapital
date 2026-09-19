@@ -3,7 +3,7 @@ import type { Deposit, Prisma, ReferralReward, TransactionHistory } from '@prism
 import { env } from '../../config/env.js'
 import { prisma } from '../../database/prisma.js'
 import { badRequest, conflict, forbidden, notFound } from '../../utils/errors.js'
-import { assertNonNegative, d, moneyDisplay, moneyString } from '../../utils/money.js'
+import { assertNonNegative, d, Decimal, moneyDisplay, moneyString } from '../../utils/money.js'
 import { ledgerService } from '../finance/ledger.service.js'
 import { settingsService } from '../settings.service.js'
 import { realInvestorUser } from '../demo-investor.js'
@@ -82,6 +82,14 @@ function historicalReferralLabel(message: string | null | undefined, index: numb
   const from = message?.match(/Referral from\s+(.+?)(?:\.|$)/i)
   if (from?.[1]?.trim()) return from[1].trim().slice(0, 80)
   return `Imported referral ${index + 1}`
+}
+
+/** Read-time display only. Dummy/historical rows store commission, not the referred deposit. */
+const HISTORICAL_REFERRED_DEPOSIT_MULTIPLIER = 20
+const HISTORICAL_REFERRAL_PERCENT_DISPLAY = '5.0000'
+
+function historicalReferredDepositAmount(earned: string | number | Decimal | null | undefined) {
+  return moneyDisplay(d(earned ?? 0).mul(HISTORICAL_REFERRED_DEPOSIT_MULTIPLIER))
 }
 
 function historicalReferralBreakdown(rows: TransactionHistory[]) {
@@ -418,7 +426,7 @@ export const referralService = {
         displayName: historicalReferralLabel(row.message, index),
         joinedAt: row.createdAt.toISOString(),
         status: 'ACTIVE' as const,
-        approvedDepositAmount: moneyDisplay(0),
+        approvedDepositAmount: historicalReferredDepositAmount(row.amount ?? 0),
         referralEarnings: moneyDisplay(row.amount ?? 0),
       }))
 
@@ -468,9 +476,9 @@ export const referralService = {
             id: row.id,
             sourceDepositId: row.id,
             sourceDepositReference: 'HISTORICAL',
-            sourceAmount: moneyDisplay(row.amount ?? 0),
+            sourceAmount: historicalReferredDepositAmount(row.amount ?? 0),
             rewardAmount: moneyDisplay(row.amount ?? 0),
-            percentApplied: '0.0000',
+            percentApplied: HISTORICAL_REFERRAL_PERCENT_DISPLAY,
             status: (redeemed ? 'REDEEMED' : 'AVAILABLE') as 'REDEEMED' | 'AVAILABLE',
             unlockAt: row.createdAt.toISOString(),
             redeemedAt: redeemed ? meta?.redeemedAt ?? row.createdAt.toISOString() : null,
