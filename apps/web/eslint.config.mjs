@@ -10,6 +10,9 @@ const compat = new FlatCompat({ baseDirectory: __dirname })
 
 const config = [
   ...base,
+  {
+    ignores: ['**/*.test.ts', '**/*.test.tsx', 'vitest.config.ts'],
+  },
   ...compat.extends('next/core-web-vitals', 'next/typescript'),
   {
     rules: {
