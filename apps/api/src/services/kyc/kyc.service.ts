@@ -25,6 +25,7 @@ import { storage } from '../storage/index.js'
 import { mapDocument, mapSubmission, toKycProfile } from './kyc.mapper.js'
 import { assessKycRisk } from './risk-engine.js'
 import { virusScanner } from './virus-scan.js'
+import { realKycWhere } from '../demo-investor.js'
 
 const ALLOWED_MIME = new Set([
   'image/jpeg',
@@ -425,7 +426,7 @@ export const kycService = {
     cursor?: string
     sortOrder: 'asc' | 'desc'
   }) {
-    const where: Prisma.KycSubmissionWhereInput = {
+    const where: Prisma.KycSubmissionWhereInput = realKycWhere({
       ...(input.status ? { status: input.status } : {}),
       ...(input.country ? { country: input.country } : {}),
       ...(input.riskLevel ? { riskLevel: input.riskLevel } : {}),
@@ -452,7 +453,7 @@ export const kycService = {
             ],
           }
         : {}),
-    }
+    })
 
     const skip = (input.page - 1) * input.limit
     const { items, total } = await kycRepository.listAdmin({

@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto'
-import type { Prisma } from '@prisma/client'
+import type { ActivityKind, Prisma } from '@prisma/client'
 
 import { prisma } from '../database/prisma.js'
-import { badRequest, notFound } from '../utils/errors.js'
+import { badRequest, forbidden, notFound } from '../utils/errors.js'
+import { cache } from './cache/index.js'
 import { d, moneyDisplay, moneyString } from '../utils/money.js'
 import { DEFAULT_USD_INR_RATE, inrStorage, inrToUsd, usdToInr } from '../utils/fx.js'
 import { activityService } from './activity.service.js'
@@ -303,6 +304,24 @@ async function requireInvestor(userId: string) {
   return user
 }
 
+const MONEY_ACTIVITY_KINDS: ActivityKind[] = [
+  'DEPOSIT_SUBMITTED',
+  'DEPOSIT_APPROVED',
+  'DEPOSIT_REJECTED',
+  'DEPOSIT_CANCELLED',
+  'WITHDRAWAL_SUBMITTED',
+  'WITHDRAWAL_APPROVED',
+  'WITHDRAWAL_REJECTED',
+  'WITHDRAWAL_CANCELLED',
+  'WITHDRAWAL_PAID',
+  'DAILY_RETURN_APPLIED',
+  'DISTRIBUTION_COMPLETE',
+  'WALLET_ADJUSTMENT',
+  'TRADE_OPENED',
+  'TRADE_CLOSED',
+  'TRADE_PUBLISHED',
+]
+
 export const adminUserHistoryService = {
   async get(userId: string) {
     const user = await requireInvestor(userId)
@@ -317,6 +336,136 @@ export const adminUserHistoryService = {
       wallet,
       records,
     }
+  },
+
+  async wipe(actorId: string, userId: string, context: Ctx) {
+    const user = await requireInvestor(userId)
+    if (!user.createdByAdminId) {
+      throw forbidden(
+        'Clear imported data is only available for lookalike accounts created from Admin → Create user.',
+      )
+    }
+
+    await ledgerService.ensureWalletsForUser(userId)
+
+    await prisma.$transaction(
+      async (tx) => {
+        const [deposits, withdrawals, profitRows] = await Promise.all([
+          tx.deposit.findMany({ where: { userId }, select: { id: true } }),
+          tx.withdrawal.findMany({ where: { userId }, select: { id: true } }),
+          tx.profitDistribution.findMany({ where: { userId }, select: { runId: true } }),
+        ])
+        const depositIds = deposits.map((row) => row.id)
+        const withdrawalIds = withdrawals.map((row) => row.id)
+        const runIds = [...new Set(profitRows.map((row) => row.runId))]
+
+        if (depositIds.length || withdrawalIds.length) {
+          await tx.paymentWebhookEvent.deleteMany({
+            where: {
+              OR: [
+                depositIds.length ? { depositId: { in: depositIds } } : undefined,
+                withdrawalIds.length ? { withdrawalId: { in: withdrawalIds } } : undefined,
+              ].filter(Boolean) as Prisma.PaymentWebhookEventWhereInput[],
+            },
+          })
+          await tx.financeReview.deleteMany({
+            where: {
+              OR: [
+                depositIds.length ? { depositId: { in: depositIds } } : undefined,
+                withdrawalIds.length ? { withdrawalId: { in: withdrawalIds } } : undefined,
+              ].filter(Boolean) as Prisma.FinanceReviewWhereInput[],
+            },
+          })
+          await tx.approvalQueue.deleteMany({
+            where: {
+              OR: [
+                depositIds.length ? { depositId: { in: depositIds } } : undefined,
+                withdrawalIds.length ? { withdrawalId: { in: withdrawalIds } } : undefined,
+              ].filter(Boolean) as Prisma.ApprovalQueueWhereInput[],
+            },
+          })
+        }
+
+        await tx.referralReward.deleteMany({
+          where: {
+            OR: [
+              { referrerId: userId },
+              { refereeId: userId },
+              ...(depositIds.length ? [{ sourceDepositId: { in: depositIds } }] : []),
+            ],
+          },
+        })
+
+        await tx.profitDistribution.deleteMany({ where: { userId } })
+        await tx.tradeAllocation.deleteMany({ where: { userId } })
+        await tx.portfolioSnapshot.deleteMany({ where: { userId } })
+        await tx.investorPerformance.deleteMany({ where: { userId } })
+        await tx.performanceMetric.deleteMany({ where: { userId } })
+        await tx.notification.deleteMany({ where: { userId } })
+        await tx.activityLog.deleteMany({
+          where: { userId, kind: { in: MONEY_ACTIVITY_KINDS } },
+        })
+        await tx.emailOutbox.deleteMany({ where: { userId } })
+        await tx.transactionHistory.deleteMany({ where: { userId } })
+
+        await tx.$executeRawUnsafe(
+          'ALTER TABLE "ledger_entries" DISABLE TRIGGER ledger_entries_no_update',
+        )
+        try {
+          await tx.ledgerEntry.deleteMany({
+            where: {
+              OR: [{ transaction: { userId } }, { wallet: { userId } }],
+            },
+          })
+        } finally {
+          await tx.$executeRawUnsafe(
+            'ALTER TABLE "ledger_entries" ENABLE TRIGGER ledger_entries_no_update',
+          )
+        }
+
+        await tx.deposit.updateMany({ where: { userId }, data: { transactionId: null } })
+        await tx.withdrawal.updateMany({ where: { userId }, data: { transactionId: null } })
+        await tx.deposit.deleteMany({ where: { userId } })
+        await tx.withdrawal.deleteMany({ where: { userId } })
+        await tx.transaction.deleteMany({ where: { userId } })
+
+        if (runIds.length) {
+          await tx.dailyReturnRun.deleteMany({
+            where: { id: { in: runIds }, distributions: { none: {} } },
+          })
+        }
+
+        await tx.payoutMethod.deleteMany({ where: { userId } })
+        await tx.wallet.updateMany({
+          where: { userId },
+          data: {
+            balance: '0',
+            availableBalance: '0',
+            lockedBalance: '0',
+            pendingBalance: '0',
+            investedAmount: '0',
+            totalProfit: '0',
+            totalDeposited: '0',
+            totalWithdrawn: '0',
+            version: { increment: 1 },
+          },
+        })
+        await tx.historicalImport.deleteMany({ where: { userId } })
+      },
+      { timeout: 180_000, maxWait: 20_000 },
+    )
+
+    await cache.del('admin:dashboard:ops-v5').catch(() => undefined)
+    await auditService.record({
+      actorId,
+      targetUserId: userId,
+      action: 'user.history.wipe',
+      module: 'users',
+      reason: 'Lookalike imported history cleared for a fresh upload.',
+      ip: context.ip,
+      userAgent: context.userAgent,
+    })
+    return this.get(userId)
   },
 
   async create(
@@ -413,9 +562,15 @@ export const adminUserHistoryService = {
       })
     } else if (body.activity === 'PROFIT') {
       const day = utcDay(occurredAt)
-      const profitPct = body.returnPct?.trim() || '0'
       await runHistoryTx(options?.tx, async (tx) => {
         const wallet = await ledgerService.getInvestmentWallet(userId, tx)
+        const before = d(wallet.availableBalance)
+        const storedPct = body.returnPct?.trim() ? d(body.returnPct) : d(0)
+        const profitPct = storedPct.abs().gt(0)
+          ? storedPct.toFixed(6)
+          : before.gt(0)
+            ? amountUsd.div(before).mul(100).toFixed(6)
+            : '0'
         const daily = await tx.dailyReturn.upsert({
           where: { date: day },
           create: { date: day, status: 'DISTRIBUTED' },
@@ -725,7 +880,8 @@ export const adminUserHistoryService = {
           actorId: userId,
           kind: 'DEPOSIT_SUBMITTED',
           title: 'Deposit submitted',
-          description: orderId,
+          description: `${body.amount} · ${orderId}`,
+          metadata: { amount: body.amount, occurredAt: occurredAt.toISOString() },
           ip: context.ip,
           userAgent: context.userAgent,
           createdAt: occurredAt,
@@ -735,7 +891,8 @@ export const adminUserHistoryService = {
           actorId: userId,
           kind: 'DEPOSIT_APPROVED',
           title: 'Deposit confirmed by provider',
-          description: orderId,
+          description: `${body.amount} · ${orderId}`,
+          metadata: { amount: body.amount, occurredAt: occurredAt.toISOString() },
           ip: context.ip,
           userAgent: context.userAgent,
           createdAt: new Date(occurredAt.getTime() + 1000),
@@ -746,7 +903,8 @@ export const adminUserHistoryService = {
           actorId: userId,
           kind: 'WITHDRAWAL_SUBMITTED',
           title: 'Withdrawal submitted',
-          description: orderId,
+          description: `${body.amount} · ${orderId}`,
+          metadata: { amount: body.amount, occurredAt: occurredAt.toISOString() },
           ip: context.ip,
           userAgent: context.userAgent,
           createdAt: occurredAt,
@@ -756,7 +914,8 @@ export const adminUserHistoryService = {
           actorId: userId,
           kind: 'WITHDRAWAL_PAID',
           title: 'Withdrawal paid',
-          description: orderId,
+          description: `${body.amount} · ${orderId}`,
+          metadata: { amount: body.amount, occurredAt: occurredAt.toISOString() },
           ip: context.ip,
           userAgent: context.userAgent,
           createdAt: new Date(occurredAt.getTime() + 1000),

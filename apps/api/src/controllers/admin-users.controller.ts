@@ -54,6 +54,7 @@ export const adminUsersController = {
         from: query.from ? new Date(query.from) : undefined,
         to: query.to ? new Date(query.to) : undefined,
         includeDeleted: query.includeDeleted,
+        lookalike: query.lookalike,
       },
       page: query.page,
       limit: query.limit,
@@ -182,6 +183,15 @@ export const adminUsersController = {
 
   history: asyncHandler(async (req, res) => {
     const data = await adminUserHistoryService.get(req.params.id!)
+    sendSuccess(res, data)
+  }),
+
+  wipeHistory: asyncHandler(async (req, res) => {
+    const data = await adminUserHistoryService.wipe(
+      req.user!.id,
+      req.params.id!,
+      requestContext(req),
+    )
     sendSuccess(res, data)
   }),
 

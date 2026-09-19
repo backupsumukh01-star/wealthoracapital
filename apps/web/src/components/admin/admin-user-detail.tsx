@@ -261,6 +261,18 @@ export function AdminUserDetailWorkspace() {
     onError: (err: Error) => toast.error(err.message || 'Activate failed'),
   })
 
+  const wipeImported = useMutation({
+    mutationFn: () => adminService.wipeUserHistory(userId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.user(userId) })
+      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.userHistory(userId) })
+      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.userHistoryImports(userId) })
+      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.ops() })
+      toast.success('Imported data cleared. You can upload a fresh file.')
+    },
+    onError: (err: Error) => toast.error(err.message || 'Could not clear imported data'),
+  })
+
   const softDelete = useMutation({
     mutationFn: () =>
       adminService.deleteUser(userId, {
@@ -406,12 +418,18 @@ export function AdminUserDetailWorkspace() {
     (user.country?.toUpperCase() === 'IN' ? 'India' : null) ||
     user.country?.trim() ||
     'India'
+  const isLookalike =
+    user.role === 'USER' && Boolean((user as { createdByAdminId?: string | null }).createdByAdminId)
 
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title={`${user.firstName} ${user.lastName}`}
-        description="Full investor profile — KYC, wallet, ledger activity, and operator controls."
+        description={
+          isLookalike
+            ? 'Lookalike account for historical import — not a live investor. These balances do not count in operator totals.'
+            : 'Full investor profile — KYC, wallet, ledger activity, and operator controls.'
+        }
         eyebrow={
           <button type="button" onClick={goBackToUsers} className="hover:text-fg">
             ← Users
@@ -426,8 +444,23 @@ export function AdminUserDetailWorkspace() {
                 <Link href={ROUTES.admin.userHistory(userId)}>Historical data</Link>
               </Button>
             ) : null}
-            {user.role === 'USER' && Boolean((user as { createdByAdminId?: string | null }).createdByAdminId) ? (
+            {isLookalike ? (
               <PermissionGate permission="users.history_import">
+                <Button
+                  size="sm"
+                  variant="danger"
+                  loading={wipeImported.isPending}
+                  loadingText="Clearing"
+                  onClick={() => {
+                    const ok = window.confirm(
+                      `Clear all imported deposits, withdrawals, profit, and referrals for ${user.firstName} ${user.lastName}? The account stays so you can upload a fresh file. This cannot be undone.`,
+                    )
+                    if (!ok) return
+                    wipeImported.mutate()
+                  }}
+                >
+                  Clear imported data
+                </Button>
                 <Button size="sm" variant="secondary" asChild>
                   <Link href={`${ROUTES.admin.userHistory(userId)}#import`}>Import Historical Data</Link>
                 </Button>
@@ -457,6 +490,16 @@ export function AdminUserDetailWorkspace() {
           </div>
         }
       />
+
+      {isLookalike ? (
+        <div className="flex flex-col gap-2 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-caption text-warning">
+            This is a lookalike account created by an operator for historical data import. It is not a
+            real investor. Operator overview, queues, and the default Users list ignore this record.
+            Use Clear imported data if you need to upload a replacement spreadsheet.
+          </p>
+        </div>
+      ) : null}
 
       <Tabs defaultValue="overview">
         <TabsList className="w-full sm:w-auto">

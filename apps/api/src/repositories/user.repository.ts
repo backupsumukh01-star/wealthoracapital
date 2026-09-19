@@ -14,6 +14,8 @@ export type UserListFilters = {
   includeDeleted?: boolean
   phone?: string
   referralCode?: string
+  /** Default false: hide admin-created lookalike accounts from operator lists. */
+  lookalike?: boolean
 }
 
 function buildWhere(filters: UserListFilters): Prisma.UserWhereInput {
@@ -21,6 +23,12 @@ function buildWhere(filters: UserListFilters): Prisma.UserWhereInput {
 
   if (!filters.includeDeleted) {
     and.push({ deletedAt: null })
+  }
+
+  if (filters.lookalike) {
+    and.push({ createdByAdminId: { not: null }, role: 'USER' })
+  } else {
+    and.push({ createdByAdminId: null })
   }
 
   if (filters.status) and.push({ status: filters.status })
@@ -178,19 +186,21 @@ export const userRepository = {
     return prisma.user.count({
       where: {
         deletedAt: null,
+        createdByAdminId: null,
         createdAt: { gte: from, lt: to },
       },
     })
   },
 
   async countByStatus(status: UserStatus): Promise<number> {
-    return prisma.user.count({ where: { deletedAt: null, status } })
+    return prisma.user.count({ where: { deletedAt: null, createdByAdminId: null, status } })
   },
 
   async countPendingKyc(): Promise<number> {
     return prisma.user.count({
       where: {
         deletedAt: null,
+        createdByAdminId: null,
         kycStatus: { in: ['PENDING', 'SUBMITTED', 'UNDER_REVIEW', 'NEED_MORE_INFO'] },
       },
     })

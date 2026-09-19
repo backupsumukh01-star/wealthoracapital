@@ -1,5 +1,6 @@
 import { prisma } from '../../database/prisma.js'
 import { ledgerService } from '../finance/ledger.service.js'
+import { realInvestorUser } from '../demo-investor.js'
 import { d, moneyDisplay } from '../../utils/money.js'
 import { mapTrade } from './trade.mappers.js'
 
@@ -61,23 +62,25 @@ export const performanceService = {
         )
     const capitalBasis = deposited.gt(0) ? deposited : invested
 
-    type DayAgg = { profit: ReturnType<typeof d>; pcts: string[] }
+    type DayAgg = { profit: ReturnType<typeof d>; pcts: Array<string | number | ReturnType<typeof d>> }
     const byDay = new Map<string, DayAgg>()
     for (const row of distributions) {
       const key = dayKey(row.date)
       const entry = byDay.get(key) ?? { profit: d(0), pcts: [] }
       entry.profit = entry.profit.plus(d(row.amount))
-      entry.pcts.push(row.returnPct.toString())
+      entry.pcts.push(
+        effectiveReturnPct(
+          d(row.amount),
+          d(row.returnPct),
+          d(row.eligibleBalance ?? 0),
+          capitalBasis,
+        ),
+      )
       byDay.set(key, entry)
     }
 
     const dayEntries = [...byDay.entries()].map(([date, agg]) => {
-      const returnPct =
-        agg.pcts.length > 0
-          ? compoundReturnPct(agg.pcts)
-          : capitalBasis.gt(0)
-            ? agg.profit.div(capitalBasis).mul(100)
-            : d(0)
+      const returnPct = agg.pcts.length > 0 ? compoundReturnPct(agg.pcts) : d(0)
       return { date, profit: agg.profit, returnPct }
     })
 
@@ -105,7 +108,7 @@ export const performanceService = {
 
     const lifetimePcts = dayEntries.map((r) => r.returnPct)
     const roiFromHistory =
-      lifetimePcts.length > 0 ? compoundReturnPct(lifetimePcts) : null
+      lifetimePcts.some((pct) => pct.abs().gt(0)) ? compoundReturnPct(lifetimePcts) : null
     const roiFromMoney = capitalBasis.gt(0) ? totalProfit.div(capitalBasis).mul(100) : d(0)
     const roiPct = roiFromHistory ?? roiFromMoney
 
@@ -156,55 +159,19 @@ export const performanceService = {
   },
 
   async series(userId: string | undefined, range: string) {
-    const days = range === '7d' ? 7 : range === '90d' ? 90 : range === '1y' ? 365 : range === 'all' ? 3650 : 30
-    const from = new Date()
-    from.setUTCDate(from.getUTCDate() - days)
-    from.setUTCHours(0, 0, 0, 0)
+    const days = seriesDayCount(range)
+    const from = utcDay()
+    from.setUTCDate(from.getUTCDate() - (days - 1))
 
-    const snapshots = await prisma.portfolioSnapshot.findMany({
-      where: {
-        ...(userId ? { userId } : {}),
-        date: { gte: from },
-      },
-      orderBy: { date: 'asc' },
-    })
-
-    if (snapshots.length > 0 && userId) {
-      let cumulative = d(0)
-      return {
-        range,
-        points: snapshots.map((s) => {
-          cumulative = cumulative.plus(d(s.dailyProfit))
-          return {
-            date: dayKey(s.date),
-            balance: moneyDisplay(s.balance),
-            profit: moneyDisplay(s.dailyProfit),
-            cumulativeProfit: moneyDisplay(cumulative),
-          }
-        }),
-      }
+    if (userId) {
+      return { range, points: await reconstructInvestorEquity(userId, from) }
     }
 
-    // Fallback from distributions
     const dists = await prisma.profitDistribution.findMany({
-      where: {
-        ...(userId ? { userId } : {}),
-        isReversed: false,
-        date: { gte: from },
-      },
+      where: { isReversed: false, date: { gte: from } },
       orderBy: { date: 'asc' },
     })
     let cumulative = d(0)
-    let balance = userId
-      ? d(
-          (
-            await prisma.wallet.findUnique({
-              where: { userId_kind: { userId, kind: 'INVESTMENT' } },
-            })
-          )?.balance ?? 0,
-        )
-      : d(0)
-
     const byDay = new Map<string, ReturnType<typeof d>>()
     for (const row of dists) {
       const key = dayKey(row.date)
@@ -214,7 +181,7 @@ export const performanceService = {
       cumulative = cumulative.plus(profit)
       return {
         date,
-        balance: moneyDisplay(balance),
+        balance: moneyDisplay(cumulative),
         profit: moneyDisplay(profit),
         cumulativeProfit: moneyDisplay(cumulative),
       }
@@ -282,18 +249,32 @@ export const performanceService = {
 
   async monthly(userId?: string) {
     const profitByMonth = new Map<string, ReturnType<typeof d>>()
-    const pctsByMonth = new Map<string, Array<string | number>>()
+    const pctsByMonth = new Map<string, Array<string | number | ReturnType<typeof d>>>()
 
     if (userId) {
       const dists = await prisma.profitDistribution.findMany({
         where: { userId, isReversed: false },
         orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
       })
+      const wallet = await prisma.wallet.findUnique({
+        where: { userId_kind: { userId, kind: 'INVESTMENT' } },
+        select: { totalDeposited: true, investedAmount: true },
+      })
+      const capitalBasis = d(wallet?.totalDeposited ?? 0).gt(0)
+        ? d(wallet?.totalDeposited ?? 0)
+        : d(wallet?.investedAmount ?? 0)
       for (const row of dists) {
         const key = dayKey(row.date).slice(0, 7)
         profitByMonth.set(key, (profitByMonth.get(key) ?? d(0)).plus(d(row.amount)))
         const list = pctsByMonth.get(key) ?? []
-        list.push(row.returnPct.toString())
+        list.push(
+          effectiveReturnPct(
+            d(row.amount),
+            d(row.returnPct),
+            d(row.eligibleBalance ?? 0),
+            capitalBasis,
+          ),
+        )
         pctsByMonth.set(key, list)
       }
     } else {
@@ -656,7 +637,7 @@ export const performanceService = {
   async snapshotAllForDate(date: Date) {
     const day = dayDate(date.toISOString().slice(0, 10))
     const users = await prisma.user.findMany({
-      where: { role: 'USER', status: 'ACTIVE', kycStatus: 'APPROVED' },
+      where: { ...realInvestorUser, status: 'ACTIVE', kycStatus: 'APPROVED' },
       select: { id: true },
     })
     for (const user of users) {
@@ -721,15 +702,8 @@ export const performanceService = {
     const dists = await prisma.profitDistribution.findMany({
       where: { userId, isReversed: false },
       orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
-      select: { date: true, returnPct: true, amount: true },
+      select: { date: true, returnPct: true, amount: true, eligibleBalance: true },
     })
-    const pctByDay = new Map<string, string[]>()
-    for (const row of dists) {
-      const key = dayKey(row.date)
-      const list = pctByDay.get(key) ?? []
-      list.push(row.returnPct.toString())
-      pctByDay.set(key, list)
-    }
     const wallet = await prisma.wallet.findUnique({
       where: { userId_kind: { userId, kind: 'INVESTMENT' } },
       select: { totalDeposited: true, investedAmount: true },
@@ -737,12 +711,26 @@ export const performanceService = {
     const capitalBasis = d(wallet?.totalDeposited ?? 0).gt(0)
       ? d(wallet?.totalDeposited ?? 0)
       : d(wallet?.investedAmount ?? 0)
+    const pctByDay = new Map<string, Array<string | number | ReturnType<typeof d>>>()
+    for (const row of dists) {
+      const key = dayKey(row.date)
+      const list = pctByDay.get(key) ?? []
+      list.push(
+        effectiveReturnPct(
+          d(row.amount),
+          d(row.returnPct),
+          d(row.eligibleBalance ?? 0),
+          capitalBasis,
+        ),
+      )
+      pctByDay.set(key, list)
+    }
 
     const dailyProfit = equitySeries.points.map((point) => {
       const profit = d(point.profit)
       const stored = pctByDay.get(point.date) ?? []
       const returnPct =
-        stored.length > 0
+        stored.some((pct) => d(pct).abs().gt(0))
           ? compoundReturnPct(stored)
           : capitalBasis.gt(0)
             ? profit.div(capitalBasis).mul(100)
@@ -806,4 +794,119 @@ function dayDate(input: string): Date {
   const x = new Date(input)
   x.setUTCHours(0, 0, 0, 0)
   return x
+}
+
+function utcDay(date = new Date()): Date {
+  const x = new Date(date)
+  x.setUTCHours(0, 0, 0, 0)
+  return x
+}
+
+function seriesDayCount(range: string): number {
+  switch (range) {
+    case '1d':
+      return 1
+    case '7d':
+      return 7
+    case '90d':
+      return 90
+    case '180d':
+      return 180
+    case '1y':
+      return 365
+    case 'all':
+      return 3650
+    default:
+      return 30
+  }
+}
+
+type DayFlow = {
+  deposit: ReturnType<typeof d>
+  withdrawal: ReturnType<typeof d>
+  profit: ReturnType<typeof d>
+}
+
+function emptyFlow(): DayFlow {
+  return { deposit: d(0), withdrawal: d(0), profit: d(0) }
+}
+
+function effectiveReturnPct(
+  amount: ReturnType<typeof d>,
+  storedPct: ReturnType<typeof d>,
+  eligibleBalance: ReturnType<typeof d>,
+  capitalBasis: ReturnType<typeof d>,
+) {
+  if (storedPct.abs().gt(0)) return storedPct
+  if (eligibleBalance.gt(0)) return amount.div(eligibleBalance).mul(100)
+  if (capitalBasis.gt(0)) return amount.div(capitalBasis).mul(100)
+  return d(0)
+}
+
+async function reconstructInvestorEquity(userId: string, from: Date) {
+  const [deposits, withdrawals, dists] = await Promise.all([
+    prisma.deposit.findMany({
+      where: { userId, status: 'APPROVED' },
+      select: { createdAt: true, creditedAmount: true, amount: true },
+    }),
+    prisma.withdrawal.findMany({
+      where: { userId, status: { in: ['PAID', 'COMPLETED'] } },
+      select: { paidAt: true, createdAt: true, amount: true },
+    }),
+    prisma.profitDistribution.findMany({
+      where: { userId, isReversed: false },
+      select: { date: true, amount: true },
+    }),
+  ])
+
+  const flows = new Map<string, DayFlow>()
+  const add = (key: string, field: keyof DayFlow, amount: ReturnType<typeof d>) => {
+    const row = flows.get(key) ?? emptyFlow()
+    row[field] = row[field].plus(amount)
+    flows.set(key, row)
+  }
+
+  for (const row of deposits) {
+    add(dayKey(row.createdAt), 'deposit', d(row.creditedAmount ?? row.amount))
+  }
+  for (const row of withdrawals) {
+    add(dayKey(row.paidAt ?? row.createdAt), 'withdrawal', d(row.amount))
+  }
+  for (const row of dists) {
+    add(dayKey(row.date), 'profit', d(row.amount))
+  }
+
+  const keys = [...flows.keys()].sort()
+  if (keys.length === 0) return []
+
+  const first = utcDay(new Date(`${keys[0]}T00:00:00.000Z`))
+  const last = utcDay()
+  const fromDay = utcDay(from)
+  const emitFrom = fromDay > first ? fromDay : first
+
+  let balance = d(0)
+  let cumulative = d(0)
+  const points: Array<{
+    date: string
+    balance: string
+    profit: string
+    cumulativeProfit: string
+  }> = []
+
+  for (let cursor = new Date(first); cursor <= last; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+    const key = dayKey(cursor)
+    const flow = flows.get(key) ?? emptyFlow()
+    balance = balance.plus(flow.deposit).minus(flow.withdrawal).plus(flow.profit)
+    cumulative = cumulative.plus(flow.profit)
+    if (cursor >= emitFrom) {
+      points.push({
+        date: key,
+        balance: moneyDisplay(balance),
+        profit: moneyDisplay(flow.profit),
+        cumulativeProfit: moneyDisplay(cumulative),
+      })
+    }
+  }
+
+  return points
 }

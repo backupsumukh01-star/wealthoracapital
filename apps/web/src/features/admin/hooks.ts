@@ -84,6 +84,7 @@ export function useAdminUsers(
     status?: string
     role?: string
     kycStatus?: string
+    lookalike?: boolean
   },
   options?: QueryHookOptions,
 ) {

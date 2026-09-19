@@ -7,6 +7,7 @@ import { auditService } from '../audit.service.js'
 import { ledgerService } from '../finance/ledger.service.js'
 import { notificationService } from '../notification.service.js'
 import { opsAlertService } from '../ops-alert.service.js'
+import { realInvestorUser } from '../demo-investor.js'
 import { badRequest, conflict, notFound } from '../../utils/errors.js'
 import { logger } from '../../utils/logger.js'
 import { d, moneyDisplay, moneyString, type Decimal } from '../../utils/money.js'
@@ -178,10 +179,9 @@ export const distributionService = {
           { lockedBalance: { gt: 0 } },
         ],
         user: {
+          ...realInvestorUser,
           status: 'ACTIVE',
           kycStatus: 'APPROVED',
-          role: 'USER',
-          deletedAt: null,
         },
       },
       include: {

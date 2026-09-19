@@ -8,6 +8,7 @@ import type {
 } from '@prisma/client'
 
 import { prisma } from '../database/prisma.js'
+import { realInvestorUser } from '../services/demo-investor.js'
 
 const ACTIVE_QUEUE: KycStatus[] = ['PENDING', 'SUBMITTED', 'UNDER_REVIEW', 'NEED_MORE_INFO']
 
@@ -160,7 +161,7 @@ export const kycRepository = {
   },
 
   countByStatus(statuses: KycStatus[]) {
-    return prisma.kycSubmission.count({ where: { status: { in: statuses } } })
+    return prisma.kycSubmission.count({ where: { status: { in: statuses }, user: realInvestorUser } })
   },
 
   countReviewedBetween(from: Date, to: Date, status: KycStatus) {
@@ -168,6 +169,7 @@ export const kycRepository = {
       where: {
         status,
         reviewedAt: { gte: from, lt: to },
+        user: realInvestorUser,
       },
     })
   },
@@ -178,6 +180,7 @@ export const kycRepository = {
         submittedAt: { not: null },
         reviewedAt: { not: null },
         status: { in: ['APPROVED', 'REJECTED'] },
+        user: realInvestorUser,
       },
       select: { submittedAt: true, reviewedAt: true },
       take: 500,
@@ -204,7 +207,7 @@ export const kycRepository = {
     return prisma.kycSubmission.groupBy({
       by: ['riskLevel'],
       _count: { _all: true },
-      where: { status: { in: ACTIVE_QUEUE } },
+      where: { status: { in: ACTIVE_QUEUE }, user: realInvestorUser },
     })
   },
 

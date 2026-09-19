@@ -318,6 +318,7 @@ export const adminService = {
     status?: string
     role?: string
     kycStatus?: string
+    lookalike?: boolean
   }) => {
     const params = new URLSearchParams()
     if (query?.q) params.set('q', query.q)
@@ -327,6 +328,7 @@ export const adminService = {
     if (query?.status) params.set('status', query.status)
     if (query?.role) params.set('role', query.role)
     if (query?.kycStatus) params.set('kycStatus', query.kycStatus)
+    if (query?.lookalike) params.set('lookalike', 'true')
     const qs = params.toString()
     return apiClient<{
       items: User[]
@@ -508,6 +510,12 @@ export const adminService = {
     apiClient<AdminHistoricalImportRecord>(
       `${API_ROUTES.admin.users}/${id}/history/imports/${importId}/cancel`,
       { method: 'POST' },
+    ),
+
+  wipeUserHistory: (id: string) =>
+    apiClient<AdminUserHistoryPayload>(
+      `${API_ROUTES.admin.users}/${id}/history/wipe`,
+      { method: 'POST', timeoutMs: 10 * 60_000 },
     ),
 
   enableUser: (id: string, reason?: string) =>

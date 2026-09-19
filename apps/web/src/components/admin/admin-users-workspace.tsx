@@ -30,12 +30,13 @@ import { formatDateTime } from '@/lib/format'
 import { useAdminUsers } from '@/features/admin/hooks'
 import { PermissionGate } from '@/features/auth/guards'
 
-type FilterChip = 'all' | 'verified' | 'pending' | 'suspended' | 'rejected'
+type FilterChip = 'all' | 'verified' | 'pending' | 'suspended' | 'rejected' | 'lookalike'
 
 /** Admin list payload — live finance fields from API. */
 type AdminUserListItem = User & {
   countryName?: string | null
   city?: string | null
+  createdByAdminId?: string | null
   walletBalance?: MoneyString
   totalDeposited?: MoneyString
   totalWithdrawn?: MoneyString
@@ -68,6 +69,7 @@ type UserRow = {
   totalWithdrawnInr: string
   totalProfitInr: string
   registeredAt: string
+  isLookalike: boolean
 }
 
 const FILTERS: { id: FilterChip; label: string }[] = [
@@ -76,6 +78,7 @@ const FILTERS: { id: FilterChip; label: string }[] = [
   { id: 'pending', label: 'Pending' },
   { id: 'suspended', label: 'Suspended' },
   { id: 'rejected', label: 'Rejected' },
+  { id: 'lookalike', label: 'Lookalike (not real)' },
 ]
 
 function asMoney(v: string | null | undefined, fallback = '0.00'): MoneyString {
@@ -109,6 +112,7 @@ function mapUser(u: AdminUserListItem): UserRow {
     totalWithdrawnInr: u.totalWithdrawnInr ?? '0',
     totalProfitInr: u.totalProfitInr ?? '0',
     registeredAt: u.createdAt,
+    isLookalike: Boolean(u.createdByAdminId),
   }
 }
 
@@ -125,7 +129,7 @@ function Avatar({ initials }: { initials: string }) {
 
 const VIEW_KEY = 'admin:users:view'
 
-function serverFilters(filter: FilterChip): { status?: string; kycStatus?: string } {
+function serverFilters(filter: FilterChip): { status?: string; kycStatus?: string; lookalike?: boolean } {
   switch (filter) {
     case 'verified':
       return { kycStatus: 'APPROVED' }
@@ -135,6 +139,8 @@ function serverFilters(filter: FilterChip): { status?: string; kycStatus?: strin
       return { status: 'SUSPENDED' }
     case 'rejected':
       return { kycStatus: 'REJECTED' }
+    case 'lookalike':
+      return { lookalike: true }
     default:
       return {}
   }
@@ -201,7 +207,7 @@ export function AdminUsersWorkspace() {
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="Users"
-        description="Searchable directory of investors — KYC, balances, and account state."
+        description="Live investors only. Lookalike accounts used for historical import are hidden unless you open that filter."
         actions={
           <>
             <PermissionGate permission="users.edit">
@@ -241,7 +247,9 @@ export function AdminUsersWorkspace() {
                 className={cn(
                   'rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors',
                   active
-                    ? 'border-accent-500/40 bg-accent-500/15 text-accent-300'
+                    ? f.id === 'lookalike'
+                      ? 'border-warning/40 bg-warning/15 text-warning'
+                      : 'border-accent-500/40 bg-accent-500/15 text-accent-300'
                     : 'border-white/[0.08] bg-white/[0.03] text-fg-muted hover:border-white/15 hover:text-fg',
                 )}
               >
@@ -296,7 +304,14 @@ export function AdminUsersWorkspace() {
                     <td className="px-4 py-3 font-mono text-[11px] text-fg-muted">{u.userId}</td>
                     <td className="px-4 py-3 text-fg">@{u.username}</td>
                     <td className="px-4 py-3 font-medium text-fg">
-                      {u.firstName} {u.lastName}
+                      <span className="inline-flex flex-wrap items-center gap-2">
+                        {u.firstName} {u.lastName}
+                        {u.isLookalike ? (
+                          <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-warning">
+                            Not real
+                          </span>
+                        ) : null}
+                      </span>
                     </td>
                     <td className="max-w-[180px] truncate px-4 py-3 text-fg-muted">{u.email}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-fg-muted">{u.phone}</td>

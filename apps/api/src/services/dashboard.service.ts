@@ -2,7 +2,7 @@ import { prisma } from '../database/prisma.js'
 import { activityService } from './activity.service.js'
 import { cache } from './cache/index.js'
 import { moneyDisplay, d } from '../utils/money.js'
-import { realDepositWhere, realInvestorUser, realWithdrawalWhere } from './demo-investor.js'
+import { realDepositWhere, realInvestorUser, realKycWhere, realProfitWhere, realWithdrawalWhere } from './demo-investor.js'
 
 type PeriodKey = 'today' | 'yesterday' | 'week' | 'month' | 'all'
 
@@ -113,7 +113,7 @@ async function withdrawalStats(from: Date | null, to: Date | null) {
 }
 
 async function profitDistributed(from: Date | null, to: Date | null) {
-  const where = {
+  const where = realProfitWhere({
     isReversed: false,
     ...(from || to
       ? {
@@ -123,7 +123,7 @@ async function profitDistributed(from: Date | null, to: Date | null) {
           },
         }
       : {}),
-  }
+  })
   const agg = await prisma.profitDistribution.aggregate({
     where,
     _sum: { amount: true },
@@ -201,7 +201,7 @@ export const dashboardService = {
    * Short TTL cache (10s) — UI polls every 30s.
    */
   async getOpsSnapshot() {
-    const cacheKey = 'admin:dashboard:ops-v4'
+    const cacheKey = 'admin:dashboard:ops-v5'
     const cached = await cache.get<Awaited<ReturnType<typeof this.buildOpsSnapshot>>>(cacheKey)
     if (cached) return cached
     const data = await this.buildOpsSnapshot()
@@ -255,22 +255,22 @@ export const dashboardService = {
       avgMonthlyReturnPct,
     ] = await Promise.all([
       prisma.user.count({
-        where: { createdAt: { gte: today, lt: tomorrow }, deletedAt: null, role: 'USER' },
+        where: { ...realInvestorUser, createdAt: { gte: today, lt: tomorrow } },
       }),
       prisma.user.count({
-        where: { createdAt: { gte: yesterday, lt: today }, deletedAt: null, role: 'USER' },
+        where: { ...realInvestorUser, createdAt: { gte: yesterday, lt: today } },
       }),
       prisma.kycSubmission.count({
-        where: {
+        where: realKycWhere({
           status: { in: ['SUBMITTED', 'UNDER_REVIEW', 'NEED_MORE_INFO'] },
           submittedAt: { gte: today, lt: tomorrow },
-        },
+        }),
       }),
       prisma.kycSubmission.count({
-        where: {
+        where: realKycWhere({
           status: { in: ['SUBMITTED', 'UNDER_REVIEW', 'NEED_MORE_INFO'] },
           submittedAt: { gte: yesterday, lt: today },
-        },
+        }),
       }),
       prisma.deposit.count({
         where: realDepositWhere({
@@ -304,19 +304,17 @@ export const dashboardService = {
       profitDistributed(yesterday, today),
       prisma.user.count({
         where: {
-          role: 'USER',
+          ...realInvestorUser,
           status: 'ACTIVE',
           kycStatus: 'APPROVED',
-          deletedAt: null,
           updatedAt: { gte: today },
         },
       }),
       prisma.user.count({
         where: {
-          role: 'USER',
+          ...realInvestorUser,
           status: 'ACTIVE',
           kycStatus: 'APPROVED',
-          deletedAt: null,
           updatedAt: { gte: yesterday, lt: today },
         },
       }),
@@ -369,7 +367,7 @@ export const dashboardService = {
         },
       }),
       prisma.kycSubmission.findMany({
-        where: { status: { in: ['SUBMITTED', 'UNDER_REVIEW', 'NEED_MORE_INFO'] } },
+        where: realKycWhere({ status: { in: ['SUBMITTED', 'UNDER_REVIEW', 'NEED_MORE_INFO'] } }),
         orderBy: { submittedAt: 'desc' },
         take: 8,
         include: {
@@ -389,7 +387,7 @@ export const dashboardService = {
       prisma.wallet.count({
         where: {
           kind: 'INVESTMENT',
-          user: { deletedAt: null, role: 'USER' },
+          user: realInvestorUser,
           OR: [
             { availableBalance: { gt: 0 } },
             { investedAmount: { gt: 0 } },
@@ -810,20 +808,20 @@ export const dashboardService = {
         select: { createdAt: true, amount: true },
       }),
       prisma.user.findMany({
-        where: { createdAt: { gte: from, lt: to }, deletedAt: null, role: 'USER' },
+        where: { ...realInvestorUser, createdAt: { gte: from, lt: to } },
         select: { createdAt: true },
       }),
       prisma.profitDistribution.findMany({
-        where: { date: { gte: from, lt: to }, isReversed: false },
+        where: realProfitWhere({ date: { gte: from, lt: to }, isReversed: false }),
         select: { date: true, amount: true },
       }),
       prisma.kycSubmission.findMany({
-        where: { status: 'APPROVED', reviewedAt: { gte: from, lt: to } },
+        where: realKycWhere({ status: 'APPROVED', reviewedAt: { gte: from, lt: to } }),
         select: { reviewedAt: true },
       }),
       prisma.deposit.groupBy({
         by: ['userId'],
-        where: { status: 'APPROVED' },
+        where: realDepositWhere({ status: 'APPROVED' }),
         _min: { createdAt: true },
       }),
     ])
@@ -917,24 +915,24 @@ export const dashboardService = {
       profitToday,
       aum,
     ] = await Promise.all([
-      prisma.user.count({ where: { role: 'USER', deletedAt: null } }),
-      prisma.user.count({ where: { role: 'USER', kycStatus: 'APPROVED', deletedAt: null } }),
-      prisma.user.count({ where: { role: 'USER', status: 'ACTIVE', deletedAt: null } }),
-      prisma.user.count({ where: { role: 'USER', status: 'SUSPENDED', deletedAt: null } }),
-      prisma.user.count({ where: { role: 'USER', deletedAt: { not: null } } }),
+      prisma.user.count({ where: realInvestorUser }),
+      prisma.user.count({ where: { ...realInvestorUser, kycStatus: 'APPROVED' } }),
+      prisma.user.count({ where: { ...realInvestorUser, status: 'ACTIVE' } }),
+      prisma.user.count({ where: { ...realInvestorUser, status: 'SUSPENDED' } }),
+      prisma.user.count({ where: { role: 'USER', deletedAt: { not: null }, createdByAdminId: null } }),
       depositStats(null, null),
       withdrawalStats(null, null),
-      prisma.kycSubmission.count(),
-      prisma.kycSubmission.count({ where: { status: 'APPROVED' } }),
-      prisma.kycSubmission.count({ where: { status: 'REJECTED' } }),
+      prisma.kycSubmission.count({ where: realKycWhere() }),
+      prisma.kycSubmission.count({ where: realKycWhere({ status: 'APPROVED' }) }),
+      prisma.kycSubmission.count({ where: realKycWhere({ status: 'REJECTED' }) }),
       prisma.kycSubmission.count({
-        where: { status: { in: ['SUBMITTED', 'UNDER_REVIEW', 'NEED_MORE_INFO'] } },
+        where: realKycWhere({ status: { in: ['SUBMITTED', 'UNDER_REVIEW', 'NEED_MORE_INFO'] } }),
       }),
       profitDistributed(null, null),
       profitDistributed(rangeFor('month').from, rangeFor('month').to),
       profitDistributed(rangeFor('today').from, rangeFor('today').to),
       prisma.wallet.aggregate({
-        where: { kind: 'INVESTMENT' },
+        where: { kind: 'INVESTMENT', user: realInvestorUser },
         _sum: { availableBalance: true, lockedBalance: true, investedAmount: true },
       }),
     ])
@@ -965,7 +963,7 @@ export const dashboardService = {
   async getSummary() {
     const ops = await this.getOpsSnapshot()
     const blockedUsers = await prisma.user.count({
-      where: { role: 'USER', status: 'BLOCKED', deletedAt: null },
+      where: { ...realInvestorUser, status: 'BLOCKED' },
     })
     return {
       totalUsers: ops.totals.users.total,

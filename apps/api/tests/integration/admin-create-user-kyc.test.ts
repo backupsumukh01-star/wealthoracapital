@@ -5,6 +5,7 @@ import request from 'supertest'
 
 import { createApp } from '../../src/app.js'
 import { prisma } from '../../src/database/prisma.js'
+import { cache } from '../../src/services/cache/index.js'
 
 const app = createApp()
 
@@ -129,5 +130,50 @@ describe('Admin manual user creation KYC exemption', () => {
 
     const hidden = await agent.get(`/api/v1/admin/deposits/${demoDeposit.id}`).set('x-csrf-token', csrf)
     expect(hidden.status).toBe(404)
+
+    const usersDefault = await agent
+      .get(`/api/v1/admin/users?q=${encodeURIComponent(createdEmail)}`)
+      .set('x-csrf-token', csrf)
+    expect(usersDefault.status).toBe(200)
+    const defaultEmails = (usersDefault.body.data.items as Array<{ email: string }>).map((u) => u.email)
+    expect(defaultEmails).not.toContain(createdEmail)
+
+    const publicListed = await agent
+      .get(`/api/v1/admin/users?q=${encodeURIComponent(publicEmail)}`)
+      .set('x-csrf-token', csrf)
+    expect(publicListed.status).toBe(200)
+    expect((publicListed.body.data.items as Array<{ email: string }>).map((u) => u.email)).toContain(
+      publicEmail,
+    )
+
+    const usersLookalike = await agent
+      .get(`/api/v1/admin/users?lookalike=true&q=${encodeURIComponent(createdEmail)}`)
+      .set('x-csrf-token', csrf)
+    expect(usersLookalike.status).toBe(200)
+    const lookalikeEmails = (usersLookalike.body.data.items as Array<{ email: string; createdByAdminId?: string | null }>).map(
+      (u) => u.email,
+    )
+    expect(lookalikeEmails).toContain(createdEmail)
+    expect(lookalikeEmails).not.toContain(publicEmail)
+
+    const lookalikeCount = await prisma.user.count({
+      where: { createdByAdminId: { not: null }, role: 'USER', deletedAt: null },
+    })
+    const realCount = await prisma.user.count({
+      where: { createdByAdminId: null, role: 'USER', deletedAt: null },
+    })
+    expect(lookalikeCount).toBeGreaterThanOrEqual(1)
+    await cache.del('admin:dashboard:ops-v5')
+    const ops = await agent.get('/api/v1/admin/dashboard/ops').set('x-csrf-token', csrf)
+    expect(ops.status).toBe(200)
+    const registeredCard = (
+      ops.body.data.executiveKpis as Array<{
+        cards: Array<{ id: string; value: string }>
+      }>
+    )
+      .flatMap((row) => row.cards)
+      .find((card) => card.id === 'total-registered-users')
+    expect(registeredCard).toBeTruthy()
+    expect(Number(registeredCard?.value)).toBe(realCount)
   })
 })

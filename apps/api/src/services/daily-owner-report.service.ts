@@ -2,7 +2,7 @@ import { prisma } from '../database/prisma.js'
 import { logger } from '../utils/logger.js'
 import { emailService } from '../emails/email.service.js'
 import { opsAlertService } from './ops-alert.service.js'
-import { realDepositWhere, realWithdrawalWhere } from './demo-investor.js'
+import { realDepositWhere, realInvestorUser, realKycWhere, realWithdrawalWhere } from './demo-investor.js'
 import { env } from '../config/env.js'
 
 function startOfUtcDay(d = new Date()) {
@@ -39,20 +39,22 @@ export const dailyOwnerReportService = {
       errorLogs,
       roiRows,
     ] = await Promise.all([
-      prisma.user.count({ where: { createdAt: { gte: from, lt: to }, deletedAt: null } }),
-      prisma.kycSubmission.count({
-        where: { submittedAt: { gte: from, lt: to } },
+      prisma.user.count({
+        where: { ...realInvestorUser, createdAt: { gte: from, lt: to } },
       }),
       prisma.kycSubmission.count({
-        where: { status: 'APPROVED', reviewedAt: { gte: from, lt: to } },
+        where: realKycWhere({ submittedAt: { gte: from, lt: to } }),
       }),
       prisma.kycSubmission.count({
-        where: { status: 'REJECTED', reviewedAt: { gte: from, lt: to } },
+        where: realKycWhere({ status: 'APPROVED', reviewedAt: { gte: from, lt: to } }),
       }),
       prisma.kycSubmission.count({
-        where: {
+        where: realKycWhere({ status: 'REJECTED', reviewedAt: { gte: from, lt: to } }),
+      }),
+      prisma.kycSubmission.count({
+        where: realKycWhere({
           status: { in: ['SUBMITTED', 'UNDER_REVIEW', 'NEED_MORE_INFO'] },
-        },
+        }),
       }),
       prisma.deposit.findMany({
         where: realDepositWhere({ createdAt: { gte: from, lt: to } }),
@@ -92,7 +94,7 @@ export const dailyOwnerReportService = {
       : '0'
 
     const topInvestors = await prisma.user.findMany({
-      where: { deletedAt: null, role: 'USER' },
+      where: realInvestorUser,
       orderBy: { createdAt: 'desc' },
       take: 5,
       select: {

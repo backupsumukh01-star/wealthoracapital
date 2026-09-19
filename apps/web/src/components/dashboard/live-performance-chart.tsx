@@ -13,10 +13,22 @@ import {
 
 import { GlowPanel } from '@/components/dashboard/glow-panel'
 import { Money } from '@/components/common/money'
-import type { ChartRange } from '@/lib/dashboard-data'
+import { usePerformanceSeries } from '@/features/performance/hooks'
 import { useWalletSummary } from '@/features/wallet/hooks'
 import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
+
+type ChartRange = '1D' | '1W' | '1M' | '3M' | '6M' | '1Y' | 'ALL'
+
+const RANGE_TO_API: Record<ChartRange, string> = {
+  '1D': '1d',
+  '1W': '7d',
+  '1M': '30d',
+  '3M': '90d',
+  '6M': '180d',
+  '1Y': '1y',
+  ALL: 'all',
+}
 
 const RANGES: { id: ChartRange; label: string }[] = [
   { id: '1D', label: '1D' },
@@ -56,8 +68,11 @@ export function LivePerformanceChart() {
   const { session } = useSession()
   const { data: summary } = useWalletSummary({ enabled: Boolean(session) })
   const [range, setRange] = useState<ChartRange>('1M')
+  const { data: series } = usePerformanceSeries(RANGE_TO_API[range], {
+    enabled: Boolean(session),
+  })
   const wallet = summary?.wallet ?? session?.wallet
-  const chartPoints = summary?.chart?.points
+  const chartPoints = series?.points?.length ? series.points : summary?.chart?.points
 
   const data = useMemo(() => {
     if (chartPoints && chartPoints.length > 0) {
@@ -79,6 +94,15 @@ export function LivePerformanceChart() {
       },
     ]
   }, [wallet, chartPoints, summary?.today.profit])
+
+  const yPad = useMemo(() => {
+    if (data.length === 0) return 80
+    const values = data.map((p) => p.balanceNum)
+    const min = Math.min(...values)
+    const max = Math.max(...values)
+    const span = Math.max(max - min, 1)
+    return Math.max(span * 0.08, 5)
+  }, [data])
 
   return (
     <GlowPanel glow={false} className="h-full group/chart">
@@ -144,12 +168,18 @@ export function LivePerformanceChart() {
               minTickGap={28}
             />
             <YAxis
-              domain={['dataMin - 80', 'dataMax + 80']}
+              domain={[`dataMin - ${yPad}`, `dataMax + ${yPad}`]}
               tick={{ fill: '#89939E', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
-              width={48}
-              tickFormatter={(v) => `$${Math.round(Number(v) / 1000)}k`}
+              width={56}
+              tickFormatter={(v) => {
+                const n = Number(v)
+                if (Math.abs(n) >= 1000) {
+                  return `$${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`
+                }
+                return `$${Math.round(n)}`
+              }}
             />
             <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'rgb(60 203 145 / 0.28)' }} />
             <Area

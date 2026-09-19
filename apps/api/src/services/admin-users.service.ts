@@ -287,6 +287,7 @@ export const adminUsersService = {
         occupation: kyc?.occupation ?? null,
         dateOfBirth: kyc?.dateOfBirth ? kyc.dateOfBirth.toISOString().slice(0, 10) : null,
         staffRole: user.staffRole,
+        createdByAdminId: user.createdByAdminId,
         referralCode: user.referralCode,
         lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
         deletedAt: user.deletedAt?.toISOString() ?? null,

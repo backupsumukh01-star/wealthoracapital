@@ -133,6 +133,24 @@ export function AdminUserHistoryWorkspace() {
     },
   })
 
+  const wipeImported = useMutation({
+    mutationFn: () => adminService.wipeUserHistory(userId),
+    onSuccess: async (data) => {
+      setPreview(null)
+      setConfirmChecked(false)
+      setUploadName('')
+      if (fileRef.current) fileRef.current.value = ''
+      queryClient.setQueryData(adminQueryKeys.userHistory(userId), data)
+      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.userHistoryImports(userId) })
+      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.user(userId) })
+      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.ops() })
+      toast.success('Imported data cleared. Upload a fresh Excel or CSV when ready.')
+    },
+    onError: (err: Error) => {
+      toast.error(err instanceof ApiError ? err.message : err.message || 'Could not clear imported data')
+    },
+  })
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!occurredAt) {
@@ -154,6 +172,14 @@ export function AdminUserHistoryWorkspace() {
   const previewSummary = preview?.summary
   const invalidRows = preview?.preview?.invalid ?? []
   const skippedRows = (preview?.preview?.rows ?? []).filter((row) => row.outcome === 'SKIPPED')
+
+  function handleWipe() {
+    const ok = window.confirm(
+      `Clear all imported deposits, withdrawals, profit, and referrals for ${name}? The account stays so you can upload a fresh file. This cannot be undone.`,
+    )
+    if (!ok) return
+    wipeImported.mutate()
+  }
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -193,9 +219,20 @@ export function AdminUserHistoryWorkspace() {
                 <p className="text-body-sm text-fg-muted">
                   Upload Excel or CSV for {name}. Records always belong to this account. Do not put a
                   User ID in the spreadsheet. Sample Order IDs in the template are never imported. Up to
-                  10,000 rows per file (15MB).
+                  10,000 rows per file (15MB). Clear imported data zeros wallets and history so the same
+                  Order IDs can be uploaded again. The lookalike account is kept.
                 </p>
                 <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="danger"
+                    loading={wipeImported.isPending}
+                    loadingText="Clearing"
+                    onClick={handleWipe}
+                  >
+                    Clear imported data
+                  </Button>
                   <Button
                     type="button"
                     size="sm"

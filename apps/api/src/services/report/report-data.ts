@@ -55,7 +55,7 @@ async function resolveUserIds(params: ReportFilters): Promise<string[] | undefin
 
   const users = await prisma.user.findMany({
     where: {
-      role: 'USER',
+      ...realInvestorUser,
       AND: [
         ...(or.length ? [{ OR: or }] : []),
         ...(params.country
@@ -149,7 +149,7 @@ export async function fetchReportRows(
     case 'INVESTOR': {
       const users = await prisma.user.findMany({
         where: {
-          role: 'USER',
+          ...realInvestorUser,
           createdAt: range,
           ...(userIds ? { id: { in: userIds } } : scopedUserId ? { id: scopedUserId } : {}),
           ...(params.status ? { status: params.status as never } : {}),

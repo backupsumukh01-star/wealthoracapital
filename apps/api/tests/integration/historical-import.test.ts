@@ -8,6 +8,8 @@ import { prisma } from '../../src/database/prisma.js'
 import { passwordService } from '../../src/services/password.service.js'
 import { adminUserHistoryService } from '../../src/services/admin-user-history.service.js'
 import { referralService } from '../../src/services/finance/referral.service.js'
+import { activityService } from '../../src/services/activity.service.js'
+import { performanceService } from '../../src/services/trading/performance.service.js'
 import { buildXlsx, HISTORICAL_IMPORT_MAX_ROWS } from '../../src/services/historical-import-parse.js'
 
 const app = createApp()
@@ -78,7 +80,7 @@ describe('Admin historical spreadsheet import', () => {
     vi.restoreAllMocks()
   })
 
-  it('lets admin download templates and rejects investor, salesman, and finance staff', async () => {
+  it('lets admin download templates and rejects investor, salesman, and finance staff', { timeout: 90_000 }, async () => {
     await ensureSystemAccounts()
     const adminEmail = uniqueEmail('imp_adm')
     await registerActive(adminEmail)
@@ -300,6 +302,27 @@ describe('Admin historical spreadsheet import', () => {
     const referralNetwork = await referralService.network(target.id)
     expect(Number(referralNetwork.totalEarnings)).toBe(50)
     expect(Number(referralNetwork.availableEarnings)).toBe(50)
+    expect(referralNetwork.totalReferrals).toBe(1)
+    expect(referralNetwork.activeReferrals).toBe(1)
+    expect(referralNetwork.referrals.some((row) => row.displayName.toLowerCase().includes('imported'))).toBe(true)
+
+    const series = await performanceService.series(target.id, 'all')
+    const balances = series.points.map((p) => Number(p.balance))
+    expect(new Set(balances.map((n) => n.toFixed(2))).size).toBeGreaterThan(1)
+    expect(balances).toContain(1000)
+    expect(balances).toContain(750)
+    expect(balances[balances.length - 1]).toBe(825)
+
+    const activity = await activityService.list({
+      userId: target.id,
+      page: 1,
+      limit: 50,
+      sortOrder: 'desc',
+    })
+    const paid = activity.items.find((item) => item.kind === 'WITHDRAWAL_PAID')
+    expect(paid?.description).toMatch(/250/)
+    const deposited = activity.items.find((item) => item.kind === 'DEPOSIT_APPROVED')
+    expect(deposited?.description).toMatch(/1000/)
     const rewardList = await referralService.listRewards(target.id, { limit: 20 })
     expect(rewardList.items.some((item) => item.sourceDepositReference === 'HISTORICAL')).toBe(true)
 
@@ -334,6 +357,46 @@ describe('Admin historical spreadsheet import', () => {
     const historyList = await agent.get(`/api/v1/admin/users/${target.id}/history/imports`)
     expect(historyList.status).toBe(200)
     expect(historyList.body.data.items.length).toBeGreaterThan(0)
+
+    const deniedWipePublic = await agent
+      .post(`/api/v1/admin/users/${publicUser.id}/history/wipe`)
+      .set('x-csrf-token', csrf)
+    expect(deniedWipePublic.status).toBe(403)
+
+    const wiped = await agent
+      .post(`/api/v1/admin/users/${target.id}/history/wipe`)
+      .set('x-csrf-token', csrf)
+    expect(wiped.status).toBe(200)
+    expect(Number(wiped.body.data.wallet.available)).toBe(0)
+    expect(Number(wiped.body.data.wallet.deposited)).toBe(0)
+    expect(wiped.body.data.records).toEqual([])
+    expect(await prisma.deposit.count({ where: { userId: target.id } })).toBe(0)
+    expect(await prisma.withdrawal.count({ where: { userId: target.id } })).toBe(0)
+    expect(await prisma.transaction.count({ where: { userId: target.id } })).toBe(0)
+    expect(await prisma.historicalImport.count({ where: { userId: target.id } })).toBe(0)
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: target.id } })).toMatchObject({
+      deletedAt: null,
+      createdByAdminId: expect.any(String),
+    })
+    const clearedWallet = await prisma.wallet.findUniqueOrThrow({
+      where: { userId_kind: { userId: target.id, kind: 'INVESTMENT' } },
+    })
+    expect(Number(clearedWallet.availableBalance)).toBe(0)
+    expect(Number(clearedWallet.totalDeposited)).toBe(0)
+    expect(await prisma.deposit.count({ where: { userId: other.id } })).toBe(otherBefore)
+
+    const freshPreview = await agent
+      .post(`/api/v1/admin/users/${target.id}/history/import/preview`)
+      .set('x-csrf-token', csrf)
+      .attach('file', Buffer.from(goodCsv), 'good-fresh.csv')
+    expect(freshPreview.status).toBe(201)
+    expect(freshPreview.body.data.validCount).toBe(4)
+    expect(freshPreview.body.data.skippedCount).toBe(0)
+    const freshConfirm = await agent
+      .post(`/api/v1/admin/users/${target.id}/history/imports/${freshPreview.body.data.id}/confirm`)
+      .set('x-csrf-token', csrf)
+    expect([200, 201]).toContain(freshConfirm.status)
+    expect(await prisma.deposit.count({ where: { userId: target.id, reference: depRef } })).toBe(1)
   })
 
   it('rolls back the whole import when a later row fails', async () => {

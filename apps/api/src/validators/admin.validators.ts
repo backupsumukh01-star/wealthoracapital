@@ -55,6 +55,10 @@ export const adminUserListQuerySchema = z.object({
     .enum(['true', 'false'])
     .optional()
     .transform((v) => v === 'true'),
+  lookalike: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((v) => v === 'true'),
   sortBy: z
     .enum(['createdAt', 'email', 'status', 'kycStatus', 'firstName', 'lastName'])
     .default('createdAt'),

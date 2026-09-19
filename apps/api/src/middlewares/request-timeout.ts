@@ -22,7 +22,8 @@ export function requestTimeoutMiddleware(req: Request, res: Response, next: Next
     return
   }
 
-  const isHistoricalImport = path.includes('/history/import')
+  const isHistoricalImport =
+    path.includes('/history/import') || path.includes('/history/wipe')
   const ms = isHistoricalImport
     ? Math.max(env.REQUEST_TIMEOUT_MS, HISTORICAL_IMPORT_REQUEST_TIMEOUT_MS)
     : env.REQUEST_TIMEOUT_MS

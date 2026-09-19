@@ -5,6 +5,7 @@ import { prisma } from '../../database/prisma.js'
 import { activityService } from '../activity.service.js'
 import { auditService } from '../audit.service.js'
 import { notificationService } from '../notification.service.js'
+import { realInvestorUser } from '../demo-investor.js'
 import { badRequest, forbidden, notFound } from '../../utils/errors.js'
 import { d, moneyString } from '../../utils/money.js'
 import { mapTrade, suggestedReturnPct } from './trade.mappers.js'
@@ -571,7 +572,7 @@ export const tradeService = {
     const wallets = await prisma.wallet.findMany({
       where: {
         kind: 'INVESTMENT',
-        user: { status: 'ACTIVE', kycStatus: 'APPROVED', role: 'USER' },
+        user: { ...realInvestorUser, status: 'ACTIVE', kycStatus: 'APPROVED' },
         ...(body.userIds?.length ? { userId: { in: body.userIds } } : {}),
         availableBalance: { gt: 0 },
       },

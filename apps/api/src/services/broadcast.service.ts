@@ -7,6 +7,7 @@ import { transactionalMailer } from '../emails/transactional.js'
 import { activityService } from './activity.service.js'
 import { cmsService } from './cms/cms.service.js'
 import { notificationService } from './notification.service.js'
+import { realInvestorUser } from './demo-investor.js'
 
 type Ctx = { ip?: string | null; userAgent?: string | null }
 
@@ -32,7 +33,7 @@ async function resolveAudienceUserIds(
   audience: BroadcastAudience,
   filter: Record<string, unknown> | null | undefined,
 ): Promise<string[]> {
-  const baseWhere: Prisma.UserWhereInput = { role: 'USER' }
+  const baseWhere: Prisma.UserWhereInput = { ...realInvestorUser }
   switch (audience) {
     case 'ALL':
       break

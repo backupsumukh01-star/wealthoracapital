@@ -1,6 +1,7 @@
 import { prisma } from '../../database/prisma.js'
 import { d, moneyDisplay } from '../../utils/money.js'
 import { realDepositWhere, realInvestorUser, realWithdrawalWhere } from '../demo-investor.js'
+import type { Prisma } from '@prisma/client'
 
 function dayBounds() {
   const start = new Date()
@@ -65,7 +66,7 @@ export const financeMetricsService = {
       }),
       prisma.approvalQueue.count({ where: { status: { in: ['PENDING', 'IN_PROGRESS'] } } }),
       prisma.wallet.aggregate({
-        where: { kind: 'PROFIT' },
+        where: { kind: 'PROFIT', user: realInvestorUser },
         _sum: { totalProfit: true, balance: true },
       }),
     ])
@@ -107,7 +108,8 @@ export const financeMetricsService = {
     from?: Date
     to?: Date
   }) {
-    const where = {
+    const where: Prisma.LedgerEntryWhereInput = {
+      wallet: { user: realInvestorUser },
       ...(query.from || query.to
         ? {
             createdAt: {

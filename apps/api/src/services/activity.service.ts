@@ -1,8 +1,66 @@
 import type { ActivityKind, Prisma } from '@prisma/client'
 
+import { prisma } from '../database/prisma.js'
 import { activityRepository } from '../repositories/activity.repository.js'
+import { moneyDisplay } from '../utils/money.js'
 
 export type ActivityCategory = 'deposits' | 'withdrawals' | 'kyc' | 'profit' | 'security'
+
+function amountFromMeta(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== 'object') return null
+  const amount = (metadata as { amount?: unknown }).amount
+  return typeof amount === 'string' && amount.trim() ? amount.trim() : null
+}
+
+function alreadyHasAmount(description: string) {
+  return /^\d+(\.\d+)?\s*·/.test(description) || /^Profit\s+/i.test(description)
+}
+
+async function withMoneyDescriptions<
+  T extends { kind: string; description: string | null; metadata: unknown },
+>(userId: string, items: T[]): Promise<T[]> {
+  const refs = [
+    ...new Set(
+      items
+        .filter(
+          (item) =>
+            item.description &&
+            !alreadyHasAmount(item.description) &&
+            (item.kind.startsWith('DEPOSIT_') || item.kind.startsWith('WITHDRAWAL_')),
+        )
+        .map((item) => item.description!),
+    ),
+  ]
+  const amountByRef = new Map<string, string>()
+  if (refs.length > 0) {
+    const [deposits, withdrawals] = await Promise.all([
+      prisma.deposit.findMany({
+        where: { userId, reference: { in: refs } },
+        select: { reference: true, creditedAmount: true, amount: true },
+      }),
+      prisma.withdrawal.findMany({
+        where: { userId, reference: { in: refs } },
+        select: { reference: true, amount: true },
+      }),
+    ])
+    for (const row of deposits) {
+      amountByRef.set(row.reference, moneyDisplay(row.creditedAmount ?? row.amount))
+    }
+    for (const row of withdrawals) {
+      amountByRef.set(row.reference, moneyDisplay(row.amount))
+    }
+  }
+
+  return items.map((item) => {
+    if (item.description && alreadyHasAmount(item.description)) return item
+    const amount = amountFromMeta(item.metadata) ?? (item.description ? amountByRef.get(item.description) : undefined)
+    if (!amount) return item
+    return {
+      ...item,
+      description: item.description ? `${amount} · ${item.description}` : amount,
+    }
+  })
+}
 
 const CATEGORY_KINDS: Record<ActivityCategory, ActivityKind[]> = {
   deposits: ['DEPOSIT_SUBMITTED', 'DEPOSIT_APPROVED', 'DEPOSIT_REJECTED', 'DEPOSIT_CANCELLED'],
@@ -76,7 +134,9 @@ export const activityService = {
     sortOrder: 'asc' | 'desc'
   }) {
     const where: Prisma.ActivityLogWhereInput = {
-      ...(input.userId ? { userId: input.userId } : {}),
+      ...(input.userId
+        ? { userId: input.userId }
+        : { user: { createdByAdminId: null } }),
       ...(input.category
         ? { kind: { in: CATEGORY_KINDS[input.category] } }
         : input.kind
@@ -104,9 +164,10 @@ export const activityService = {
       at: item.createdAt.toISOString(),
       createdAt: item.createdAt.toISOString(),
     }))
+    const withAmounts = input.userId ? await withMoneyDescriptions(input.userId, mapped) : mapped
 
     return {
-      items: mapped,
+      items: withAmounts,
       nextCursor: mapped.length === input.limit ? mapped[mapped.length - 1]?.id ?? null : null,
       pagination: {
         page: input.page,

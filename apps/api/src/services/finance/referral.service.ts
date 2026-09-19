@@ -6,6 +6,7 @@ import { badRequest, conflict, forbidden, notFound } from '../../utils/errors.js
 import { assertNonNegative, d, moneyDisplay, moneyString } from '../../utils/money.js'
 import { ledgerService } from '../finance/ledger.service.js'
 import { settingsService } from '../settings.service.js'
+import { realInvestorUser } from '../demo-investor.js'
 
 type TxClient = Prisma.TransactionClient
 
@@ -57,7 +58,26 @@ function isHistoricalReferralMeta(metadata: unknown): metadata is {
   return Boolean(metadata && typeof metadata === 'object' && (metadata as { historical?: boolean }).historical)
 }
 
-/** Referral wallet credits from historical import that are not represented as referral_rewards. */
+async function historicalReferralRows(userId: string) {
+  return prisma.transactionHistory.findMany({
+    where: {
+      userId,
+      OR: [
+        { event: 'HISTORICAL_REFERRAL' },
+        { event: 'REFERRAL_BONUS', metadata: { path: ['historical'], equals: true } },
+      ],
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 500,
+  })
+}
+
+function historicalReferralLabel(message: string | null | undefined, index: number) {
+  const from = message?.match(/Referral from\s+(.+?)(?:\.|$)/i)
+  if (from?.[1]?.trim()) return from[1].trim().slice(0, 80)
+  return `Imported referral ${index + 1}`
+}
+
 async function historicalReferralAvailable(userId: string, outstandingRewards: ReturnType<typeof d>) {
   const wallet = await prisma.wallet.findUnique({
     where: { userId_kind: { userId, kind: 'REFERRAL' } },
@@ -353,14 +373,29 @@ export const referralService = {
       }
     })
 
+    const historicalRows = await historicalReferralRows(userId)
+    const historicalPeople = historicalRows
+      .filter((row) => {
+        const meta = isHistoricalReferralMeta(row.metadata) ? row.metadata : null
+        if (row.event !== 'HISTORICAL_REFERRAL' && !meta) return false
+        return meta?.redeemed !== true
+      })
+      .map((row, index) => ({
+        displayName: historicalReferralLabel(row.message, index),
+        joinedAt: row.createdAt.toISOString(),
+        status: 'ACTIVE' as const,
+        approvedDepositAmount: moneyDisplay(0),
+        referralEarnings: moneyDisplay(row.amount ?? 0),
+      }))
+
     return {
-      totalReferrals: directReferrals.length,
-      activeReferrals,
+      totalReferrals: directReferrals.length + historicalPeople.length,
+      activeReferrals: activeReferrals + historicalPeople.length,
       totalEarnings: moneyDisplay(total),
       lockedEarnings: moneyDisplay(locked),
       availableEarnings: moneyDisplay(available),
       redeemedEarnings: moneyDisplay(redeemed),
-      referrals,
+      referrals: [...referrals, ...historicalPeople],
     }
   },
 
@@ -663,9 +698,9 @@ export const referralService = {
     }
 
     const [relationshipCount, activeReferrerCount, referralDepositCount] = await Promise.all([
-      prisma.user.count({ where: { referredById: { not: null }, deletedAt: null } }),
+      prisma.user.count({ where: { ...realInvestorUser, referredById: { not: null } } }),
       prisma.user.findMany({
-        where: { referredById: { not: null }, deletedAt: null },
+        where: { ...realInvestorUser, referredById: { not: null } },
         select: { referredById: true },
         distinct: ['referredById'],
       }),
@@ -720,6 +755,8 @@ export const referralService = {
     }
 
     const where: Prisma.ReferralRewardWhereInput = {
+      referrer: realInvestorUser,
+      referee: realInvestorUser,
       ...(query.status ? { status: query.status } : {}),
       ...(query.from || query.to
         ? {
@@ -879,8 +916,9 @@ export const referralService = {
   }) {
     const q = query.q?.trim()
     const where: Prisma.UserWhereInput = {
+      ...realInvestorUser,
       referredById: { not: null },
-      deletedAt: null,
+      referredBy: realInvestorUser,
       ...(query.from || query.to
         ? {
             createdAt: {

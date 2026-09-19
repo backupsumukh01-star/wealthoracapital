@@ -139,6 +139,13 @@ adminRouter.post(
   adminUsersController.historyImportCancel,
 )
 
+adminRouter.post(
+  '/users/:id/history/wipe',
+  requirePermission(PERMISSIONS['users.history_import']),
+  validate(idParamSchema, 'params'),
+  adminUsersController.wipeHistory,
+)
+
 adminRouter.get(
   '/users/:id/history',
   requirePermission(PERMISSIONS['users.view']),
