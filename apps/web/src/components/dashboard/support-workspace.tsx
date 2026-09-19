@@ -54,7 +54,7 @@ export function SupportWorkspace() {
         description={
           support
             ? `${support.headline} ${support.body}`
-            : 'Live desk chat, WhatsApp, tickets, and answers to common questions.'
+            : 'Live desk chat, WhatsApp, tickets and answers to common questions.'
         }
       />
 
@@ -110,7 +110,7 @@ export function SupportWorkspace() {
           <Card variant="glass" className="p-5 sm:p-6">
             <SectionHeader
               title="Open a ticket"
-              description="For issues that need a tracked response from ops."
+              description="For issues that need a tracked response from operations."
             />
             <form
               className="mt-5 max-w-xl space-y-4"
@@ -128,7 +128,7 @@ export function SupportWorkspace() {
                   setSubject('')
                   setDetails('')
                 } catch {
-                  toast.error('Could not create ticket. Please try again.')
+                  toast.error('Could not create a ticket. Please try again.')
                 } finally {
                   setSubmitting(false)
                 }

@@ -22,7 +22,7 @@ const CARDS: { title: string; line: string; icon: LucideIcon }[] = [
   { title: 'Downloadable Trade History', line: 'Export tickets for your own review.', icon: Download },
   { title: 'Trade Filters', line: 'Slice by pair, side, session, or outcome.', icon: Filter },
   { title: 'Withdrawal History', line: 'Every payout request stays visible.', icon: WalletCards },
-  { title: 'Performance Dashboard', line: 'Equity, win rate, and drawdown in one view.', icon: LayoutDashboard },
+  { title: 'Performance Dashboard', line: 'Equity, win rate and drawdown in one view.', icon: LayoutDashboard },
 ]
 
 export function WhyWePublish() {

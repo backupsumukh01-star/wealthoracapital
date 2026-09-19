@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 export const metadata: Metadata = {
   title: 'Historical Performance',
   description:
-    '3-Year Verified Demo Backtest: equity curve, monthly and daily returns, trade blotter, and downloadable reports.',
+    '4-Year Verified Demo Backtest: equity curve, monthly and daily returns, trade blotter and downloadable reports.',
   alternates: { canonical: ROUTES.marketing.historicalPerformance },
 }
 
@@ -23,8 +23,8 @@ export default function HistoricalPerformancePage() {
     <>
       <PageHero
         eyebrow="Historical Performance"
-        title="3-Year Verified Demo Backtest"
-        description="Charts, settlements, and the trade blotter from the published programme ledger. Presentation dataset — not a guarantee of future results."
+        title="4-Year Verified Demo Backtest"
+        description="Charts, settlements and the trade blotter from the published programme ledger. Presentation dataset — not a guarantee of future results."
       >
         <div className="flex flex-col gap-3 pt-2 sm:flex-row">
           <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto">

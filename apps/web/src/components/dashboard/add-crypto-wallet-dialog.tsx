@@ -131,7 +131,7 @@ export function AddCryptoWalletDialog({
         <DialogHeader>
           <DialogTitle>{editing ? 'Edit crypto wallet' : 'Add crypto wallet'}</DialogTitle>
           <DialogDescription>
-            Saved addresses only — typed destinations are not accepted at withdraw time.
+            Saved addresses only — typed destinations are not accepted at withdrawal time.
           </DialogDescription>
         </DialogHeader>
 

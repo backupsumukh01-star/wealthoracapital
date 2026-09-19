@@ -16,7 +16,7 @@ export function InvestmentCalculator() {
 
   const projected = useMemo(() => {
     const rate = monthlyPct / 100
-    const future = amount * Math.pow(1 + rate, months)
+    const future = amount + amount * rate * months
     return Number.isFinite(future) ? future : amount
   }, [amount, monthlyPct, months])
 
@@ -27,7 +27,7 @@ export function InvestmentCalculator() {
       id="calculator"
       eyebrow="Projection tools"
       title="Project a path — then verify the tape"
-      description="Compound projection for exploration only. Past performance does not guarantee future results."
+      description="Simple-return projection for exploration only. Past performance does not guarantee future results."
     >
       <RevealOnScroll>
         <div className="gradient-border-soft grid gap-6 p-5 sm:p-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10">
@@ -78,7 +78,7 @@ export function InvestmentCalculator() {
               </span>
             </p>
             <p className="mt-4 text-caption text-fg-subtle">
-              Compounded monthly for {months} months at {monthlyPct}% — demo only.
+              Simple monthly return applied to the original principal for {months} months — demo only.
             </p>
           </motion.div>
         </div>

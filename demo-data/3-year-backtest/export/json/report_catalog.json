@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-08-06T23:20:58.095Z",
-  "seed": "growzy-3y-backtest-v1",
+  "generatedAt": "2026-09-19T18:56:30.275Z",
+  "seed": "wealthora-4y-public-demo-v1",
   "range": {
-    "startDate": "2023-08-07",
+    "startDate": "2022-09-01",
     "endDate": "2026-08-05"
   },
   "disclaimer": "Synthetic demo data for UI presentation only. Not live trading history.",
   "reports": [
     {
       "id": "backtest-summary-html",
-      "title": "3-Year Backtest Summary",
+      "title": "4-Year Backtest Summary",
       "description": "HTML overview of monthly returns and headline stats.",
       "format": "html",
       "href": "/demo/backtest/reports/backtest-summary.html",
@@ -17,7 +17,7 @@
     },
     {
       "id": "backtest-summary-pdf",
-      "title": "3-Year Backtest Summary (PDF)",
+      "title": "4-Year Backtest Summary (PDF)",
       "description": "Single-page PDF snapshot of the synthetic track record.",
       "format": "pdf",
       "href": "/demo/backtest/reports/backtest-summary.pdf",

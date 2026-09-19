@@ -28,7 +28,7 @@ const CARDS: {
 }[] = [
   {
     title: 'Multi-layer Risk Controls',
-    line: 'Position, day, and book limits stacked.',
+    line: 'Position, day and book limits stacked.',
     icon: Layers,
     status: 'LIVE',
     metric: '3 layers armed',
@@ -68,7 +68,7 @@ const CARDS: {
   },
   {
     title: 'Transaction Audit',
-    line: 'Deposits, trades, and payouts remain traceable.',
+    line: 'Deposits, trades and payouts remain traceable.',
     icon: ScanSearch,
     status: 'LIVE',
     metric: 'Append-only log',

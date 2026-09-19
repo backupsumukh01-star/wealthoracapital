@@ -1,6 +1,10 @@
 /**
  * Landing-page live statistics helpers.
- * Prefer public performance API → demo/backtest JSON → current baseline.
+ *
+ * Canonical public/demo performance (when the imported 4-year dataset is present)
+ * takes precedence over GET /performance/public. That API is real/thin DailyReturn
+ * history and must not mix 0.4%-scale figures into marketing pages.
+ *
  * Never prefer known stale CMS marketing fixtures.
  * Never surface near-zero placeholders (0%, −0%, 1 day, 1 year) when richer history exists.
  */
@@ -13,6 +17,12 @@ export const STALE_MARKETING_VALUES = new Set([
   '4820',
   '18.4',
   '6.8',
+  '7.3',
+  '9.2',
+  '0.4',
+  '0.40',
+  '132.9',
+  '584',
   '78.6',
   '68',
   '42',
@@ -21,6 +31,11 @@ export const STALE_MARKETING_VALUES = new Set([
   '146',
   '0.70',
   '54.8',
+  '469.8',
+  '469.78',
+  '451.8',
+  '92576.98',
+  '92676.98',
 ])
 
 /** Current programme baseline when APIs omit platform marketing counters. */
@@ -28,7 +43,7 @@ export const LANDING_BASELINE = {
   investors: 1786,
   aumMillions: 2.63,
   countries: 42,
-  yearsOfPerformance: 3,
+  yearsOfPerformance: 4,
 } as const
 
 /** Minimum trading days before API meta is trusted over the imported backtest. */
@@ -100,6 +115,24 @@ export function pickMarketingValue(
   return clean(cmsValue) ?? String(fallback)
 }
 
+export function elapsedYearsExact(startDate?: string | null, endDate?: string | null): number | null {
+  if (!startDate || !endDate) return null
+  const a = Date.parse(startDate)
+  const b = Date.parse(endDate)
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) return null
+  return (b - a) / (365.25 * 24 * 60 * 60 * 1000)
+}
+
+export function simpleAnnualizedFromMonthlyAvg(avgMonthlyPct: number): number | null {
+  if (!Number.isFinite(avgMonthlyPct)) return null
+  return avgMonthlyPct * 12
+}
+
+/** Imported public demo is the marketing source of truth once it covers a full year. */
+export function demoHistoryUsable(demo?: DemoDashboardStats | null): boolean {
+  return Boolean(demo && demo.monthCount >= 12 && demo.tradingDayCount >= 30)
+}
+
 export function yearsFromRange(startDate?: string | null, endDate?: string | null): number | null {
   if (!startDate || !endDate) return null
   const a = Date.parse(startDate)
@@ -118,7 +151,7 @@ export function yearsFromMonthCount(monthCount?: number | null): number | null {
 }
 
 /**
- * Single years-of-performance resolver used by KPI cards, CAGR, and summaries.
+ * Single years-of-performance resolver used by KPI cards and summaries.
  * Prefers real date span, then month count, then explicit meta — never invents 1/—.
  */
 export function resolveYearsOfPerformance(input: {
@@ -164,7 +197,7 @@ function pickHistoryCount(
   return api ?? demo
 }
 
-/** Compound $100 through monthly returns — shared by Growth of $100 table + summaries. */
+/** Simple $100 accumulation: principal + cumulative original-principal profit. */
 export function buildGrowthOf100Rows(
   months: Array<{ month: string; returnPct: number; label?: string }>,
 ): Array<{
@@ -173,9 +206,10 @@ export function buildGrowthOf100Rows(
   returnPct: number
   portfolioValue: number
 }> {
-  let value = 100
+  const principal = 100
+  let value = principal
   return months.map((m) => {
-    value = value * (1 + m.returnPct / 100)
+    value = value + principal * (m.returnPct / 100)
     return {
       month: m.month,
       label: m.label || m.month,
@@ -203,71 +237,83 @@ export function buildLandingLiveStats(input: {
 }): LandingLiveStats {
   const { pub, demo, demoMeta, cms, reportCount = 0, monthCount: monthCountHint } = input
   const meta = pub?.meta
-  const historyOk = metaHistoryUsable(meta)
+  const demoOk = demoHistoryUsable(demo)
+  const historyOk = !demoOk && metaHistoryUsable(meta)
 
-  const trades =
-    (meta?.tradeCount && meta.tradeCount > 0 ? meta.tradeCount : null) ??
-    (pub?.analytics.closedTrades && pub.analytics.closedTrades > 0
-      ? pub.analytics.closedTrades
-      : null) ??
-    (demo?.tradeCount && demo.tradeCount > 0 ? demo.tradeCount : null)
+  const trades = demoOk
+    ? demo!.tradeCount > 0
+      ? demo!.tradeCount
+      : null
+    : ((meta?.tradeCount && meta.tradeCount > 0 ? meta.tradeCount : null) ??
+      (pub?.analytics.closedTrades && pub.analytics.closedTrades > 0
+        ? pub.analytics.closedTrades
+        : null) ??
+      (demo?.tradeCount && demo.tradeCount > 0 ? demo.tradeCount : null))
 
-  const winRate =
-    clean(meta?.winRatePct) ??
-    clean(pub?.analytics.winRate) ??
-    (demo ? fmt(demo.winRatePct, 1) : null) ??
-    clean(cms?.winRate)
+  const winRate = demoOk
+    ? fmt(demo!.winRatePct, 1)
+    : (clean(meta?.winRatePct) ??
+      clean(pub?.analytics.winRate) ??
+      (demo ? fmt(demo.winRatePct, 1) : null) ??
+      clean(cms?.winRate))
 
-  const avgMonthly =
-    (historyOk ? clean(meta?.avgMonthlyReturnPct) : null) ??
-    (demo ? fmt(demo.avgMonthlyReturnPct, 1) : null) ??
-    clean(cms?.avgMonthlyReturn)
+  const avgMonthly = demoOk
+    ? fmt(demo!.avgMonthlyReturnPct, 1)
+    : ((historyOk ? clean(meta?.avgMonthlyReturnPct) : null) ??
+      (demo ? fmt(demo.avgMonthlyReturnPct, 1) : null) ??
+      clean(cms?.avgMonthlyReturn))
 
-  const bestDayRaw =
-    (historyOk ? clean(meta?.bestDay?.returnPct) : null) ??
-    clean(demo ? String(demo.bestDay.returnPct) : null) ??
-    clean(pub?.analytics.bestTrade?.returnPct) ??
-    clean(cms?.bestDay)
+  const bestDayRaw = demoOk
+    ? String(demo!.bestDay.returnPct)
+    : ((historyOk ? clean(meta?.bestDay?.returnPct) : null) ??
+      clean(demo ? String(demo.bestDay.returnPct) : null) ??
+      clean(pub?.analytics.bestTrade?.returnPct) ??
+      clean(cms?.bestDay))
 
-  const worstRaw =
-    (historyOk ? clean(meta?.worstDay?.returnPct) : null) ??
-    clean(demo ? String(demo.worstDay.returnPct) : null) ??
-    clean(pub?.analytics.worstTrade?.returnPct)
+  const worstRaw = demoOk
+    ? String(demo!.worstDay.returnPct)
+    : ((historyOk ? clean(meta?.worstDay?.returnPct) : null) ??
+      clean(demo ? String(demo.worstDay.returnPct) : null) ??
+      clean(pub?.analytics.worstTrade?.returnPct))
 
-  const totalReturn =
-    (historyOk ? clean(meta?.totalReturnPct) : null) ??
-    (demoMeta?.totalReturnPct != null ? fmt(demoMeta.totalReturnPct, 0) : null) ??
-    (demo ? fmt(demo.totalReturnPct, 0) : null) ??
-    clean(pub?.summary?.roiPct)
+  const totalReturn = demoOk
+    ? fmt(demo!.totalReturnPct, 0)
+    : ((historyOk ? clean(meta?.totalReturnPct) : null) ??
+      (demoMeta?.totalReturnPct != null ? fmt(demoMeta.totalReturnPct, 0) : null) ??
+      (demo ? fmt(demo.totalReturnPct, 0) : null) ??
+      clean(pub?.summary?.roiPct))
 
-  const tradingDays = pickHistoryCount(meta?.tradingDayCount, demo?.tradingDayCount)
+  const tradingDays = demoOk
+    ? demo!.tradingDayCount
+    : pickHistoryCount(meta?.tradingDayCount, demo?.tradingDayCount)
 
-  const resolvedMonthCount =
-    (historyOk && meta.monthCount > 0 ? meta.monthCount : null) ??
-    (typeof monthCountHint === 'number' && monthCountHint > 0 ? monthCountHint : null) ??
-    (demo?.monthCount && demo.monthCount > 0 ? demo.monthCount : null)
+  const resolvedMonthCount = demoOk
+    ? Math.max(demo!.monthCount, typeof monthCountHint === 'number' ? monthCountHint : 0)
+    : ((historyOk && meta.monthCount > 0 ? meta.monthCount : null) ??
+      (typeof monthCountHint === 'number' && monthCountHint > 0 ? monthCountHint : null) ??
+      (demo?.monthCount && demo.monthCount > 0 ? demo.monthCount : null))
+
+  const startDate = demoOk ? (demoMeta?.startDate ?? meta?.startDate) : (meta?.startDate ?? demoMeta?.startDate)
+  const endDate = demoOk ? (demoMeta?.endDate ?? meta?.endDate) : (meta?.endDate ?? demoMeta?.endDate)
 
   const years = resolveYearsOfPerformance({
-    startDate: meta?.startDate ?? demoMeta?.startDate,
-    endDate: meta?.endDate ?? demoMeta?.endDate,
+    startDate,
+    endDate,
     monthCount: resolvedMonthCount,
-    metaYears: meta?.yearsOfPerformance,
+    metaYears: demoOk ? null : meta?.yearsOfPerformance,
     tradingDayCount: tradingDays,
   })
 
   const distributedRaw = clean(pub?.analytics.totalPnl)
   const aum = pickMarketingValue(cms?.aum, LANDING_BASELINE.aumMillions)
 
-  const cagr =
-    (historyOk ? clean(meta?.cagrPct) : null) ??
-    (demo && years
-      ? fmt(
-          (Math.pow(1 + Number(demo.totalReturnPct) / 100, 1 / Math.max(Number(years), 1 / 12)) -
-            1) *
-            100,
-          1,
-        )
-      : null)
+  const simpleAnnualized =
+    demoOk
+      ? (demo!.simpleAnnualizedReturnPct ??
+        simpleAnnualizedFromMonthlyAvg(demo!.avgMonthlyReturnPct))
+      : null
+
+  const yearlySimple = demoOk && simpleAnnualized != null ? fmt(simpleAnnualized, 1) : null
 
   const empty = '—'
 
@@ -290,7 +336,7 @@ export function buildLandingLiveStats(input: {
     totalDistributed: distributedRaw ? formatMoneyCompact(distributedRaw) : aum,
     totalDistributedRaw: distributedRaw ?? '',
     availableReports: reportCount,
-    yearlyReturn: cagr ?? empty,
+    yearlyReturn: yearlySimple ?? empty,
     monthCount: resolvedMonthCount != null ? String(resolvedMonthCount) : empty,
   }
 }
@@ -319,7 +365,7 @@ export function distributedMoneyParts(stats: LandingLiveStats): {
   }
 }
 
-/** Prefer published API monthly series when it has a full history; else demo/backtest. */
+/** Prefer the canonical 4-year demo series whenever it is complete. */
 export function resolveMonthlySeries(
   apiMonthly: Array<{ month: string; returnPct: string | number }> | null | undefined,
   demoMonthly: DemoMonthlyReturn[] | null | undefined,
@@ -337,7 +383,8 @@ export function resolveMonthlySeries(
       label: m.label,
     })) ?? []
 
-  // Never let a thin API sample (e.g. 1 month) hide the full 36+ month history.
+  if (demo.length >= 12) return demo
+  // Never let a thin API sample (e.g. 1 month) hide a longer demo history.
   if (liveUsable.length >= 12 || (liveUsable.length > 0 && liveUsable.length >= demo.length)) {
     return live
   }
@@ -370,12 +417,15 @@ export function resolveYearlySeries(
       returnPct: Number.parseFloat(String(y.returnPct)) || 0,
       profitLabel: y.profit
         ? `$${Number(y.profit).toLocaleString('en-US', { maximumFractionDigits: 0 })} distributed`
-        : 'Programme compound return',
+        : 'Programme simple return',
       tradingDays: y.tradingDays,
       tradeCount: y.tradeCount,
       winRatePct: y.winRatePct,
     })) ?? []
-  if (live.filter((y) => Math.abs(y.returnPct) > 0.0001).length >= 2) return live
+
+  const demoHasHistory = (demoMonthly?.length ?? 0) >= 12 || (demoYearly?.length ?? 0) >= 3
+
+  if (!demoHasHistory && live.filter((y) => Math.abs(y.returnPct) > 0.0001).length >= 2) return live
 
   if (demoYearly?.length) {
     return demoYearly.map((y) => ({
@@ -395,10 +445,10 @@ export function resolveYearlySeries(
     return [...byYear.entries()]
       .sort(([a], [b]) => a - b)
       .map(([year, pcts]) => {
-        const factor = pcts.reduce((acc, r) => acc * (1 + r / 100), 1)
+        const sum = pcts.reduce((acc, r) => acc + r, 0)
         return {
           year: String(year),
-          returnPct: Number(((factor - 1) * 100).toFixed(1)),
+          returnPct: Number(sum.toFixed(1)),
           profitLabel: 'Demo / backtest programme return',
         }
       })

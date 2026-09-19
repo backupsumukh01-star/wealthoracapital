@@ -15,13 +15,13 @@ import { Button } from '@/components/ui/button'
 export const metadata: Metadata = {
   title: 'Security',
   description:
-    'Multi-layer risk controls, human review, capital protection, monitoring, audit trails, and withdrawal verification.',
+    'Multi-layer risk controls, human review, capital protection, monitoring, audit trails and withdrawal verification.',
   alternates: { canonical: ROUTES.marketing.security },
 }
 
 const TIMELINE = [
   { title: 'Signal received', detail: 'AI ranks a setup against session context.' },
-  { title: 'Risk gates', detail: 'Size, stop, and book limits must all pass.' },
+  { title: 'Risk gates', detail: 'Size, stop and book limits must all pass.' },
   { title: 'Human review', detail: 'Desk can pause or reject before execution.' },
   { title: 'Position watch', detail: 'Open risk monitored until the ticket closes.' },
   { title: 'Daily verify', detail: 'Published return requires operator sign-off.' },

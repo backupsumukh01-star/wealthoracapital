@@ -649,7 +649,7 @@ export function ReferralsWorkspace() {
           </h2>
         </div>
         <p className="text-caption text-fg-subtle">
-          Separate from your investment wallet. Redeem moves available rewards into investment.
+          This is separate from your investment wallet. Redeeming moves available rewards into your investment balance.
         </p>
         <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
           <SummaryStat label="Total earned" value={summary.totalReferralEarned} />

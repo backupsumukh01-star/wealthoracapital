@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 /**
- * Generate a reproducible 3-year demo/backtest dataset for UI presentation.
+ * Generate a reproducible 4-year public demo/backtest dataset for UI presentation.
  *
  * Usage (repo root):
  *   node demo-data/3-year-backtest/generate.mjs
  *
  * Writes under: demo-data/3-year-backtest/export/{csv,json,sql,prisma,reports/html,reports/pdf}
+ * and mirrors JSON/reports into apps/web/public/demo/backtest/.
  *
- * Demo only — see demo-data/DISCLAIMER.txt. Does not touch any database.
+ * Public / illustrative only — see demo-data/DISCLAIMER.txt.
+ * Does not touch any database or real investor records.
  */
 
 import fs from 'node:fs'
@@ -19,10 +21,17 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname)
 const EXPORT_ROOT = path.join(ROOT, 'export')
 
-const SEED = 'growzy-3y-backtest-v1'
+const SEED = 'wealthora-4y-public-demo-v1'
+/** Keep the existing public-demo end date; extend history to 48 calendar months. */
 const END_DATE = new Date(Date.UTC(2026, 7, 5)) // 2026-08-05
-const START_DATE = new Date(Date.UTC(2023, 7, 7)) // ~3 years of weekdays
+const START_DATE = new Date(Date.UTC(2022, 8, 1)) // 2022-09-01 → 48 months through Aug 2026
 const STARTING_EQUITY = 100
+const TARGET_MONTHS = 48
+const PROGRAMME_YEARS = 4
+const MONTHLY_MIN_PCT = 13
+const MONTHLY_MAX_PCT = 17
+const YEARLY_AVG_MONTHLY_PCT = 15.3
+const AVG_TOLERANCE = 0.05
 const PAIRS = [
   { pair: 'EUR/USD', base: 1.085, digits: 5, pip: 0.0001 },
   { pair: 'GBP/USD', base: 1.27, digits: 5, pip: 0.0001 },
@@ -133,47 +142,114 @@ function toCsv(rows, columns) {
 }
 
 // ---------------------------------------------------------------------------
-// Target monthly returns in [5, 10] — mostly mid-high 6–8
+// Target monthly returns in [13.00, 17.00] with yearly arithmetic mean 15.30
 // ---------------------------------------------------------------------------
 
-function targetMonthlyReturnPct(year, month /* 1-12 */) {
-  // Deterministic seasonal-ish pattern in presentation band
-  const base = 5.4 + ((year * 17 + month * 31) % 37) / 10 // 5.4 .. 9.0
-  const wobble = (rand() - 0.5) * 1.2
-  return round(clamp(base + wobble, 5.05, 9.85), 2)
+function shuffleInPlace(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+
+/**
+ * 12 variable monthly percentages in [13, 17] whose arithmetic mean is 15.30.
+ * Rejects near-flat or low-diversity draws so the table does not look synthetic.
+ */
+function generateYearMonthlyTargets() {
+  const n = 12
+  const targetSum = round(YEARLY_AVG_MONTHLY_PCT * n, 2) // 183.60
+  for (let attempt = 0; attempt < 400; attempt++) {
+    const vals = []
+    for (let i = 0; i < n - 1; i++) {
+      vals.push(round(13.12 + rand() * 3.76, 2)) // 13.12–16.88, room for the residual
+    }
+    const sum11 = round(vals.reduce((a, b) => a + b, 0), 2)
+    const last = round(targetSum - sum11, 2)
+    if (last < MONTHLY_MIN_PCT || last > MONTHLY_MAX_PCT) continue
+    vals.push(last)
+    shuffleInPlace(vals)
+
+    const mean = vals.reduce((a, b) => a + b, 0) / n
+    if (Math.abs(mean - YEARLY_AVG_MONTHLY_PCT) > 0.005) continue
+
+    const variance = vals.reduce((a, v) => a + (v - mean) ** 2, 0) / n
+    if (Math.sqrt(variance) < 0.7) continue
+
+    const unique = new Set(vals.map((v) => v.toFixed(2)))
+    if (unique.size < 11) continue
+
+    const min = Math.min(...vals)
+    const max = Math.max(...vals)
+    if (min < MONTHLY_MIN_PCT || max > MONTHLY_MAX_PCT) continue
+    if (max - min < 2.4) continue
+
+    return vals
+  }
+  throw new Error('Failed to generate yearly monthly targets in [13, 17] averaging 15.30')
+}
+
+function assignMonthlyTargets(monthKeys) {
+  if (monthKeys.length !== TARGET_MONTHS) {
+    throw new Error(`Expected ${TARGET_MONTHS} months, got ${monthKeys.length}`)
+  }
+  const byYm = new Map()
+  for (let yearIndex = 0; yearIndex < PROGRAMME_YEARS; yearIndex++) {
+    const targets = generateYearMonthlyTargets()
+    const slice = monthKeys.slice(yearIndex * 12, yearIndex * 12 + 12)
+    slice.forEach((ym, i) => byYm.set(ym, targets[i]))
+  }
+  return byYm
+}
+
+function elapsedYearsExact(startIso, endIso) {
+  const a = Date.parse(startIso)
+  const b = Date.parse(endIso)
+  return (b - a) / (365.25 * 24 * 60 * 60 * 1000)
+}
+
+function simpleAnnualizedReturnPct(avgMonthlyPct) {
+  return round(avgMonthlyPct * 12, 2)
+}
+
+function programmeYearSlices(monthlyReturns) {
+  const years = []
+  for (let i = 0; i < monthlyReturns.length; i += 12) {
+    const slice = monthlyReturns.slice(i, i + 12)
+    const avg = slice.reduce((a, m) => a + m.returnPct, 0) / slice.length
+    years.push({
+      index: years.length + 1,
+      start: slice[0].yearMonth,
+      end: slice[slice.length - 1].yearMonth,
+      months: slice.length,
+      minMonthlyReturnPct: round(Math.min(...slice.map((m) => m.returnPct)), 2),
+      maxMonthlyReturnPct: round(Math.max(...slice.map((m) => m.returnPct)), 2),
+      avgMonthlyReturnPct: round(avg, 4),
+      tradingDays: slice.reduce((a, m) => a + m.tradingDays, 0),
+    })
+  }
+  return years
 }
 
 function allocateDailyReturns(nDays, monthTargetPct) {
-  // Convert monthly % to product of (1 + daily)
-  const targetFactor = 1 + monthTargetPct / 100
+  // Simple model: daily percentages SUM to the monthly target (no compounding).
   const raw = []
   for (let i = 0; i < nDays; i++) {
-    // Mostly small positive, occasional small loss for realism
     const roll = rand()
-    if (roll < 0.18) {
-      raw.push(-(0.05 + rand() * 0.35)) // loss day −0.05% .. −0.40%
-    } else if (roll < 0.28) {
-      raw.push(0.02 + rand() * 0.08) // flat-ish
+    if (roll < 0.12) {
+      raw.push(-(0.02 + rand() * 0.18))
+    } else if (roll < 0.22) {
+      raw.push(0.08 + rand() * 0.2)
     } else {
-      raw.push(0.15 + rand() * 0.55) // win day
+      raw.push(0.35 + rand() * 0.85)
     }
   }
-
-  // Scale so product ≈ targetFactor (log space)
-  let product = raw.reduce((p, r) => p * (1 + r / 100), 1)
-  if (product <= 0) product = 1e-6
-  const scale = Math.log(targetFactor) / Math.log(product)
-  let scaled = raw.map((r) => {
-    const f = (1 + r / 100) ** scale
-    return (f - 1) * 100
-  })
-
-  // Fine-tune last day so product matches exactly
-  let prod = 1
-  for (let i = 0; i < scaled.length - 1; i++) prod *= 1 + scaled[i] / 100
-  const lastFactor = targetFactor / prod
-  scaled[scaled.length - 1] = (lastFactor - 1) * 100
-
+  let sum = raw.reduce((a, b) => a + b, 0)
+  if (Math.abs(sum) < 1e-9) sum = 1e-6
+  const scaled = raw.map((r) => r * (monthTargetPct / sum))
+  const head = scaled.slice(0, -1).reduce((a, b) => a + b, 0)
+  scaled[scaled.length - 1] = monthTargetPct - head
   return scaled.map((x) => round(x, 6))
 }
 
@@ -268,12 +344,16 @@ function buildDataset() {
     byMonth.get(k).push(d)
   }
 
+  const monthKeys = [...byMonth.keys()].sort()
+  const targetByYm = assignMonthlyTargets(monthKeys)
+
   const monthlyTargets = []
   const dailyReturnByDate = new Map()
 
-  for (const [ym, days] of byMonth) {
+  for (const ym of monthKeys) {
+    const days = byMonth.get(ym)
     const [y, m] = ym.split('-').map(Number)
-    const target = targetMonthlyReturnPct(y, m)
+    const target = targetByYm.get(ym)
     monthlyTargets.push({ yearMonth: ym, year: y, month: m, targetPct: target, tradingDays: days.length })
     const daily = allocateDailyReturns(days.length, target)
     days.forEach((d, i) => dailyReturnByDate.set(isoDate(d), daily[i]))
@@ -283,6 +363,7 @@ function buildDataset() {
   const trades = []
   let tradeSeq = 1
   let equity = STARTING_EQUITY
+  let cumulativeSimplePct = 0
   const equityCurve = [{ date: isoDate(addDays(START_DATE, -1)), equity: STARTING_EQUITY, returnPct: 0 }]
 
   for (const d of weekdays) {
@@ -316,18 +397,22 @@ function buildDataset() {
       trades.push({ ...t, tradingDayId: id })
     }
 
-    equity = round(equity * (1 + netReturnPct / 100), 6)
+    cumulativeSimplePct = round(cumulativeSimplePct + netReturnPct, 6)
+    equity = round(STARTING_EQUITY + STARTING_EQUITY * (cumulativeSimplePct / 100), 6)
     equityCurve.push({ date, equity: round(equity, 4), returnPct: netReturnPct })
   }
 
-  // Realized monthly returns from daily compounding
+  // Realized monthly returns = SUM of daily simple percentages (must match each month's target)
   const monthlyReturns = []
-  for (const [ym, days] of byMonth) {
-    let factor = 1
-    for (const d of days) factor *= 1 + dailyReturnByDate.get(isoDate(d)) / 100
-    const returnPct = round((factor - 1) * 100, 2)
+  let growthOf100 = STARTING_EQUITY
+  for (const ym of monthKeys) {
+    const days = byMonth.get(ym)
+    let sumPct = 0
+    for (const d of days) sumPct += dailyReturnByDate.get(isoDate(d))
+    const returnPct = round(sumPct, 2)
     const year = Number(ym.slice(0, 4))
     const month = Number(ym.slice(5, 7))
+    growthOf100 = round(growthOf100 + STARTING_EQUITY * (returnPct / 100), 6)
     monthlyReturns.push({
       yearMonth: ym,
       year,
@@ -339,23 +424,25 @@ function buildDataset() {
       }),
       returnPct,
       tradingDays: days.length,
-      inPresentationBand: returnPct >= 5 && returnPct <= 10,
+      growthOf100: round(growthOf100, 4),
+      inPresentationBand: returnPct >= MONTHLY_MIN_PCT && returnPct <= MONTHLY_MAX_PCT,
     })
   }
 
   const yearlyMap = new Map()
   for (const m of monthlyReturns) {
-    if (!yearlyMap.has(m.year)) yearlyMap.set(m.year, 1)
-    yearlyMap.set(m.year, yearlyMap.get(m.year) * (1 + m.returnPct / 100))
+    yearlyMap.set(m.year, (yearlyMap.get(m.year) ?? 0) + m.returnPct)
   }
-  const yearlyReturns = [...yearlyMap.entries()].map(([year, factor]) => ({
+  const yearlyReturns = [...yearlyMap.entries()].map(([year, sumPct]) => ({
     year,
-    returnPct: round((factor - 1) * 100, 2),
+    returnPct: round(sumPct, 2),
   }))
 
   const wins = trades.filter((t) => t.outcome === 'WIN').length
   const losses = trades.length - wins
-  const positiveDays = tradingDays.filter((d) => d.netReturnPct >= 0).length
+  const winningDays = tradingDays.filter((d) => d.netReturnPct > 0).length
+  const losingDays = tradingDays.filter((d) => d.netReturnPct < 0).length
+  const flatDays = tradingDays.filter((d) => d.netReturnPct === 0).length
   const bestDay = tradingDays.reduce((a, b) => (b.netReturnPct > a.netReturnPct ? b : a))
   const worstDay = tradingDays.reduce((a, b) => (b.netReturnPct < a.netReturnPct ? b : a))
   const avgMonthly =
@@ -363,9 +450,20 @@ function buildDataset() {
       ? 0
       : round(monthlyReturns.reduce((a, m) => a + m.returnPct, 0) / monthlyReturns.length, 2)
 
+  const endingFromMonths = monthlyReturns[monthlyReturns.length - 1].growthOf100
+  const totalReturnPct = round(
+    monthlyReturns.reduce((a, m) => a + m.returnPct, 0),
+    2,
+  )
+  const yearsExact = elapsedYearsExact(isoDate(START_DATE), isoDate(END_DATE))
+  const simpleAnnualized = simpleAnnualizedReturnPct(avgMonthly)
+  const bestMonth = monthlyReturns.reduce((a, b) => (b.returnPct > a.returnPct ? b : a))
+  const worstMonth = monthlyReturns.reduce((a, b) => (b.returnPct < a.returnPct ? b : a))
+  const programmeYears = programmeYearSlices(monthlyReturns)
+
   const meta = {
-    dataset: '3-year-backtest',
-    version: 1,
+    dataset: '4-year-public-demo',
+    version: 3,
     seed: SEED,
     generatedAt: new Date().toISOString(),
     startDate: isoDate(START_DATE),
@@ -374,8 +472,11 @@ function buildDataset() {
     tradeCount: trades.length,
     monthCount: monthlyReturns.length,
     startingEquity: STARTING_EQUITY,
-    endingEquity: equityCurve[equityCurve.length - 1].equity,
-    totalReturnPct: round((equityCurve[equityCurve.length - 1].equity / STARTING_EQUITY - 1) * 100, 2),
+    endingEquity: endingFromMonths,
+    totalReturnPct,
+    simpleAnnualizedReturnPct: simpleAnnualized,
+    returnModel: 'simple',
+    elapsedYears: round(yearsExact, 4),
     disclaimer: 'Synthetic demo data for UI presentation only. Not live trading history.',
   }
 
@@ -384,15 +485,44 @@ function buildDataset() {
     tradeCount: trades.length,
     winCount: wins,
     lossCount: losses,
-    winRatePct: round((wins / trades.length) * 100, 2),
-    positiveDayPct: round((positiveDays / tradingDays.length) * 100, 2),
+    winningDayCount: winningDays,
+    losingDayCount: losingDays,
+    flatDayCount: flatDays,
+    winRatePct: round((winningDays / tradingDays.length) * 100, 2),
+    positiveDayPct: round((winningDays / tradingDays.length) * 100, 2),
     avgMonthlyReturnPct: avgMonthly,
     monthsInBand: monthlyReturns.filter((m) => m.inPresentationBand).length,
     monthCount: monthlyReturns.length,
     bestDay: { date: bestDay.date, returnPct: bestDay.netReturnPct },
     worstDay: { date: worstDay.date, returnPct: worstDay.netReturnPct },
+    bestMonth: { yearMonth: bestMonth.yearMonth, returnPct: bestMonth.returnPct },
+    worstMonth: { yearMonth: worstMonth.yearMonth, returnPct: worstMonth.returnPct },
     totalReturnPct: meta.totalReturnPct,
     endingEquity: meta.endingEquity,
+    simpleAnnualizedReturnPct: simpleAnnualized,
+    startingEquity: STARTING_EQUITY,
+    returnModel: 'simple',
+  }
+
+  const validation = {
+    programmeYears,
+    overall: {
+      months: monthlyReturns.length,
+      tradingDays: tradingDays.length,
+      minMonthlyReturnPct: round(Math.min(...monthlyReturns.map((m) => m.returnPct)), 2),
+      maxMonthlyReturnPct: round(Math.max(...monthlyReturns.map((m) => m.returnPct)), 2),
+      avgMonthlyReturnPct: avgMonthly,
+      startingValue: STARTING_EQUITY,
+      endingValue: endingFromMonths,
+      totalGrowthPct: totalReturnPct,
+      simpleAnnualizedReturnPct: simpleAnnualized,
+      returnModel: 'simple',
+      bestMonth: dashboardStats.bestMonth,
+      worstMonth: dashboardStats.worstMonth,
+      bestDay: dashboardStats.bestDay,
+      worstDay: dashboardStats.worstDay,
+      winRatePct: dashboardStats.winRatePct,
+    },
   }
 
   return {
@@ -404,6 +534,7 @@ function buildDataset() {
     tradingDays,
     trades,
     equityCurve,
+    validation,
   }
 }
 
@@ -419,6 +550,11 @@ function buildChartsPayload(data) {
       startingEquity: data.meta.startingEquity,
       endingEquity: data.meta.endingEquity,
       totalReturnPct: data.meta.totalReturnPct,
+      simpleAnnualizedReturnPct: data.meta.simpleAnnualizedReturnPct,
+      returnModel: data.meta.returnModel,
+      elapsedYears: data.meta.elapsedYears,
+      monthCount: data.meta.monthCount,
+      tradingDayCount: data.meta.tradingDayCount,
     },
     equityCurve: data.equityCurve,
     monthlyReturns: data.monthlyReturns.map((m) => ({
@@ -426,6 +562,7 @@ function buildChartsPayload(data) {
       label: m.label,
       returnPct: m.returnPct,
       tradingDays: m.tradingDays,
+      growthOf100: m.growthOf100,
       inPresentationBand: m.inPresentationBand,
     })),
     yearlyReturns: data.yearlyReturns,
@@ -441,7 +578,7 @@ function buildReportCatalog(data) {
     reports: [
       {
         id: 'backtest-summary-html',
-        title: '3-Year Backtest Summary',
+        title: '4-Year Backtest Summary',
         description: 'HTML overview of monthly returns and headline stats.',
         format: 'html',
         href: '/demo/backtest/reports/backtest-summary.html',
@@ -449,7 +586,7 @@ function buildReportCatalog(data) {
       },
       {
         id: 'backtest-summary-pdf',
-        title: '3-Year Backtest Summary (PDF)',
+        title: '4-Year Backtest Summary (PDF)',
         description: 'Single-page PDF snapshot of the synthetic track record.',
         format: 'pdf',
         href: '/demo/backtest/reports/backtest-summary.pdf',
@@ -471,6 +608,7 @@ function writeJsonExports(data) {
   writeJson(path.join(dir, 'equity_curve.json'), data.equityCurve)
   writeJson(path.join(dir, 'charts.json'), buildChartsPayload(data))
   writeJson(path.join(dir, 'report_catalog.json'), buildReportCatalog(data))
+  writeJson(path.join(dir, 'validation.json'), data.validation)
 }
 
 /** Mirror the web-facing JSON (and report files) into Next.js public assets. */
@@ -491,6 +629,13 @@ function syncPublicDemoBacktest(data) {
   writeJson(path.join(publicDir, 'monthly_returns.json'), data.monthlyReturns)
   writeJson(path.join(publicDir, 'trades.json'), data.trades)
   writeJson(path.join(publicDir, 'report_catalog.json'), buildReportCatalog(data))
+  writeJson(path.join(publicDir, 'validation.json'), data.validation)
+
+  const csvDir = path.join(EXPORT_ROOT, 'csv')
+  for (const name of ['trades.csv', 'monthly_returns.csv', 'dashboard_stats.csv', 'trading_days.csv']) {
+    const src = path.join(csvDir, name)
+    if (fs.existsSync(src)) fs.copyFileSync(src, path.join(publicDir, name))
+  }
 
   const htmlSrc = path.join(EXPORT_ROOT, 'reports', 'html', 'backtest-summary.html')
   const pdfSrc = path.join(EXPORT_ROOT, 'reports', 'pdf', 'backtest-summary.pdf')
@@ -511,6 +656,7 @@ function writeCsvExports(data) {
       'label',
       'returnPct',
       'tradingDays',
+      'growthOf100',
       'inPresentationBand',
     ]),
   )
@@ -666,14 +812,14 @@ function writeHtmlReport(data) {
   const monthsRows = data.monthlyReturns
     .map(
       (m) =>
-        `<tr><td>${m.label}</td><td>${m.returnPct.toFixed(2)}%</td><td>${m.tradingDays}</td><td>${m.inPresentationBand ? 'yes' : 'no'}</td></tr>`,
+        `<tr><td>${m.label}</td><td>${m.returnPct.toFixed(2)}%</td><td>${m.tradingDays}</td><td>$${m.growthOf100.toFixed(2)}</td><td>${m.inPresentationBand ? 'yes' : 'no'}</td></tr>`,
     )
     .join('\n')
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>3-Year Demo Backtest — Meridian FX</title>
+  <title>4-Year Demo Backtest — Wealthora Capital</title>
   <style>
     body { font-family: Georgia, "Times New Roman", serif; margin: 2rem; color: #1a1a1a; background: #f7f5f1; }
     h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
@@ -688,18 +834,19 @@ function writeHtmlReport(data) {
   </style>
 </head>
 <body>
-  <h1>3-Year Demo / Backtest Dataset</h1>
+  <h1>4-Year Demo / Backtest Dataset</h1>
   <p class="muted">Synthetic presentation data · seed <code>${data.meta.seed}</code> · generated ${data.meta.generatedAt}</p>
   <div class="stats">
     <div class="stat"><span>Trading days</span><b>${data.meta.tradingDayCount}</b></div>
     <div class="stat"><span>Trades</span><b>${data.meta.tradeCount}</b></div>
     <div class="stat"><span>Avg monthly</span><b>${data.dashboardStats.avgMonthlyReturnPct}%</b></div>
     <div class="stat"><span>Total return</span><b>${data.meta.totalReturnPct}%</b></div>
-    <div class="stat"><span>Ending equity</span><b>${data.meta.endingEquity}</b></div>
+    <div class="stat"><span>Annualized simple return</span><b>${data.meta.simpleAnnualizedReturnPct}%</b></div>
+    <div class="stat"><span>Growth of $100</span><b>$${Number(data.meta.endingEquity).toFixed(2)}</b></div>
   </div>
   <h2>Monthly returns</h2>
   <table>
-    <thead><tr><th>Month</th><th>Return</th><th>Days</th><th>5–10% band</th></tr></thead>
+    <thead><tr><th>Month</th><th>Return</th><th>Days</th><th>Growth of $100</th><th>13–17% band</th></tr></thead>
     <tbody>
 ${monthsRows}
     </tbody>
@@ -718,15 +865,16 @@ ${monthsRows}
 function writePdfReport(data) {
   const dir = path.join(EXPORT_ROOT, 'reports', 'pdf')
   const lines = [
-    '3-Year Demo / Backtest Dataset',
+    '4-Year Demo / Backtest Dataset',
     `Seed: ${data.meta.seed}`,
     `Range: ${data.meta.startDate} to ${data.meta.endDate}`,
     `Trading days: ${data.meta.tradingDayCount}`,
     `Trades: ${data.meta.tradeCount}`,
     `Avg monthly return: ${data.dashboardStats.avgMonthlyReturnPct}%`,
-    `Months in 5-10% band: ${data.dashboardStats.monthsInBand}/${data.dashboardStats.monthCount}`,
+    `Months in 13-17% band: ${data.dashboardStats.monthsInBand}/${data.dashboardStats.monthCount}`,
     `Total return: ${data.meta.totalReturnPct}%`,
-    `Ending equity (base 100): ${data.meta.endingEquity}`,
+    `Annualized simple return: ${data.meta.simpleAnnualizedReturnPct}%`,
+    `Ending equity (base 100, simple accumulation): ${data.meta.endingEquity}`,
     '',
     'DISCLAIMER: Synthetic demo data for UI presentation only.',
     'Not live trading history. Do not import into production.',
@@ -780,23 +928,119 @@ function cleanExportRoot() {
 
 function assertDataset(data) {
   const errors = []
-  if (data.meta.tradingDayCount < 700) errors.push(`Expected ~3y weekdays, got ${data.meta.tradingDayCount}`)
+  const months = data.monthlyReturns
+  const weekdays = [...eachWeekday(START_DATE, END_DATE)]
+
+  if (months.length !== TARGET_MONTHS) errors.push(`Expected ${TARGET_MONTHS} months, got ${months.length}`)
+  if (data.meta.tradingDayCount !== weekdays.length) {
+    errors.push(`Trading days ${data.meta.tradingDayCount} != weekday count ${weekdays.length}`)
+  }
+  if (data.tradingDays.length !== data.meta.tradingDayCount) {
+    errors.push('tradingDays records do not match meta.tradingDayCount')
+  }
   if (data.meta.tradeCount < 1000) errors.push(`Expected many trades, got ${data.meta.tradeCount}`)
-  const outOfBand = data.monthlyReturns.filter((m) => !m.inPresentationBand)
-  if (outOfBand.length > Math.ceil(data.monthlyReturns.length * 0.15)) {
+
+  const keys = months.map((m) => m.yearMonth)
+  if (new Set(keys).size !== keys.length) errors.push('Duplicate month keys')
+  const sorted = [...keys].sort()
+  if (keys.join(',') !== sorted.join(',')) errors.push('Months are not chronological')
+
+  const outOfBand = months.filter((m) => m.returnPct < MONTHLY_MIN_PCT || m.returnPct > MONTHLY_MAX_PCT)
+  if (outOfBand.length) {
     errors.push(
-      `Too many months outside 5–10% band (${outOfBand.length}): ${outOfBand
-        .map((m) => `${m.yearMonth}=${m.returnPct}`)
-        .join(', ')}`,
+      `Months outside 13–17% (${outOfBand.length}): ${outOfBand.map((m) => `${m.yearMonth}=${m.returnPct}`).join(', ')}`,
     )
   }
+
+  const uniqueReturns = new Set(months.map((m) => m.returnPct.toFixed(2)))
+  if (uniqueReturns.size < 40) errors.push(`Monthly returns look repetitive (${uniqueReturns.size} unique values)`)
+
+  const overallAvg = months.reduce((a, m) => a + m.returnPct, 0) / months.length
+  if (Math.abs(overallAvg - YEARLY_AVG_MONTHLY_PCT) > AVG_TOLERANCE) {
+    errors.push(`Overall average ${overallAvg.toFixed(4)} is not ≈ ${YEARLY_AVG_MONTHLY_PCT}`)
+  }
+
+  for (const year of data.validation.programmeYears) {
+    if (year.months !== 12) errors.push(`Programme year ${year.index} has ${year.months} months`)
+    if (Math.abs(year.avgMonthlyReturnPct - YEARLY_AVG_MONTHLY_PCT) > AVG_TOLERANCE) {
+      errors.push(`Year ${year.index} average ${year.avgMonthlyReturnPct} is not ≈ ${YEARLY_AVG_MONTHLY_PCT}`)
+    }
+  }
+
+  const daysByYm = new Map()
+  for (const d of data.tradingDays) {
+    const ym = d.date.slice(0, 7)
+    daysByYm.set(ym, (daysByYm.get(ym) ?? 0) + d.netReturnPct)
+  }
+  for (const m of months) {
+    const dailySum = round(daysByYm.get(m.yearMonth) ?? 0, 2)
+    if (Math.abs(dailySum - m.returnPct) > 0.02) {
+      errors.push(`Daily sum ${dailySum} != monthly ${m.returnPct} at ${m.yearMonth}`)
+    }
+  }
+
+  let cumulativeDailyPct = 0
+  for (const point of data.equityCurve.slice(1)) {
+    cumulativeDailyPct += point.returnPct
+    const expected = round(STARTING_EQUITY + STARTING_EQUITY * (cumulativeDailyPct / 100), 4)
+    if (Math.abs(expected - point.equity) > 0.02) {
+      errors.push(
+        `Daily compounding detected at ${point.date}: equity ${point.equity} vs simple ${expected}`,
+      )
+      break
+    }
+  }
+
+  let growth = STARTING_EQUITY
+  for (const m of months) {
+    growth = round(growth + STARTING_EQUITY * (m.returnPct / 100), 6)
+    if (Math.abs(round(growth, 4) - m.growthOf100) > 0.0002) {
+      errors.push(`Growth of $100 mismatch at ${m.yearMonth}: ${round(growth, 4)} vs ${m.growthOf100}`)
+      break
+    }
+  }
+  if (Math.abs(growth - data.meta.endingEquity) > 0.01) {
+    errors.push(`Ending equity ${data.meta.endingEquity} != simple monthly ${round(growth, 4)}`)
+  }
+  if (data.meta.endingEquity > 5000) {
+    errors.push(`Ending equity ${data.meta.endingEquity} looks compounded (simple model expected ~$834)`)
+  }
+  if (data.meta.cagrPct != null || data.dashboardStats.cagrPct != null) {
+    errors.push('Public demo must not include cagrPct')
+  }
+  if (data.meta.returnModel !== 'simple' || data.dashboardStats.returnModel !== 'simple') {
+    errors.push('Public demo returnModel must be simple')
+  }
+
+  const expectedSimpleAnn = simpleAnnualizedReturnPct(overallAvg)
+  if (Math.abs(expectedSimpleAnn - data.meta.simpleAnnualizedReturnPct) > 0.05) {
+    errors.push(
+      `Annualized simple return ${data.meta.simpleAnnualizedReturnPct} != ${expectedSimpleAnn}`,
+    )
+  }
+
+  const expectedTotal = round(months.reduce((a, m) => a + m.returnPct, 0), 2)
+  if (Math.abs(expectedTotal - data.meta.totalReturnPct) > 0.02) {
+    errors.push(`Total growth ${data.meta.totalReturnPct} != simple sum ${expectedTotal}`)
+  }
+
+  const expectedEnding = round(STARTING_EQUITY + STARTING_EQUITY * (expectedTotal / 100), 4)
+  if (Math.abs(expectedEnding - data.meta.endingEquity) > 0.05) {
+    errors.push(`Ending ${data.meta.endingEquity} != principal + simple profit ${expectedEnding}`)
+  }
+
+  const bestDay = data.tradingDays.reduce((a, b) => (b.netReturnPct > a.netReturnPct ? b : a))
+  const worstDay = data.tradingDays.reduce((a, b) => (b.netReturnPct < a.netReturnPct ? b : a))
+  if (bestDay.date !== data.dashboardStats.bestDay.date) errors.push('bestDay is not derived from daily records')
+  if (worstDay.date !== data.dashboardStats.worstDay.date) errors.push('worstDay is not derived from daily records')
+
   if (errors.length) {
     throw new Error('Dataset validation failed:\n- ' + errors.join('\n- '))
   }
 }
 
 function main() {
-  console.log('Generating 3-year demo/backtest dataset…')
+  console.log('Generating 4-year public demo/backtest dataset…')
   cleanExportRoot()
   const data = buildDataset()
   assertDataset(data)
@@ -816,10 +1060,18 @@ function main() {
   }
 
   console.log('Done.')
+  console.log(`  Range:        ${data.meta.startDate} → ${data.meta.endDate}`)
   console.log(`  Trading days: ${data.meta.tradingDayCount}`)
   console.log(`  Trades:       ${data.meta.tradeCount}`)
-  console.log(`  Months:       ${data.monthlyReturns.length} (in 5–10% band: ${data.dashboardStats.monthsInBand})`)
+  console.log(`  Months:       ${data.monthlyReturns.length} (in 13–17% band: ${data.dashboardStats.monthsInBand})`)
   console.log(`  Avg monthly:  ${data.dashboardStats.avgMonthlyReturnPct}%`)
+  console.log(`  Min / max:    ${data.validation.overall.minMonthlyReturnPct}% / ${data.validation.overall.maxMonthlyReturnPct}%`)
+  console.log(`  Growth $100:  $${data.meta.endingEquity} (simple accumulation)`)
+  console.log(`  Total growth: ${data.meta.totalReturnPct}%`)
+  console.log(`  Ann. simple:  ${data.meta.simpleAnnualizedReturnPct}%`)
+  for (const y of data.validation.programmeYears) {
+    console.log(`  Year ${y.index} avg:  ${y.avgMonthlyReturnPct}% (${y.start}–${y.end})`)
+  }
   console.log(`  Export root:  ${EXPORT_ROOT}`)
 }
 

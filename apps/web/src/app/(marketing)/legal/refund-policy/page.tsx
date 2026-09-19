@@ -12,7 +12,7 @@ export default function RefundPolicyPage() {
   return (
     <LegalDocument
       title="Refund policy"
-      intro="When a deposit can be returned, how a withdrawal differs from a refund, and what happens to a payment that cannot be matched."
+      intro="When a deposit can be returned, how a withdrawal differs from a refund and what happens to a payment that cannot be matched."
       sections={[
         { heading: 'Refund versus withdrawal', summary: 'A withdrawal is a payout of your balance; a refund reverses a deposit that should not have been credited.' },
         { heading: 'Uncredited and rejected deposits', summary: 'How funds are returned when proof cannot be matched, including the destination and the timeframe.' },

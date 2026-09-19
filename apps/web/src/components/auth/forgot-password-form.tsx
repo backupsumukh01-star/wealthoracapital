@@ -63,7 +63,7 @@ export function ForgotPasswordForm() {
         className="space-y-5"
         noValidate
         onSubmit={emailForm.handleSubmit((values) => {
-          void submitEmail(values).catch(() => toast.error('Could not send reset link'))
+          void submitEmail(values).catch(() => toast.error('Could not send the reset link'))
         })}
       >
         <FormField label="Email" required error={emailForm.formState.errors.email?.message}>

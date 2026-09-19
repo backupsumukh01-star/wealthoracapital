@@ -31,7 +31,7 @@ export default function NotFound() {
         <Button asChild variant="secondary">
           <Link href={ROUTES.auth.login}>
             <Compass aria-hidden />
-            Sign in
+            Login
           </Link>
         </Button>
       </div>

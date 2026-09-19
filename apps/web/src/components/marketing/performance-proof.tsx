@@ -70,7 +70,7 @@ export function PerformanceProof() {
           <span className="text-gradient block">Inspect the numbers.</span>
         </>
       }
-      description="Verification tools investors use — filters, exports, and the same tape pattern you reconcile in-product."
+      description="Verification tools investors use — filters, exports and the same tape pattern you reconcile in-product."
       centered
       backdrop="grid"
     >

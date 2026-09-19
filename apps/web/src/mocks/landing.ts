@@ -29,11 +29,11 @@ export const LANDING_STATS = [
   },
   {
     label: 'Avg. monthly return',
-    value: '7.3',
+    value: '15.3',
     prefix: '',
     suffix: '%',
     decimals: 1,
-    hint: 'Compounded programme average over the last 12 months',
+    hint: 'Arithmetic average monthly return across the published 4-year programme',
   },
   {
     label: 'Countries supported',
@@ -48,7 +48,7 @@ export const LANDING_STATS = [
 export const WHY_CHOOSE_US = [
   {
     title: 'Verified Trade History',
-    description: 'Published tickets show pair, side, entry, exit, and return.',
+    description: 'Published tickets show pair, side, entry, exit and return.',
     icon: 'candlestick' as const,
   },
   {
@@ -58,7 +58,7 @@ export const WHY_CHOOSE_US = [
   },
   {
     title: 'Transparent Ledger',
-    description: 'Deposits, distributions, and withdrawals stay exportable.',
+    description: 'Deposits, distributions and withdrawals stay exportable.',
     icon: 'shield' as const,
   },
   {
@@ -123,13 +123,13 @@ export const HOW_IT_WORKS = [
     step: '01',
     title: 'Register',
     description:
-      'Create an account, verify your email, and accept the risk disclosure before funding.',
+      'Create an account, verify your email and accept the risk disclosure before funding.',
   },
   {
     step: '02',
     title: 'Deposit',
     description:
-      'Fund via bank, crypto, or mobile wallet and upload proof for operator review.',
+      'Fund via bank, crypto or mobile wallet and upload proof for operator review.',
   },
   {
     step: '03',
@@ -147,18 +147,18 @@ export const HOW_IT_WORKS = [
 
 /** Illustrative monthly programme returns (UI demo only). */
 export const MONTHLY_RETURNS = [
-  { month: 'Jan', returnPct: 3.2 },
-  { month: 'Feb', returnPct: 4.1 },
-  { month: 'Mar', returnPct: -1.2 },
-  { month: 'Apr', returnPct: 5.8 },
-  { month: 'May', returnPct: 2.9 },
-  { month: 'Jun', returnPct: 6.4 },
-  { month: 'Jul', returnPct: 4.8 },
-  { month: 'Aug', returnPct: 7.1 },
-  { month: 'Sep', returnPct: 3.6 },
-  { month: 'Oct', returnPct: 5.5 },
-  { month: 'Nov', returnPct: 8.2 },
-  { month: 'Dec', returnPct: 6.9 },
+  { month: 'Jan', returnPct: 13.42 },
+  { month: 'Feb', returnPct: 16.87 },
+  { month: 'Mar', returnPct: 14.21 },
+  { month: 'Apr', returnPct: 15.96 },
+  { month: 'May', returnPct: 13.78 },
+  { month: 'Jun', returnPct: 16.54 },
+  { month: 'Jul', returnPct: 15.12 },
+  { month: 'Aug', returnPct: 14.33 },
+  { month: 'Sep', returnPct: 16.81 },
+  { month: 'Oct', returnPct: 13.91 },
+  { month: 'Nov', returnPct: 15.67 },
+  { month: 'Dec', returnPct: 16.98 },
 ] as const
 
 export const YEARLY_RETURNS = [
@@ -312,7 +312,7 @@ export const TESTIMONIALS = [
     tone: 'default' as const,
     investmentAmount: '$2,800',
     profitPct: '+19.4%',
-    quote: 'Charts, trades, and wallet updates stay in sync. Built for people who reconcile numbers.',
+    quote: 'Charts, trades and wallet updates stay in sync. Built for people who reconcile numbers.',
   },
   {
     name: 'Priya Mehta',
@@ -560,14 +560,14 @@ export const PLATFORM_FEATURES = [
   },
   {
     title: 'Familiar funding rails',
-    description: 'Bank transfer, major cards, and select crypto rails — instructions and proof upload in one flow.',
+    description: 'Bank transfer, major cards and select crypto rails — instructions and proof upload in one flow.',
     tone: 'dark' as const,
     rails: ['Bank', 'Card', 'USDT', 'Wise', 'Local'],
   },
   {
     title: 'In-house ledger technology',
     description:
-      'Every distribution is decimal-safe, audit-logged, and reconcilable against the published trade tape.',
+      'Every distribution is decimal-safe, audit-logged and reconcilable against the published trade tape.',
     tone: 'dark' as const,
   },
 ] as const
@@ -576,7 +576,7 @@ export const LANDING_FAQS = [
   {
     question: 'How does Wealthora generate returns?',
     answer:
-      'AI-assisted models propose FX setups across major and minor pairs. A human trading desk reviews, executes and closes positions. At the end of each trading day an operator verifies the net result and applies that percentage to every eligible funded wallet.',
+      'AI-assisted models propose FX setups across major and minor pairs. A human trading desk reviews, executes and closes positions. At the end of each trading day, an operator verifies the net result and applies that percentage to every eligible funded wallet.',
   },
   {
     question: 'Are daily returns guaranteed?',
@@ -591,7 +591,7 @@ export const LANDING_FAQS = [
   {
     question: 'Can I withdraw at any time?',
     answer:
-      'Yes. There is no lock-up. Request a withdrawal from your dashboard, choose a saved payout method, and wait for operator review. Locked funds stop being available immediately so you cannot over-withdraw.',
+      'Yes. There is no lock-up. Request a withdrawal from your dashboard, choose a saved payout method and wait for operator review. Locked funds stop being available immediately so you cannot over-withdraw.',
   },
   {
     question: 'What is the minimum deposit?',

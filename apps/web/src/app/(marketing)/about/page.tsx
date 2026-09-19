@@ -5,7 +5,7 @@ import { AboutContent } from '@/components/marketing/about-content'
 
 export const metadata: Metadata = {
   title: 'About the desk',
-  description: 'Who runs the programme, how it is operated, and the principles it is held to.',
+  description: 'Who runs the programme, how it is operated and the principles it is held to.',
   alternates: { canonical: ROUTES.marketing.about },
 }
 

@@ -28,7 +28,7 @@ const DEPOSIT_STEPS = [
 const WITHDRAW_STEPS = [
   { title: 'Withdrawal request', detail: 'Amount locked against available balance.', icon: Landmark },
   { title: 'Identity verification', detail: 'Destination matches the account holder.', icon: ShieldCheck },
-  { title: 'Risk review', detail: 'Cooldown, limits, and ledger reconcile.', icon: FileSearch },
+  { title: 'Risk review', detail: 'Cooldown, limits and ledger reconciliation.', icon: FileSearch },
   { title: 'Approved', detail: 'Lock converts to a completed debit.', icon: BadgeCheck },
   { title: 'Transferred', detail: 'External payout marked with a reference.', icon: Banknote },
 ]

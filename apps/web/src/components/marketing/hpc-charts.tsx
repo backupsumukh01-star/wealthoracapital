@@ -160,15 +160,13 @@ function GrowthOf100Timeline() {
     const totalGrowthPct = ((current - 100) / 100) * 100
     const avgMonthly =
       rows.length > 0 ? rows.reduce((acc, r) => acc + r.returnPct, 0) / rows.length : null
-    const yearSpan = rows.length > 0 ? rows.length / 12 : 0
-    const cagr =
-      yearSpan > 0 ? (Math.pow(current / 100, 1 / yearSpan) - 1) * 100 : null
+    const simpleAnnualized = avgMonthly != null ? avgMonthly * 12 : null
     return {
       current,
       totalGrowthPct,
       avgMonthly,
       months: rows.length,
-      cagr,
+      simpleAnnualized,
     }
   }, [rows])
 
@@ -187,7 +185,7 @@ function GrowthOf100Timeline() {
       <div className="card-fill min-w-0 p-4 sm:p-5">
         <SectionHeader
           title="Growth of $100"
-          description="Compounded portfolio value from the published monthly programme returns."
+          description="Simple accumulated value from the published monthly programme returns."
           as="h3"
         />
         <p className="mt-4 text-body-sm text-fg-muted">No historical performance data available.</p>
@@ -204,7 +202,7 @@ function GrowthOf100Timeline() {
     <div className="card-fill min-w-0 overflow-hidden p-4 sm:p-5">
       <SectionHeader
         title="Growth of $100"
-        description={`Compounded from ${summary.months} published months · ${yearsLabel} year programme window.`}
+        description={`Simple accumulated return from ${summary.months} published months · ${yearsLabel} year programme window.`}
         as="h3"
       />
 
@@ -240,10 +238,10 @@ function GrowthOf100Timeline() {
           <dd className="mt-1 text-body-sm font-medium tabular-nums text-fg">{summary.months}</dd>
         </div>
         <div className="min-w-0">
-          <dt className="text-caption text-fg-subtle">CAGR</dt>
+          <dt className="text-caption text-fg-subtle">Annualized simple return</dt>
           <dd className="mt-1 text-body-sm font-medium tabular-nums text-fg">
-            {summary.cagr != null
-              ? `${summary.cagr.toFixed(1)}%`
+            {summary.simpleAnnualized != null
+              ? `${summary.simpleAnnualized.toFixed(1)}%`
               : stats.yearlyReturn !== '—'
                 ? `${stats.yearlyReturn}%`
                 : '—'}
@@ -256,7 +254,7 @@ function GrowthOf100Timeline() {
         <p className="mt-1 text-caption text-fg-subtle">
           {expanded
             ? `All ${summary.months} months from the published programme history.`
-            : `Latest ${Math.min(COLLAPSED_ROWS, summary.months)} months · compound growth of $100.`}
+            : `Latest ${Math.min(COLLAPSED_ROWS, summary.months)} months · simple growth of $100.`}
         </p>
 
         {/* Mobile: stacked month cards — no horizontal page scroll */}

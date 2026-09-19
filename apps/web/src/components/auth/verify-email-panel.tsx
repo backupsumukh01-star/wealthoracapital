@@ -87,7 +87,7 @@ export function VerifyEmailPanel() {
       }
     >
       {token && verifyEmail.isError ? (
-        <Alert tone="danger" title="Could not verify email">
+        <Alert tone="danger" title="Could not verify your email">
           {verifyEmail.error instanceof ApiError
             ? verifyEmail.error.message
             : 'This link may have expired.'}

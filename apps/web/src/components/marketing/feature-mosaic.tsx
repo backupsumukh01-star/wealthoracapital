@@ -45,7 +45,7 @@ export function FeatureMosaic() {
       }
       description={
         section?.description ||
-        'Glass surfaces, precise ledgers, and a desk that publishes its work. Built for long sessions, not launch-day demos.'
+        'Glass surfaces, precise ledgers and a desk that publishes its work. Built for long sessions, not launch-day demos.'
       }
     >
       <StaggerGroup className="grid gap-4 lg:grid-cols-2 lg:gap-5">

@@ -18,11 +18,11 @@ import { ProcessFlow } from './process-flow'
 const STEPS = [
   { title: 'Market opens', detail: 'Session windows and liquidity are marked live.', icon: Clock3 },
   { title: 'AI analyses markets', detail: 'Models score setups against regime and volatility.', icon: Bot },
-  { title: 'Signals generated', detail: 'Candidates ranked by edge, size, and session fit.', icon: Sparkles },
+  { title: 'Signals generated', detail: 'Candidates ranked by edge, size and session fit.', icon: Sparkles },
   { title: 'Human validation', detail: 'Desk reviews edge cases before anything is booked.', icon: Scale },
   { title: 'Trades executed', detail: 'Tickets hit the book under published risk limits.', icon: CandlestickChart },
   { title: 'Risk monitored', detail: 'Open exposure watched until every position closes.', icon: Shield },
-  { title: 'Positions closed', detail: 'Exits recorded with entry, exit, and return %.', icon: Activity },
+  { title: 'Positions closed', detail: 'Exits recorded with entry, exit and return %.', icon: Activity },
   { title: 'Performance verified', detail: 'Operator confirms the day figure before publish.', icon: CircleCheck },
   { title: 'Daily return distributed', detail: 'Eligible wallets update in a single atomic run.', icon: Wallet },
 ]

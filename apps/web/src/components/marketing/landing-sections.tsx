@@ -37,13 +37,13 @@ function HistoryCtaBand() {
           {section?.eyebrow || 'Historical Performance'}
         </p>
         <h2 className="mt-2 text-heading-md text-fg">
-          {section?.title || 'Explore the full 3-year track record'}
+          {section?.title || 'Explore the full 4-year track record'}
         </h2>
         {section?.description ? (
           <p className="mt-2 text-body-sm text-fg-muted">{section.description}</p>
         ) : (
           <p className="mt-2 text-body-sm text-fg-muted">
-            Charts, trade blotter, and downloadable reports live on the Historical Performance page.
+            Charts, trade blotter and downloadable reports live on the Historical Performance page.
           </p>
         )}
         <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">

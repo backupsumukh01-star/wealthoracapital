@@ -23,7 +23,7 @@ export default function HowItWorksPage() {
       <PageHero
         eyebrow="Mechanism"
         title="What actually happens to your money"
-        description="Every stage, in order, with the parts most platforms leave vague spelled out."
+        description="Every stage, in order, spelling out the parts most platforms leave vague."
       >
         <Button asChild size="lg" className="mt-2 w-full sm:w-auto">
           <Link href={ROUTES.auth.register}>

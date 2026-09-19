@@ -220,7 +220,7 @@ export function TradeHistoryWorkspace() {
               setQuery(e.target.value)
               setPage(1)
             }}
-            placeholder="Search pair, direction, or ID…"
+            placeholder="Search pair, direction or ID…"
             className="pl-10"
             aria-label="Search trades"
           />
@@ -260,7 +260,7 @@ export function TradeHistoryWorkspace() {
         <div className="glass glass-edge rounded-3xl border border-white/8">
           <PremiumEmptyState
             variant="activity"
-            title="No trades match"
+            title="No matching trades"
             description="Try another filter or clear the search to see desk activity."
             action={
               <Button

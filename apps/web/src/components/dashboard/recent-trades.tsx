@@ -55,7 +55,7 @@ export function RecentTrades() {
         <PremiumEmptyState
           className="py-8"
           title="No trades yet"
-          description="Closed trades will list here once the desk publishes them."
+          description="Closed trades will appear here once the desk publishes them."
         />
       </Card>
     )

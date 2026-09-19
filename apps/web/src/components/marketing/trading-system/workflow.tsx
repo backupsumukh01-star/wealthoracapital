@@ -28,9 +28,9 @@ const STEPS: { title: string; blurb: string; icon: LucideIcon; glow: 'accent' | 
     { title: 'Capital Allocation', blurb: 'Desk assigns size within programme limits.', icon: Layers3, glow: 'cyan' },
     { title: 'AI Market Scanner', blurb: 'Multi-pair scan for structure and liquidity.', icon: Radar, glow: 'violet' },
     { title: 'Strategy Selection', blurb: 'Match setup type to session conditions.', icon: BrainCircuit, glow: 'accent' },
-    { title: 'Risk Validation', blurb: 'Size, stop, and exposure checks must pass.', icon: ShieldCheck, glow: 'amber' },
+    { title: 'Risk Validation', blurb: 'Size, stop and exposure checks must pass.', icon: ShieldCheck, glow: 'amber' },
     { title: 'Trade Execution', blurb: 'Orders route under fixed execution rules.', icon: CandlestickChart, glow: 'cyan' },
-    { title: 'Position Monitoring', blurb: 'Live watch on P&L, stops, and news risk.', icon: LineChart, glow: 'violet' },
+    { title: 'Position Monitoring', blurb: 'Live watch on P&L, stops and news risk.', icon: LineChart, glow: 'violet' },
     { title: 'Trade Closed', blurb: 'Exit recorded with full ticket metadata.', icon: Scale, glow: 'accent' },
     { title: 'Daily Performance Published', blurb: 'Verified session result goes live.', icon: BadgeCheck, glow: 'emerald' },
     { title: 'Profit Distribution', blurb: 'Eligible wallets receive the published return.', icon: CircleDollarSign, glow: 'amber' },
@@ -51,7 +51,7 @@ export function TradingWorkflow() {
       <SubHeading
         eyebrow="Workflow"
         title="How We Generate Returns"
-        subtitle="Every published result comes from a disciplined trading workflow with risk management, execution rules, and human oversight."
+        subtitle="Every published result comes from a disciplined trading workflow with risk management, execution rules and human oversight."
       />
 
       <div ref={railRef} className="relative mx-auto max-w-2xl">

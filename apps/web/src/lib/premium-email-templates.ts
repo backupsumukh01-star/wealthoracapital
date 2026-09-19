@@ -781,7 +781,7 @@ function renderAnnouncement(d: EmailSampleData) {
     security: 'Marketing emails can be managed in Preferences. Security alerts cannot be disabled.',
     bodyHtml: `
       ${greeting(d.firstName)}
-      ${p('We’re shipping improvements across the investor dashboard — clearer timelines, richer trade detail, and faster support.')}
+      ${p('We’re shipping improvements across the investor dashboard — clearer timelines, richer trade detail and faster support.')}
       <div style="margin:28px 0;">${ctaButton('Explore what’s new', d.ctaUrl, accent, '#FFFFFF')}</div>`,
   })
 }
@@ -862,7 +862,7 @@ function renderAccountSuspended(d: EmailSampleData) {
     security: 'Appeals are reviewed by compliance. Do not create duplicate accounts.',
     bodyHtml: `
       ${greeting(d.firstName)}
-      ${p('Your account has been suspended pending compliance review. Deposits, withdrawals, and trading access are paused.')}
+      ${p('Your account has been suspended pending compliance review. Deposits, withdrawals and trading access are paused.')}
       <table width="100%" style="margin:16px 0;border-radius:14px;background:#FEF2F2;border:1px solid #FECACA;">
         <tr><td style="padding:16px;font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;font-size:14px;color:#991B1B;">
           <strong>Reason</strong><br/>${escapeHtml(d.reason)}

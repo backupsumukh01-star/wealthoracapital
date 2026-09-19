@@ -80,7 +80,7 @@ export function ResetPasswordForm() {
       }
     >
       {resetPassword.isError ? (
-        <Alert tone="danger" title="Could not reset password">
+        <Alert tone="danger" title="Could not reset your password">
           {resetPassword.error instanceof ApiError
             ? resetPassword.error.message
             : 'This link may have expired. Request a new one.'}

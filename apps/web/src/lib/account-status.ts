@@ -39,7 +39,7 @@ export function resolveAccountStatus(
   if (!account) {
     return {
       id: 'EMAIL_PENDING',
-      label: 'Sign in required',
+      label: 'Login required',
       description: 'Sign in to view your Wealthora account.',
       nextActionLabel: 'Login',
       nextActionHref: ROUTES.auth.login,
@@ -66,7 +66,7 @@ export function resolveAccountStatus(
     return {
       id: 'EMAIL_PENDING',
       label: 'Email verification pending',
-      description: 'Verify your email with the 6-digit code to continue onboarding.',
+      description: 'Verify your email using the link we sent, then continue onboarding.',
       nextActionLabel: 'Verify email',
       nextActionHref: `${ROUTES.auth.verifyEmail}?email=${encodeURIComponent(account.email)}`,
       tone: 'warning',
@@ -130,7 +130,7 @@ export function resolveAccountStatus(
     return {
       id: 'DEPOSIT_PENDING',
       label: 'Deposit pending',
-      description: 'Your deposit is in the review queue. Funds credit after approval.',
+      description: 'Your deposit is in the review queue. Funds are credited after approval.',
       nextActionLabel: 'View wallet',
       nextActionHref: ROUTES.dashboard.wallet,
       tone: 'warning',

@@ -81,7 +81,7 @@ export function WalletCenter() {
         title={cms?.title ?? 'Wallet'}
         description={
           cms?.helperText ??
-          'Balances, pending money moves, and deposit or withdraw in a guided flow.'
+          'Balances, pending money moves and a guided deposit or withdrawal flow.'
         }
         actions={
           <>
@@ -240,7 +240,7 @@ export function WalletCenter() {
               className="py-8"
               variant="wallet"
               title="No deposits yet"
-              description="Fund your wallet to start earning daily returns."
+              description="Fund your wallet to start receiving published daily returns."
               action={
                 allowed ? (
                   <Button size="sm" onClick={tryDeposit}>

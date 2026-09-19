@@ -153,8 +153,8 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
   if (!user) {
     return (
       <PremiumEmptyState
-        title="Sign in required"
-        description="Load your profile after signing in with a production account."
+        title="Login required"
+        description="Sign in to view your profile."
       />
     )
   }
@@ -165,7 +165,7 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
         <PageHeader
           className="pb-2 sm:pb-4"
           title="Profile"
-          description="Personal details, payout destinations, KYC, and account security."
+          description="Personal details, payout destinations, KYC and account security."
         />
       ) : null}
 
@@ -191,7 +191,7 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
 
         <TabsContent value="personal" className="mt-4 space-y-4">
           <SettingsCard
-            title="Display Currency"
+            title="Display currency"
             description="Presentation only — wallet and ledger remain USD."
             icon={SlidersHorizontal}
           >

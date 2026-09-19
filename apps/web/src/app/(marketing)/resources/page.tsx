@@ -23,20 +23,20 @@ import { LANDING_FAQS } from '@/lib/landing-data'
 export const metadata: Metadata = {
   title: 'Resources',
   description:
-    'FAQ, guides, glossary, downloads, and market insights for Wealthora investors.',
+    'FAQ, guides, glossary, downloads and market insights for Wealthora investors.',
   alternates: { canonical: ROUTES.marketing.resources },
 }
 
 const HUBS = [
   {
     title: 'FAQ',
-    body: 'Deposits, returns, withdrawals, and risk — answered plainly.',
+    body: 'Deposits, returns, withdrawals and risk — answered plainly.',
     href: ROUTES.marketing.faq,
     icon: HelpCircle,
   },
   {
     title: 'Guides',
-    body: 'How to fund, read the tape, and request a withdrawal.',
+    body: 'How to fund, read the tape and request a withdrawal.',
     href: ROUTES.marketing.howItWorks,
     icon: BookOpen,
   },
@@ -72,7 +72,7 @@ export default function ResourcesPage() {
       <PageHero
         eyebrow="Resources"
         title="Learn before you allocate"
-        description="Help centre, downloads, and guides — keep the homepage short; keep the answers here."
+        description="Help centre, downloads and guides — keep the homepage short; keep the answers here."
       />
 
       <Section eyebrow="Library" title="Where to go next">
@@ -101,7 +101,7 @@ export default function ResourcesPage() {
       <Section
         eyebrow="Downloads"
         title="Published reports"
-        description="Monthly, weekly, and performance packs published by operations — download instantly."
+        description="Monthly, weekly and performance packs published by operations — download instantly."
       >
         <CmsReportDownloads />
       </Section>

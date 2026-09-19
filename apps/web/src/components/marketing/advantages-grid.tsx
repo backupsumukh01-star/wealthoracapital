@@ -36,7 +36,7 @@ export function AdvantagesGrid() {
       id="why"
       eyebrow="Why Wealthora"
       title="What serious capital actually needs"
-      description="Transparency, control, and a desk that does not hide losing sessions."
+      description="Transparency, control and a desk that does not hide losing sessions."
       backdrop="grid"
     >
       <StaggerGroup className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-5">

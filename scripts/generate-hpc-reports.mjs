@@ -24,8 +24,8 @@ const meta = charts.meta
 const generatedAt = new Date().toISOString()
 const version = '2.0.0'
 
-function compound(arr) {
-  return (arr.reduce((a, r) => a * (1 + r.returnPct / 100), 1) - 1) * 100
+function simpleSum(arr) {
+  return arr.reduce((a, r) => a + r.returnPct, 0)
 }
 function fmt(n, d = 2) {
   return Number(n).toFixed(d)
@@ -49,11 +49,8 @@ const wins = trades.filter((t) => t.outcome === 'WIN' || t.returnPct > 0)
 const losses = trades.filter((t) => t.outcome === 'LOSS' || t.returnPct < 0)
 const largestGain = trades.reduce((a, b) => (b.returnPct > a.returnPct ? b : a))
 const largestLoss = trades.reduce((a, b) => (b.returnPct < a.returnPct ? b : a))
-const yearsSpan = Math.max(
-  1 / 12,
-  (Date.parse(meta.endDate) - Date.parse(meta.startDate)) / (365.25 * 86400000),
-)
-const cagr = (Math.pow(meta.endingEquity / meta.startingEquity, 1 / yearsSpan) - 1) * 100
+const simpleAnnualized =
+  stats.simpleAnnualizedReturnPct ?? Number(stats.avgMonthlyReturnPct) * 12
 
 // Equity downsample for SVG
 const equity = charts.equityCurve || []
@@ -94,7 +91,7 @@ function svgMonthlyBars(rows) {
 }
 
 function svgYearly() {
-  const rows = years.map((y) => ({ label: y, returnPct: compound(byYear[y]) }))
+  const rows = years.map((y) => ({ label: y, returnPct: simpleSum(byYear[y]) }))
   return svgMonthlyBars(rows)
 }
 
@@ -263,7 +260,7 @@ function cover({ title, periodLabel, period, rid }) {
 
 function execSummary(extraNote = '') {
   return `<h2>Executive Summary</h2>
-<p class="prose"><strong>Portfolio summary.</strong> ${extraNote || 'Derived from the published 3-year demo/backtest programme.'}</p>
+<p class="prose"><strong>Portfolio summary.</strong> ${extraNote || 'Derived from the published 4-year demo/backtest programme.'}</p>
 <div class="cards">
   <div class="card"><span>Avg monthly return</span><strong class="pos">${fmt(stats.avgMonthlyReturnPct, 2)}%</strong></div>
   <div class="card"><span>Total trading days</span><strong>${stats.tradingDayCount}</strong></div>
@@ -276,7 +273,7 @@ function execSummary(extraNote = '') {
   <div class="card"><span>Largest gain</span><strong class="pos">${largestGain.pair} ${fmt(largestGain.returnPct, 2)}%</strong></div>
   <div class="card"><span>Largest loss</span><strong class="neg">${largestLoss.pair} ${fmt(largestLoss.returnPct, 2)}%</strong></div>
   <div class="card"><span>Total return</span><strong class="pos">${fmt(meta.totalReturnPct, 1)}%</strong></div>
-  <div class="card"><span>CAGR</span><strong>${fmt(cagr, 2)}%</strong></div>
+  <div class="card"><span>Annualized simple return</span><strong>${fmt(simpleAnnualized, 2)}%</strong></div>
 </div>
 <div class="panel"><h3>Growth of $100 · Performance overview</h3>${svgEquity('eqg1')}</div>`
 }
@@ -298,13 +295,13 @@ function commentary(kind) {
   return `<h2>Market Commentary & Highlights</h2>
 <div class="panel prose">
   <p><strong>${kind} programme notes.</strong> Desk activity across ${meta.startDate} → ${meta.endDate} shows ${stats.tradingDayCount} published trading days and ${stats.tradeCount} closed tickets. Positive-day share is approximately ${fmt(stats.positiveDayPct, 1)}%.</p>
-  <p><strong>Monthly highlights.</strong> Best month ${bestMonth.label} at ${fmt(bestMonth.returnPct, 2)}%. Softest month ${worstMonth.label} at ${fmt(worstMonth.returnPct, 2)}%. Average monthly compound ${fmt(stats.avgMonthlyReturnPct, 2)}%.</p>
-  <p><strong>Risk metrics.</strong> Max observed day ${fmt(stats.bestDay.returnPct, 3)}% / ${fmt(stats.worstDay.returnPct, 3)}%. Win rate ${fmt(stats.winRatePct, 2)}%. CAGR ~${fmt(cagr, 2)}% on a $100 normalised book.</p>
-  <p><strong>Performance notes.</strong> Figures are compounded from the public demo ledger. Labels mark this pack as backtest / educational presentation data.</p>
+  <p><strong>Monthly highlights.</strong> Best month ${bestMonth.label} at ${fmt(bestMonth.returnPct, 2)}%. Softest month ${worstMonth.label} at ${fmt(worstMonth.returnPct, 2)}%. Average monthly simple return ${fmt(stats.avgMonthlyReturnPct, 2)}%.</p>
+  <p><strong>Risk metrics.</strong> Max observed day ${fmt(stats.bestDay.returnPct, 3)}% / ${fmt(stats.worstDay.returnPct, 3)}%. Win rate ${fmt(stats.winRatePct, 2)}%. Annualized simple return ~${fmt(simpleAnnualized, 2)}% on a $100 normalised book.</p>
+  <p><strong>Performance notes.</strong> Figures use simple (non-compounded) returns from the public demo ledger. Labels mark this pack as backtest / educational presentation data.</p>
 </div>
 <div class="panel"><h3>Yearly summary</h3>
 <table class="data"><thead><tr><th>Year</th><th>Return</th><th>Months</th></tr></thead><tbody>
-${years.map((y) => `<tr><td>${y}</td><td class="pct">${fmt(compound(byYear[y]), 2)}%</td><td>${byYear[y].length}</td></tr>`).join('')}
+${years.map((y) => `<tr><td>${y}</td><td class="pct">${fmt(simpleSum(byYear[y]), 2)}%</td><td>${byYear[y].length}</td></tr>`).join('')}
 </tbody></table></div>`
 }
 
@@ -327,8 +324,8 @@ function closingPages(rid) {
   return [
     `<h2>Methodology</h2>
 <div class="panel prose">
-  <p>Returns are compounded from published daily settlements in the demo/backtest ledger. Trade tickets are closed desk records with pair, direction, entry, exit, and return percentage.</p>
-  <p>Growth of $100 starts at ${meta.startingEquity} and compounds month-by-month from the same history investors can inspect on the website.</p>
+  <p>Returns are simple (non-compounded) from published daily settlements in the demo/backtest ledger. Each daily and monthly profit is applied to the original principal. Trade tickets are closed desk records with pair, direction, entry, exit and return percentage.</p>
+  <p>Growth of $100 starts at ${meta.startingEquity} and accumulates simple monthly profit from the same history investors can inspect on the website.</p>
   <p><strong>Report ID:</strong> ${rid}<br/><strong>Generated at:</strong> ${generatedAt}<br/><strong>Version:</strong> ${version}<br/><strong>Period:</strong> ${meta.startDate} → ${meta.endDate}</p>
 </div>
 <h2>Disclaimer</h2>
@@ -379,19 +376,19 @@ const reports = {
     title: 'Historical Performance Report',
     periodLabel: 'Quarterly',
     period: `Q${q} ${latestMonth.year}`,
-    focusHtml: `Quarter Q${q} ${latestMonth.year} compound ${fmt(compound(qMonths), 2)}%.`,
+    focusHtml: `Quarter Q${q} ${latestMonth.year} simple return ${fmt(simpleSum(qMonths), 2)}%.`,
   }),
   'yearly-report.html': buildReport({
     key: 'yearly',
     title: 'Historical Performance Report',
     periodLabel: 'Annual',
     period: String(latestYear),
-    focusHtml: `Annual focus ${latestYear}: compound ${fmt(compound(byYear[latestYear]), 2)}%.`,
+    focusHtml: `Annual focus ${latestYear}: simple return ${fmt(simpleSum(byYear[latestYear]), 2)}%.`,
   }),
   'complete-3year-report.html': buildReport({
     key: 'complete',
     title: 'Historical Performance Report',
-    periodLabel: 'Complete 3-Year Archive',
+    periodLabel: 'Complete 4-Year Archive',
     period: `${meta.startDate} → ${meta.endDate}`,
     focusHtml: `Full archive: ${fmt(meta.totalReturnPct, 1)}% total return, ending equity ${fmt(meta.endingEquity, 2)}.`,
   }),
@@ -411,7 +408,7 @@ const reports = {
   }),
   'backtest-summary.html': buildReport({
     key: 'backtest',
-    title: '3-Year Backtest Summary',
+    title: '4-Year Backtest Summary',
     periodLabel: 'Programme summary',
     period: `${meta.startDate} → ${meta.endDate}`,
     focusHtml: 'Primary walkthrough summary for the Historical Performance Center.',
@@ -519,7 +516,7 @@ const catalog = {
     {
       id: 'monthly-pdf',
       title: 'Download Monthly Reports',
-      description: 'Latest month compound return',
+      description: 'Latest month simple return',
       format: 'pdf',
       href: '/demo/backtest/reports/monthly-report.pdf',
       previewUrl: '/demo/backtest/reports/monthly-report.html',
@@ -529,7 +526,7 @@ const catalog = {
     {
       id: 'quarterly-pdf',
       title: 'Download Quarterly Reports',
-      description: 'Latest quarter compound return',
+      description: 'Latest quarter simple return',
       format: 'pdf',
       href: '/demo/backtest/reports/quarterly-report.pdf',
       previewUrl: '/demo/backtest/reports/quarterly-report.html',
@@ -539,7 +536,7 @@ const catalog = {
     {
       id: 'yearly-pdf',
       title: 'Download Annual Reports',
-      description: 'Latest year compound return',
+      description: 'Latest year simple return',
       format: 'pdf',
       href: '/demo/backtest/reports/yearly-report.pdf',
       previewUrl: '/demo/backtest/reports/yearly-report.html',
@@ -548,7 +545,7 @@ const catalog = {
     },
     {
       id: 'complete-pdf',
-      title: 'Download Complete 3-Year Report',
+      title: 'Download Complete 4-Year Report',
       description: 'Full programme summary',
       format: 'pdf',
       href: '/demo/backtest/reports/complete-3year-report.pdf',

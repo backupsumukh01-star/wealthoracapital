@@ -161,7 +161,7 @@ export function PayoutMethodsPanel() {
       <Card variant="glass" className="p-5 sm:p-6">
         <SectionHeader
           title="Crypto wallets"
-          description="Checked addresses only — typed destinations are not accepted at withdraw time."
+          description="Checked addresses only — typed destinations are not accepted at withdrawal time."
           as="h2"
           actions={
             <Button

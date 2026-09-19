@@ -9,7 +9,7 @@ export const SITE = {
   wordmark: { primary: 'Wealthora', secondary: '' },
   tagline: 'AI-assisted Forex investing with verified daily returns.',
   description:
-    'Invest in AI-assisted forex strategies, watch every published trade, and receive ' +
+    'Invest in AI-assisted forex strategies, watch every published trade and receive ' +
     'operator-verified daily returns in your wallet. Transparent history. Withdraw when you want.',
   url: env.NEXT_PUBLIC_SITE_URL,
   supportEmail: env.NEXT_PUBLIC_SUPPORT_EMAIL,

@@ -55,7 +55,7 @@ export function NotificationsWorkspace() {
         <PremiumEmptyState
           variant="notifications"
           title="You’re all caught up"
-          description="Deposit decisions, settlements, and security alerts will land here."
+          description="Deposit decisions, settlements and security alerts will land here."
         />
       )
     }
@@ -115,7 +115,7 @@ export function NotificationsWorkspace() {
     <div className="space-y-6 lg:space-y-8">
       <PageHeader
         title="Notifications"
-        description="Deposit and withdrawal decisions, daily settlements, and security alerts."
+        description="Deposit and withdrawal decisions, daily settlements and security alerts."
         actions={
           <Button
             variant="secondary"

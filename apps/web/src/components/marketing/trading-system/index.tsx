@@ -50,7 +50,7 @@ export function TradingSystemSection({
       title={showIntro ? 'Discipline before every published return' : undefined}
       description={
         showIntro
-          ? 'A visual walkthrough of workflow, risk, sessions, and transparency — built for clarity, not slogans.'
+          ? 'A visual walkthrough of workflow, risk, sessions and transparency — built for clarity, not slogans.'
           : undefined
       }
       centered={showIntro}

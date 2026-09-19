@@ -11,7 +11,7 @@ import { ArrowRight } from 'lucide-react'
 export const metadata: Metadata = {
   title: 'Our Trading System',
   description:
-    'How Wealthora generates published returns: AI scanning, human review, strategy selection, risk gates, and daily distribution.',
+    'How Wealthora generates published returns: AI scanning, human review, strategy selection, risk gates and daily distribution.',
   alternates: { canonical: ROUTES.marketing.ourTradingSystem },
 }
 
@@ -21,7 +21,7 @@ export default function OurTradingSystemPage() {
       <PageHero
         eyebrow="Our trading system"
         title="Discipline before every published return"
-        description="A full visual walkthrough of workflow, strategies, risk, sessions, and capital protection — the deep dive behind the homepage summary."
+        description="A full visual walkthrough of workflow, strategies, risk, sessions and capital protection — the deep dive behind the homepage summary."
       >
         <div className="flex flex-col gap-3 pt-2 sm:flex-row">
           <Button asChild size="lg" className="w-full sm:w-auto">

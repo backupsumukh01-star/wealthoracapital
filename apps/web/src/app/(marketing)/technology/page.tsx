@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button'
 export const metadata: Metadata = {
   title: 'Technology',
   description:
-    'Architecture overview: AI signal analysis, market scanner, execution engine, risk engine, analytics, and infrastructure.',
+    'Architecture overview: AI signal analysis, market scanner, execution engine, risk engine, analytics and infrastructure.',
   alternates: { canonical: ROUTES.marketing.technology },
 }
 
@@ -27,7 +27,7 @@ export default function TechnologyPage() {
       <PageHero
         eyebrow="Technology"
         title="Infrastructure built for careful sessions"
-        description="Engines for scan, risk, execute, and publish — presented as product surfaces, not a pitch deck."
+        description="Engines for scan, risk, execute and publish — presented as product surfaces, not a pitch deck."
       >
         <Button asChild size="lg" variant="secondary" className="mt-2 w-full sm:w-auto">
           <Link href={ROUTES.marketing.ourTradingSystem}>
@@ -59,7 +59,7 @@ export default function TechnologyPage() {
           </span>
           <p className="text-heading-md text-fg">Ledger-first architecture</p>
           <p className="text-body-sm text-fg-muted sm:text-body-md">
-            Distributions, trades, and wallet movements are recorded as durable events. Marketing
+            Distributions, trades and wallet movements are recorded as durable events. Marketing
             charts read from the same illustrative dataset investors will eventually reconcile in
             product — never a separate “marketing number.”
           </p>

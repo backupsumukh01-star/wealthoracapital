@@ -32,8 +32,8 @@ export default function ErrorBoundary({
         <p className="text-overline text-danger">Something went wrong</p>
         <h1 className="text-display-md text-fg">We could not load this page</h1>
         <p className="prose-measure text-body-md mx-auto text-fg-muted">
-          The problem has been recorded. Nothing was charged and no balance changed. Try again, and
-          if it keeps happening contact{' '}
+          The problem has been recorded. Nothing was charged and no balance changed. Try again. If
+          it keeps happening, contact{' '}
           <a
             className="break-all rounded-sm text-accent-300 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-base"
             href={`mailto:${SITE.supportEmail}`}

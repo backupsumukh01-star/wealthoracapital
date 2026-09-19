@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion'
 
-import { CountUp } from '@/components/motion/count-up'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { cn } from '@/lib/cn'
 
@@ -10,7 +9,7 @@ const CURVE =
   'M0 168 L46 152 L92 158 L138 130 L184 138 L230 104 L276 118 L322 76 L368 88 L414 44 L460 52 L506 20'
 const AREA = `${CURVE} L506 200 L0 200 Z`
 
-/** Full-bleed programme equity visual — original SVG, no stock art. */
+/** Decorative atmosphere only — no return %, no programme statistic. */
 export function HeroVisual({ className }: { className?: string }) {
   const prefersReducedMotion = usePrefersReducedMotion()
 
@@ -23,13 +22,11 @@ export function HeroVisual({ className }: { className?: string }) {
       <div className="panel-luxury overflow-hidden p-5 shadow-e4 sm:p-8 lg:p-10">
         <div className="mb-6 flex items-end justify-between gap-4 sm:mb-8">
           <div>
-            <p className="text-caption text-fg-subtle">Programme equity · 12 months</p>
-            <p className="text-stat-xl mt-1 text-profit">
-              <CountUp value="89.0" prefix="+" decimals={1} suffix="%" />
-            </p>
+            <p className="text-caption text-fg-subtle">Illustration</p>
+            <p className="mt-1 text-body-sm text-fg-muted">Decorative path · not a return figure</p>
           </div>
           <span className="rounded-full border border-line-default bg-inset/70 px-3 py-1 text-[11px] text-fg-subtle">
-            Published
+            Artwork
           </span>
         </div>
 

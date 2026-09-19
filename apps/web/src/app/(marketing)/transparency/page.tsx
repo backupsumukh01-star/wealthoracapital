@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'
 export const metadata: Metadata = {
   title: 'Transparency',
   description:
-    'Inspect published trades, historical ledgers, withdrawal records, and the verification process behind every daily return.',
+    'Inspect published trades, historical ledgers, withdrawal records and the verification process behind every daily return.',
   alternates: { canonical: ROUTES.marketing.transparency },
 }
 
@@ -23,12 +23,12 @@ const PROOFS = [
   {
     icon: ListTree,
     title: 'Published trades',
-    body: 'Pair, direction, entry, exit, and return for tickets behind each day.',
+    body: 'Pair, direction, entry, exit and return for tickets behind each day.',
   },
   {
     icon: History,
     title: 'Historical ledger',
-    body: 'Deposits, distributions, and withdrawals remain append-only.',
+    body: 'Deposits, distributions and withdrawals remain append-only.',
   },
   {
     icon: FileSearch,
@@ -48,7 +48,7 @@ export default function TransparencyPage() {
       <PageHero
         eyebrow="Transparency"
         title="Proof you can inspect — not slogans"
-        description="Trade history, ledgers, and withdrawal records are available so you can reconcile published results yourself."
+        description="Trade history, ledgers and withdrawal records are available so you can reconcile published results yourself."
       >
         <div className="flex flex-col gap-3 pt-2 sm:flex-row">
           <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto">

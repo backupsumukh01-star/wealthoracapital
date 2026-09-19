@@ -25,6 +25,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useHpcDeskMetrics, useHpcMonthlySeries, useHpcProgrammeStats, useHpcTrades, type HpcTradeRow } from '@/features/hpc/use-hpc-data'
 import { useLandingYearlySeries } from '@/features/landing'
+import { buildGrowthOf100Rows } from '@/features/landing/live-stats'
 import { usePublicPerformance } from '@/features/performance/hooks'
 import { useDemoReportCatalog } from '@/lib/demo-backtest'
 import { cn } from '@/lib/cn'
@@ -62,7 +63,7 @@ function StatTiles() {
 
   const endingFromGrowth =
     stats.totalReturn !== '—'
-      ? String((100 * (1 + Number.parseFloat(stats.totalReturn) / 100)).toFixed(1))
+      ? String((100 + Number.parseFloat(stats.totalReturn)).toFixed(1))
       : null
 
   const endingEquity =
@@ -72,9 +73,7 @@ function StatTiles() {
   const maxDd =
     meta?.maxDrawdownPct && Number(meta.maxDrawdownPct) > 0 ? meta.maxDrawdownPct : null
 
-  const cagrValue =
-    (stats.yearlyReturn !== '—' ? stats.yearlyReturn : null) ??
-    (meta?.cagrPct && Number(meta.cagrPct) !== 0 ? meta.cagrPct : null)
+  const simpleAnnualizedValue = stats.yearlyReturn !== '—' ? stats.yearlyReturn : null
 
   const tiles = [
     { label: 'Trading days', value: stats.tradingDays, decimals: 0, suffix: '' },
@@ -99,10 +98,10 @@ function StatTiles() {
       suffix: '',
     },
     {
-      label: 'CAGR',
-      value: cagrValue ?? '—',
+      label: 'Annualized simple return',
+      value: simpleAnnualizedValue ?? '—',
       decimals: 1,
-      suffix: cagrValue ? '%' : '',
+      suffix: simpleAnnualizedValue ? '%' : '',
     },
     {
       label: 'Max drawdown',
@@ -142,10 +141,14 @@ function StatTiles() {
 function MonthlyTable() {
   const { data: months = [], isLoading } = useHpcMonthlySeries()
   const [open, setOpen] = useState<string | null>(null)
+  const rows = useMemo(() => {
+    const chronological = [...months].sort((a, b) => a.month.localeCompare(b.month))
+    return buildGrowthOf100Rows(chronological)
+  }, [months])
 
   if (isLoading) return <Skeleton className="h-64 rounded-2xl" />
 
-  if (months.length === 0) {
+  if (rows.length === 0) {
     return (
       <p className="text-body-sm text-fg-muted">No historical performance data available.</p>
     )
@@ -156,14 +159,16 @@ function MonthlyTable() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Month</TableHead>
-            <TableHead className="text-right">Return</TableHead>
-            <TableHead className="hidden text-right sm:table-cell">Detail</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead>Year</TableHead>
+            <TableHead className="text-right">Monthly Return</TableHead>
+            <TableHead className="text-right">Simple Growth</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {[...months].reverse().map((m) => {
+          {[...rows].reverse().map((m) => {
             const isOpen = open === m.month
+            const year = m.month.slice(0, 4)
             return (
               <TableRow
                 key={m.month}
@@ -171,6 +176,7 @@ function MonthlyTable() {
                 onClick={() => setOpen(isOpen ? null : m.month)}
               >
                 <TableCell className="font-medium">{m.label || m.month}</TableCell>
+                <TableCell className="tabular-nums text-fg-muted">{year}</TableCell>
                 <TableCell
                   className={cn(
                     'text-right tabular-nums',
@@ -179,8 +185,8 @@ function MonthlyTable() {
                 >
                   {formatPct(m.returnPct)}
                 </TableCell>
-                <TableCell className="hidden text-right text-caption text-fg-subtle sm:table-cell">
-                  {isOpen ? 'Hide' : 'Open'}
+                <TableCell className="text-right tabular-nums text-fg">
+                  ${m.portfolioValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </TableCell>
               </TableRow>
             )
@@ -189,8 +195,9 @@ function MonthlyTable() {
       </Table>
       {open ? (
         <div className="border-t border-line px-4 py-3 text-caption text-fg-muted">
-          Detailed month report for <span className="text-fg">{open}</span>. Download the monthly
-          PDF from the reports section for a printable pack.
+          Accumulated simple value for <span className="text-fg">{open}</span> is original principal
+          plus cumulative monthly profit. Download the monthly PDF from the reports section for a
+          printable pack.
         </div>
       ) : null}
     </div>
@@ -365,7 +372,7 @@ function TradesInfinite() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search pair, date, side, or reference"
+            placeholder="Search pair, date, side or reference"
             className="pl-9"
             aria-label="Search trades"
           />
@@ -660,7 +667,7 @@ export function HistoricalPerformanceCenter() {
         id="hpc-overview"
         eyebrow="Overview"
         title="Headline statistics"
-        description="3-Year Verified Demo Backtest — figures from the published programme ledger."
+        description="4-Year Verified Demo Backtest — figures from the published programme ledger."
         backdrop="glow"
       >
         <StatTiles />
@@ -670,7 +677,7 @@ export function HistoricalPerformanceCenter() {
       <Section
         id="hpc-charts"
         eyebrow="Charts"
-        title="Equity, months, and daily settles"
+        title="Equity, months and daily settles"
         description="Interactive views of the full multi-year history."
       >
         <HpcCharts />
@@ -680,7 +687,7 @@ export function HistoricalPerformanceCenter() {
         id="hpc-years"
         eyebrow="Yearly"
         title="Yearly returns"
-        description="Every available year with trades, days, and win rate."
+        description="Every available year with trades, days and win rate."
       >
         <YearlyCards />
       </Section>
@@ -689,7 +696,7 @@ export function HistoricalPerformanceCenter() {
         id="hpc-ledger"
         eyebrow="Ledger"
         title="Inspect the book"
-        description="Monthly compounds and the full published trade blotter."
+        description="Monthly simple returns and the full published trade blotter."
       >
         <Tabs defaultValue="monthly" className="min-w-0">
           <TabsList aria-label="Historical performance tables">
@@ -707,7 +714,7 @@ export function HistoricalPerformanceCenter() {
           <TabsContent value="trades" className="mt-4">
             <SectionHeader
               title="Trade blotter"
-              description="Search, filter, sort, and paginate the full published desk history."
+              description="Search, filter, sort and paginate the full published desk history."
               as="h3"
             />
             <TradesInfinite />

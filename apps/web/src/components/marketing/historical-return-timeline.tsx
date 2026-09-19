@@ -48,8 +48,8 @@ const MONTH_SHORT = [
   'Dec',
 ] as const
 
-function compound(returns: number[]) {
-  return (returns.reduce((acc, r) => acc * (1 + r / 100), 1) - 1) * 100
+function simpleSum(returns: number[]) {
+  return returns.reduce((acc, r) => acc + r, 0)
 }
 
 /** Parse `YYYY-MM` into calendar parts; otherwise null. */
@@ -122,7 +122,7 @@ function buildQuarterly(monthly: BarPoint[]): BarPoint[] {
   return [...buckets.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, bucket]) => {
-      const returnPct = Number(compound(bucket.returns).toFixed(1))
+      const returnPct = Number(simpleSum(bucket.returns).toFixed(1))
       return {
         id: `q-${key}`,
         label: `Q${bucket.quarter}`,

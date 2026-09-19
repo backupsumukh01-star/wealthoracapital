@@ -101,7 +101,7 @@ export function RegisterForm() {
           ? error.message
           : error instanceof Error
             ? error.message
-            : 'Could not create account'
+            : 'Could not create an account'
       toast.error(message)
     }
   }
@@ -158,8 +158,8 @@ export function RegisterForm() {
         </FormField>
 
         <FormField
-          label="Referral code / Promo code"
-          hint="Optional. Pre-filled from your invite link — you can keep, edit, or clear it."
+          label="Referral or promo code"
+          hint="Optional. Pre-filled from your invite link — you can keep, edit or clear it."
           error={errors.referralCode?.message}
         >
           <Input
@@ -193,14 +193,14 @@ export function RegisterForm() {
                       >
                         terms
                       </Link>
-                      ,{' '}
+                      {', '}
                       <Link
                         href={ROUTES.marketing.legal.privacy}
                         className="rounded-sm text-accent-300 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         privacy policy
-                      </Link>{' '}
-                      and{' '}
+                      </Link>
+                      {' and '}
                       <Link
                         href={ROUTES.marketing.legal.riskDisclosure}
                         className="rounded-sm text-accent-300 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -225,9 +225,9 @@ export function RegisterForm() {
           fullWidth
           size="lg"
           loading={isSubmitting || registerMutation.isPending}
-          loadingText="Creating account…"
+          loadingText="Creating your account…"
         >
-          Create Account
+          Create account
         </Button>
       </form>
     </AuthCard>

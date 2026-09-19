@@ -895,7 +895,7 @@ export function DepositWorkspace() {
     <div className="space-y-6 lg:space-y-8">
       <PageHeader
         title="Deposit"
-        description="Fund your Wealthora wallet with live payment methods — amount, reference, and proof required."
+        description="Fund your Wealthora wallet with live payment methods — amount, reference and proof required."
       />
       {isLoading ? (
         <Card variant="glass" className="p-6">

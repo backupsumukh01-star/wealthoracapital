@@ -2,12 +2,16 @@
 
 Synthetic datasets used for UI presentation and offline demos.
 
-## 3-year backtest
+## 4-year public demo / backtest
 
-Path: `demo-data/3-year-backtest/`
+Path: `demo-data/3-year-backtest/` (folder name kept for existing URLs)
 
-Generates a reproducible three-year trading-day and trade history for charts,
-admin screens, and stakeholder walkthroughs. **Not live market data.**
+Generates a reproducible four-year trading-day and trade history for public
+charts, tables, reports, and marketing statistics. **Not live market data.**
+**Do not import into production financial tables.**
+
+Monthly returns are seeded in 13.00%–17.00% with a 15.30% arithmetic average
+per programme year (48 months).
 
 ### Generate
 
@@ -15,17 +19,11 @@ From the repository root:
 
 ```bash
 node demo-data/3-year-backtest/generate.mjs
+node scripts/generate-hpc-reports.mjs
+node --test demo-data/3-year-backtest/canonical.test.mjs
 ```
 
-Outputs land under `demo-data/3-year-backtest/export/`:
-
-| Folder | Contents |
-|--------|----------|
-| `json/` | `meta.json`, `dashboard_stats.json`, `monthly_returns.json`, trading days, trades, equity curve |
-| `csv/` | Flat CSV exports of the same series |
-| `sql/` | Illustrative `INSERT` statements (offline review only) |
-| `prisma/` | JSON seed artefacts shaped for Prisma models |
-| `reports/html/` | Human-readable HTML summary |
-| `reports/pdf/` | Lightweight PDF summary |
+Outputs land under `demo-data/3-year-backtest/export/` and are mirrored to
+`apps/web/public/demo/backtest/`.
 
 See `demo-data/DISCLAIMER.txt` before sharing or importing.

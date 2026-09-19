@@ -21,7 +21,7 @@ const STEPS: {
 }[] = [
   {
     title: 'Deposit',
-    description: 'Fund via bank, card, or crypto and upload proof for review.',
+    description: 'Fund via bank, card or crypto and upload proof for review.',
     icon: ArrowDownToLine,
     accent: 'text-hl-cyan bg-hl-cyan/10 border-hl-cyan/30',
   },

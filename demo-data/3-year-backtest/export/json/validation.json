@@ -1,0 +1,73 @@
+{
+  "programmeYears": [
+    {
+      "index": 1,
+      "start": "2022-09",
+      "end": "2023-08",
+      "months": 12,
+      "minMonthlyReturnPct": 14.01,
+      "maxMonthlyReturnPct": 16.67,
+      "avgMonthlyReturnPct": 15.3,
+      "tradingDays": 261
+    },
+    {
+      "index": 2,
+      "start": "2023-09",
+      "end": "2024-08",
+      "months": 12,
+      "minMonthlyReturnPct": 13.31,
+      "maxMonthlyReturnPct": 16.57,
+      "avgMonthlyReturnPct": 15.3,
+      "tradingDays": 261
+    },
+    {
+      "index": 3,
+      "start": "2024-09",
+      "end": "2025-08",
+      "months": 12,
+      "minMonthlyReturnPct": 13.44,
+      "maxMonthlyReturnPct": 17,
+      "avgMonthlyReturnPct": 15.3,
+      "tradingDays": 260
+    },
+    {
+      "index": 4,
+      "start": "2025-09",
+      "end": "2026-08",
+      "months": 12,
+      "minMonthlyReturnPct": 13.35,
+      "maxMonthlyReturnPct": 16.64,
+      "avgMonthlyReturnPct": 15.3,
+      "tradingDays": 243
+    }
+  ],
+  "overall": {
+    "months": 48,
+    "tradingDays": 1025,
+    "minMonthlyReturnPct": 13.31,
+    "maxMonthlyReturnPct": 17,
+    "avgMonthlyReturnPct": 15.3,
+    "startingValue": 100,
+    "endingValue": 834.4,
+    "totalGrowthPct": 734.4,
+    "simpleAnnualizedReturnPct": 183.6,
+    "returnModel": "simple",
+    "bestMonth": {
+      "yearMonth": "2025-08",
+      "returnPct": 17
+    },
+    "worstMonth": {
+      "yearMonth": "2024-04",
+      "returnPct": 13.31
+    },
+    "bestDay": {
+      "date": "2026-08-04",
+      "returnPct": 7.557741
+    },
+    "worstDay": {
+      "date": "2026-05-18",
+      "returnPct": -0.320026
+    },
+    "winRatePct": 87.22
+  }
+}

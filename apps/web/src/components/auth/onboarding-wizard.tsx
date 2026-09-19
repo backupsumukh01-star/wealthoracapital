@@ -225,9 +225,9 @@ export function OnboardingWizard() {
 
   if (!session) {
     return (
-      <AuthCard title="Sign in required" description="Verify your identity after signing in.">
+      <AuthCard title="Login required" description="Verify your identity after you log in.">
         <Button fullWidth size="lg" onClick={() => router.push(ROUTES.auth.login)}>
-          Sign in
+          Login
         </Button>
       </AuthCard>
     )
@@ -263,7 +263,7 @@ export function OnboardingWizard() {
     <>
       <AuthCard
         title="Identity verification"
-        description="Cannot deposit until KYC is approved."
+        description="You cannot deposit until KYC is approved."
         className="sm:max-w-none"
       >
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-caption">
@@ -411,10 +411,10 @@ export function OnboardingWizard() {
               <form className="space-y-4" noValidate onSubmit={form.handleSubmit(onSubmitDocs)}>
                 <p className="text-body-sm font-medium text-fg">Upload documents</p>
                 <p className="text-caption text-fg-subtle">
-                  Drag & drop, browse, or use camera. Files upload securely to Wealthora for review.
+                  Drag and drop, browse or use your camera. Files upload securely to Wealthora for review.
                 </p>
                 {submitError ? (
-                  <Alert tone="danger" title="Cannot submit">
+                  <Alert tone="danger" title="Could not submit">
                     {submitError}
                   </Alert>
                 ) : null}
@@ -466,7 +466,7 @@ export function OnboardingWizard() {
                 </div>
                 <p className="text-heading-md text-fg">Under review</p>
                 <p className="text-body-sm text-fg-muted">
-                  Status is Under Review. You cannot deposit until approved.
+                  Your documents are under review. You cannot deposit until they are approved.
                 </p>
                 <Button fullWidth size="lg" onClick={() => router.push(ROUTES.dashboard.root)}>
                   Open dashboard

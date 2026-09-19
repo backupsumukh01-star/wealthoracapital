@@ -30,7 +30,7 @@ const CATEGORIES = [
 
 const contactSchema = z.object({
   name: z.string().trim().min(2, 'Enter your name.'),
-  email: z.string().trim().email('Enter a valid email.'),
+  email: z.string().trim().email('Enter a valid email address.'),
   category: z.string().min(1, 'Select a category.'),
   message: z.string().trim().min(12, 'Please include a short message (12+ characters).'),
   /** Honeypot — bots fill this; humans leave it empty. */
@@ -92,7 +92,7 @@ export function ContactForm() {
       <div>
         <h2 className="text-heading-sm text-fg">Send a message</h2>
         <p className="mt-1 text-body-sm text-fg-muted">
-          We typically reply within one desk day. Urgent payout questions can also go to{' '}
+          We typically reply within one business day. Urgent payout questions can go to{' '}
           <a
             href={`mailto:${SITE.supportEmail}`}
             className="break-all text-accent-300 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-base rounded-sm"
@@ -104,7 +104,7 @@ export function ContactForm() {
       </div>
 
       {errors.root ? (
-        <Alert tone="danger" title="Could not send">
+        <Alert tone="danger" title="Could not send your message">
           {errors.root.message}
         </Alert>
       ) : null}

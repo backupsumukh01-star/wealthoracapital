@@ -2,7 +2,7 @@
 
 /**
  * Historical Performance Center data layer.
- * The HPC presents the imported 3-year programme track record.
+ * The HPC presents the imported 4-year programme track record.
  * Prefer the published demo/backtest programme when it has a full history;
  * fall back to the public API when that import is missing or thin.
  */

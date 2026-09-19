@@ -119,7 +119,7 @@ function buildGrowth(
   let bal = 100
   return points.map((p) => {
     const start = bal
-    bal = Number((bal * (1 + p.value / 100)).toFixed(4))
+    bal = Number((bal + 100 * (p.value / 100)).toFixed(4))
     return {
       ...p,
       startBalance: start,
@@ -180,10 +180,8 @@ export function MonthlyPerformanceChart() {
     const totalGrowthPct = ((current - 100) / 100) * 100
     const avgMonthly =
       rows.length > 0 ? rows.reduce((acc, r) => acc + r.returnPct, 0) / rows.length : null
-    const yearSpan = rows.length > 0 ? rows.length / 12 : 0
-    const cagr =
-      yearSpan > 0 ? (Math.pow(current / 100, 1 / yearSpan) - 1) * 100 : null
-    return { current, totalGrowthPct, avgMonthly, months: rows.length, cagr }
+    const simpleAnnualized = avgMonthly != null ? avgMonthly * 12 : null
+    return { current, totalGrowthPct, avgMonthly, months: rows.length, simpleAnnualized }
   }, [rows])
 
   const visible = useMemo(
@@ -210,9 +208,9 @@ export function MonthlyPerformanceChart() {
         </div>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-right text-[11px] text-fg-subtle sm:grid-cols-4 sm:text-caption">
           <p>
-            CAGR{' '}
+            Ann. simple{' '}
             <span className="tabular-nums text-fg">
-              {(summary.cagr ?? (Number(live.yearlyReturn) || 0)).toFixed(1)}%
+              {(summary.simpleAnnualized ?? (Number(live.yearlyReturn) || 0)).toFixed(1)}%
             </span>
           </p>
           <p>
@@ -256,9 +254,9 @@ export function MonthlyPerformanceChart() {
           </dd>
         </div>
         <div className="min-w-0 col-span-2 sm:col-span-1">
-          <dt className="text-caption text-fg-subtle">CAGR</dt>
+          <dt className="text-caption text-fg-subtle">Annualized simple return</dt>
           <dd className="mt-1 text-body-sm font-medium tabular-nums text-fg">
-            {summary.cagr != null ? `${summary.cagr.toFixed(1)}%` : '—'}
+            {summary.simpleAnnualized != null ? `${summary.simpleAnnualized.toFixed(1)}%` : '—'}
           </dd>
         </div>
       </dl>
@@ -268,7 +266,7 @@ export function MonthlyPerformanceChart() {
         <p className="mt-1 text-caption text-fg-subtle">
           {expanded
             ? `All ${summary.months} months from the published programme history.`
-            : `Latest ${Math.min(COLLAPSED_ROWS, summary.months)} months · compound growth of $100.`}
+            : `Latest ${Math.min(COLLAPSED_ROWS, summary.months)} months · simple growth of $100.`}
         </p>
 
         {/* Mobile: stacked month cards — no horizontal page scroll */}

@@ -9,7 +9,7 @@ import { PageHero } from '@/components/marketing/page-hero'
 export const metadata: Metadata = {
   title: 'Frequently asked questions',
   description:
-    'Deposits, withdrawals, how the daily return is calculated, what happens on a losing day, and how your account is secured.',
+    'Deposits, withdrawals, how the daily return is calculated, what happens on a losing day and how your account is secured.',
   alternates: { canonical: ROUTES.marketing.faq },
 }
 
@@ -22,7 +22,7 @@ const ACCOUNT_FAQS: FaqEntry[] = [
   {
     question: 'Can I have more than one account?',
     answer:
-      'One account per person. Duplicate accounts are consolidated, because the daily return applies per balance and multiple accounts would distort both your figures and everyone else’s.',
+      'One account per person. Duplicate accounts are consolidated because the daily return applies per balance and multiple accounts would distort both your figures and everyone else’s.',
   },
   {
     question: 'What happens if I forget my password?',

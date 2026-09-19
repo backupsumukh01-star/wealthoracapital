@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-08-07T00:39:03.836Z",
+  "generatedAt": "2026-09-19T19:46:30.018Z",
   "seed": "growzy-3y-backtest-v1",
   "version": "2.0.0",
   "range": {
-    "startDate": "2023-08-07",
+    "startDate": "2022-09-01",
     "endDate": "2026-08-05"
   },
   "disclaimer": "Synthetic demo data for UI presentation only. Not live trading history.",
@@ -31,7 +31,7 @@
     {
       "id": "monthly-pdf",
       "title": "Download Monthly Reports",
-      "description": "Latest month compound return",
+      "description": "Latest month simple return",
       "format": "pdf",
       "href": "/demo/backtest/reports/monthly-report.pdf",
       "previewUrl": "/demo/backtest/reports/monthly-report.html",
@@ -41,7 +41,7 @@
     {
       "id": "quarterly-pdf",
       "title": "Download Quarterly Reports",
-      "description": "Latest quarter compound return",
+      "description": "Latest quarter simple return",
       "format": "pdf",
       "href": "/demo/backtest/reports/quarterly-report.pdf",
       "previewUrl": "/demo/backtest/reports/quarterly-report.html",
@@ -51,7 +51,7 @@
     {
       "id": "yearly-pdf",
       "title": "Download Annual Reports",
-      "description": "Latest year compound return",
+      "description": "Latest year simple return",
       "format": "pdf",
       "href": "/demo/backtest/reports/yearly-report.pdf",
       "previewUrl": "/demo/backtest/reports/yearly-report.html",
@@ -60,7 +60,7 @@
     },
     {
       "id": "complete-pdf",
-      "title": "Download Complete 3-Year Report",
+      "title": "Download Complete 4-Year Report",
       "description": "Full programme summary",
       "format": "pdf",
       "href": "/demo/backtest/reports/complete-3year-report.pdf",

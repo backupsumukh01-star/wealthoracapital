@@ -244,7 +244,7 @@ export function createDefaultPlatformCms(): PlatformCms {
     },
     riskDisclaimer:
       'Forex and leveraged products involve significant risk of loss. Only invest capital you can afford to lose.',
-    contactBlurb: 'Reach Wealthora Capital for onboarding, KYC, or operational questions.',
+    contactBlurb: 'Reach Wealthora Capital for onboarding, KYC or operational questions.',
   }
 }
 

@@ -69,7 +69,7 @@ export const MARKETING_NAV: NavItem[] = [
   {
     label: 'Historical Performance',
     href: ROUTES.marketing.historicalPerformance,
-    description: '3-Year Verified Demo Backtest',
+    description: '4-Year Verified Demo Backtest',
   },
   {
     label: 'Strategy',
@@ -241,7 +241,7 @@ export const DASHBOARD_SETTINGS_NAV: NavItem[] = [
     label: 'Preferences',
     href: ROUTES.dashboard.settings.preferences,
     icon: SlidersHorizontal,
-    description: 'Display Currency, theme and notifications',
+    description: 'Display currency, theme and notifications',
     permission: 'profile.view',
   },
   {

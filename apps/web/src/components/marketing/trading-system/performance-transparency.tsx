@@ -22,7 +22,7 @@ const ITEMS: { title: string; line: string; icon: LucideIcon }[] = [
   { title: 'Trade-by-Trade History', line: 'Inspect individual tickets when you need detail.', icon: ListTree },
   { title: 'Export CSV', line: 'Pull ledger rows into your own tools.', icon: FileSpreadsheet },
   { title: 'Download Reports', line: 'Period summaries ready for your records.', icon: Download },
-  { title: 'Investor Dashboard', line: 'Balances, activity, and performance in one place.', icon: PanelTop },
+  { title: 'Investor Dashboard', line: 'Balances, activity and performance in one place.', icon: PanelTop },
 ]
 
 export function PerformanceTransparency() {

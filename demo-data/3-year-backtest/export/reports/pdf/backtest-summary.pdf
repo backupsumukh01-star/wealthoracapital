@@ -2,29 +2,31 @@
 1 0 obj<< /Type /Catalog /Pages 2 0 R >>endobj
 2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1 >>endobj
 3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>endobj
-4 0 obj<< /Length 499 >>stream
+4 0 obj<< /Length 564 >>stream
 BT
 /F1 11 Tf
 50 780 Td
 14 TL
-/F1 16 Tf (3-Year Demo / Backtest Dataset) Tj
+/F1 16 Tf (4-Year Demo / Backtest Dataset) Tj
 T*
 /F1 11 Tf
-(Seed: growzy-3y-backtest-v1) Tj
+(Seed: wealthora-4y-public-demo-v1) Tj
 T*
-(Range: 2023-08-07 to 2026-08-05) Tj
+(Range: 2022-09-01 to 2026-08-05) Tj
 T*
-(Trading days: 783) Tj
+(Trading days: 1025) Tj
 T*
-(Trades: 2786) Tj
+(Trades: 3545) Tj
 T*
-(Avg monthly return: 7.3%) Tj
+(Avg monthly return: 15.3%) Tj
 T*
-(Months in 5-10% band: 37/37) Tj
+(Months in 13-17% band: 48/48) Tj
 T*
-(Total return: 1255.15%) Tj
+(Total return: 734.4%) Tj
 T*
-(Ending equity \(base 100\): 1355.1533) Tj
+(Annualized simple return: 183.6%) Tj
+T*
+(Ending equity \(base 100, simple accumulation\): 834.4) Tj
 T*
 () Tj
 T*
@@ -43,8 +45,8 @@ xref
 0000000056 00000 n 
 0000000111 00000 n 
 0000000235 00000 n 
-0000000783 00000 n 
+0000000848 00000 n 
 trailer<< /Size 6 /Root 1 0 R >>
 startxref
-851
+916
 %%EOF

@@ -1,21 +1,35 @@
 {
-  "tradingDayCount": 783,
-  "tradeCount": 2786,
-  "winCount": 2216,
-  "lossCount": 570,
-  "winRatePct": 79.54,
-  "positiveDayPct": 80.97,
-  "avgMonthlyReturnPct": 7.3,
-  "monthsInBand": 37,
-  "monthCount": 37,
+  "tradingDayCount": 1025,
+  "tradeCount": 3545,
+  "winCount": 3129,
+  "lossCount": 416,
+  "winningDayCount": 894,
+  "losingDayCount": 131,
+  "flatDayCount": 0,
+  "winRatePct": 87.22,
+  "positiveDayPct": 87.22,
+  "avgMonthlyReturnPct": 15.3,
+  "monthsInBand": 48,
+  "monthCount": 48,
   "bestDay": {
-    "date": "2026-08-03",
-    "returnPct": 3.746697
+    "date": "2026-08-04",
+    "returnPct": 7.557741
   },
   "worstDay": {
-    "date": "2025-03-19",
-    "returnPct": -1.10457
+    "date": "2026-05-18",
+    "returnPct": -0.320026
   },
-  "totalReturnPct": 1255.15,
-  "endingEquity": 1355.1533
+  "bestMonth": {
+    "yearMonth": "2025-08",
+    "returnPct": 17
+  },
+  "worstMonth": {
+    "yearMonth": "2024-04",
+    "returnPct": 13.31
+  },
+  "totalReturnPct": 734.4,
+  "endingEquity": 834.4,
+  "simpleAnnualizedReturnPct": 183.6,
+  "startingEquity": 100,
+  "returnModel": "simple"
 }

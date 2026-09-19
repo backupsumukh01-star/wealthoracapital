@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
 export const metadata: Metadata = {
   title: 'Track record',
   description:
-    'The public performance record: daily returns, monthly breakdown, trade history, and growth tools. Past performance does not guarantee future results.',
+    'The public performance record: daily returns, monthly breakdown, trade history and growth tools. Past performance does not guarantee future results.',
   alternates: { canonical: ROUTES.marketing.performance },
 }
 

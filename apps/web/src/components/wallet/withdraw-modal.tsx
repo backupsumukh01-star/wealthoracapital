@@ -296,7 +296,7 @@ export function WithdrawModal({
 
   async function saveBank() {
     if (!newBankName.trim() || !newAccountNumber.trim() || !newIfsc.trim()) {
-      toast.error('Bank name, account number, and IFSC are required.')
+      toast.error('Bank name, account number and IFSC are required.')
       return
     }
     setSubmitting(true)

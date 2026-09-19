@@ -10,7 +10,7 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
       <PageHeader
         className="pb-2 sm:pb-4"
         title="Profile & settings"
-        description="Account controls — identity, payouts, security, and preferences."
+        description="Account controls — identity, payouts, security and preferences."
       />
 
       <div className="grid min-w-0 gap-5 lg:grid-cols-[200px_1fr] lg:gap-8">

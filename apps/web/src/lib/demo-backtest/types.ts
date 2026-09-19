@@ -17,8 +17,13 @@ export interface DemoDashboardStats {
   monthCount: number
   bestDay: DemoBacktestDayStat
   worstDay: DemoBacktestDayStat
+  bestMonth?: { yearMonth: string; returnPct: number }
+  worstMonth?: { yearMonth: string; returnPct: number }
   totalReturnPct: number
   endingEquity: number
+  startingEquity?: number
+  simpleAnnualizedReturnPct?: number
+  returnModel?: 'simple' | string
 }
 
 export interface DemoMonthlyReturn {
@@ -28,6 +33,7 @@ export interface DemoMonthlyReturn {
   label: string
   returnPct: number
   tradingDays: number
+  growthOf100?: number
   inPresentationBand: boolean
 }
 
@@ -49,6 +55,11 @@ export interface DemoChartsPayload {
     startingEquity: number
     endingEquity: number
     totalReturnPct: number
+    simpleAnnualizedReturnPct?: number
+    returnModel?: 'simple' | string
+    elapsedYears?: number
+    monthCount?: number
+    tradingDayCount?: number
   }
   equityCurve: DemoEquityPoint[]
   monthlyReturns: Array<{
@@ -56,6 +67,7 @@ export interface DemoChartsPayload {
     label: string
     returnPct: number
     tradingDays: number
+    growthOf100?: number
     inPresentationBand: boolean
   }>
   yearlyReturns: DemoYearlyReturn[]

@@ -22,7 +22,7 @@ const PRINCIPLES = [
   {
     icon: Scale,
     title: 'Symmetric reporting',
-    body: 'A losing month gets the same typography, the same chart, and the same placement as a winning one.',
+    body: 'A losing month gets the same typography, the same chart and the same placement as a winning one.',
   },
   {
     icon: ShieldCheck,
@@ -78,7 +78,7 @@ export function AboutContent() {
       <Section
         eyebrow="The team"
         title="Who runs the programme"
-        description="Desk roles that review risk, publish results, and clear money movement. Names are illustrative for the demo."
+        description="Desk roles that review risk, publish results and clear money movement. Names are illustrative for the demo."
         backdrop="grid"
       >
         <TeamRoster />
