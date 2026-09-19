@@ -67,7 +67,7 @@ function ChartTooltip({
 export function LivePerformanceChart() {
   const { session } = useSession()
   const { data: summary } = useWalletSummary({ enabled: Boolean(session) })
-  const [range, setRange] = useState<ChartRange>('1M')
+  const [range, setRange] = useState<ChartRange>('ALL')
   const { data: series } = usePerformanceSeries(RANGE_TO_API[range], {
     enabled: Boolean(session),
   })
@@ -175,9 +175,7 @@ export function LivePerformanceChart() {
               width={56}
               tickFormatter={(v) => {
                 const n = Number(v)
-                if (Math.abs(n) >= 1000) {
-                  return `$${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`
-                }
+                if (Math.abs(n) >= 1000) return `$${(n / 1000).toFixed(1)}k`
                 return `$${Math.round(n)}`
               }}
             />

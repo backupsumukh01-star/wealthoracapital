@@ -41,13 +41,15 @@ function exportCsv(rows: { date: string; returnPct: string; profit: string }[]) 
 export function PerformanceWorkspace() {
   const { session } = useSession()
   const enabled = Boolean(session)
-  const { data: summary } = usePerformanceSummary({ enabled })
+  const { data: performanceSummary } = usePerformanceSummary({ enabled })
   const { data: walletSummary } = useWalletSummary({ enabled })
   const { data: monthly } = usePerformanceMonthly({ enabled })
   const { data: distributions } = usePerformanceDistributions({ enabled })
   const exportReport = useExportPerformanceReport()
   const [pdfBusy, setPdfBusy] = useState(false)
 
+  const summary = walletSummary?.performance ?? performanceSummary
+  const charts = walletSummary?.analyticsCharts
   const wallet = walletSummary?.wallet ?? session?.wallet
   const dailyReturns = (distributions?.items ?? []).slice(0, 10).map((d) => ({
     date: d.date,
@@ -65,16 +67,45 @@ export function PerformanceWorkspace() {
     ?? (wallet && Number(wallet.totalDeposited) > 0
       ? ((Number(wallet.totalProfit) / Number(wallet.totalDeposited)) * 100).toFixed(2)
       : '0.00')
-  const monthlyReturnPct = summary?.thisMonthReturnPct ?? monthlyReturns[0]?.returnPct ?? '0.00'
-  const winRate = summary?.winRatePct ? Number(summary.winRatePct).toFixed(1) : '0.0'
-  const bestDay = summary?.bestDay
-    ? {
-        date: summary.bestDay.date,
-        returnPct: summary.bestDay.returnPct,
-        profit: summary.bestDay.profit,
-      }
-    : dailyReturns.reduce<{ date: string; returnPct: string; profit: string } | null>(
-        (best, row) => (!best || Number(row.returnPct) > Number(best.returnPct) ? row : best),
+  const latestMonth =
+    [...monthlyReturns].reverse().find((m) => Number(m.profit) !== 0 || Number(m.returnPct) !== 0) ??
+    monthlyReturns[monthlyReturns.length - 1]
+  const thisMonthIsEmpty = Number(summary?.thisMonthReturnPct ?? 0) === 0
+  const monthlyReturnPct = thisMonthIsEmpty
+    ? (latestMonth?.returnPct ?? summary?.thisMonthReturnPct ?? '0.00')
+    : (summary?.thisMonthReturnPct ?? latestMonth?.returnPct ?? '0.00')
+  const creditedDays = (charts?.dailyProfit ?? []).filter((row) => Number(row.profit) !== 0)
+  const winningDays = creditedDays.filter((row) => Number(row.profit) > 0)
+  const chartWinRate =
+    creditedDays.length > 0 ? ((winningDays.length / creditedDays.length) * 100).toFixed(1) : null
+  const winRate =
+    Number(summary?.winRatePct ?? 0) > 0
+      ? Number(summary.winRatePct).toFixed(1)
+      : (chartWinRate ?? '0.0')
+  const chartBest = (charts?.dailyProfit ?? []).reduce<{
+    date: string
+    returnPct: string
+    profit: string
+  } | null>((best, row) => {
+    if (Number(row.profit) === 0 && Number(row.returnPct) === 0) return best
+    if (!best) return { date: row.date, returnPct: row.returnPct, profit: row.profit }
+    if (Number(row.returnPct) > Number(best.returnPct)) {
+      return { date: row.date, returnPct: row.returnPct, profit: row.profit }
+    }
+    if (Number(row.returnPct) === Number(best.returnPct) && Number(row.profit) > Number(best.profit)) {
+      return { date: row.date, returnPct: row.returnPct, profit: row.profit }
+    }
+    return best
+  }, null)
+  const summaryBest =
+    summary?.bestDay && (Number(summary.bestDay.returnPct) !== 0 || Number(summary.bestDay.profit) !== 0)
+      ? summary.bestDay
+      : null
+  const bestDay = summaryBest ?? chartBest ?? dailyReturns.reduce<{ date: string; returnPct: string; profit: string } | null>(
+        (best, row) => {
+          if (Number(row.profit) === 0 && Number(row.returnPct) === 0) return best
+          return !best || Number(row.returnPct) > Number(best.returnPct) ? row : best
+        },
         null,
       )
 
@@ -140,6 +171,11 @@ export function PerformanceWorkspace() {
         <StatCard
           label="This month"
           value={<Percent value={monthlyReturnPct} showArrow />}
+          hint={
+            thisMonthIsEmpty && latestMonth
+              ? `No credits this calendar month. Showing ${latestMonth.month}.`
+              : undefined
+          }
         />
         <StatCard
           label="Win rate"

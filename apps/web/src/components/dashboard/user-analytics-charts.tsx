@@ -52,7 +52,7 @@ export function UserAnalyticsCharts({ className }: { className?: string }) {
   const { data: summary } = useWalletSummary({ enabled: Boolean(session) })
   const charts = summary?.analyticsCharts
 
-  const daily = useMemo(
+  const dailyAll = useMemo(
     () =>
       (charts?.dailyProfit ?? []).map((p) => ({
         date: p.label || p.date,
@@ -65,29 +65,42 @@ export function UserAnalyticsCharts({ className }: { className?: string }) {
     [charts?.dailyProfit],
   )
 
-  const monthly = useMemo(
-    () =>
-      (charts?.monthly ?? []).map((m) => ({
-        month: m.month,
-        profitNum: Number(m.profit),
-        profit: m.profit,
-        returnPct: m.returnPct,
-      })),
-    [charts?.monthly],
-  )
+  const daily = useMemo(() => {
+    const credited = dailyAll.filter((p) => p.profitNum !== 0)
+    return credited.length > 0 ? credited : dailyAll
+  }, [dailyAll])
 
-  const empty = daily.length === 0 && monthly.length === 0
+  const monthly = useMemo(() => {
+    const rows = (charts?.monthly ?? []).map((m) => ({
+      month: m.month,
+      profitNum: Number(m.profit),
+      profit: m.profit,
+      returnPct: m.returnPct,
+    }))
+    const credited = rows.filter((m) => m.profitNum !== 0)
+    return credited.length > 0 ? credited : rows
+  }, [charts?.monthly])
+
+  const cumSpan = useMemo(() => {
+    if (dailyAll.length < 2) return 0
+    const values = dailyAll.map((p) => p.cumulativeNum)
+    return Math.max(...values) - Math.min(...values)
+  }, [dailyAll])
+  const cumulativeData = cumSpan > 0.01 ? dailyAll : daily
+
+  const dailyEmpty = daily.length === 0 || daily.every((p) => p.profitNum === 0)
+  const empty = dailyEmpty && monthly.length === 0
 
   return (
     <div className={cn('grid gap-5 lg:grid-cols-2', className)}>
       <GlowPanel glow={false} className="group/chart">
         <SectionHeader
           title="Daily profit"
-          description={`Credits across ${charts?.range ?? '90d'} — each publish day shown.`}
+          description={`Credits on settlement days${charts?.range ? ` (${charts.range})` : ''}.`}
           as="h3"
         />
         <div className="mt-5 h-[220px] w-full min-w-0 sm:h-[260px]">
-          {empty ? (
+          {dailyEmpty ? (
             <div className="grid h-full place-items-center text-body-sm text-fg-subtle">
               No analytics yet — returns appear after the desk publishes.
             </div>
@@ -136,7 +149,7 @@ export function UserAnalyticsCharts({ className }: { className?: string }) {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={daily} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+              <AreaChart data={cumulativeData} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="analyticsCumFill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#D4D9DF" stopOpacity={0.28} />

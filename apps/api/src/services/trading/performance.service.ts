@@ -92,8 +92,20 @@ export const performanceService = {
         returnPct: row.returnPct.toFixed(6),
         profit: moneyDisplay(row.profit),
       }
-      if (!bestDay || row.returnPct.gt(d(bestDay.returnPct))) bestDay = point
-      if (!worstDay || row.returnPct.lt(d(worstDay.returnPct))) worstDay = point
+      if (
+        !bestDay ||
+        row.returnPct.gt(d(bestDay.returnPct)) ||
+        (row.returnPct.eq(d(bestDay.returnPct)) && row.profit.gt(d(bestDay.profit)))
+      ) {
+        bestDay = point
+      }
+      if (
+        !worstDay ||
+        row.returnPct.lt(d(worstDay.returnPct)) ||
+        (row.returnPct.eq(d(worstDay.returnPct)) && row.profit.lt(d(worstDay.profit)))
+      ) {
+        worstDay = point
+      }
     }
 
     const now = new Date()
@@ -125,20 +137,21 @@ export const performanceService = {
           ? lastMonthProfit.div(capitalBasis).mul(100)
           : d(0)
 
-    const closedTrades = await prisma.trade.count({
-      where: { status: 'CLOSED', ...(userId ? {} : {}) },
-    })
-    const wins = await prisma.trade.count({
-      where: { status: 'CLOSED', outcome: 'WIN' },
-    })
+    const closedTrades = userId
+      ? 0
+      : await prisma.trade.count({ where: { status: 'CLOSED' } })
+    const wins = userId
+      ? 0
+      : await prisma.trade.count({ where: { status: 'CLOSED', outcome: 'WIN' } })
 
-    // Prefer programme trade win-rate; if no trades, use share of positive distribution days.
-    const positiveDays = dayEntries.filter((r) => r.returnPct.gt(0)).length
-    const winRatePct = closedTrades
-      ? d(wins).div(closedTrades).mul(100).toFixed(2)
-      : dayEntries.length
-        ? d(positiveDays).div(dayEntries.length).mul(100).toFixed(2)
-        : '0.00'
+    const settledDays = dayEntries.filter((r) => r.returnPct.abs().gt(0) || r.profit.abs().gt(0))
+    const positiveDays = settledDays.filter((r) => r.returnPct.gt(0) || r.profit.gt(0)).length
+    const winRatePct =
+      !userId && closedTrades
+        ? d(wins).div(closedTrades).mul(100).toFixed(2)
+        : settledDays.length
+          ? d(positiveDays).div(settledDays.length).mul(100).toFixed(2)
+          : '0.00'
 
     const avgDaily =
       dayEntries.length > 0
@@ -761,8 +774,8 @@ export const performanceService = {
 
   async walletSummaryExtras(userId: string) {
     const performance = await this.summary(userId)
-    const chart = await this.series(userId, '30d')
-    const analyticsCharts = await this.investorAnalyticsCharts(userId, '90d')
+    const chart = await this.series(userId, 'all')
+    const analyticsCharts = await this.investorAnalyticsCharts(userId, 'all')
     const todayKey = dayKey(new Date())
     const todayDist = await prisma.profitDistribution.findFirst({
       where: { userId, date: dayDate(todayKey), isReversed: false },

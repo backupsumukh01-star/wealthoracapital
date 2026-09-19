@@ -95,7 +95,7 @@ export const distributionService = {
     const items = await prisma.profitDistribution.findMany({
       where: { userId, isReversed: false },
       orderBy: { date: 'desc' },
-      take: 100,
+      take: 1000,
     })
     return { items: items.map(mapProfitDistribution) }
   },

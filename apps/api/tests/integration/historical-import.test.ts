@@ -313,6 +313,21 @@ describe('Admin historical spreadsheet import', () => {
     expect(balances).toContain(750)
     expect(balances[balances.length - 1]).toBe(825)
 
+    const importedSummary = await performanceService.summary(target.id)
+    expect(importedSummary.bestDay).not.toBeNull()
+    expect(Number(importedSummary.bestDay?.profit ?? 0)).toBeGreaterThan(0)
+    expect(Number(importedSummary.winRatePct)).toBeGreaterThan(0)
+
+    const analytics = await performanceService.investorAnalyticsCharts(target.id, 'all')
+    expect(analytics.dailyProfit.some((row) => Number(row.profit) > 0)).toBe(true)
+    expect(analytics.monthly.some((row) => Number(row.profit) > 0)).toBe(true)
+
+    const extras = await performanceService.walletSummaryExtras(target.id)
+    expect(extras.chart.range).toBe('all')
+    expect(extras.analyticsCharts.range).toBe('all')
+    expect(Number(extras.performance.winRatePct)).toBeGreaterThan(0)
+    expect(extras.performance.bestDay).not.toBeNull()
+
     const activity = await activityService.list({
       userId: target.id,
       page: 1,
