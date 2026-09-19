@@ -442,6 +442,54 @@ describe('Admin historical spreadsheet import', () => {
     expect(admin.id).toBeTruthy()
   })
 
+  it('moves imported referral credits into redeemed earnings', async () => {
+    await ensureSystemAccounts()
+    const adminEmail = uniqueEmail('imp_redeem')
+    await registerActive(adminEmail)
+    const { agent, csrf } = await loginAgent(adminEmail)
+    const target = await createAdminUser(agent, csrf)
+    const refRef = oid('REF')
+    const preview = await agent
+      .post(`/api/v1/admin/users/${target.id}/history/import/preview`)
+      .set('x-csrf-token', csrf)
+      .attach(
+        'file',
+        Buffer.from(
+          csv([
+            [...HEADERS, 'Referral Commission'],
+            ['2026-03-05', 'REFERRAL', '1000', 'USD', 'CREDITED', refRef, 'REF-HIST-LOCAL', 'note', '50'],
+          ]),
+        ),
+        'redeem.csv',
+      )
+    expect(preview.status).toBe(201)
+    const confirm = await agent
+      .post(`/api/v1/admin/users/${target.id}/history/imports/${preview.body.data.id}/confirm`)
+      .set('x-csrf-token', csrf)
+    expect([200, 201]).toContain(confirm.status)
+
+    const before = await referralService.network(target.id)
+    expect(Number(before.availableEarnings)).toBe(50)
+    expect(Number(before.redeemedEarnings)).toBe(0)
+    expect(Number(before.totalEarnings)).toBe(50)
+
+    const rewards = await referralService.listRewards(target.id, { limit: 20 })
+    const historical = rewards.items.find((item) => item.sourceDepositReference === 'HISTORICAL')
+    expect(historical?.status).toBe('AVAILABLE')
+    await referralService.redeem(target.id, historical!.id)
+
+    const after = await referralService.network(target.id)
+    expect(Number(after.availableEarnings)).toBe(0)
+    expect(Number(after.redeemedEarnings)).toBe(50)
+    expect(Number(after.totalEarnings)).toBe(50)
+    const summary = await referralService.summary(target.id)
+    expect(Number(summary.availableReferral)).toBe(0)
+    expect(Number(summary.redeemedReferral)).toBe(50)
+    expect(Number(summary.totalReferralEarned)).toBe(50)
+    const listed = await referralService.listRewards(target.id, { limit: 20 })
+    expect(listed.items.find((item) => item.id === historical!.id)?.status).toBe('REDEEMED')
+  })
+
   it('keeps normal investor registration working', async () => {
     const email = uniqueEmail('imp_reg')
     const res = await request(app).post('/api/v1/auth/register').send({

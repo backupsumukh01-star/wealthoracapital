@@ -54,8 +54,14 @@ function mapReward(row: ReferralReward & { sourceDeposit?: { reference: string }
 function isHistoricalReferralMeta(metadata: unknown): metadata is {
   historical?: boolean
   redeemed?: boolean
+  redeemedAt?: string
 } {
   return Boolean(metadata && typeof metadata === 'object' && (metadata as { historical?: boolean }).historical)
+}
+
+function isHistoricalReferralRow(row: Pick<TransactionHistory, 'event' | 'metadata'>) {
+  if (row.event === 'HISTORICAL_REFERRAL') return true
+  return isHistoricalReferralMeta(row.metadata)
 }
 
 async function historicalReferralRows(userId: string) {
@@ -78,6 +84,20 @@ function historicalReferralLabel(message: string | null | undefined, index: numb
   return `Imported referral ${index + 1}`
 }
 
+function historicalReferralBreakdown(rows: TransactionHistory[]) {
+  let available = d(0)
+  let redeemed = d(0)
+  for (const row of rows) {
+    if (!isHistoricalReferralRow(row)) continue
+    const amt = d(row.amount ?? 0)
+    if (!amt.isFinite() || amt.lte(0)) continue
+    const meta = isHistoricalReferralMeta(row.metadata) ? row.metadata : null
+    if (meta?.redeemed === true) redeemed = redeemed.plus(amt)
+    else available = available.plus(amt)
+  }
+  return { available, redeemed }
+}
+
 async function historicalReferralAvailable(userId: string, outstandingRewards: ReturnType<typeof d>) {
   const wallet = await prisma.wallet.findUnique({
     where: { userId_kind: { userId, kind: 'REFERRAL' } },
@@ -85,6 +105,29 @@ async function historicalReferralAvailable(userId: string, outstandingRewards: R
   })
   const extra = d(wallet?.availableBalance ?? 0).minus(outstandingRewards)
   return extra.gt(0) ? extra : d(0)
+}
+
+async function overlayHistoricalReferralTotals(
+  userId: string,
+  totals: {
+    locked: ReturnType<typeof d>
+    available: ReturnType<typeof d>
+    redeemed: ReturnType<typeof d>
+    total: ReturnType<typeof d>
+  },
+) {
+  const rows = await historicalReferralRows(userId)
+  const hist = historicalReferralBreakdown(rows)
+  const next = {
+    locked: totals.locked,
+    available: totals.available.plus(hist.available),
+    redeemed: totals.redeemed.plus(hist.redeemed),
+    total: totals.total.plus(hist.available).plus(hist.redeemed),
+  }
+  const leftover = await historicalReferralAvailable(userId, next.locked.plus(next.available))
+  next.available = next.available.plus(leftover)
+  next.total = next.total.plus(leftover)
+  return { ...next, rows }
 }
 
 /** Privacy-safe public label for a referred user (no email/phone/id). */
@@ -278,9 +321,7 @@ export const referralService = {
       else if (row.status === 'AVAILABLE') available = available.plus(amt)
       else if (row.status === 'REDEEMED') redeemed = redeemed.plus(amt)
     }
-    const historical = await historicalReferralAvailable(userId, locked.plus(available))
-    total = total.plus(historical)
-    available = available.plus(historical)
+    const overlaid = await overlayHistoricalReferralTotals(userId, { locked, available, redeemed, total })
 
     const approvedCount = await prisma.deposit.count({
       where: { userId, status: 'APPROVED' },
@@ -299,10 +340,10 @@ export const referralService = {
       referralLink,
       referralPercent: d(settings.referralPercent).toFixed(4),
       referralUnlockDays: settings.referralUnlockDays,
-      totalReferralEarned: moneyDisplay(total),
-      lockedReferral: moneyDisplay(locked),
-      availableReferral: moneyDisplay(available),
-      redeemedReferral: moneyDisplay(redeemed),
+      totalReferralEarned: moneyDisplay(overlaid.total),
+      lockedReferral: moneyDisplay(overlaid.locked),
+      availableReferral: moneyDisplay(overlaid.available),
+      redeemedReferral: moneyDisplay(overlaid.redeemed),
     }
   },
 
@@ -351,9 +392,7 @@ export const referralService = {
       const prev = earningsByReferee.get(row.refereeId) ?? d(0)
       earningsByReferee.set(row.refereeId, prev.plus(amt))
     }
-    const historical = await historicalReferralAvailable(userId, locked.plus(available))
-    total = total.plus(historical)
-    available = available.plus(historical)
+    const overlaid = await overlayHistoricalReferralTotals(userId, { locked, available, redeemed, total })
 
     let activeReferrals = 0
     const referrals = directReferrals.map((row) => {
@@ -373,13 +412,8 @@ export const referralService = {
       }
     })
 
-    const historicalRows = await historicalReferralRows(userId)
-    const historicalPeople = historicalRows
-      .filter((row) => {
-        const meta = isHistoricalReferralMeta(row.metadata) ? row.metadata : null
-        if (row.event !== 'HISTORICAL_REFERRAL' && !meta) return false
-        return meta?.redeemed !== true
-      })
+    const historicalPeople = overlaid.rows
+      .filter((row) => isHistoricalReferralRow(row))
       .map((row, index) => ({
         displayName: historicalReferralLabel(row.message, index),
         joinedAt: row.createdAt.toISOString(),
@@ -391,10 +425,10 @@ export const referralService = {
     return {
       totalReferrals: directReferrals.length + historicalPeople.length,
       activeReferrals: activeReferrals + historicalPeople.length,
-      totalEarnings: moneyDisplay(total),
-      lockedEarnings: moneyDisplay(locked),
-      availableEarnings: moneyDisplay(available),
-      redeemedEarnings: moneyDisplay(redeemed),
+      totalEarnings: moneyDisplay(overlaid.total),
+      lockedEarnings: moneyDisplay(overlaid.locked),
+      availableEarnings: moneyDisplay(overlaid.available),
+      redeemedEarnings: moneyDisplay(overlaid.redeemed),
       referrals: [...referrals, ...historicalPeople],
     }
   },
@@ -426,23 +460,23 @@ export const referralService = {
         take: 200,
       })
       const historicalItems = historicalRows
-        .filter((row) => {
+        .filter((row) => isHistoricalReferralRow(row))
+        .map((row) => {
           const meta = isHistoricalReferralMeta(row.metadata) ? row.metadata : null
-          if (row.event !== 'HISTORICAL_REFERRAL' && !meta) return false
-          return meta?.redeemed !== true
+          const redeemed = meta?.redeemed === true
+          return {
+            id: row.id,
+            sourceDepositId: row.id,
+            sourceDepositReference: 'HISTORICAL',
+            sourceAmount: moneyDisplay(row.amount ?? 0),
+            rewardAmount: moneyDisplay(row.amount ?? 0),
+            percentApplied: '0.0000',
+            status: (redeemed ? 'REDEEMED' : 'AVAILABLE') as 'REDEEMED' | 'AVAILABLE',
+            unlockAt: row.createdAt.toISOString(),
+            redeemedAt: redeemed ? meta?.redeemedAt ?? row.createdAt.toISOString() : null,
+            createdAt: row.createdAt.toISOString(),
+          }
         })
-        .map((row) => ({
-          id: row.id,
-          sourceDepositId: row.id,
-          sourceDepositReference: 'HISTORICAL',
-          sourceAmount: moneyDisplay(row.amount ?? 0),
-          rewardAmount: moneyDisplay(row.amount ?? 0),
-          percentApplied: '0.0000',
-          status: 'AVAILABLE' as const,
-          unlockAt: row.createdAt.toISOString(),
-          redeemedAt: null,
-          createdAt: row.createdAt.toISOString(),
-        }))
       mapped.unshift(...historicalItems)
     }
     return {
