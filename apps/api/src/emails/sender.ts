@@ -21,9 +21,9 @@ const CATEGORY_LANE: Record<EmailCategory, EmailSenderLane> = {
 }
 
 const LANE_DEFAULTS: Record<EmailSenderLane, string> = {
-  auth: 'noreply@growzycapital.com',
-  support: 'support@growzycapital.com',
-  finance: 'info@growzycapital.com',
+  auth: 'update@wealthoracapital.net',
+  support: 'update@wealthoracapital.net',
+  finance: 'update@wealthoracapital.net',
 }
 
 /**

@@ -148,7 +148,7 @@ services:
       - key: NEXT_PUBLIC_PLATFORM_NAME
         value: Wealthora Capital
       - key: NEXT_PUBLIC_SUPPORT_EMAIL
-        value: support@growzycapital.com
+        value: update@wealthoracapital.net
       - key: NEXT_PUBLIC_ENABLE_REFERRALS
         value: "false"
       - key: NEXT_PUBLIC_ENABLE_ROUTE_GUARDS

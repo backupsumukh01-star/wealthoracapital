@@ -32,9 +32,9 @@
 ```env
 EMAIL_TRANSPORT=resend
 RESEND_API_KEY=re_xxxx
-SMTP_FROM_NAME=Growzy
-SMTP_FROM_ADDRESS=noreply@growzycapital.com
-ADMIN_ALERT_EMAILS=ops@growzycapital.com
+SMTP_FROM_NAME=Wealthora Capital
+SMTP_FROM_ADDRESS=update@wealthoracapital.net
+ADMIN_ALERT_EMAILS=update@wealthoracapital.net
 ```
 
 1. Verify domain in [Resend](https://resend.com/domains) (SPF/DKIM/DMARC).

@@ -402,7 +402,7 @@ export function createDefaultCmsExtras(): CmsExtrasState {
       maintenanceMessage: 'We are upgrading ledger infrastructure. Back shortly.',
       supportHours: 'Mon–Fri 09:00–18:00 GST',
       supportPhone: '+971 50 000 0000',
-      supportEmail: 'support@wealthoracapital.com',
+      supportEmail: 'update@wealthoracapital.net',
       companyAddress: 'Dubai International Financial Centre, Dubai, UAE',
       defaultLanguage: 'en',
     },

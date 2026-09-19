@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-09-19T19:46:30.018Z",
-  "seed": "growzy-3y-backtest-v1",
-  "version": "2.0.0",
+  "generatedAt": "2026-09-19T20:48:50.064Z",
+  "seed": "wealthora-4y-public-demo-v1",
+  "version": "2.1.0",
   "range": {
     "startDate": "2022-09-01",
     "endDate": "2026-08-05"
@@ -11,7 +11,7 @@
     {
       "id": "daily-pdf",
       "title": "Download Daily Reports",
-      "description": "Daily desk summary pack",
+      "description": "Daily desk summary for 2026-08-05",
       "format": "pdf",
       "href": "/demo/backtest/reports/daily-report.pdf",
       "previewUrl": "/demo/backtest/reports/daily-report.html",
@@ -21,7 +21,7 @@
     {
       "id": "weekly-pdf",
       "title": "Download Weekly Reports",
-      "description": "Weekly performance pack",
+      "description": "Week 2026-08-03 → 2026-08-05",
       "format": "pdf",
       "href": "/demo/backtest/reports/weekly-report.pdf",
       "previewUrl": "/demo/backtest/reports/weekly-report.html",
@@ -31,7 +31,7 @@
     {
       "id": "monthly-pdf",
       "title": "Download Monthly Reports",
-      "description": "Latest month simple return",
+      "description": "Aug 2026 simple return",
       "format": "pdf",
       "href": "/demo/backtest/reports/monthly-report.pdf",
       "previewUrl": "/demo/backtest/reports/monthly-report.html",
@@ -41,7 +41,7 @@
     {
       "id": "quarterly-pdf",
       "title": "Download Quarterly Reports",
-      "description": "Latest quarter simple return",
+      "description": "Q3 2026 simple return",
       "format": "pdf",
       "href": "/demo/backtest/reports/quarterly-report.pdf",
       "previewUrl": "/demo/backtest/reports/quarterly-report.html",
@@ -51,7 +51,7 @@
     {
       "id": "yearly-pdf",
       "title": "Download Annual Reports",
-      "description": "Latest year simple return",
+      "description": "2026 simple return",
       "format": "pdf",
       "href": "/demo/backtest/reports/yearly-report.pdf",
       "previewUrl": "/demo/backtest/reports/yearly-report.html",

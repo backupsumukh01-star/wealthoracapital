@@ -150,7 +150,7 @@ Full checklist: [`env.render.example`](./env.render.example).
 | `NEXT_PUBLIC_API_URL` | `https://api.growzycapital.com/api/v1` |
 | `NEXT_PUBLIC_SITE_URL` | `https://growzycapital.com` |
 | `NEXT_PUBLIC_PLATFORM_NAME` | `Growzy` |
-| `NEXT_PUBLIC_SUPPORT_EMAIL` | `support@growzycapital.com` |
+| `NEXT_PUBLIC_SUPPORT_EMAIL` | `update@wealthoracapital.net` |
 | `NEXT_PUBLIC_ENABLE_REFERRALS` | `false` |
 | `NEXT_PUBLIC_ENABLE_ROUTE_GUARDS` | `true` |
 

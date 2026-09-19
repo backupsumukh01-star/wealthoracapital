@@ -24,7 +24,7 @@ export function defaultLandingContent(): Record<string, unknown> {
     riskDisclosure:
       'Forex trading involves substantial risk of loss. Past performance does not guarantee future results. Only invest capital you can afford to lose.',
     footerTagline: 'Transparent forex investing with every trade on record.',
-    supportEmail: 'support@wealthoracapital.com',
+    supportEmail: 'update@wealthoracapital.net',
     whatsapp: '+971500000000',
     telegram: 'https://t.me/growzy',
     social: {

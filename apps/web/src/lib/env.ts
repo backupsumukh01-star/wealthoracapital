@@ -27,7 +27,7 @@ const publicEnvSchema = z.object({
         })
     : z.string().url().default('http://localhost:3000'),
   NEXT_PUBLIC_PLATFORM_NAME: z.string().min(1).default('Wealthora Capital'),
-  NEXT_PUBLIC_SUPPORT_EMAIL: z.string().email().default('support@growzycapital.com'),
+  NEXT_PUBLIC_SUPPORT_EMAIL: z.string().email().default('update@wealthoracapital.net'),
   NEXT_PUBLIC_ENABLE_REFERRALS: z
     .enum(['true', 'false'])
     .default('false')

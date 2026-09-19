@@ -11,14 +11,17 @@ import { toast } from 'sonner'
  * 3. Compares API `/version` commit when available (warns on FE/API skew).
  */
 export function DeployVersionGuard() {
-  const bootBuildId = useRef(
-    typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_BUILD_ID ?? '' : '',
-  )
+  const bootBuildId = useRef('')
   const reloading = useRef(false)
   const skewWarned = useRef(false)
 
   useEffect(() => {
     let cancelled = false
+    bootBuildId.current =
+      document.body.dataset.buildId ||
+      document.body.dataset.release ||
+      process.env.NEXT_PUBLIC_BUILD_ID ||
+      ''
 
     async function unregisterServiceWorkers() {
       if (!('serviceWorker' in navigator)) return
@@ -45,7 +48,10 @@ export function DeployVersionGuard() {
         const body = (await res.json()) as { buildId?: string; commit?: string }
         const remote = body.buildId || body.commit || ''
         const local = bootBuildId.current
-        if (local && remote && remote !== local) {
+        // Standalone/local `next start` often serves `/api/version` as "local" while the
+        // client bundle still has `local-<timestamp>`. That is not a new deploy.
+        if (!local || !remote || remote === 'local' || local === 'local') return
+        if (remote !== local) {
           reloading.current = true
           toast.message('New version available', {
             description: 'Refreshing to load the latest release…',

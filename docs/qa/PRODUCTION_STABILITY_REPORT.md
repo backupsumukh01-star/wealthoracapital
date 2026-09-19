@@ -53,7 +53,7 @@ Expected uptime (post-fix): **99.9%** on Render starter with health checks + aut
 1. Prefer `JOB_DRIVER=bullmq` + Redis in production so heavy crons leave the web dyno.
 2. Append `?connection_limit=10&pool_timeout=20` to `DATABASE_URL` on Render Postgres.
 3. Set `EXIT_ON_UNCAUGHT=true` after confirming Render auto-restart + health checks.
-4. Set `ADMIN_ALERT_EMAILS=info@growzycapital.com` (and backups).
+4. Set `ADMIN_ALERT_EMAILS=update@wealthoracapital.net` (and backups).
 5. Watch System Health → Avg response / Slow query logs weekly; fix any route >500ms p95.
 6. Ensure persistent disk `/data` remains mounted (upload/KYC stability).
 
@@ -71,7 +71,7 @@ Expected uptime (post-fix): **99.9%** on Render starter with health checks + aut
 ## Deploy notes
 
 ```
-ADMIN_ALERT_EMAILS=info@growzycapital.com
+ADMIN_ALERT_EMAILS=update@wealthoracapital.net
 REQUEST_TIMEOUT_MS=30000
 EXIT_ON_UNCAUGHT=false
 ```

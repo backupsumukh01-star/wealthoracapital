@@ -97,7 +97,7 @@ export function defaultFrontendContent(): FrontendCmsDocument {
       whatsapp: '+971500000000',
     },
     contact: {
-      supportEmail: 'support@wealthoracapital.com',
+      supportEmail: 'update@wealthoracapital.net',
       supportPhone: '',
       address: '',
       hours: 'Mon–Fri · business hours',

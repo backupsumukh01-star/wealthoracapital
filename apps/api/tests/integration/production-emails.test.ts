@@ -192,12 +192,12 @@ describe('Production email system V2', () => {
   const desktopDir = path.resolve(outDir, 'desktop')
 
   it('resolves institutional sender lanes', () => {
-    expect(resolveSender('auth').email).toBe('noreply@growzycapital.com')
-    expect(resolveSender('support').email).toBe('support@growzycapital.com')
-    expect(resolveSender('finance').email).toBe('info@growzycapital.com')
-    expect(senderForCategory('Security').email).toBe('noreply@growzycapital.com')
-    expect(senderForCategory('KYC').email).toBe('support@growzycapital.com')
-    expect(senderForCategory('Finance').email).toBe('info@growzycapital.com')
+    expect(resolveSender('auth').email).toBe('update@wealthoracapital.net')
+    expect(resolveSender('support').email).toBe('update@wealthoracapital.net')
+    expect(resolveSender('finance').email).toBe('update@wealthoracapital.net')
+    expect(senderForCategory('Security').email).toBe('update@wealthoracapital.net')
+    expect(senderForCategory('KYC').email).toBe('update@wealthoracapital.net')
+    expect(senderForCategory('Finance').email).toBe('update@wealthoracapital.net')
   })
 
   it('renders every production template as premium responsive HTML', () => {
@@ -215,7 +215,7 @@ describe('Production email system V2', () => {
       expect(rendered.html).toMatch(/@media only screen/)
       expect(rendered.html).toContain('Wealthora')
       expect(rendered.html).toContain('will never ask for your password or OTP')
-      expect(rendered.html).toContain('support@growzycapital.com')
+      expect(rendered.html).toContain('update@wealthoracapital.net')
       expect(rendered.text.length).toBeGreaterThan(10)
 
       writeFileSync(path.join(outDir, `${key}.html`), rendered.html, 'utf8')

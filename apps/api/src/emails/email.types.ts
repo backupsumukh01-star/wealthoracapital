@@ -40,7 +40,7 @@ export interface EmailMessage {
   variables: Record<string, string>
   text: string
   html: string
-  /** Absolute From header, e.g. Wealthora Capital <noreply@growzycapital.com> */
+  /** Absolute From header, e.g. Wealthora Capital <update@wealthoracapital.net> */
   from?: string
   category?: EmailCategory
 }

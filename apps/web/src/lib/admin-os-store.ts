@@ -386,7 +386,7 @@ function seedLanding(): LandingCms {
     riskDisclosure:
       'Forex trading involves substantial risk of loss. Past performance does not guarantee future results. Only invest capital you can afford to lose.',
     footerTagline: 'Transparent forex investing with every trade on record.',
-    supportEmail: 'support@wealthoracapital.com',
+    supportEmail: 'update@wealthoracapital.net',
     whatsapp: '+971500000000',
     telegram: 'https://t.me/growzy',
     social: {
@@ -461,7 +461,7 @@ export function createDefaultAdminOs(): AdminOsState {
       companyName: 'Wealthora',
       logoUrl: '/icon',
       theme: 'dark-glass',
-      supportEmail: 'support@wealthoracapital.com',
+      supportEmail: 'update@wealthoracapital.net',
       supportWhatsApp: '+971500000000',
       telegram: 'https://t.me/growzy',
       discord: 'https://discord.gg/growzy',
@@ -541,7 +541,7 @@ export function createDefaultAdminOs(): AdminOsState {
         id: 'PG_contact',
         slug: 'contact',
         title: 'Contact',
-        body: 'Email support@wealthoracapital.com or open a ticket from your dashboard.',
+        body: 'Email update@wealthoracapital.net or open a ticket from your dashboard.',
         status: 'PUBLISHED',
         updatedAt: now(),
       },

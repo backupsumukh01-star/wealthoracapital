@@ -123,7 +123,7 @@ export const DEFAULT_EMAIL_SAMPLE: EmailSampleData = {
   maintenanceEnd: '3 Aug 2026 · 04:00 GST',
   bonus: '50.00',
   ctaUrl: 'https://wealthoracapital.com/dashboard',
-  supportEmail: 'support@wealthoracapital.com',
+  supportEmail: 'update@wealthoracapital.net',
 }
 
 /* -------------------------------------------------------------------------- */

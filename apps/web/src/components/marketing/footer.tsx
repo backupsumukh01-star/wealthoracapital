@@ -105,7 +105,7 @@ export function Footer() {
                 ))}
               </ul>
               <p className="mt-3 text-caption text-fg-subtle">
-                {landing.supportEmail || String(seo.supportEmail || '') || 'support@wealthoracapital.com'}
+                {landing.supportEmail || String(seo.supportEmail || '') || 'update@wealthoracapital.net'}
                 {seo.supportPhone ? ` · ${String(seo.supportPhone)}` : ''}
                 {seo.supportHours ? ` · ${String(seo.supportHours)}` : ''}
               </p>

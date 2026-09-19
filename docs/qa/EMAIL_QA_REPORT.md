@@ -172,7 +172,7 @@ Same HTML/mobile/branding gaps as deposits. **FAIL — no send.**
 | **Images** | None | Logo + socials |
 | **Branding** | Growzy via `APP_NAME` | Growzy Capital |
 | **Subject** | Clear transactional | Varied catalog |
-| **From address** | `SMTP_FROM_NAME` + `SMTP_FROM_ADDRESS` (intended `Growzy` / `noreply@growzycapital.com`) | — |
+| **From address** | `SMTP_FROM_NAME` + `SMTP_FROM_ADDRESS` (intended `Wealthora Capital` / `update@wealthoracapital.net`) | — |
 | **Text part** | ✅ multipart text+html | Studio HTML-focused |
 
 **Spam score:** No Litmus/Mail-Tester run in this pass. Predicted issues: missing DMARC, SPF not authorizing Resend, sparse HTML, possible `noreply@` reputation.
@@ -185,7 +185,7 @@ Same HTML/mobile/branding gaps as deposits. **FAIL — no send.**
 |---------|-----------------------------------------------|
 | `EMAIL_TRANSPORT` | `resend` |
 | `SMTP_FROM_NAME` | Growzy (secret/env) |
-| `SMTP_FROM_ADDRESS` | `noreply@growzycapital.com` (example) |
+| `SMTP_FROM_ADDRESS` | `update@wealthoracapital.net` (example) |
 | `RESEND_API_KEY` | Required secret |
 
 | Transport | Implementation |

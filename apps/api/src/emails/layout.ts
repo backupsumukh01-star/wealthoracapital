@@ -48,6 +48,16 @@ function siteUrl(): string {
   return env.APP_URL.replace(/\/$/, '') || 'https://wealthoracapital.com'
 }
 
+const CONTACT_EMAIL = 'update@wealthoracapital.net'
+
+function siteHost(): string {
+  try {
+    return new URL(siteUrl()).hostname.replace(/^www\./, '')
+  } catch {
+    return 'wealthoracapital.com'
+  }
+}
+
 function badgeHtml(category: EmailCategory): string {
   const tones: Record<EmailCategory, { bg: string; fg: string }> = {
     Security: { bg: '#2A1215', fg: COLORS.danger },
@@ -232,9 +242,9 @@ export function emailLayout(input: {
             <td class="px" style="padding:24px 32px 28px;border-top:1px solid ${COLORS.border};background:#0B1016">
               <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:${COLORS.text}">${escapeHtml(brand)}</p>
               <p style="margin:0 0 4px;font-size:12px;color:${COLORS.subtle}">
-                <a href="mailto:support@growzycapital.com" style="color:${COLORS.accent};text-decoration:none">support@growzycapital.com</a>
+                <a href="mailto:${CONTACT_EMAIL}" style="color:${COLORS.accent};text-decoration:none">${CONTACT_EMAIL}</a>
                 &nbsp;·&nbsp;
-                <a href="${escapeAttr(siteUrl())}" style="color:${COLORS.accent};text-decoration:none">growzycapital.com</a>
+                <a href="${escapeAttr(siteUrl())}" style="color:${COLORS.accent};text-decoration:none">${escapeHtml(siteHost())}</a>
               </p>
               <p style="margin:14px 0 6px;font-size:12px;color:${COLORS.muted}">
                 Need help? <a href="${escapeAttr(supportUrl())}" style="color:${COLORS.accent};text-decoration:none;font-weight:600">Contact Support</a>
