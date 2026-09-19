@@ -14,22 +14,9 @@ export function HeroVisual({ className }: { className?: string }) {
   const prefersReducedMotion = usePrefersReducedMotion()
 
   return (
-    <div
-      className={cn('relative isolate w-full select-none', className)}
-      aria-hidden
-      role="presentation"
-    >
-      <div className="panel-luxury overflow-hidden p-5 shadow-e4 sm:p-8 lg:p-10">
-        <div className="mb-6 flex items-end justify-between gap-4 sm:mb-8">
-          <div>
-            <p className="text-caption text-fg-subtle">Illustration</p>
-            <p className="mt-1 text-body-sm text-fg-muted">Decorative path · not a return figure</p>
-          </div>
-          <span className="rounded-full border border-line-default bg-inset/70 px-3 py-1 text-[11px] text-fg-subtle">
-            Artwork
-          </span>
-        </div>
-
+    <div className={cn('relative isolate w-full select-none', className)}>
+      <span className="sr-only">Decorative illustration. Not a return figure.</span>
+      <div className="panel-luxury overflow-hidden p-5 shadow-e4 sm:p-8 lg:p-10" aria-hidden role="presentation">
         <svg
           viewBox="0 0 506 200"
           className="h-48 w-full sm:h-64 lg:h-72"

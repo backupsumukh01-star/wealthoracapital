@@ -229,9 +229,13 @@ test('homepage hero visual is decorative and does not show a return statistic', 
     'utf8',
   )
   assert.equal(hero.includes('89.0'), false)
+  assert.equal(hero.includes('+89'), false)
   assert.equal(hero.includes('Programme equity'), false)
   assert.equal(hero.includes('CountUp'), false)
-  assert.ok(hero.includes('not a return figure'))
+  assert.equal(hero.includes('Illustration'), false)
+  assert.equal(hero.includes('Artwork'), false)
+  assert.ok(/not a return figure/i.test(hero))
+  assert.ok(hero.includes('sr-only'))
   assert.ok(hero.includes('role="presentation"'))
 })
 
