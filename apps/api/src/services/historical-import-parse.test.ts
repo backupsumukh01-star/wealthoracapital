@@ -79,6 +79,21 @@ describe('historical import parser', () => {
     )
     const { valid } = validateParsedRows(mapRows(roundTrip))
     expect(valid[0]?.orderId).toBe('DEP-XLSX-0001')
+
+    const namespaced = parseXlsx(
+      buildXlsx(
+        [
+          ['Date', 'Transaction Type', 'Amount', 'Order ID'],
+          ['2026-02-01', 'PROFIT', '12.5', 'PRF-NS-0001'],
+        ],
+        { xmlPrefix: 'x' },
+      ),
+    )
+    expect(namespaced[0]).toEqual(['Date', 'Transaction Type', 'Amount', 'Order ID'])
+    const nsParsed = validateParsedRows(mapRows(namespaced))
+    expect(nsParsed.invalid).toEqual([])
+    expect(nsParsed.valid[0]?.orderId).toBe('PRF-NS-0001')
+    expect(nsParsed.valid[0]?.amount).toBe('12.5')
   })
 
   it('parses 3000+ data rows and Excel serial dates', () => {

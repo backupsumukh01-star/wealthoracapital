@@ -368,35 +368,83 @@ export function sha256Hex(buffer: Buffer) {
   return createHash('sha256').update(buffer).digest('hex')
 }
 
+const XML_NS = '(?:[A-Za-z_][\\w.-]*:)?'
+
+function xmlOpen(tag: string) {
+  return new RegExp(`<${XML_NS}${tag}\\b([^>]*)>([\\s\\S]*?)</${XML_NS}${tag}>`, 'g')
+}
+
+function findZipEocd(buffer: Buffer) {
+  const min = Math.max(0, buffer.length - 65_535 - 22)
+  for (let i = buffer.length - 22; i >= min; i -= 1) {
+    if (buffer.readUInt32LE(i) === 0x06054b50) return i
+  }
+  return -1
+}
+
 function readZipEntries(buffer: Buffer): Map<string, Buffer> {
   const out = new Map<string, Buffer>()
-  let offset = 0
-  while (offset + 30 <= buffer.length) {
-    if (buffer.readUInt32LE(offset) !== 0x04034b50) break
-    const method = buffer.readUInt16LE(offset + 8)
-    const compSize = buffer.readUInt32LE(offset + 18)
-    const uncompSize = buffer.readUInt32LE(offset + 22)
-    const nameLen = buffer.readUInt16LE(offset + 26)
-    const extraLen = buffer.readUInt16LE(offset + 28)
-    const name = buffer.toString('utf8', offset + 30, offset + 30 + nameLen)
-    const dataStart = offset + 30 + nameLen + extraLen
-    const data = buffer.subarray(dataStart, dataStart + compSize)
-    let raw = data
-    if (method === 8) {
-      raw = inflateRawSync(data, { maxOutputLength: Math.max(uncompSize, 64 * 1024 * 1024) })
-    } else if (method !== 0) {
-      throw new Error('Unsupported XLSX compression.')
+  const eocd = findZipEocd(buffer)
+  if (eocd >= 0) {
+    const centralSize = buffer.readUInt32LE(eocd + 12)
+    const centralOffset = buffer.readUInt32LE(eocd + 16)
+    let offset = centralOffset
+    const end = Math.min(buffer.length, centralOffset + centralSize)
+    while (offset + 46 <= end) {
+      if (buffer.readUInt32LE(offset) !== 0x02014b50) break
+      const method = buffer.readUInt16LE(offset + 10)
+      const compSize = buffer.readUInt32LE(offset + 20)
+      const uncompSize = buffer.readUInt32LE(offset + 24)
+      const nameLen = buffer.readUInt16LE(offset + 28)
+      const extraLen = buffer.readUInt16LE(offset + 30)
+      const commentLen = buffer.readUInt16LE(offset + 32)
+      const localOff = buffer.readUInt32LE(offset + 42)
+      const name = buffer.toString('utf8', offset + 46, offset + 46 + nameLen)
+      if (localOff + 30 <= buffer.length && buffer.readUInt32LE(localOff) === 0x04034b50) {
+        const localNameLen = buffer.readUInt16LE(localOff + 26)
+        const localExtraLen = buffer.readUInt16LE(localOff + 28)
+        const dataStart = localOff + 30 + localNameLen + localExtraLen
+        const data = buffer.subarray(dataStart, dataStart + compSize)
+        let raw = data
+        if (method === 8) {
+          raw = inflateRawSync(data, { maxOutputLength: Math.max(uncompSize, 64 * 1024 * 1024) })
+        } else if (method !== 0) {
+          throw new Error('Unsupported XLSX compression.')
+        }
+        out.set(name.replace(/\\/g, '/'), Buffer.from(raw))
+      }
+      offset += 46 + nameLen + extraLen + commentLen
     }
-    out.set(name.replace(/\\/g, '/'), Buffer.from(raw))
-    offset = dataStart + compSize
+  }
+  if (out.size === 0) {
+    let offset = 0
+    while (offset + 30 <= buffer.length) {
+      if (buffer.readUInt32LE(offset) !== 0x04034b50) break
+      const method = buffer.readUInt16LE(offset + 8)
+      const compSize = buffer.readUInt32LE(offset + 18)
+      const uncompSize = buffer.readUInt32LE(offset + 22)
+      const nameLen = buffer.readUInt16LE(offset + 26)
+      const extraLen = buffer.readUInt16LE(offset + 28)
+      const name = buffer.toString('utf8', offset + 30, offset + 30 + nameLen)
+      const dataStart = offset + 30 + nameLen + extraLen
+      const data = buffer.subarray(dataStart, dataStart + compSize)
+      let raw = data
+      if (method === 8) {
+        raw = inflateRawSync(data, { maxOutputLength: Math.max(uncompSize, 64 * 1024 * 1024) })
+      } else if (method !== 0) {
+        throw new Error('Unsupported XLSX compression.')
+      }
+      out.set(name.replace(/\\/g, '/'), Buffer.from(raw))
+      offset = dataStart + compSize
+    }
   }
   if (out.size === 0) throw new Error('Malformed XLSX file.')
   return out
 }
 
 function xmlText(xml: string, tag: string) {
-  const matches = [...xml.matchAll(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'g'))]
-  return matches.map((m) => decodeXml(m[1] ?? ''))
+  const matches = [...xml.matchAll(xmlOpen(tag))]
+  return matches.map((m) => decodeXml(m[2] ?? ''))
 }
 
 function decodeXml(value: string) {
@@ -426,23 +474,23 @@ export function parseXlsx(buffer: Buffer): string[][] {
     [...files.entries()].find(([name]) => name.startsWith('xl/worksheets/sheet'))?.[1]?.toString('utf8')
   if (!sheet) throw new Error('XLSX worksheet not found.')
   const rows: string[][] = []
-  const rowTags = [...sheet.matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/g)]
+  const rowTags = [...sheet.matchAll(xmlOpen('row'))]
   for (const rowTag of rowTags) {
-    const cells = [...rowTag[1]!.matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>/g)]
+    const cells = [...(rowTag[2] ?? '').matchAll(xmlOpen('c'))]
     const line: string[] = []
     for (const cell of cells) {
       const attrs = cell[1] ?? ''
       const inner = cell[2] ?? ''
-      const ref = attrs.match(/r="([A-Z]+\d+)"/)?.[1] ?? ''
+      const ref = attrs.match(/\br="([A-Z]+\d+)"/)?.[1] ?? ''
       const idx = ref ? colIndex(ref) : line.length
       const isShared = /\bt="s"/.test(attrs)
-      const v = inner.match(/<v>([\s\S]*?)<\/v>/)?.[1]
-      const is = inner.match(/<is>([\s\S]*?)<\/is>/)?.[1]
+      const v = xmlOpen('v').exec(inner)?.[2]
+      const is = xmlOpen('is').exec(inner)?.[2]
       let text = ''
       if (isShared && v != null) text = shared[Number(v)] ?? ''
       else if (is) text = decodeXml(is)
       else if (v != null) text = decodeXml(v)
-      else if (/<f[\s>]/.test(inner)) text = '='
+      else if (new RegExp(`<${XML_NS}f[\\s>/]`).test(inner)) text = '='
       while (line.length < idx) line.push('')
       line[idx] = text
     }
@@ -508,24 +556,28 @@ function xmlEscape(value: string) {
     .replace(/"/g, '&quot;')
 }
 
-export function buildXlsx(rows: string[][]): Buffer {
+export function buildXlsx(rows: string[][], options?: { xmlPrefix?: string }): Buffer {
+  const p = options?.xmlPrefix ? `${options.xmlPrefix}:` : ''
+  const xmlns = options?.xmlPrefix
+    ? `xmlns:${options.xmlPrefix}="http://schemas.openxmlformats.org/spreadsheetml/2006/main"`
+    : 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
   const sheetRows = rows
     .map(
       (row, r) =>
-        `<row r="${r + 1}">` +
+        `<${p}row r="${r + 1}">` +
         row
           .map((cell, c) => {
             const ref = `${String.fromCharCode(65 + c)}${r + 1}`
-            return `<c r="${ref}" t="inlineStr"><is><t>${xmlEscape(cell)}</t></is></c>`
+            return `<${p}c r="${ref}" t="inlineStr"><${p}is><${p}t xml:space="preserve">${xmlEscape(cell)}</${p}t></${p}is></${p}c>`
           })
           .join('') +
-        `</row>`,
+        `</${p}row>`,
     )
     .join('')
   const sheet = `<?xml version="1.0" encoding="UTF-8"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${sheetRows}</sheetData></worksheet>`
+<${p}worksheet ${xmlns}><${p}sheetData>${sheetRows}</${p}sheetData></${p}worksheet>`
   const workbook = `<?xml version="1.0" encoding="UTF-8"?>
-<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Historical Data" sheetId="1" r:id="rId1"/></sheets></workbook>`
+<${p}workbook ${xmlns} xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><${p}sheets><${p}sheet name="Historical Data" sheetId="1" r:id="rId1"/></${p}sheets></${p}workbook>`
   const rels = `<?xml version="1.0" encoding="UTF-8"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`
   const wbRels = `<?xml version="1.0" encoding="UTF-8"?>
