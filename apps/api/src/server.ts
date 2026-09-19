@@ -51,7 +51,9 @@ async function bootstrap(): Promise<void> {
   // Avoid hanging sockets after idle clients (Render / LB friendly)
   server.keepAliveTimeout = 65_000
   server.headersTimeout = 70_000
-  server.requestTimeout = env.REQUEST_TIMEOUT_MS > 0 ? env.REQUEST_TIMEOUT_MS + 5_000 : 0
+  // Historical spreadsheet import can exceed the default 30s handler timeout.
+  server.requestTimeout =
+    env.REQUEST_TIMEOUT_MS > 0 ? Math.max(env.REQUEST_TIMEOUT_MS + 5_000, 10 * 60_000) : 0
 
   let shuttingDown = false
   const shutdown = async (signal: string) => {

@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto'
 import { inflateRawSync } from 'node:zlib'
 
-export const HISTORICAL_IMPORT_MAX_BYTES = 2 * 1024 * 1024
-export const HISTORICAL_IMPORT_MAX_ROWS = 500
+export const HISTORICAL_IMPORT_MAX_MB = 15
+export const HISTORICAL_IMPORT_MAX_BYTES = HISTORICAL_IMPORT_MAX_MB * 1024 * 1024
+export const HISTORICAL_IMPORT_MAX_ROWS = 10_000
+export const HISTORICAL_IMPORT_REQUEST_TIMEOUT_MS = 10 * 60_000
 
 export const SAMPLE_ORDER_IDS = [
   'WX-DEP-20260115-001',
@@ -103,8 +105,10 @@ function cellText(value: unknown): string {
 function looksLikeFormula(value: string) {
   if (!value) return false
   if (value.includes('\0')) return true
-  if (/^-?\d/.test(value.trim())) return false
-  return /^[=+\-@|]/.test(value.trim())
+  const trimmed = value.trim()
+  if (/^[=@|]/.test(trimmed)) return true
+  // "+A1" / "-SUM(" are formula injection; "+1000" and "- note" are not.
+  return /^[+\-][A-Za-z+(]/.test(trimmed)
 }
 
 export function parseCsv(text: string): string[][] {
@@ -216,6 +220,11 @@ export function parseDate(raw: string): Date | null {
   const value = raw.trim()
   if (!value) return null
   if (looksLikeFormula(value)) return null
+  const serial = Number(value)
+  if (/^\d{5}(\.\d+)?$/.test(value) && Number.isFinite(serial) && serial >= 20000 && serial < 80000) {
+    const utc = new Date(Math.round((serial - 25569) * 86400 * 1000))
+    if (!Number.isNaN(utc.getTime())) return utc
+  }
   const iso = value.includes('T') ? value : value.replace(' ', 'T')
   const d = new Date(iso)
   if (!Number.isNaN(d.getTime())) return d
@@ -226,7 +235,7 @@ export function parseDate(raw: string): Date | null {
 }
 
 export function parseAmount(raw: string): string | null {
-  const value = raw.trim().replace(/[$,]/g, '')
+  const value = raw.trim().replace(/[$,]/g, '').replace(/^\+/, '')
   if (!value || looksLikeFormula(value)) return null
   if (!/^\d+(\.\d{1,8})?$/.test(value)) return null
   if (Number(value) <= 0) return null
@@ -374,7 +383,7 @@ function readZipEntries(buffer: Buffer): Map<string, Buffer> {
     const data = buffer.subarray(dataStart, dataStart + compSize)
     let raw = data
     if (method === 8) {
-      raw = inflateRawSync(data, { maxOutputLength: Math.max(uncompSize, 8 * 1024 * 1024) })
+      raw = inflateRawSync(data, { maxOutputLength: Math.max(uncompSize, 64 * 1024 * 1024) })
     } else if (method !== 0) {
       throw new Error('Unsupported XLSX compression.')
     }
@@ -433,6 +442,7 @@ export function parseXlsx(buffer: Buffer): string[][] {
       if (isShared && v != null) text = shared[Number(v)] ?? ''
       else if (is) text = decodeXml(is)
       else if (v != null) text = decodeXml(v)
+      else if (/<f[\s>]/.test(inner)) text = '='
       while (line.length < idx) line.push('')
       line[idx] = text
     }

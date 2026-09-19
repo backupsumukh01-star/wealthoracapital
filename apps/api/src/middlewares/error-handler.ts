@@ -119,6 +119,10 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   }
 
   const message = err instanceof Error ? err.message : 'Unhandled error'
+  if (res.headersSent) {
+    logger.warn({ err, ...ctx }, 'Error after response was already sent')
+    return
+  }
   const stack = err instanceof Error ? err.stack : undefined
   logger.error({ err, ...ctx, stack }, 'Unhandled error')
   recordSystemLog({

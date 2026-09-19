@@ -10,6 +10,7 @@ import {
   buildTemplateCsv,
   buildTemplateXlsx,
   HISTORICAL_IMPORT_MAX_BYTES,
+  HISTORICAL_IMPORT_MAX_MB,
   HISTORICAL_IMPORT_MAX_ROWS,
   mapRows,
   parseCsv,
@@ -251,7 +252,7 @@ export const historicalImportService = {
     const user = await requireAdminCreatedInvestor(userId)
     if (!file.buffer?.length) throw badRequest('Empty upload rejected.')
     if (file.size > HISTORICAL_IMPORT_MAX_BYTES || file.buffer.length > HISTORICAL_IMPORT_MAX_BYTES) {
-      throw badRequest('File exceeds 2MB.')
+      throw badRequest(`File exceeds ${HISTORICAL_IMPORT_MAX_MB}MB.`)
     }
     const name = file.originalname.toLowerCase()
     const isCsv = name.endsWith('.csv')
@@ -372,8 +373,23 @@ export const historicalImportService = {
 
   async confirm(actorId: string, userId: string, importId: string, context: Ctx) {
     const user = await requireAdminCreatedInvestor(userId)
-    const row = await prisma.historicalImport.findFirst({ where: { id: importId, userId } })
+    const row = await prisma.historicalImport.findFirst({
+      where: { id: importId, userId },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true } },
+        uploadedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
+    })
     if (!row) throw notFound('Import not found.')
+    if (row.status === 'COMPLETED') {
+      return {
+        ...mapImport(row),
+        confirmation: `Imported ${row.importedCount} historical records into ${user.firstName} ${user.lastName}.`,
+      }
+    }
+    if (row.status === 'PREVIEW' && row.confirmedAt) {
+      throw badRequest('This import is already being confirmed. Wait and refresh.')
+    }
     if (row.status !== 'PREVIEW') throw badRequest('This import is not awaiting confirmation.')
     const preview = row.preview as {
       rows?: ValidatedHistoryRow[]
@@ -405,6 +421,26 @@ export const historicalImportService = {
     const balanceIssues = await applyBalanceGate(userId, stillReady)
     if (balanceIssues.length > 0) {
       throw badRequest(balanceIssues[0]?.reason ?? 'Import would overdraft the available balance.')
+    }
+    const claimed = await prisma.historicalImport.updateMany({
+      where: { id: row.id, userId, status: 'PREVIEW', confirmedAt: null },
+      data: { confirmedAt: new Date() },
+    })
+    if (claimed.count === 0) {
+      const latest = await prisma.historicalImport.findFirst({
+        where: { id: importId, userId },
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true } },
+          uploadedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        },
+      })
+      if (latest?.status === 'COMPLETED') {
+        return {
+          ...mapImport(latest),
+          confirmation: `Imported ${latest.importedCount} historical records into ${user.firstName} ${user.lastName}.`,
+        }
+      }
+      throw badRequest('This import is already being confirmed. Wait and refresh.')
     }
     const bodies = stillReady
       .sort((a, b) => a.occurredAt.localeCompare(b.occurredAt))

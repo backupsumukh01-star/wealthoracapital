@@ -16,6 +16,7 @@ export function sendSuccess<T>(
   status = 200,
   requestId?: string,
 ): Response {
+  if (res.headersSent) return res
   const body: ApiSuccess<T> = {
     success: true,
     data,
@@ -32,6 +33,7 @@ export function sendFailure(
   details?: unknown,
   requestId?: string,
 ): Response {
+  if (res.headersSent) return res
   const body: ApiFailure = {
     success: false,
     error: {

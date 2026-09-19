@@ -192,7 +192,8 @@ export function AdminUserHistoryWorkspace() {
               <div className="space-y-4 p-4 sm:p-5">
                 <p className="text-body-sm text-fg-muted">
                   Upload Excel or CSV for {name}. Records always belong to this account. Do not put a
-                  User ID in the spreadsheet. Sample Order IDs in the template are never imported.
+                  User ID in the spreadsheet. Sample Order IDs in the template are never imported. Up to
+                  10,000 rows per file (15MB).
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <Button
@@ -286,24 +287,34 @@ export function AdminUserHistoryWorkspace() {
                       <div>
                         <p className="text-caption font-medium text-fg">Invalid rows</p>
                         <ul className="mt-1 space-y-1 text-caption text-danger">
-                          {invalidRows.map((row) => (
+                          {invalidRows.slice(0, 80).map((row) => (
                             <li key={`${row.rowNumber}-${row.reason}`}>
                               Row {row.rowNumber}: {row.reason}
                             </li>
                           ))}
                         </ul>
+                        {invalidRows.length > 80 ? (
+                          <p className="mt-1 text-caption text-fg-muted">
+                            Showing first 80 of {invalidRows.length} invalid rows.
+                          </p>
+                        ) : null}
                       </div>
                     ) : null}
                     {skippedRows.length > 0 ? (
                       <div>
                         <p className="text-caption font-medium text-fg">Duplicates / skipped</p>
                         <ul className="mt-1 space-y-1 text-caption text-fg-muted">
-                          {skippedRows.map((row) => (
+                          {skippedRows.slice(0, 80).map((row) => (
                             <li key={`${row.rowNumber}-${row.orderId}`}>
                               Row {row.rowNumber}: {row.skipReason || row.orderId}
                             </li>
                           ))}
                         </ul>
+                        {skippedRows.length > 80 ? (
+                          <p className="mt-1 text-caption text-fg-muted">
+                            Showing first 80 of {skippedRows.length} skipped rows.
+                          </p>
+                        ) : null}
                       </div>
                     ) : null}
                     {preview.status === 'PREVIEW' ? (

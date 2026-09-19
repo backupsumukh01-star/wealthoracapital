@@ -209,7 +209,13 @@ async function listRecords(userId: string): Promise<AdminUserHistoryRecord[]> {
       orderBy: { createdAt: 'desc' },
     }),
     prisma.transactionHistory.findMany({
-      where: { userId, event: 'HISTORICAL_REFERRAL' },
+      where: {
+        userId,
+        OR: [
+          { event: 'HISTORICAL_REFERRAL' },
+          { event: 'REFERRAL_BONUS', metadata: { path: ['historical'], equals: true } },
+        ],
+      },
       select: { id: true, amount: true, createdAt: true, message: true },
       orderBy: { createdAt: 'desc' },
     }),
@@ -708,7 +714,7 @@ export const adminUserHistoryService = {
           })
         }
       },
-      { timeout: 120_000, maxWait: 20_000 },
+      { timeout: 600_000, maxWait: 20_000 },
     )
     for (const body of rows) {
       const occurredAt = body.occurredAt

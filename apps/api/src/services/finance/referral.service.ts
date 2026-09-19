@@ -1,4 +1,4 @@
-import type { Deposit, Prisma, ReferralReward } from '@prisma/client'
+import type { Deposit, Prisma, ReferralReward, TransactionHistory } from '@prisma/client'
 
 import { env } from '../../config/env.js'
 import { prisma } from '../../database/prisma.js'
@@ -48,6 +48,23 @@ function mapReward(row: ReferralReward & { sourceDeposit?: { reference: string }
     redeemedAt: row.redeemedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
   }
+}
+
+function isHistoricalReferralMeta(metadata: unknown): metadata is {
+  historical?: boolean
+  redeemed?: boolean
+} {
+  return Boolean(metadata && typeof metadata === 'object' && (metadata as { historical?: boolean }).historical)
+}
+
+/** Referral wallet credits from historical import that are not represented as referral_rewards. */
+async function historicalReferralAvailable(userId: string, outstandingRewards: ReturnType<typeof d>) {
+  const wallet = await prisma.wallet.findUnique({
+    where: { userId_kind: { userId, kind: 'REFERRAL' } },
+    select: { availableBalance: true },
+  })
+  const extra = d(wallet?.availableBalance ?? 0).minus(outstandingRewards)
+  return extra.gt(0) ? extra : d(0)
 }
 
 /** Privacy-safe public label for a referred user (no email/phone/id). */
@@ -241,6 +258,9 @@ export const referralService = {
       else if (row.status === 'AVAILABLE') available = available.plus(amt)
       else if (row.status === 'REDEEMED') redeemed = redeemed.plus(amt)
     }
+    const historical = await historicalReferralAvailable(userId, locked.plus(available))
+    total = total.plus(historical)
+    available = available.plus(historical)
 
     const approvedCount = await prisma.deposit.count({
       where: { userId, status: 'APPROVED' },
@@ -311,6 +331,9 @@ export const referralService = {
       const prev = earningsByReferee.get(row.refereeId) ?? d(0)
       earningsByReferee.set(row.refereeId, prev.plus(amt))
     }
+    const historical = await historicalReferralAvailable(userId, locked.plus(available))
+    total = total.plus(historical)
+    available = available.plus(historical)
 
     let activeReferrals = 0
     const referrals = directReferrals.map((row) => {
@@ -354,10 +377,121 @@ export const referralService = {
       take: limit,
       ...(query.cursor ? { skip: 1, cursor: { id: query.cursor } } : {}),
     })
+    const mapped = items.map(mapReward)
+    if (!query.cursor) {
+      const historicalRows = await prisma.transactionHistory.findMany({
+        where: {
+          userId,
+          OR: [
+            { event: 'HISTORICAL_REFERRAL' },
+            { event: 'REFERRAL_BONUS', metadata: { path: ['historical'], equals: true } },
+          ],
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+      })
+      const historicalItems = historicalRows
+        .filter((row) => {
+          const meta = isHistoricalReferralMeta(row.metadata) ? row.metadata : null
+          if (row.event !== 'HISTORICAL_REFERRAL' && !meta) return false
+          return meta?.redeemed !== true
+        })
+        .map((row) => ({
+          id: row.id,
+          sourceDepositId: row.id,
+          sourceDepositReference: 'HISTORICAL',
+          sourceAmount: moneyDisplay(row.amount ?? 0),
+          rewardAmount: moneyDisplay(row.amount ?? 0),
+          percentApplied: '0.0000',
+          status: 'AVAILABLE' as const,
+          unlockAt: row.createdAt.toISOString(),
+          redeemedAt: null,
+          createdAt: row.createdAt.toISOString(),
+        }))
+      mapped.unshift(...historicalItems)
+    }
     return {
-      items: items.map(mapReward),
+      items: mapped,
       nextCursor: items.length === limit ? items[items.length - 1]?.id ?? null : null,
     }
+  },
+
+  /**
+   * Move a historically imported referral credit from the referral wallet into investment.
+   */
+  async redeemHistoricalCredit(userId: string, row: TransactionHistory) {
+    const meta = isHistoricalReferralMeta(row.metadata) ? row.metadata : {}
+    if (meta.redeemed === true) {
+      const redeemedMeta = row.metadata as { redeemedAt?: string; redeemedTransactionId?: string }
+      return {
+        id: row.id,
+        status: 'REDEEMED' as const,
+        rewardAmount: moneyDisplay(row.amount ?? 0),
+        redeemedAt: redeemedMeta.redeemedAt ?? row.createdAt.toISOString(),
+        redeemedTransactionId: redeemedMeta.redeemedTransactionId ?? null,
+        alreadyRedeemed: true,
+      }
+    }
+    const amount = d(row.amount ?? 0)
+    if (!amount.isFinite() || amount.lte(0)) {
+      throw badRequest('Invalid historical referral amount.')
+    }
+
+    return prisma.$transaction(async (tx) => {
+      const locked = await tx.transactionHistory.findFirst({
+        where: { id: row.id, userId },
+      })
+      if (!locked) throw notFound('Referral reward not found.')
+      const lockedMeta = isHistoricalReferralMeta(locked.metadata) ? locked.metadata : {}
+      if (lockedMeta.redeemed === true) {
+        const redeemedMeta = locked.metadata as { redeemedAt?: string; redeemedTransactionId?: string }
+        return {
+          id: locked.id,
+          status: 'REDEEMED' as const,
+          rewardAmount: moneyDisplay(locked.amount ?? 0),
+          redeemedAt: redeemedMeta.redeemedAt ?? locked.createdAt.toISOString(),
+          redeemedTransactionId: redeemedMeta.redeemedTransactionId ?? null,
+          alreadyRedeemed: true,
+        }
+      }
+
+      const referralWallet = await ledgerService.getReferralWallet(userId, tx)
+      const investmentWallet = await ledgerService.getInvestmentWallet(userId, tx)
+      const txn = await ledgerService.transferAvailable(tx, {
+        userId,
+        fromWalletId: referralWallet.id,
+        toWalletId: investmentWallet.id,
+        amount,
+        description: `Redeem historical referral ${locked.id}`,
+        referenceType: 'HISTORICAL_REFERRAL',
+        referenceId: locked.id,
+        idempotencyKey: `referral-redeem:historical:${locked.id}`,
+        transactionType: 'TRANSFER',
+        entryType: 'TRANSFER',
+        bumpInvestedOnDestination: true,
+      })
+      const redeemedAt = new Date()
+      await tx.transactionHistory.update({
+        where: { id: locked.id },
+        data: {
+          metadata: {
+            ...(typeof locked.metadata === 'object' && locked.metadata ? locked.metadata : {}),
+            historical: true,
+            redeemed: true,
+            redeemedAt: redeemedAt.toISOString(),
+            redeemedTransactionId: txn.id,
+          },
+        },
+      })
+      return {
+        id: locked.id,
+        status: 'REDEEMED' as const,
+        rewardAmount: moneyDisplay(amount),
+        redeemedAt: redeemedAt.toISOString(),
+        redeemedTransactionId: txn.id,
+        alreadyRedeemed: false,
+      }
+    })
   },
 
   /**
@@ -365,6 +499,20 @@ export const referralService = {
    */
   async redeem(userId: string, rewardId: string) {
     await this.unlockEligibleRewards(prisma, { referrerId: userId, rewardId })
+
+    const historical = await prisma.transactionHistory.findFirst({
+      where: {
+        id: rewardId,
+        userId,
+        OR: [
+          { event: 'HISTORICAL_REFERRAL' },
+          { event: 'REFERRAL_BONUS', metadata: { path: ['historical'], equals: true } },
+        ],
+      },
+    })
+    if (historical) {
+      return this.redeemHistoricalCredit(userId, historical)
+    }
 
     return prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT 1 FROM referral_rewards WHERE id = ${rewardId}::uuid FOR UPDATE`

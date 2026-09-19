@@ -5,6 +5,10 @@ import type { z } from 'zod'
 import { adminUserHistoryService } from '../services/admin-user-history.service.js'
 import { historicalImportService } from '../services/historical-import.service.js'
 import { adminUsersService } from '../services/admin-users.service.js'
+import {
+  HISTORICAL_IMPORT_MAX_BYTES,
+  HISTORICAL_IMPORT_MAX_MB,
+} from '../services/historical-import-parse.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import { requestContext } from '../utils/request-context.js'
 import { sendSuccess } from '../utils/response.js'
@@ -255,7 +259,7 @@ export const adminUsersController = {
 
 export const historyImportUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 2 * 1024 * 1024 },
+  limits: { fileSize: HISTORICAL_IMPORT_MAX_BYTES },
 })
 
 export function handleHistoryImportUpload(req: Request, res: Response, next: NextFunction) {
@@ -265,7 +269,7 @@ export function handleHistoryImportUpload(req: Request, res: Response, next: Nex
       return
     }
     if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-      next(badRequest('File exceeds 2MB.'))
+      next(badRequest(`File exceeds ${HISTORICAL_IMPORT_MAX_MB}MB.`))
       return
     }
     next(badRequest(err instanceof Error ? err.message : 'Upload failed.'))

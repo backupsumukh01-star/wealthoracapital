@@ -7,7 +7,8 @@ import { createApp } from '../../src/app.js'
 import { prisma } from '../../src/database/prisma.js'
 import { passwordService } from '../../src/services/password.service.js'
 import { adminUserHistoryService } from '../../src/services/admin-user-history.service.js'
-import { buildXlsx } from '../../src/services/historical-import-parse.js'
+import { referralService } from '../../src/services/finance/referral.service.js'
+import { buildXlsx, HISTORICAL_IMPORT_MAX_ROWS } from '../../src/services/historical-import-parse.js'
 
 const app = createApp()
 
@@ -203,13 +204,13 @@ describe('Admin historical spreadsheet import', () => {
 
     const tooMany = [
       HEADERS,
-      ...Array.from({ length: 501 }, (_, i) => [
+      ...Array.from({ length: HISTORICAL_IMPORT_MAX_ROWS + 1 }, (_, i) => [
         '2026-01-15',
         'DEPOSIT',
         '1',
         'USD',
         'APPROVED',
-        oid('BIG').slice(0, 20) + String(i).padStart(4, '0'),
+        oid('BIG').slice(0, 20) + String(i).padStart(5, '0'),
         '',
         '',
       ]),
@@ -269,6 +270,11 @@ describe('Admin historical spreadsheet import', () => {
       .post(`/api/v1/admin/users/${target.id}/history/imports/${preview.body.data.id}/confirm`)
       .set('x-csrf-token', csrf)
     expect([200, 201]).toContain(blocked.status)
+    const confirmAgain = await agent
+      .post(`/api/v1/admin/users/${target.id}/history/imports/${preview.body.data.id}/confirm`)
+      .set('x-csrf-token', csrf)
+    expect([200, 201]).toContain(confirmAgain.status)
+    expect(confirmAgain.body.data.status).toBe('COMPLETED')
 
     const deposits = await prisma.deposit.findMany({ where: { userId: target.id } })
     expect(deposits).toHaveLength(1)
@@ -287,6 +293,15 @@ describe('Admin historical spreadsheet import', () => {
       where: { userId_kind: { userId: target.id, kind: 'REFERRAL' } },
     })
     expect(Number(referralWallet.availableBalance)).toBe(50)
+
+    const referralSummary = await referralService.summary(target.id)
+    expect(Number(referralSummary.totalReferralEarned)).toBe(50)
+    expect(Number(referralSummary.availableReferral)).toBe(50)
+    const referralNetwork = await referralService.network(target.id)
+    expect(Number(referralNetwork.totalEarnings)).toBe(50)
+    expect(Number(referralNetwork.availableEarnings)).toBe(50)
+    const rewardList = await referralService.listRewards(target.id, { limit: 20 })
+    expect(rewardList.items.some((item) => item.sourceDepositReference === 'HISTORICAL')).toBe(true)
 
     const audit = await prisma.historicalImport.findFirstOrThrow({ where: { id: preview.body.data.id } })
     expect(audit.status).toBe('COMPLETED')

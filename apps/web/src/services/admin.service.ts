@@ -484,7 +484,7 @@ export const adminService = {
     body.append('file', file)
     return apiClient<AdminHistoricalImportRecord>(
       `${API_ROUTES.admin.users}/${id}/history/import/preview`,
-      { method: 'POST', body, timeoutMs: 60_000 },
+      { method: 'POST', body, timeoutMs: 180_000 },
     )
   },
 
@@ -501,7 +501,7 @@ export const adminService = {
   confirmHistoryImport: (id: string, importId: string) =>
     apiClient<AdminHistoricalImportRecord>(
       `${API_ROUTES.admin.users}/${id}/history/imports/${importId}/confirm`,
-      { method: 'POST', timeoutMs: 120_000 },
+      { method: 'POST', timeoutMs: 10 * 60_000 },
     ),
 
   cancelHistoryImport: (id: string, importId: string) =>

@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  HISTORICAL_IMPORT_MAX_ROWS,
   SAMPLE_ORDER_IDS,
   buildTemplateCsv,
   buildTemplateXlsx,
   buildXlsx,
   mapRows,
   parseCsv,
+  parseDate,
   parseXlsx,
   validateParsedRows,
 } from './historical-import-parse.js'
@@ -77,5 +79,24 @@ describe('historical import parser', () => {
     )
     const { valid } = validateParsedRows(mapRows(roundTrip))
     expect(valid[0]?.orderId).toBe('DEP-XLSX-0001')
+  })
+
+  it('parses 3000+ data rows and Excel serial dates', () => {
+    expect(HISTORICAL_IMPORT_MAX_ROWS).toBeGreaterThanOrEqual(3000)
+    const header = ['Date', 'Transaction Type', 'Amount', 'Order ID', 'Notes']
+    const rows = [header]
+    for (let i = 0; i < 3001; i += 1) {
+      rows.push(['2026-01-15', 'DEPOSIT', '10', `DEP${String(i).padStart(5, '0')}X`, '- daily'])
+    }
+    const parsed = mapRows(rows)
+    expect(parsed).toHaveLength(3001)
+    const { valid, invalid } = validateParsedRows(parsed)
+    expect(invalid).toEqual([])
+    expect(valid).toHaveLength(3001)
+
+    const serial = String(Math.round(Date.UTC(2026, 0, 15) / 86_400_000 + 25569))
+    const fromSerial = parseDate(serial)
+    expect(fromSerial).not.toBeNull()
+    expect(fromSerial?.toISOString().slice(0, 10)).toBe('2026-01-15')
   })
 })

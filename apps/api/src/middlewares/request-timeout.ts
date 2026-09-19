@@ -4,6 +4,7 @@ import { env } from '../config/env.js'
 import { ERROR_CODES } from '@meridian/shared'
 import { sendFailure } from '../utils/response.js'
 import { processStability } from '../observability/process-stability.js'
+import { HISTORICAL_IMPORT_REQUEST_TIMEOUT_MS } from '../services/historical-import-parse.js'
 
 /**
  * Abort long-running requests so a hung handler cannot exhaust the event loop forever.
@@ -21,7 +22,10 @@ export function requestTimeoutMiddleware(req: Request, res: Response, next: Next
     return
   }
 
-  const ms = env.REQUEST_TIMEOUT_MS
+  const isHistoricalImport = path.includes('/history/import')
+  const ms = isHistoricalImport
+    ? Math.max(env.REQUEST_TIMEOUT_MS, HISTORICAL_IMPORT_REQUEST_TIMEOUT_MS)
+    : env.REQUEST_TIMEOUT_MS
   if (!ms || ms <= 0) {
     next()
     return
