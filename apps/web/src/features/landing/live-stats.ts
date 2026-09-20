@@ -333,7 +333,7 @@ export function buildLandingLiveStats(input: {
     tradingDays: tradingDays != null ? String(tradingDays) : empty,
     trades: trades != null ? String(trades) : empty,
     yearsOfPerformance: years != null ? String(years) : empty,
-    totalDistributed: distributedRaw ? formatMoneyCompact(distributedRaw) : aum,
+    totalDistributed: distributedRaw ? formatMoneyCompact(distributedRaw) : '',
     totalDistributedRaw: distributedRaw ?? '',
     availableReports: reportCount,
     yearlyReturn: yearlySimple ?? empty,
@@ -349,10 +349,10 @@ export function distributedMoneyParts(stats: LandingLiveStats): {
 } {
   if (!stats.totalDistributedRaw) {
     return {
-      value: stats.aumMillions,
+      value: '0',
       prefix: '$',
-      suffix: 'M',
-      decimals: 2,
+      suffix: '',
+      decimals: 0,
     }
   }
   const n = Number.parseFloat(stats.totalDistributedRaw)

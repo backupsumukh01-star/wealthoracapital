@@ -393,6 +393,24 @@ export const TESTIMONIALS = [
   },
 ] as const
 
+export function testimonialCountryMix(
+  items: ReadonlyArray<{ country: string }> = TESTIMONIALS,
+): {
+  total: number
+  india: number
+  international: number
+  indiaShare: number
+} {
+  const total = items.length
+  const india = items.filter((t) => t.country === 'India').length
+  return {
+    total,
+    india,
+    international: total - india,
+    indiaShare: total === 0 ? 0 : india / total,
+  }
+}
+
 /** Floating FX tape — presentation only, values drift client-side. */
 /** @deprecated Not for LIVE UI. Marketing market prices use GET /markets/quotes. Kept for Admin OS seed fixtures only. */
 export const FOREX_TICKER = [
@@ -517,10 +535,10 @@ export const MAP_LINKS: Array<[string, string]> = [
 ]
 
 export const TRUST_METRICS = [
-  { label: 'Verified investors', value: '4820', suffix: '+', accent: 'emerald' as const },
+  { label: 'Investors', value: '1786', suffix: '+', accent: 'emerald' as const },
   { label: 'Countries supported', value: '42', suffix: '', accent: 'cyan' as const },
-  { label: 'Total withdrawals', value: '18.9', prefix: '$', suffix: 'M', decimals: 1, accent: 'blue' as const },
-  { label: 'Daily payouts today', value: '146', suffix: '', accent: 'amber' as const },
+  { label: 'Trading days', value: '1025', suffix: '', accent: 'blue' as const },
+  { label: 'Published trades', value: '2567', suffix: '', accent: 'amber' as const },
 ] as const
 
 /** Pool for the continuously updating trade feed. */
@@ -535,10 +553,10 @@ export const LIVE_TRADE_POOL = [
   { pair: 'NZD/USD', direction: 'BUY' as const, entry: '0.6001', exit: '0.6024', returnPct: '0.38' },
 ] as const
 
-/** Recent operator-approved distributions — presentation only. */
+/** Illustrative withdrawal examples for marketing — not ledger payouts. Range $35–$10,000. */
 export const RECENT_DISTRIBUTIONS = [
   { amount: '4280.50', hours: '6', name: 'Farah A.', region: 'PK' },
-  { amount: '12500.00', hours: '11', name: 'James R.', region: 'GB' },
+  { amount: '9500.00', hours: '11', name: 'James R.', region: 'GB' },
   { amount: '890.25', hours: '4', name: 'Elena V.', region: 'ES' },
   { amount: '3100.00', hours: '9', name: 'Omar H.', region: 'AE' },
   { amount: '6750.80', hours: '14', name: 'Priya S.', region: 'IN' },

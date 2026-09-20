@@ -27,7 +27,7 @@ const trades = JSON.parse(fs.readFileSync(path.join(root, 'trades.json'), 'utf8'
 const daily = JSON.parse(fs.readFileSync(path.join(root, 'daily_returns.json'), 'utf8'))
 const meta = charts.meta
 const generatedAt = new Date().toISOString()
-const version = '2.1.0'
+const version = '2.2.0'
 const PRINCIPAL = 100
 const ARCHIVE_SEED = 'wealthora-4y-public-demo-v1'
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { BadgeCheck, Star, TrendingUp } from 'lucide-react'
+import { Star, TrendingUp } from 'lucide-react'
 
 import { Section } from '@/components/common/section'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
@@ -108,9 +108,8 @@ function TestimonialCard({ item }: { item: WallItem }) {
             <Star key={i} className="size-3.5 fill-current text-hl-amber" aria-hidden />
           ))}
         </div>
-        <span className="inline-flex items-center gap-1 text-[11px] text-hl-emerald">
-          <BadgeCheck className="size-3.5" aria-hidden />
-          Verified investor
+        <span className="inline-flex items-center gap-1 text-[11px] text-fg-subtle">
+          Sample quote
         </span>
       </div>
 
@@ -161,9 +160,9 @@ export function Testimonials() {
   return (
     <Section
       id="stories"
-      eyebrow="Investor voices"
-      title="Trusted by people who check the ledger"
-      description="Attributed quotes from funded accounts. Past results do not guarantee future performance."
+      eyebrow="Sample quotes"
+      title="What people say about the product"
+      description="Marketing sample quotes for presentation. These are not independently verified investor reviews."
       centered
     >
       <div
@@ -209,7 +208,7 @@ export function Testimonials() {
 
       <RevealOnScroll className="mt-8 text-center sm:mt-10">
         <p className="text-caption text-fg-subtle">
-          Quotes used with consent for marketing. Individual results vary.
+          Quotes are marketing samples. Individual results vary. Past performance does not guarantee future results.
         </p>
       </RevealOnScroll>
     </Section>

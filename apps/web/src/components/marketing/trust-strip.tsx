@@ -1,49 +1,38 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import {
-  ArrowDownToLine,
-  ArrowUpFromLine,
+  CandlestickChart,
   Globe2,
   ShieldCheck,
+  Users,
   type LucideIcon,
 } from 'lucide-react'
 
 import { CountUp } from '@/components/motion/count-up'
 import { StaggerGroup, StaggerItem } from '@/components/motion/stagger-group'
-import { TRUST_METRICS } from '@/lib/landing-data'
-import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
+import { useLandingLiveStats } from '@/features/landing'
 import { cn } from '@/lib/cn'
 
-const ACCENT: Record<string, string> = {
-  emerald: 'text-hl-emerald border-hl-emerald/30 bg-hl-emerald/10',
-  cyan: 'text-hl-cyan border-hl-cyan/30 bg-hl-cyan/10',
-  blue: 'text-hl-blue border-hl-blue/30 bg-hl-blue/10',
-  amber: 'text-hl-amber border-hl-amber/30 bg-hl-amber/10',
-}
+const ICONS: LucideIcon[] = [Users, Globe2, ShieldCheck, CandlestickChart]
 
-const ICONS: LucideIcon[] = [ShieldCheck, Globe2, ArrowUpFromLine, ArrowDownToLine]
-
-/** Animated trust metrics + live social-proof pulse. */
+/** Programme counters from landing live-stats / canonical demo — not ledger payouts. */
 export function TrustStrip() {
-  const prefersReducedMotion = usePrefersReducedMotion()
-  const [payouts, setPayouts] = useState(146)
-
-  useEffect(() => {
-    if (prefersReducedMotion) return
-    const id = window.setInterval(() => {
-      setPayouts((n) => n + (Math.random() > 0.55 ? 1 : 0))
-    }, 5200)
-    return () => window.clearInterval(id)
-  }, [prefersReducedMotion])
+  const { stats } = useLandingLiveStats()
+  const metrics = [
+    { label: 'Investors', value: stats.investors, suffix: '+', accent: 'emerald' },
+    { label: 'Countries supported', value: stats.countries, suffix: '', accent: 'cyan' },
+    { label: 'Trading days', value: stats.tradingDays, suffix: '', accent: 'blue' },
+    { label: 'Published trades', value: stats.trades, suffix: '', accent: 'amber' },
+  ] as const
 
   return (
-    <section className="border-y border-glass-line py-6 sm:py-8" aria-label="Trust signals">
+    <section className="border-y border-glass-line py-6 sm:py-8" aria-label="Programme counters">
       <div className="container-page min-w-0">
         <div className="section-divider mb-6" />
         <StaggerGroup className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4 lg:gap-4">
-          {TRUST_METRICS.map((metric, index) => {
+          {metrics.map((metric, index) => {
             const Icon = ICONS[index] ?? ShieldCheck
+            const numeric = Number.parseFloat(String(metric.value).replace(/,/g, ''))
             return (
               <StaggerItem key={metric.label}>
                 <div
@@ -58,22 +47,20 @@ export function TrustStrip() {
                     <span
                       className={cn(
                         'grid size-8 shrink-0 place-items-center rounded-lg border',
-                        ACCENT[metric.accent],
+                        metric.accent === 'emerald' && 'text-hl-emerald border-hl-emerald/30 bg-hl-emerald/10',
+                        metric.accent === 'cyan' && 'text-hl-cyan border-hl-cyan/30 bg-hl-cyan/10',
+                        metric.accent === 'blue' && 'text-hl-blue border-hl-blue/30 bg-hl-blue/10',
+                        metric.accent === 'amber' && 'text-hl-amber border-hl-amber/30 bg-hl-amber/10',
                       )}
                     >
                       <Icon className="size-3.5" aria-hidden />
                     </span>
                   </div>
                   <p className="text-stat-md break-words text-fg sm:text-stat-lg">
-                    {metric.label === 'Daily payouts today' ? (
-                      <span className="tabular-nums">{payouts}</span>
+                    {Number.isFinite(numeric) ? (
+                      <CountUp value={String(numeric)} suffix={metric.suffix} decimals={0} />
                     ) : (
-                      <CountUp
-                        value={metric.value}
-                        prefix={'prefix' in metric ? metric.prefix : ''}
-                        suffix={metric.suffix}
-                        decimals={'decimals' in metric ? metric.decimals : 0}
-                      />
+                      <span className="tabular-nums">{metric.value}</span>
                     )}
                   </p>
                   <div className="mt-auto h-1 overflow-hidden rounded-full bg-hover">

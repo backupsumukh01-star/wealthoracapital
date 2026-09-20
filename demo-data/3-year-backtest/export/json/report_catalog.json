@@ -1,6 +1,7 @@
 {
-  "generatedAt": "2026-09-19T18:56:30.275Z",
+  "generatedAt": "2026-09-20T01:25:11.365Z",
   "seed": "wealthora-4y-public-demo-v1",
+  "version": "2.2.0",
   "range": {
     "startDate": "2022-09-01",
     "endDate": "2026-08-05"
@@ -8,20 +9,114 @@
   "disclaimer": "Synthetic demo data for UI presentation only. Not live trading history.",
   "reports": [
     {
-      "id": "backtest-summary-html",
-      "title": "4-Year Backtest Summary",
-      "description": "HTML overview of monthly returns and headline stats.",
-      "format": "html",
-      "href": "/demo/backtest/reports/backtest-summary.html",
-      "fileName": "backtest-summary.html"
+      "id": "daily-pdf",
+      "title": "Download Daily Reports",
+      "description": "Daily desk summary for 2026-08-05",
+      "format": "pdf",
+      "href": "/demo/backtest/reports/daily-report.pdf",
+      "previewUrl": "/demo/backtest/reports/daily-report.html",
+      "fileName": "daily-report.pdf",
+      "category": "Daily"
     },
     {
-      "id": "backtest-summary-pdf",
-      "title": "4-Year Backtest Summary (PDF)",
-      "description": "Single-page PDF snapshot of the synthetic track record.",
+      "id": "weekly-pdf",
+      "title": "Download Weekly Reports",
+      "description": "Week 2026-08-03 → 2026-08-05",
       "format": "pdf",
-      "href": "/demo/backtest/reports/backtest-summary.pdf",
-      "fileName": "backtest-summary.pdf"
+      "href": "/demo/backtest/reports/weekly-report.pdf",
+      "previewUrl": "/demo/backtest/reports/weekly-report.html",
+      "fileName": "weekly-report.pdf",
+      "category": "Weekly"
+    },
+    {
+      "id": "monthly-pdf",
+      "title": "Download Monthly Reports",
+      "description": "Aug 2026 simple return",
+      "format": "pdf",
+      "href": "/demo/backtest/reports/monthly-report.pdf",
+      "previewUrl": "/demo/backtest/reports/monthly-report.html",
+      "fileName": "monthly-report.pdf",
+      "category": "Monthly"
+    },
+    {
+      "id": "quarterly-pdf",
+      "title": "Download Quarterly Reports",
+      "description": "Q3 2026 simple return",
+      "format": "pdf",
+      "href": "/demo/backtest/reports/quarterly-report.pdf",
+      "previewUrl": "/demo/backtest/reports/quarterly-report.html",
+      "fileName": "quarterly-report.pdf",
+      "category": "Quarterly"
+    },
+    {
+      "id": "yearly-pdf",
+      "title": "Download Annual Reports",
+      "description": "2026 simple return",
+      "format": "pdf",
+      "href": "/demo/backtest/reports/yearly-report.pdf",
+      "previewUrl": "/demo/backtest/reports/yearly-report.html",
+      "fileName": "yearly-report.pdf",
+      "category": "Yearly"
+    },
+    {
+      "id": "complete-pdf",
+      "title": "Download Complete 4-Year Report",
+      "description": "Full programme summary",
+      "format": "pdf",
+      "href": "/demo/backtest/reports/complete-3year-report.pdf",
+      "previewUrl": "/demo/backtest/reports/complete-3year-report.html",
+      "fileName": "complete-3year-report.pdf",
+      "category": "Yearly"
+    },
+    {
+      "id": "trades-csv",
+      "title": "Download CSV",
+      "description": "Full trade blotter",
+      "format": "csv",
+      "href": "/demo/backtest/trades.csv",
+      "previewUrl": "/demo/backtest/reports/all-trades.html",
+      "fileName": "trades.csv",
+      "category": "Other"
+    },
+    {
+      "id": "trades-pdf",
+      "title": "Download PDF",
+      "description": "Trade blotter summary",
+      "format": "pdf",
+      "href": "/demo/backtest/reports/all-trades.pdf",
+      "previewUrl": "/demo/backtest/reports/all-trades.html",
+      "fileName": "all-trades.pdf",
+      "category": "Other"
+    },
+    {
+      "id": "summary-pdf",
+      "title": "Download Performance Summary",
+      "description": "Headline KPIs",
+      "format": "pdf",
+      "href": "/demo/backtest/reports/performance-summary.pdf",
+      "previewUrl": "/demo/backtest/reports/performance-summary.html",
+      "fileName": "performance-summary.pdf",
+      "category": "Other"
+    }
+  ],
+  "previews": [
+    {
+      "id": "preview-monthly",
+      "title": "Latest Monthly Report",
+      "href": "/demo/backtest/reports/monthly-report.html",
+      "download": "/demo/backtest/reports/monthly-report.pdf"
+    },
+    {
+      "id": "preview-quarterly",
+      "title": "Latest Quarterly Report",
+      "href": "/demo/backtest/reports/quarterly-report.html",
+      "download": "/demo/backtest/reports/quarterly-report.pdf"
+    },
+    {
+      "id": "preview-yearly",
+      "title": "Latest Yearly Report",
+      "href": "/demo/backtest/reports/yearly-report.html",
+      "download": "/demo/backtest/reports/yearly-report.pdf"
     }
   ]
 }

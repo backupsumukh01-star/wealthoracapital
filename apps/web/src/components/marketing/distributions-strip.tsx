@@ -7,53 +7,35 @@ import { motion } from 'framer-motion'
 
 import { Section } from '@/components/common/section'
 import { Money } from '@/components/common/money'
-import { CountUp } from '@/components/motion/count-up'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { StaggerGroup, StaggerItem } from '@/components/motion/stagger-group'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { RECENT_DISTRIBUTIONS } from '@/lib/landing-data'
-import { distributedMoneyParts, useLandingLiveStats } from '@/features/landing'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 
 import { InvestorMap } from './investor-map'
 
-/** Recent payouts grid — mobile-first dense cards, no horizontal overflow. */
+/** Illustrative payout examples — not verified ledger withdrawals. */
 export function DistributionsStrip() {
   const prefersReducedMotion = usePrefersReducedMotion()
-  const { stats } = useLandingLiveStats()
-  const distributed = distributedMoneyParts(stats)
 
   return (
     <Section
       id="distributions"
-      eyebrow="Distributions"
-      title={
-        <>
-          <span className="text-stat-xl break-words text-fg sm:text-[4.5rem]">
-            <CountUp
-              value={distributed.value}
-              prefix={distributed.prefix}
-              suffix={`${distributed.suffix}+`}
-              decimals={distributed.decimals}
-            />
-          </span>
-          <span className="mt-2 block text-heading-xl text-fg sm:mt-3 sm:text-display-md">
-            verified profits paid to investors
-          </span>
-        </>
-      }
-      description="Recent withdrawals after operator approval. Processing times vary by rail and region."
+      eyebrow="Payout examples"
+      title="Illustrative withdrawal examples"
+      description="Sample presentation amounts between $35 and $10,000. These are not verified live investor withdrawals and are not taken from the financial ledger."
     >
       <StaggerGroup className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {RECENT_DISTRIBUTIONS.map((item, index) => (
           <StaggerItem key={`${item.name}-${item.amount}`}>
             <article className="card-fill group h-full p-4 transition-transform duration-[160ms] hover:-translate-y-1 sm:p-5">
               <div className="flex items-start justify-between gap-3">
-                <Badge tone="profit" size="sm">
-                  Paid
+                <Badge tone="neutral" size="sm">
+                  Sample
                 </Badge>
-                <span className="grid size-9 place-items-center rounded-xl border border-hl-emerald/30 bg-hl-emerald/10 text-hl-emerald">
+                <span className="grid size-9 place-items-center rounded-xl border border-line bg-inset text-fg-muted">
                   <Wallet className="size-4" aria-hidden />
                 </span>
               </div>
@@ -62,11 +44,11 @@ export function DistributionsStrip() {
               </p>
               <p className="mt-2 flex items-center gap-1.5 text-caption text-fg-subtle">
                 <Clock className="size-3.5 shrink-0" aria-hidden />
-                Cleared in {item.hours} hours
+                Example clearance {item.hours} hours
               </p>
               <div className="mt-3 h-1 overflow-hidden rounded-full bg-hover">
                 <motion.div
-                  className="h-full rounded-full bg-hl-emerald"
+                  className="h-full rounded-full bg-accent-500/70"
                   initial={prefersReducedMotion ? false : { width: 0 }}
                   whileInView={{ width: '100%' }}
                   viewport={{ once: true }}
