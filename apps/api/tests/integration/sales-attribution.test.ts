@@ -34,6 +34,19 @@ function uniqueSalesCode() {
   return `S${randomUUID().replace(/-/g, '').slice(0, 6).toUpperCase()}`
 }
 
+async function unusedShortSalesmanCode() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ123456789'
+  for (const ch of alphabet) {
+    const code = `S${ch}`
+    const [salesman, investor] = await Promise.all([
+      prisma.salesman.findUnique({ where: { code }, select: { id: true } }),
+      prisma.user.findFirst({ where: { referralCode: code, deletedAt: null }, select: { id: true } }),
+    ])
+    if (!salesman && !investor) return code
+  }
+  return uniqueSalesCode()
+}
+
 async function createSalesman(input?: { status?: 'ACTIVE' | 'DISABLED'; code?: string }) {
   const password = 'SecureSales1!'
   const salesman = await prisma.salesman.create({
@@ -166,7 +179,7 @@ describe('Salesman attribution (first-touch, not investor referral)', () => {
     ).toBe(0)
   })
 
-  it('investor referral code takes precedence over an identical salesman code', async () => {
+  it('ACTIVE salesman code wins over an identical investor referral code', async () => {
     const code = uniqueSalesCode()
     const referrer = await prisma.user.create({
       data: {
@@ -184,9 +197,81 @@ describe('Salesman attribution (first-touch, not investor referral)', () => {
     const res = await register({ email, referralCode: code })
     expect([200, 201]).toContain(res.status)
     const user = await prisma.user.findFirstOrThrow({ where: { email } })
-    expect(user.referredById).toBe(referrer.id)
+    expect(user.referredById).toBeNull()
+    const attribution = await prisma.salesAttribution.findUniqueOrThrow({ where: { userId: user.id } })
+    expect(attribution.salesmanId).toBe(salesman.id)
+    expect(
+      await prisma.referralReward.count({
+        where: { OR: [{ referrerId: referrer.id }, { refereeId: user.id }] },
+      }),
+    ).toBe(0)
+  })
+
+  it('short salesman code such as S1 attributes a genuinely new investor', async () => {
+    const code = await unusedShortSalesmanCode()
+    const { salesman } = await createSalesman({ code })
+    const email = uniqueEmail('s1new')
+    const res = await register({ email, referralCode: salesman.code.toLowerCase() })
+    expect([200, 201]).toContain(res.status)
+    const user = await prisma.user.findFirstOrThrow({ where: { email } })
+    expect(user.referredById).toBeNull()
+    const attribution = await prisma.salesAttribution.findUniqueOrThrow({ where: { userId: user.id } })
+    expect(attribution.salesmanId).toBe(salesman.id)
+    expect(await prisma.salesAttribution.count({ where: { userId: user.id } })).toBe(1)
+  })
+
+  it('repeated registration of the same new email does not duplicate attribution', async () => {
+    const { salesman } = await createSalesman()
+    const email = uniqueEmail('retry')
+    const first = await register({ email, referralCode: salesman.code })
+    expect([200, 201]).toContain(first.status)
+    const second = await register({ email, referralCode: salesman.code })
+    expect([200, 201]).toContain(second.status)
+    const user = await prisma.user.findFirstOrThrow({ where: { email } })
+    expect(await prisma.salesAttribution.count({ where: { userId: user.id } })).toBe(1)
+    expect(await prisma.user.count({ where: { email } })).toBe(1)
+  })
+
+  it('existing investor is never reassigned when registering again with a salesman code', async () => {
+    const a = await createSalesman()
+    const b = await createSalesman()
+    const email = uniqueEmail('exist')
+    const created = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: 'x',
+        firstName: 'Old',
+        lastName: 'Investor',
+        status: 'ACTIVE',
+        emailVerifiedAt: new Date(),
+        referralCode: randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase(),
+      },
+    })
+    const res = await register({ email, referralCode: a.salesman.code })
+    expect([200, 201]).toContain(res.status)
+    expect(await prisma.salesAttribution.findUnique({ where: { userId: created.id } })).toBeNull()
+    await salesAttributionService.attributeNewInvestor(created.id, a.salesman.id)
+    const again = await register({ email, referralCode: b.salesman.code })
+    expect([200, 201]).toContain(again.status)
+    const locked = await prisma.salesAttribution.findUniqueOrThrow({ where: { userId: created.id } })
+    expect(locked.salesmanId).toBe(a.salesman.id)
+    expect(await prisma.salesAttribution.count({ where: { userId: created.id } })).toBe(1)
+  })
+
+  it('empty or whitespace referral code creates no attribution', async () => {
+    const email = uniqueEmail('emptyref')
+    const res = await request(app).post('/api/v1/auth/register').send({
+      email,
+      password: 'SecurePass1!',
+      firstName: 'New',
+      lastName: 'Investor',
+      referralCode: '   ',
+      acceptTerms: true,
+      acceptRisk: true,
+    })
+    expect([200, 201]).toContain(res.status)
+    const user = await prisma.user.findFirstOrThrow({ where: { email } })
     expect(await prisma.salesAttribution.findUnique({ where: { userId: user.id } })).toBeNull()
-    expect(await prisma.salesAttribution.count({ where: { salesmanId: salesman.id } })).toBe(0)
   })
 
   it('registration without referral creates no SalesAttribution', async () => {

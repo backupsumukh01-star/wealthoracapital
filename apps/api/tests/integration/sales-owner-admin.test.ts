@@ -69,24 +69,30 @@ async function createSalesmanDirect() {
   return { salesman, password }
 }
 
+async function unusedSalesmanCode(preferred = 'S1') {
+  const [salesman, investor] = await Promise.all([
+    prisma.salesman.findUnique({ where: { code: preferred }, select: { id: true } }),
+    prisma.user.findFirst({ where: { referralCode: preferred, deletedAt: null }, select: { id: true } }),
+  ])
+  if (!salesman && !investor) return preferred
+  return uniqueCode()
+}
+
 describe('Sales owner salesman administration', () => {
-  it('admin can create S1, first-touch attribution locks, and password is one-time', async () => {
-    const existingS1 = await prisma.salesman.findUnique({ where: { code: 'S1' } })
-    if (existingS1) {
-      await prisma.salesAttribution.deleteMany({ where: { salesmanId: existingS1.id } })
-      await prisma.salesmanSession.deleteMany({ where: { salesmanId: existingS1.id } })
-      await prisma.salesman.delete({ where: { id: existingS1.id } })
-    }
+  it('admin can create a salesman, first-touch attribution locks, and password is one-time', async () => {
+    const code = await unusedSalesmanCode('S1')
     const owner = await registerAndLogin('SUPER_ADMIN')
     const created = await owner.agent.post('/api/v1/sales/owner/salesmen').send({
       name: 'Sales One',
       email: uniqueEmail('s1'),
-      code: 'S1',
+      code,
     })
     expect(created.status).toBe(201)
-    expect(created.body.data.salesman.code).toBe('S1')
+    expect(created.body.data.salesman.code).toBe(code)
     expect(created.body.data.salesman.status).toBe('ACTIVE')
-    expect(created.body.data.salesman.referralLink).toMatch(/\/register\?ref=S1$/)
+    expect(created.body.data.salesman.referralLink).toMatch(
+      new RegExp(`/register\\?ref=${code}$`),
+    )
     expect(created.body.data.temporaryPassword).toMatch(/[A-Z]/)
     expect(created.body.data.temporaryPassword).toMatch(/[a-z]/)
     expect(created.body.data.temporaryPassword).toMatch(/[0-9]/)
@@ -95,7 +101,7 @@ describe('Sales owner salesman administration', () => {
 
     const list = await owner.agent.get('/api/v1/sales/owner/salesmen')
     expect(list.status).toBe(200)
-    const row = list.body.data.salesmen.find((item: { code: string }) => item.code === 'S1')
+    const row = list.body.data.salesmen.find((item: { code: string }) => item.code === code)
     expect(row).toBeTruthy()
     expect(row.temporaryPassword).toBeUndefined()
     expect(JSON.stringify(list.body)).not.toMatch(/passwordHash|temporaryPassword/)
@@ -107,7 +113,7 @@ describe('Sales owner salesman administration', () => {
       password,
     })
     expect(login.status).toBe(200)
-    expect(login.body.data.salesman.code).toBe('S1')
+    expect(login.body.data.salesman.code).toBe(code)
 
     const investorEmail = uniqueEmail('attr')
     const reg = await request(app).post('/api/v1/auth/register').send({
@@ -115,7 +121,7 @@ describe('Sales owner salesman administration', () => {
       password: 'SecurePass1!',
       firstName: 'Smit',
       lastName: 'Shah',
-      referralCode: 'S1',
+      referralCode: code,
       acceptTerms: true,
       acceptRisk: true,
     })

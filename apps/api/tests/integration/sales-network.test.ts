@@ -255,6 +255,7 @@ describe('Salesman network reporting (read-only)', () => {
     expect(network.body.data.members[1]).toMatchObject({
       userId: u2.id,
       parentUserId: u1.id,
+      parentName: 'User One',
       level: 1,
       isDirect: false,
     })
@@ -281,6 +282,24 @@ describe('Salesman network reporting (read-only)', () => {
       u3.id,
     ])
 
+    const sneakHeader = await agentA
+      .get('/api/v1/sales/me/network')
+      .set('X-Salesman-Id', b.salesman.id)
+    expect(sneakHeader.status).toBe(200)
+    expect(sneakHeader.body.data.members.map((m: { userId: string }) => m.userId)).toEqual([
+      u1.id,
+      u2.id,
+      u3.id,
+    ])
+
+    const sneakBody = await agentA.get('/api/v1/sales/me/network').send({ salesmanId: b.salesman.id })
+    expect(sneakBody.status).toBe(200)
+    expect(sneakBody.body.data.members.map((m: { userId: string }) => m.userId)).toEqual([
+      u1.id,
+      u2.id,
+      u3.id,
+    ])
+
     const ownerAsSales = await agentA.get(`/api/v1/sales/owner/salesmen/${b.salesman.id}/network`)
     expect(ownerAsSales.status).toBe(401)
 
@@ -289,6 +308,30 @@ describe('Salesman network reporting (read-only)', () => {
     expect(networkB.status).toBe(200)
     expect(networkB.body.data.summary.totalMembers).toBe(2)
     expect(networkB.body.data.members.map((m: { userId: string }) => m.userId)).toEqual([
+      u4.id,
+      u5.id,
+    ])
+    expect(networkB.body.data.members.map((m: { userId: string }) => m.userId)).not.toContain(u1.id)
+    expect(networkB.body.data.members.map((m: { userId: string }) => m.userId)).not.toContain(u2.id)
+    expect(networkB.body.data.members.map((m: { userId: string }) => m.userId)).not.toContain(u3.id)
+
+    const superAdmin = await registerAndLoginInvestor()
+    await promoteAdmin(superAdmin.email, 'SUPER_ADMIN')
+    const ownerAgent = request.agent(app)
+    const ownerLogin = await ownerAgent
+      .post('/api/v1/auth/login')
+      .send({ email: superAdmin.email, password: superAdmin.password })
+    expect(ownerLogin.status).toBe(200)
+    const ownerA = await ownerAgent.get(`/api/v1/sales/owner/salesmen/${a.salesman.id}/network`)
+    const ownerB = await ownerAgent.get(`/api/v1/sales/owner/salesmen/${b.salesman.id}/network`)
+    expect(ownerA.status).toBe(200)
+    expect(ownerB.status).toBe(200)
+    expect(ownerA.body.data.members.map((m: { userId: string }) => m.userId)).toEqual([
+      u1.id,
+      u2.id,
+      u3.id,
+    ])
+    expect(ownerB.body.data.members.map((m: { userId: string }) => m.userId)).toEqual([
       u4.id,
       u5.id,
     ])
@@ -329,6 +372,25 @@ describe('Salesman network reporting (read-only)', () => {
     expect(ids).toEqual([aRoot.id])
     expect(ids).not.toContain(bRoot.id)
     expect(ids).not.toContain(bChild.id)
+  })
+
+  it('deduplicates a descendant that would otherwise appear twice', async () => {
+    const a = await createSalesman()
+    const root = await createInvestor({ firstName: 'Dup', lastName: 'Root' })
+    const child = await createInvestor({
+      firstName: 'Dup',
+      lastName: 'Child',
+      referredById: root.id,
+    })
+    await attribute(root.id, a.salesman.id)
+    await attribute(child.id, a.salesman.id).catch(() => undefined)
+    const agentA = await loginSales(a.salesman.email, a.password)
+    const res = await agentA.get('/api/v1/sales/me/network')
+    expect(res.status).toBe(200)
+    const ids = res.body.data.members.map((m: { userId: string }) => m.userId)
+    expect(ids.filter((id: string) => id === root.id)).toHaveLength(1)
+    expect(ids.filter((id: string) => id === child.id)).toHaveLength(1)
+    expect(ids).toHaveLength(2)
   })
 
   it('stops cycles in referredById chains', async () => {

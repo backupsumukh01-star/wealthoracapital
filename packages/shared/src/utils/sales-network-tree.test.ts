@@ -26,6 +26,17 @@ describe('sales network tree (display only)', () => {
     expect(forest[0]?.userId).toBe('a')
     expect(forest[0]?.children).toEqual([])
   })
+
+  it('deduplicates member ids when building the forest', () => {
+    const forest = buildSalesNetworkForest([
+      { userId: 'a', parentUserId: null, level: 0 },
+      { userId: 'b', parentUserId: 'a', level: 1 },
+      { userId: 'b', parentUserId: 'a', level: 1 },
+    ])
+    expect(forest).toHaveLength(1)
+    expect(forest[0]?.children).toHaveLength(1)
+    expect(forest[0]?.children[0]?.userId).toBe('b')
+  })
 })
 
 describe('sales display helpers', () => {

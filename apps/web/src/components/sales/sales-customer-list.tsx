@@ -114,6 +114,9 @@ export function SalesCustomerList({
                   </Badge>
                 </div>
                 <p className="mt-1 truncate text-caption text-fg-subtle">@{member.username}</p>
+                {member.parentName ? (
+                  <p className="truncate text-caption text-fg-muted">Parent {member.parentName}</p>
+                ) : null}
                 <p className="text-caption text-fg-muted">
                   referred {member.directReferralCount} · network {member.networkMemberCount}
                 </p>

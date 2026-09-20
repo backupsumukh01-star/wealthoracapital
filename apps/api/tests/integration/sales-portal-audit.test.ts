@@ -338,4 +338,24 @@ describe('Phase 7 Sales Portal security audit', () => {
     const owner = await agent.get('/api/v1/sales/owner/salesmen')
     expect(owner.status).toBe(403)
   })
+
+  it('salesman cannot perform admin financial, KYC, or investor mutations', async () => {
+    const { salesman, password } = await createSalesman()
+    const { agent } = await loginSales(salesman.email, password)
+    const fakeId = randomUUID()
+    const attempts = await Promise.all([
+      agent.post(`/api/v1/admin/deposits/${fakeId}/approve`).send({}),
+      agent.post(`/api/v1/admin/deposits/${fakeId}/reject`).send({ reason: 'nope' }),
+      agent.post(`/api/v1/admin/withdrawals/${fakeId}/approve`).send({}),
+      agent.post(`/api/v1/admin/withdrawals/${fakeId}/reject`).send({ reason: 'nope' }),
+      agent.post(`/api/v1/admin/wallets/${fakeId}/adjust`).send({ amount: '1', reason: 'nope' }),
+      agent.patch(`/api/v1/admin/users/${fakeId}`).send({ firstName: 'Hacked' }),
+      agent.post(`/api/v1/admin/kyc/${fakeId}/approve`).send({}),
+      agent.post(`/api/v1/admin/kyc/${fakeId}/reject`).send({ reason: 'nope' }),
+      agent.put('/api/v1/admin/settings').send({}),
+    ])
+    for (const res of attempts) {
+      expect([401, 403]).toContain(res.status)
+    }
+  })
 })

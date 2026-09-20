@@ -25,17 +25,16 @@ function normalizeCode(raw: string | undefined): string | undefined {
 
 /**
  * Isolated Sales Portal attribution. Never writes referredById or ReferralReward.
- * Investor referral codes always win when they match a User.referralCode.
+ *
+ * Active salesman codes win when they match. That keeps /register?ref=S1 on the
+ * salesman network and prevents a colliding User.referralCode from attaching
+ * referredById (investor commission) to a salesman invite.
+ * Investor referral codes still apply when no ACTIVE salesman owns the code.
  */
 export const salesAttributionService = {
   async resolveRegistrationCode(raw: string | undefined): Promise<RegistrationCodeResolution> {
     const code = normalizeCode(raw)
     if (!code) return { kind: 'none' }
-
-    const referrer = await userRepository.findByReferralCode(code)
-    if (referrer) {
-      return { kind: 'investor', referrerId: referrer.id }
-    }
 
     const salesman = await prisma.salesman.findFirst({
       where: {
@@ -48,6 +47,11 @@ export const salesAttributionService = {
       return { kind: 'salesman', salesmanId: salesman.id }
     }
 
+    const referrer = await userRepository.findByReferralCode(code)
+    if (referrer) {
+      return { kind: 'investor', referrerId: referrer.id }
+    }
+
     throw badRequest('Invalid referral code.')
   },
 
@@ -56,6 +60,12 @@ export const salesAttributionService = {
    * Failures after user creation must not roll back the investor row.
    */
   async attributeNewInvestor(userId: string, salesmanId: string): Promise<void> {
+    const existing = await prisma.salesAttribution.findUnique({
+      where: { userId },
+      select: { id: true },
+    })
+    if (existing) return
+
     try {
       await prisma.salesAttribution.create({
         data: {
