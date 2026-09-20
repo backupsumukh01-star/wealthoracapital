@@ -168,7 +168,7 @@ export function TradeHistoryWorkspace() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'growzy-trades.csv'
+    a.download = 'wealthora-trades.csv'
     a.click()
     URL.revokeObjectURL(url)
     toast.success('Trades exported')

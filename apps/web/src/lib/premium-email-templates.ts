@@ -191,7 +191,7 @@ function socialFooter(supportEmail: string) {
           · WhatsApp · Telegram
         </p>
         <p style="margin:0 0 14px;">
-          ${link('Twitter', 'https://twitter.com/growzy')}
+          ${link('Twitter', 'https://twitter.com/wealthoracapital')}
           ${link('LinkedIn', 'https://linkedin.com/company/growzy')}
           ${link('Instagram', 'https://instagram.com/growzy')}
           ${link('Discord', 'https://discord.gg/growzy')}

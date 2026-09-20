@@ -1,4 +1,4 @@
-# Google OAuth setup (Growzy)
+# Google OAuth setup (Wealthora Capital)
 
 Production Google Sign-In for investor login/register. The API handles the OAuth code flow, issues the same HttpOnly JWT cookies as password login (`mfx_at`, `mfx_rt`, `mfx_csrf`), and redirects the browser to the web app callback.
 
@@ -15,23 +15,23 @@ Production Google Sign-In for investor login/register. The API handles the OAuth
 ## Google Cloud Console
 
 1. Open [Google Cloud Console](https://console.cloud.google.com/)
-2. Create or select a project (e.g. `growzy-production`)
+2. Create or select a project (e.g. `wealthora-production`)
 3. **APIs & Services → OAuth consent screen**
    - User type: **External** (or Internal for Workspace-only)
-   - App name: Growzy
+   - App name: Wealthora Capital
    - User support email + developer contact: your ops email
    - Scopes: `openid`, `email`, `profile` (default for Sign in with Google)
    - Test users: add yourself while the app is in **Testing**
    - Publish the app when ready for production users
 4. **APIs & Services → Credentials → Create credentials → OAuth client ID**
    - Application type: **Web application**
-   - Name: `Growzy API`
+   - Name: `Wealthora API`
    - **Authorized JavaScript origins** (optional for this server flow; safe to add):
      - Local: `http://localhost:3000`
-     - Prod: `https://growzycapital.com` (and `https://www.growzycapital.com` if used)
+     - Prod: `https://wealthoracapital.net` (and `https://www.wealthoracapital.net` if used)
    - **Authorized redirect URIs** (required — must match `GOOGLE_CALLBACK_URL` exactly):
      - Local: `http://localhost:4000/api/v1/auth/google/callback`
-     - Production: `https://api.growzycapital.com/api/v1/auth/google/callback`
+     - Production: `https://api.wealthoracapital.net/api/v1/auth/google/callback`
 5. Copy **Client ID** and **Client secret**
 
 ## Environment variables
@@ -55,16 +55,16 @@ Production example:
 ```env
 GOOGLE_CLIENT_ID=....apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-....
-GOOGLE_CALLBACK_URL=https://api.growzycapital.com/api/v1/auth/google/callback
+GOOGLE_CALLBACK_URL=https://api.wealthoracapital.net/api/v1/auth/google/callback
 
-APP_URL=https://growzycapital.com
-API_URL=https://api.growzycapital.com
-CORS_ORIGIN=https://growzycapital.com,https://www.growzycapital.com
+APP_URL=https://wealthoracapital.net
+API_URL=https://api.wealthoracapital.net
+CORS_ORIGIN=https://wealthoracapital.net,https://www.wealthoracapital.net
 COOKIE_SECURE=true
-COOKIE_DOMAIN=.growzycapital.com
+COOKIE_DOMAIN=.wealthoracapital.net
 ```
 
-`COOKIE_DOMAIN=.growzycapital.com` lets access/CSRF cookies work across `growzycapital.com` and `api.growzycapital.com`. Leave empty for localhost.
+`COOKIE_DOMAIN=.wealthoracapital.net` lets access/CSRF cookies work across `wealthoracapital.net` and `api.wealthoracapital.net`. Leave empty for localhost.
 
 ### Web (`apps/web/.env.local` / Render)
 
@@ -76,8 +76,8 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 Production:
 
 ```env
-NEXT_PUBLIC_API_URL=https://api.growzycapital.com/api/v1
-NEXT_PUBLIC_SITE_URL=https://growzycapital.com
+NEXT_PUBLIC_API_URL=https://api.wealthoracapital.net/api/v1
+NEXT_PUBLIC_SITE_URL=https://wealthoracapital.net
 ```
 
 ## Local test checklist

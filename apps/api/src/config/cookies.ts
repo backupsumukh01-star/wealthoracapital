@@ -47,7 +47,7 @@ export function csrfCookieOptions(maxAgeMs: number): CookieOptions {
     sameSite: 'lax',
     path: '/',
     maxAge: maxAgeMs,
-    // When COOKIE_DOMAIN is set (e.g. .growzycapital.com), the readable CSRF
+    // When COOKIE_DOMAIN is set (e.g. .wealthoracapital.net), the readable CSRF
     // cookie is shared across app + API subdomains for double-submit from the web.
     ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
   }

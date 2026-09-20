@@ -88,12 +88,12 @@ export function defaultFrontendContent(): FrontendCmsDocument {
       faviconUrl: '/icon',
     },
     social: {
-      twitter: 'https://twitter.com/growzy',
-      linkedin: 'https://linkedin.com/company/growzy',
-      facebook: 'https://facebook.com/growzy',
-      instagram: 'https://instagram.com/growzy',
-      discord: 'https://discord.gg/growzy',
-      telegram: 'https://t.me/growzy',
+      twitter: 'https://twitter.com/wealthoracapital',
+      linkedin: 'https://linkedin.com/company/wealthoracapital',
+      facebook: 'https://facebook.com/wealthoracapital',
+      instagram: 'https://instagram.com/wealthoracapital',
+      discord: 'https://discord.gg/wealthoracapital',
+      telegram: 'https://t.me/wealthoracapital',
       whatsapp: '+971500000000',
     },
     contact: {

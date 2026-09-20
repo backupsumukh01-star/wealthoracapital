@@ -9,7 +9,7 @@ info:
   license:
     name: Proprietary
 servers:
-  - url: "https://growzycapital.com"
+  - url: "https://api.wealthoracapital.net"
     description: Production
   - url: /
     description: Current host (relative)

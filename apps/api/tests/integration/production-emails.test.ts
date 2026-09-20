@@ -135,7 +135,7 @@ const FIXTURES: Record<string, Record<string, string>> = {
     monthlyProfit: '312.00 USD',
     date: '2026-08-05',
     sparkline: '0.3,0.5,0.4,0.7,0.6,0.9,0.85',
-    shareProgressUrl: 'https://growzycapital.com/progress-share?t=test-share-token',
+    shareProgressUrl: 'https://wealthoracapital.net/progress-share?t=test-share-token',
   },
   'investment-created': {
     firstName: 'Aisha',
@@ -162,7 +162,7 @@ const FIXTURES: Record<string, Record<string, string>> = {
     alertTitle: 'Deposit submitted',
     alertBody: 'investor@example.com submitted deposit DEP-TEST123 for 500.00 USD.',
     reference: 'DEP-TEST123',
-    adminLink: 'https://growzycapital.com/admin/deposits',
+    adminLink: 'https://wealthoracapital.net/admin/deposits',
     fieldsJson: JSON.stringify({
       'User name': 'Aisha Khan',
       'User ID': 'usr_demo_001',

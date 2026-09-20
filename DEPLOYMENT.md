@@ -1,6 +1,6 @@
-# Growzy — Render Production Deployment
+# Wealthora Capital — Render Production Deployment
 
-This guide deploys the Growzy monorepo on [Render](https://render.com) with:
+This guide deploys the Wealthora Capital monorepo on [Render](https://render.com) with:
 
 - **Next.js** frontend (`@meridian/web`)
 - **Express** API (`@meridian/api`)
@@ -38,19 +38,19 @@ the service is **not** using the Blueprint commands from `render.yaml`. Fix in R
 
 | Service | Type | Role |
 |---------|------|------|
-| `growzy-web` | Web | Next.js UI |
-| `growzy-api` | Web | Express API + Swagger |
-| `growzy-db` | PostgreSQL | Primary database |
+| `growzy-web` | Web | Next.js UI (historical Render name) |
+| `growzy-api` | Web | Express API + Swagger (historical Render name) |
+| `growzy-db` | PostgreSQL | Primary database (historical Render name) |
 | `growzy-worker` | Worker (optional) | BullMQ consumer — enable when using Redis |
 
 Default Blueprint uses in-process jobs (`JOB_DRIVER=memory`) so a worker/Redis is not required for the first production cut.
 
 **Cookie auth on split hosts:** use a shared parent domain, e.g.
 
-- App: `https://growzycapital.com` (or `https://www.growzycapital.com`)
-- API: `https://api.growzycapital.com`
-- `COOKIE_DOMAIN=.growzycapital.com`
-- `CORS_ORIGIN=https://growzycapital.com`
+- App: `https://wealthoracapital.net` (or `https://www.wealthoracapital.net`)
+- API: `https://api.wealthoracapital.net`
+- `COOKIE_DOMAIN=.wealthoracapital.net`
+- `CORS_ORIGIN=https://wealthoracapital.net`
 
 ---
 
@@ -75,7 +75,7 @@ Every push to the connected branch rebuilds and redeploys.
 |---------|--------|
 | Plan | Basic 256 MB (or higher) |
 | Version | 16 |
-| Database | `growzy` |
+| Database | `Wealthora Capital` |
 
 Copy the **Internal Database URL** into `DATABASE_URL` on the API (Blueprint wires this automatically via `fromDatabase`).
 
@@ -147,9 +147,9 @@ Full checklist: [`env.render.example`](./env.render.example).
 | Variable | Example |
 |----------|---------|
 | `NODE_ENV` | `production` |
-| `NEXT_PUBLIC_API_URL` | `https://api.growzycapital.com/api/v1` |
-| `NEXT_PUBLIC_SITE_URL` | `https://growzycapital.com` |
-| `NEXT_PUBLIC_PLATFORM_NAME` | `Growzy` |
+| `NEXT_PUBLIC_API_URL` | `https://api.wealthoracapital.net/api/v1` |
+| `NEXT_PUBLIC_SITE_URL` | `https://wealthoracapital.net` |
+| `NEXT_PUBLIC_PLATFORM_NAME` | `Wealthora Capital` |
 | `NEXT_PUBLIC_SUPPORT_EMAIL` | `update@wealthoracapital.net` |
 | `NEXT_PUBLIC_ENABLE_REFERRALS` | `false` |
 | `NEXT_PUBLIC_ENABLE_ROUTE_GUARDS` | `true` |
@@ -163,21 +163,21 @@ Full checklist: [`env.render.example`](./env.render.example).
 | `NODE_ENV` | `production` |
 | `APP_ENV` | `production` |
 | `PORT` | Injected by Render — do not set |
-| `APP_URL` | `https://growzycapital.com` |
-| `API_URL` | `https://api.growzycapital.com` |
+| `APP_URL` | `https://wealthoracapital.net` |
+| `API_URL` | `https://api.wealthoracapital.net` |
 | `DATABASE_URL` | From Render Postgres (SSL) |
 | `JWT_ACCESS_SECRET` | ≥32 chars random |
 | `JWT_REFRESH_SECRET` | ≥32 chars random |
-| `CORS_ORIGIN` | `https://growzycapital.com` |
-| `COOKIE_DOMAIN` | `.growzycapital.com` |
+| `CORS_ORIGIN` | `https://wealthoracapital.net` |
+| `COOKIE_DOMAIN` | `.wealthoracapital.net` |
 | `COOKIE_SECURE` | `true` |
 | `EMAIL_TRANSPORT` | `resend` |
 | `RESEND_API_KEY` | Resend dashboard |
-| `SMTP_FROM_NAME` | `Growzy` |
+| `SMTP_FROM_NAME` | `Wealthora Capital` |
 | `SMTP_FROM_ADDRESS` | Verified sender domain |
 | `GOOGLE_CLIENT_ID` | Google Cloud OAuth client |
 | `GOOGLE_CLIENT_SECRET` | Google Cloud secret |
-| `GOOGLE_CALLBACK_URL` | `https://api.growzycapital.com/api/v1/auth/google/callback` |
+| `GOOGLE_CALLBACK_URL` | `https://api.wealthoracapital.net/api/v1/auth/google/callback` |
 | `CACHE_DRIVER` | `memory` (or `redis`) |
 | `JOB_DRIVER` | `memory` (or `bullmq`) |
 | `ENABLE_API_DOCS` | `true` |
@@ -190,13 +190,13 @@ Production rejects `localhost` in `APP_URL`, `API_URL`, and `CORS_ORIGIN`.
 ## 4. Domain setup
 
 1. In Render → each web service → **Custom Domains**:
-   - Web: `growzycapital.com` / `www.growzycapital.com`
-   - API: `api.growzycapital.com`
+   - Web: `wealthoracapital.net` / `www.wealthoracapital.net`
+   - API: `api.wealthoracapital.net`
 2. Add the DNS records Render shows (CNAME / ALIAS).
 3. Wait for TLS certificates.
 4. Set env vars to those HTTPS URLs and **redeploy web** (so `NEXT_PUBLIC_*` rebuild).
 5. Google Cloud Console → OAuth redirect URI = `GOOGLE_CALLBACK_URL`.
-6. Resend → verify `growzycapital.com` and use `SMTP_FROM_ADDRESS` on that domain.
+6. Resend → verify `wealthoracapital.net` and use `SMTP_FROM_ADDRESS` on that domain.
 
 ---
 
@@ -214,22 +214,22 @@ Production rejects `localhost` in `APP_URL`, `API_URL`, and `CORS_ORIGIN`.
 
 ```bash
 # API liveness / readiness
-curl -sS https://api.growzycapital.com/api/health
-curl -sS https://api.growzycapital.com/api/health/live
+curl -sS https://api.wealthoracapital.net/api/health
+curl -sS https://api.wealthoracapital.net/api/health/live
 
 # Docs
-curl -sI https://api.growzycapital.com/api/docs
-curl -sS https://api.growzycapital.com/api/openapi.json | head -c 200
-curl -sS https://api.growzycapital.com/api/v1/csrf
+curl -sI https://api.wealthoracapital.net/api/docs
+curl -sS https://api.wealthoracapital.net/api/openapi.json | head -c 200
+curl -sS https://api.wealthoracapital.net/api/v1/csrf
 
 # Frontend
-curl -sI https://growzycapital.com/
+curl -sI https://wealthoracapital.net/
 ```
 
 Manual checks:
 
-1. Open `https://api.growzycapital.com/api/docs` — Swagger loads; `mfx_csrf` is set.
-2. Register / login from the web app — session cookies appear under `.growzycapital.com`.
+1. Open `https://api.wealthoracapital.net/api/docs` — Swagger loads; `mfx_csrf` is set.
+2. Register / login from the web app — session cookies appear under `.wealthoracapital.net`.
 3. Trigger a password-reset email — Resend dashboard shows delivery.
 4. (If enabled) Google OAuth callback hits `GOOGLE_CALLBACK_URL`.
 5. Confirm Prisma migrations applied (pre-deploy logs show `migrate deploy`).

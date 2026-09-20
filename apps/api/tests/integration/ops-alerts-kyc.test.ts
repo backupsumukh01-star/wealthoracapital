@@ -7,7 +7,7 @@ describe('Ops alerts, KYC rejection, daily report contracts', () => {
 
   beforeEach(() => {
     process.env.ADMIN_ALERT_EMAILS =
-      'owner@growzycapital.com, finance@growzycapital.com, ,invalid'
+      'owner@wealthoracapital.net, finance@wealthoracapital.net, ,invalid'
   })
 
   afterEach(() => {
@@ -18,10 +18,10 @@ describe('Ops alerts, KYC rejection, daily report contracts', () => {
   it('parses multiple ADMIN_ALERT_EMAILS recipients', async () => {
     // Re-import env + service so recipients() sees test env
     vi.resetModules()
-    process.env.ADMIN_ALERT_EMAILS = 'owner@growzycapital.com,finance@growzycapital.com'
+    process.env.ADMIN_ALERT_EMAILS = 'owner@wealthoracapital.net,finance@wealthoracapital.net'
     const { opsAlertService } = await import('../../src/services/ops-alert.service.js')
     const list = opsAlertService.recipients()
-    expect(list).toEqual(['owner@growzycapital.com', 'finance@growzycapital.com'])
+    expect(list).toEqual(['owner@wealthoracapital.net', 'finance@wealthoracapital.net'])
   })
 
   it('kyc-rejected email includes status, reason, and Upload Again CTA', () => {
@@ -40,7 +40,7 @@ describe('Ops alerts, KYC rejection, daily report contracts', () => {
       alertTitle: 'KYC submitted',
       alertBody: 'fallback body',
       reference: 'sub-1',
-      adminLink: 'https://growzycapital.com/admin/kyc/u1',
+      adminLink: 'https://wealthoracapital.net/admin/kyc/u1',
       fieldsJson: JSON.stringify({
         Event: 'KYC_SUBMITTED',
         'User name': 'Aisha Khan',
@@ -51,7 +51,7 @@ describe('Ops alerts, KYC rejection, daily report contracts', () => {
     expect(rendered.subject).toContain('KYC submitted')
     expect(rendered.html).toContain('Aisha Khan')
     expect(rendered.html).toContain('Open admin dashboard')
-    expect(rendered.html).toContain('growzycapital.com/admin/kyc/u1')
+    expect(rendered.html).toContain('wealthoracapital.net/admin/kyc/u1')
   })
 
   it('rejects KYC without a reason at the service contract level', async () => {
@@ -78,7 +78,7 @@ describe('Ops alerts, KYC rejection, daily report contracts', () => {
 describe('opsAlertService.notify fan-out', () => {
   it('sends one email per ADMIN_ALERT_EMAILS recipient', async () => {
     vi.resetModules()
-    process.env.ADMIN_ALERT_EMAILS = 'a@growzycapital.com,b@growzycapital.com'
+    process.env.ADMIN_ALERT_EMAILS = 'a@wealthoracapital.net,b@wealthoracapital.net'
 
     const sentTo: string[] = []
     vi.doMock('../../src/emails/email.service.js', () => ({
@@ -110,12 +110,12 @@ describe('opsAlertService.notify fan-out', () => {
       adminPath: '/admin/kyc/u1',
     })
 
-    expect(sentTo).toEqual(['a@growzycapital.com', 'b@growzycapital.com'])
+    expect(sentTo).toEqual(['a@wealthoracapital.net', 'b@wealthoracapital.net'])
   })
 
   it('still sends telegram when admin alert email throws', async () => {
     vi.resetModules()
-    process.env.ADMIN_ALERT_EMAILS = 'a@growzycapital.com'
+    process.env.ADMIN_ALERT_EMAILS = 'a@wealthoracapital.net'
 
     const telegramCalls: Array<{ kind: string; text: string }> = []
     vi.doMock('../../src/emails/email.service.js', () => ({
