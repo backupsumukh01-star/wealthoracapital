@@ -223,20 +223,41 @@ test('website charts and live-stats use simple-return calculations', () => {
   assert.ok(hpcCharts.includes('simpleAnnualized') || hpcCharts.includes('Annualized simple return'))
 })
 
-test('homepage hero visual is decorative and does not show a return statistic', () => {
+test('homepage hero chart binds to the canonical daily equityCurve', () => {
   const hero = fs.readFileSync(
     path.join(repoRoot, 'apps/web/src/components/marketing/hero-visual.tsx'),
     'utf8',
   )
-  assert.equal(hero.includes('89.0'), false)
-  assert.equal(hero.includes('+89'), false)
-  assert.equal(hero.includes('Programme equity'), false)
-  assert.equal(hero.includes('CountUp'), false)
-  assert.equal(hero.includes('Illustration'), false)
-  assert.equal(hero.includes('Artwork'), false)
-  assert.ok(/not a return figure/i.test(hero))
-  assert.ok(hero.includes('sr-only'))
-  assert.ok(hero.includes('role="presentation"'))
+  const mapper = fs.readFileSync(
+    path.join(repoRoot, 'apps/web/src/features/landing/public-equity-chart.ts'),
+    'utf8',
+  )
+  assert.ok(hero.includes('useDemoCharts'))
+  assert.ok(hero.includes('equityCurve'))
+  assert.ok(hero.includes('mapCanonicalEquityCurve'))
+  assert.ok(hero.includes('AreaChart'))
+  assert.ok(hero.includes('Tooltip'))
+  assert.equal(hero.includes('M0 168'), false)
+  assert.equal(hero.includes('role="presentation"'), false)
+  assert.equal(/not a return figure/i.test(hero), false)
+  assert.ok(mapper.includes('charts.json equityCurve'))
+})
+
+test('canonical equityCurve covers the public archive used by the homepage chart', () => {
+  const charts = readJson(path.join(publicDir, 'charts.json'))
+  const curve = charts.equityCurve
+  assert.ok(Array.isArray(curve))
+  assert.ok(curve.length >= 1025, `expected full daily series, got ${curve.length}`)
+  assert.equal(curve[0].equity, 100)
+  assert.equal(curve[curve.length - 1].date, '2026-08-05')
+  assert.equal(curve[curve.length - 1].equity, 834.4)
+  const tradingDays = curve.filter((p) => p.date >= '2022-09-01' && p.date <= '2026-08-05')
+  assert.equal(tradingDays.length, charts.meta.tradingDayCount)
+  assert.equal(charts.meta.startDate, '2022-09-01')
+  assert.equal(charts.meta.endDate, '2026-08-05')
+  assert.equal(charts.meta.endingEquity, 834.4)
+  assert.equal(charts.meta.totalReturnPct, 734.4)
+  assert.equal(charts.meta.returnModel, 'simple')
 })
 
 test('public marketing components do not compound demo balances', () => {
@@ -247,6 +268,7 @@ test('public marketing components do not compound demo balances', () => {
     'apps/web/src/components/marketing/historical-return-timeline.tsx',
     'apps/web/src/components/marketing/investment-calculator.tsx',
     'apps/web/src/components/marketing/hero-visual.tsx',
+    'apps/web/src/features/landing/public-equity-chart.ts',
   ]
   for (const rel of files) {
     const src = fs.readFileSync(path.join(repoRoot, rel), 'utf8')

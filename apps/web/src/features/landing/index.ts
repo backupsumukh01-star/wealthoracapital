@@ -21,3 +21,8 @@ export {
   type LandingLiveStats,
   type LandingMonthlyPoint,
 } from './live-stats'
+export {
+  equityYearTicks,
+  mapCanonicalEquityCurve,
+  type PublicEquityChartPoint,
+} from './public-equity-chart'
