@@ -59,7 +59,9 @@ export function OwnerDashboardWorkspace() {
                     </div>
                     <p className="truncate text-caption text-fg-subtle">{row.email}</p>
                     <p className="text-caption text-fg-muted">Code {row.code}</p>
-                    {summary ? (
+                    {summaries[index]?.isError ? (
+                      <p className="text-caption text-danger">Could not load network summary.</p>
+                    ) : summary ? (
                       <dl className="grid grid-cols-2 gap-2 text-caption">
                         <div>
                           <dt className="text-fg-subtle">Direct</dt>
@@ -82,7 +84,9 @@ export function OwnerDashboardWorkspace() {
                           <dd className="tabular-nums">{formatMoney(summary.netFunds)}</dd>
                         </div>
                       </dl>
-                    ) : null}
+                    ) : (
+                      <p className="text-caption text-fg-subtle">Loading summary…</p>
+                    )}
                   </Card>
                 </Link>
               </li>

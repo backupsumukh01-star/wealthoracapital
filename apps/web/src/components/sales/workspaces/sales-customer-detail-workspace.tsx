@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
+import { isSalesNotFound } from '@/features/sales/auth-errors'
 import { useSalesNetworkMember } from '@/features/sales/hooks'
 
 export function SalesCustomerDetailWorkspace() {
@@ -18,6 +19,7 @@ export function SalesCustomerDetailWorkspace() {
   const userId = typeof params.userId === 'string' ? params.userId : ''
   const detailQuery = useSalesNetworkMember(userId || undefined)
   const member = detailQuery.data?.member
+  const notInNetwork = isSalesNotFound(detailQuery.error)
 
   return (
     <div className="space-y-6">
@@ -32,11 +34,11 @@ export function SalesCustomerDetailWorkspace() {
       />
 
       {detailQuery.isLoading ? <Skeleton className="h-48 w-full" /> : null}
-      {detailQuery.isError ? (
+      {detailQuery.isError && !notInNetwork ? (
         <SalesQueryError error={detailQuery.error} onRetry={() => void detailQuery.refetch()} />
       ) : null}
 
-      {detailQuery.data && !member ? (
+      {notInNetwork || (detailQuery.data && !member) ? (
         <EmptyState
           title="Customer not in your network"
           description="This person is not part of the authenticated salesman’s attributed network."
@@ -62,6 +64,10 @@ export function SalesCustomerDetailWorkspace() {
               <div>
                 <dt className="text-caption text-fg-subtle">Tree parent</dt>
                 <dd className="text-body-sm">{member.parentName ?? 'Attributed root'}</dd>
+              </div>
+              <div>
+                <dt className="text-caption text-fg-subtle">Registered</dt>
+                <dd className="text-body-sm">{formatDate(member.registrationDate)}</dd>
               </div>
               <div>
                 <dt className="text-caption text-fg-subtle">Current balance</dt>
@@ -124,7 +130,7 @@ function HistoryTable({
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.reference} className="border-t border-line">
+                <tr key={`${row.reference}-${row.date}-${row.status}`} className="border-t border-line">
                   <td className="py-2 pr-4">{formatDate(row.date)}</td>
                   <td className="py-2 pr-4 tabular-nums">{formatMoney(row.amount)}</td>
                   <td className="py-2 pr-4">{row.currency ?? 'USD'}</td>

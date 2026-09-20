@@ -47,7 +47,9 @@ export function OwnerReportsWorkspace() {
                   {row.name}
                 </Link>
                 <p className="text-caption text-fg-subtle">{row.code}</p>
-                {summary ? (
+                {summaries[index]?.isError ? (
+                  <p className="text-caption text-danger">Could not load network summary.</p>
+                ) : summary ? (
                   <dl className="grid grid-cols-2 gap-2 text-caption">
                     <div>
                       <dt className="text-fg-subtle">Members</dt>
@@ -100,19 +102,39 @@ export function OwnerReportsWorkspace() {
                     </td>
                     <td className="py-3 pr-4">{row.code}</td>
                     <td className="py-3 pr-4 tabular-nums">
-                      {summary ? summary.totalMembers.toLocaleString() : '—'}
+                      {summaries[index]?.isError
+                        ? 'Error'
+                        : summary
+                          ? summary.totalMembers.toLocaleString()
+                          : '—'}
                     </td>
                     <td className="py-3 pr-4 tabular-nums">
-                      {summary ? summary.directMembers.toLocaleString() : '—'}
+                      {summaries[index]?.isError
+                        ? 'Error'
+                        : summary
+                          ? summary.directMembers.toLocaleString()
+                          : '—'}
                     </td>
                     <td className="py-3 pr-4 tabular-nums">
-                      {summary ? formatMoney(summary.totalApprovedDeposits) : '—'}
+                      {summaries[index]?.isError
+                        ? 'Error'
+                        : summary
+                          ? formatMoney(summary.totalApprovedDeposits)
+                          : '—'}
                     </td>
                     <td className="py-3 pr-4 tabular-nums">
-                      {summary ? formatMoney(summary.totalPaidWithdrawals) : '—'}
+                      {summaries[index]?.isError
+                        ? 'Error'
+                        : summary
+                          ? formatMoney(summary.totalPaidWithdrawals)
+                          : '—'}
                     </td>
                     <td className="py-3 tabular-nums">
-                      {summary ? formatMoney(summary.netFunds) : '—'}
+                      {summaries[index]?.isError
+                        ? 'Error'
+                        : summary
+                          ? formatMoney(summary.netFunds)
+                          : '—'}
                     </td>
                   </tr>
                 )

@@ -38,7 +38,8 @@ export function SalesCustomerList({
       if (!needle) return true
       return (
         member.name.toLowerCase().includes(needle) ||
-        member.username.toLowerCase().includes(needle)
+        member.username.toLowerCase().includes(needle) ||
+        (member.parentName ?? '').toLowerCase().includes(needle)
       )
     })
   }, [level, members, query, relation])
@@ -50,7 +51,7 @@ export function SalesCustomerList({
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search name or username"
+          placeholder="Search name, username, or parent"
           aria-label="Search customers"
         />
         <div className="flex min-w-0 flex-wrap gap-2">
@@ -92,6 +93,12 @@ export function SalesCustomerList({
           </label>
         </div>
       </div>
+
+      <p className="text-caption text-fg-muted">
+        {filtered.length === members.length
+          ? `${members.length} customer${members.length === 1 ? '' : 's'}`
+          : `${filtered.length} of ${members.length} customers`}
+      </p>
 
       {filtered.length === 0 ? (
         <EmptyState

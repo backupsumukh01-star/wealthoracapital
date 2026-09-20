@@ -8,7 +8,8 @@ import { useSalesMe } from '@/features/sales/hooks'
 
 export function SalesReferralWorkspace() {
   const me = useSalesMe()
-  const code = me.data?.salesman.code
+  const salesman = me.data?.salesman
+  const code = salesman?.code
 
   return (
     <div className="space-y-6">
@@ -22,7 +23,7 @@ export function SalesReferralWorkspace() {
           Please refresh or sign in again.
         </Alert>
       ) : null}
-      {code ? <SalesReferralCard code={code} /> : null}
+      {code ? <SalesReferralCard code={code} link={salesman?.referralLink} /> : null}
     </div>
   )
 }

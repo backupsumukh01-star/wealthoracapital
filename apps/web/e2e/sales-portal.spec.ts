@@ -50,6 +50,46 @@ async function mockSalesCsrf(page: Page) {
   })
 }
 
+async function mockSalesRefreshUnauthorized(page: Page) {
+  await fulfillApi(page, /\/api\/v1\/sales\/auth\/refresh$/, async (route) => {
+    await route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      headers: CORS,
+      body: JSON.stringify({
+        success: false,
+        error: { code: 'UNAUTHENTICATED', message: 'Refresh token missing.' },
+      }),
+    })
+  })
+}
+
+async function mockSalesMe(page: Page, delayMs = 0) {
+  await fulfillApi(page, /\/api\/v1\/sales\/me$/, async (route) => {
+    if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs))
+    await route.fulfill(ok({ salesman: SALESMAN }))
+  })
+}
+
+/** Last-registered routes win; register this first so specific mocks can override. */
+async function mockUnmatchedSalesApiAsNotFound(page: Page) {
+  await page.route(/\/api\/v1\/sales\//, async (route) => {
+    if (route.request().method() === 'OPTIONS') {
+      await route.fulfill({ status: 204, headers: CORS })
+      return
+    }
+    await route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      headers: CORS,
+      body: JSON.stringify({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Unmocked sales API in e2e.' },
+      }),
+    })
+  })
+}
+
 async function grantSalesCookie(page: Page) {
   await page.context().addCookies([
     {
@@ -125,6 +165,12 @@ test.describe('Sales Portal route protection', () => {
 })
 
 test.describe('Salesman dashboard and network (mocked APIs)', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockUnmatchedSalesApiAsNotFound(page)
+    await mockSalesCsrf(page)
+    await mockSalesRefreshUnauthorized(page)
+  })
+
   test('shows session loading state then API summary values', async ({ page }) => {
     await grantSalesCookie(page)
     await mockSalesCsrf(page)
@@ -170,9 +216,9 @@ test.describe('Salesman dashboard and network (mocked APIs)', () => {
 
   test('shows API error state when summary fails', async ({ page }) => {
     await grantSalesCookie(page)
-    await mockSalesCsrf(page)
-    await fulfillApi(page, /\/api\/v1\/sales\/me$/, async (route) => {
-      await route.fulfill(ok({ salesman: SALESMAN }))
+    await mockSalesMe(page)
+    await fulfillApi(page, /\/api\/v1\/sales\/me\/network\/members$/, async (route) => {
+      await route.fulfill(ok({ salesman: SALESMAN, members: [] }))
     })
     await page.route(/\/api\/v1\/sales\/me\/network\/summary/, async (route) => {
       if (route.request().method() === 'OPTIONS') {
@@ -184,15 +230,13 @@ test.describe('Salesman dashboard and network (mocked APIs)', () => {
 
     await page.goto('/sales/dashboard')
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByRole('button', { name: /try again/i })).toHaveCount(1)
     await expect(page.getByRole('button', { name: /try again/i })).toBeVisible({ timeout: 15_000 })
   })
 
   test('empty network uses members API without inventing rows', async ({ page }) => {
     await grantSalesCookie(page)
-    await mockSalesCsrf(page)
-    await fulfillApi(page, /\/api\/v1\/sales\/me$/, async (route) => {
-      await route.fulfill(ok({ salesman: SALESMAN }))
-    })
+    await mockSalesMe(page)
     await fulfillApi(page, /\/api\/v1\/sales\/me\/network\/summary$/, async (route) => {
       await route.fulfill(
         ok({
@@ -213,8 +257,8 @@ test.describe('Salesman dashboard and network (mocked APIs)', () => {
     })
 
     await page.goto('/sales/network')
-    await expect(page.getByRole('heading', { name: 'My Network' })).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByText(/no customers in this network yet/i)).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'My Network' })).toBeVisible({ timeout: 30_000 })
+    await expect(page.locator('#main').getByText(/no customers in this network yet/i)).toBeVisible()
   })
 
   test('renders hierarchy from member rows and API money fields', async ({ page }) => {
@@ -254,6 +298,7 @@ test.describe('Salesman dashboard and network (mocked APIs)', () => {
               isDirect: false,
               name: 'Amit',
               username: 'amit',
+              parentName: 'Smit',
               referralCode: null,
               registrationDate: '2026-02-01T00:00:00.000Z',
               currentBalance: '0.00',
@@ -284,11 +329,103 @@ test.describe('Salesman dashboard and network (mocked APIs)', () => {
       )
     })
 
+    await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/sales/network')
     await expect(page.getByText('Smit', { exact: true })).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText('Amit', { exact: true })).toBeVisible()
     await expect(page.getByText('Harun', { exact: true })).toBeVisible()
+    await expect(page.getByText('Parent Smit')).toBeVisible()
     await expect(page.getByText('$5,400.00')).toBeVisible()
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2,
+    )
+    expect(overflow).toBe(false)
+  })
+
+  test('dashboard empty network shows API zeros and empty state', async ({ page }) => {
+    await grantSalesCookie(page)
+    await mockSalesCsrf(page)
+    await fulfillApi(page, /\/api\/v1\/sales\/me$/, async (route) => {
+      await route.fulfill(ok({ salesman: SALESMAN }))
+    })
+    await fulfillApi(page, /\/api\/v1\/sales\/me\/network\/summary$/, async (route) => {
+      await route.fulfill(
+        ok({
+          salesman: SALESMAN,
+          summary: {
+            totalMembers: 0,
+            directMembers: 0,
+            maxDepth: 0,
+            totalApprovedDeposits: '0.00',
+            totalPaidWithdrawals: '0.00',
+            netFunds: '0.00',
+          },
+        }),
+      )
+    })
+    await fulfillApi(page, /\/api\/v1\/sales\/me\/network\/members$/, async (route) => {
+      await route.fulfill(ok({ salesman: SALESMAN, members: [] }))
+    })
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/sales/dashboard')
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('#main').getByText('Alex Sales')).toBeVisible()
+    await expect(page.locator('#main').getByText('S1X8K2', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('$0.00').first()).toBeVisible()
+    await expect(page.getByText(/no customers in your network yet/i)).toBeVisible()
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2,
+    )
+    expect(overflow).toBe(false)
+  })
+
+  test('dashboard surfaces members API errors instead of an empty recent list', async ({ page }) => {
+    await grantSalesCookie(page)
+    await mockSalesCsrf(page)
+    await fulfillApi(page, /\/api\/v1\/sales\/me$/, async (route) => {
+      await route.fulfill(ok({ salesman: SALESMAN }))
+    })
+    await fulfillApi(page, /\/api\/v1\/sales\/me\/network\/summary$/, async (route) => {
+      await route.fulfill(ok({ salesman: SALESMAN, summary: SUMMARY }))
+    })
+    await page.route(/\/api\/v1\/sales\/me\/network\/members$/, async (route) => {
+      if (route.request().method() === 'OPTIONS') {
+        await route.fulfill({ status: 204, headers: CORS })
+        return
+      }
+      await route.abort('failed')
+    })
+
+    await page.goto('/sales/dashboard')
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByRole('button', { name: /try again/i }).first()).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText(/no customers in your network yet/i)).toHaveCount(0)
+    await expect(page.getByText(/recent customer activity/i)).toHaveCount(0)
+  })
+
+  test('customer detail 404 stays inside the salesman network empty state', async ({ page }) => {
+    const otherId = '22222222-2222-2222-2222-222222222222'
+    await grantSalesCookie(page)
+    await mockSalesCsrf(page)
+    await fulfillApi(page, /\/api\/v1\/sales\/me$/, async (route) => {
+      await route.fulfill(ok({ salesman: SALESMAN }))
+    })
+    await fulfillApi(page, /\/api\/v1\/sales\/me\/network\/members\/[^/]+$/, async (route) => {
+      await route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        headers: CORS,
+        body: JSON.stringify({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Customer not in this sales network.' },
+        }),
+      })
+    })
+
+    await page.goto(`/sales/customers/${otherId}`)
+    await expect(page.getByText(/customer not in your network/i)).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText(/phone|password|aadhaar|bank account/i)).toHaveCount(0)
   })
 })
 

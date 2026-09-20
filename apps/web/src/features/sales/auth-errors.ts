@@ -46,6 +46,10 @@ export function isSalesForbidden(error: unknown): boolean {
   return error instanceof ApiError && (error.status === 403 || error.code === ERROR_CODES.FORBIDDEN)
 }
 
+export function isSalesNotFound(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 404 || error.code === ERROR_CODES.NOT_FOUND)
+}
+
 export function salesQueryErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.code === ERROR_CODES.NETWORK_ERROR) {

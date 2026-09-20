@@ -26,6 +26,8 @@ process.env.APP_URL ||= 'http://localhost:3000'
 process.env.API_URL ||= 'http://localhost:4000'
 process.env.CORS_ORIGIN ||= 'http://localhost:3000'
 process.env.BCRYPT_ROUNDS ||= '10'
-process.env.LOG_LEVEL ||= 'silent'
+if (!process.env.LOG_LEVEL || process.env.LOG_LEVEL === 'silent') {
+  process.env.LOG_LEVEL = 'error'
+}
 process.env.PAYMENT_WEBHOOK_ALLOW_UNSIGNED ||= 'true'
 process.env.PAYMENT_AUTO_CONFIRM_DEPOSITS ||= 'false'

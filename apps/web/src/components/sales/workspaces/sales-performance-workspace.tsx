@@ -37,7 +37,10 @@ export function SalesPerformanceWorkspace() {
           />
           <Metric label="Network depth" value={summary.maxDepth.toLocaleString()} />
           <Metric label="Approved deposits" value={formatMoney(summary.totalApprovedDeposits)} />
-          <Metric label="Withdrawals" value={formatMoney(summary.totalPaidWithdrawals)} />
+          <Metric
+            label="Paid / Completed Withdrawals"
+            value={formatMoney(summary.totalPaidWithdrawals)}
+          />
           <Metric label="Net funds" value={formatMoney(summary.netFunds)} />
         </div>
       ) : null}
