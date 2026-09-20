@@ -3,7 +3,7 @@ import type { Deposit, Prisma, ReferralReward, TransactionHistory } from '@prism
 import { env } from '../../config/env.js'
 import { prisma } from '../../database/prisma.js'
 import { badRequest, conflict, forbidden, notFound } from '../../utils/errors.js'
-import { assertNonNegative, d, Decimal, moneyDisplay, moneyString } from '../../utils/money.js'
+import { assertNonNegative, d, type Decimal, moneyDisplay, moneyString } from '../../utils/money.js'
 import { ledgerService } from '../finance/ledger.service.js'
 import { settingsService } from '../settings.service.js'
 import { realInvestorUser } from '../demo-investor.js'

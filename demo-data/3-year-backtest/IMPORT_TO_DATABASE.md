@@ -26,6 +26,12 @@ The script loads dotenv from `apps/api/.env` (then repo-root `.env`), then reads
 1. `demo-data/3-year-backtest/export/json/`
 2. `apps/web/public/demo/backtest/`
 
+To upsert **trades only** and leave the frozen Profit / `daily_returns` table untouched:
+
+```bash
+HISTORICAL_TRADES_ONLY=1 pnpm --filter @meridian/api run db:seed:demo
+```
+
 ## Get `DATABASE_URL` from Render
 
 1. Open [Render Dashboard](https://dashboard.render.com/) → your Growzy workspace.

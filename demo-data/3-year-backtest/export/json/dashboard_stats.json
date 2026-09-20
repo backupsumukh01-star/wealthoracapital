@@ -1,8 +1,8 @@
 {
   "tradingDayCount": 1025,
-  "tradeCount": 3545,
-  "winCount": 3129,
-  "lossCount": 416,
+  "tradeCount": 2567,
+  "winCount": 2106,
+  "lossCount": 461,
   "winningDayCount": 894,
   "losingDayCount": 131,
   "flatDayCount": 0,

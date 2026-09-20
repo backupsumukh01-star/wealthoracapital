@@ -3,7 +3,10 @@
  * Generate a reproducible 4-year public demo/backtest dataset for UI presentation.
  *
  * Usage (repo root):
- *   node demo-data/3-year-backtest/generate.mjs
+ *   node demo-data/3-year-backtest/generate.mjs --regenerate-profit
+ *
+ * Profit data is frozen. Prefer:
+ *   node demo-data/3-year-backtest/generate-historical-trades.mjs
  *
  * Writes under: demo-data/3-year-backtest/export/{csv,json,sql,prisma,reports/html,reports/pdf}
  * and mirrors JSON/reports into apps/web/public/demo/backtest/.
@@ -1040,6 +1043,12 @@ function assertDataset(data) {
 }
 
 function main() {
+  if (!process.argv.includes('--regenerate-profit')) {
+    console.error('Refusing to regenerate the frozen public Profit dataset.')
+    console.error('Historical trades: node demo-data/3-year-backtest/generate-historical-trades.mjs')
+    console.error('Profit rebuild (forbidden for normal operation): add --regenerate-profit')
+    process.exit(1)
+  }
   console.log('Generating 4-year public demo/backtest dataset…')
   cleanExportRoot()
   const data = buildDataset()

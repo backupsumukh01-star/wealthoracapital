@@ -46,8 +46,12 @@ Thumbs.db
 *.pem
 .vercel
 
-# local temp extracts
-_tmp_premium_extract/
+# Excel lock files
+~$*
+**/~$*
+
+# Optional bulky hourly cache (daily OHLC cache is committed)
+demo-data/3-year-backtest/market-cache/yahoo-hourly.json
 
 # QA / test artifacts
 coverage/

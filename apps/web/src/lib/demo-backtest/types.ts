@@ -109,6 +109,18 @@ export interface DemoTrade {
   profitAmount?: number | null
   lossAmount?: number | null
   tradingDayId?: string
+  datasetVersion?: string
+  disclosure?: string
+  marketValidation?: {
+    provider: string
+    yahooSymbol?: string
+    granularity?: string
+    tradeDate?: string
+    priceSessionDate?: string
+    ohlc?: { open: number; high: number; low: number; close: number }
+    sameCandle?: boolean
+  }
+  idempotencyKey?: string
 }
 
 export interface DemoReportCatalogItem {

@@ -26,11 +26,14 @@ export const tradingController = {
     const q = req.query as { cursor?: string; outcome?: string; limit?: string }
     sendSuccess(
       res,
-      await tradeService.listInvestor({
-        cursor: q.cursor,
-        outcome: q.outcome,
-        limit: q.limit ? Number(q.limit) : undefined,
-      }),
+      await tradeService.listInvestor(
+        {
+          cursor: q.cursor,
+          outcome: q.outcome,
+          limit: q.limit ? Number(q.limit) : undefined,
+        },
+        req.user!.id,
+      ),
     )
   }),
 
@@ -68,8 +71,8 @@ export const tradingController = {
     sendSuccess(res, await tradeService.pairs())
   }),
 
-  stats: asyncHandler(async (_req, res) => {
-    sendSuccess(res, await tradeService.stats())
+  stats: asyncHandler(async (req, res) => {
+    sendSuccess(res, await tradeService.stats(req.user!.id))
   }),
 
   performanceSummary: asyncHandler(async (req, res) => {

@@ -9,6 +9,15 @@ import { realInvestorUser } from '../demo-investor.js'
 import { badRequest, forbidden, notFound } from '../../utils/errors.js'
 import { d, moneyString } from '../../utils/money.js'
 import { mapTrade, suggestedReturnPct } from './trade.mappers.js'
+import {
+  canonicalPairs,
+  findCanonicalTrade,
+  investorCanonicalStats,
+  listCanonicalBlotter,
+  listInvestorCanonicalBlotter,
+  loadCanonicalDemoTrades,
+  mapCanonicalTrade,
+} from './canonical-demo-trades.js'
 
 type Ctx = { ip?: string | null; userAgent?: string | null }
 
@@ -38,6 +47,9 @@ const SETTLED: TradeStatus[] = ['CLOSED', 'CANCELLED', 'ARCHIVED']
 
 export const tradeService = {
   async listPublic(query: { cursor?: string; outcome?: string; limit?: number }) {
+    if (loadCanonicalDemoTrades().length > 0) {
+      return listCanonicalBlotter(query)
+    }
     const limit = Math.min(Math.max(query.limit ?? 50, 1), 100)
     const items = await prisma.trade.findMany({
       where: {
@@ -55,11 +67,19 @@ export const tradeService = {
     }
   },
 
-  async listInvestor(query: { cursor?: string; outcome?: string; limit?: number }) {
+  async listInvestor(
+    query: { cursor?: string; outcome?: string; limit?: number },
+    userId?: string,
+  ) {
+    if (userId && loadCanonicalDemoTrades().length > 0) {
+      return listInvestorCanonicalBlotter(userId, query)
+    }
     return this.listPublic(query)
   },
 
   async getPublic(id: string) {
+    const canonical = findCanonicalTrade(id)
+    if (canonical) return mapCanonicalTrade(canonical)
     const trade = await prisma.trade.findFirst({
       where: { id, OR: [{ isPublic: true }, { status: { in: ['OPEN', 'RUNNING', 'CLOSED'] } }] },
     })
@@ -70,16 +90,19 @@ export const tradeService = {
   },
 
   async pairs() {
+    const fromArchive = canonicalPairs()
     const rows = await prisma.trade.findMany({
       where: { isPublic: true },
       distinct: ['pair'],
       select: { pair: true },
       orderBy: { pair: 'asc' },
     })
-    return rows.map((r) => r.pair)
+    return [...new Set([...fromArchive, ...rows.map((r) => r.pair)])].sort()
   },
 
-  async stats() {
+  async stats(userId?: string) {
+    const fromArchive = await investorCanonicalStats(userId)
+    if (fromArchive && fromArchive.tradeCount > 0) return fromArchive
     const closed = await prisma.trade.findMany({
       where: { status: 'CLOSED', isPublic: true, returnPct: { not: null } },
       select: { returnPct: true, outcome: true },

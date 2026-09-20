@@ -18,10 +18,10 @@ const reportsDir = path.join(publicDir, 'reports')
 
 const PRINCIPAL = 100
 const DATASET_HASHES = {
-  'daily_returns.json': '9971021cd3f60ff12a560a5405f5ac37bb912f086574ad9133197b196260a57c',
-  'dashboard_stats.json': '70b50ef420d27aa6b53638e790c0cda483d9f1e9391aa05f261c9af4c0252ca8',
+  'daily_returns.json': 'c3b595d781ced027b4bdffbbfba2c6da04ecc213657b07be2fcda0be41d41787',
+  'dashboard_stats.json': '6636088c3811bff854f9395a3372dc17bd8fd8d537d12a360377b3a6b59c8875',
   'monthly_returns.json': 'ef7b92480eb419e9fb5e36fa6e18b66a914d57226b661772af05b4c8efd76605',
-  'trades.json': '0912ac6ef612e868b9cf4a86b65ceb944ab60ac40042eb094517859d8aa07b7d',
+  'trades.json': '3810f08934bdac96fa28975e58346885eb7edfbd0af708001c5e82cfbad828df',
   'charts.json': '06343b433227759e95e031b2446ea77e59bcd8907222104c407cd1ce2e51df50',
 }
 
@@ -121,6 +121,8 @@ function assertPeriodReport(html, expected, { archive = false } = {}) {
     const grid = kpiGridRegion(html)
     assert.equal(grid.includes('1,025'), false)
     assert.equal(grid.includes('>1025<'), false)
+    assert.equal(grid.includes('2,567'), false)
+    assert.equal(grid.includes('>2567<'), false)
     assert.equal(grid.includes('3,545'), false)
     assert.equal(grid.includes('>3545<'), false)
     assert.equal(grid.includes('734.40'), false)
@@ -131,7 +133,7 @@ function assertPeriodReport(html, expected, { archive = false } = {}) {
     assert.equal(grid.includes('Apr 2024'), false)
   } else {
     assert.equal(kpiValue(html, 'trading-days'), '1025')
-    assert.equal(kpiValue(html, 'trade-count'), '3545')
+    assert.equal(kpiValue(html, 'trade-count'), '2567')
     assert.match(kpiValue(html, 'total-return'), /734\.4/)
     assert.match(kpiValue(html, 'ending'), /834\.4/)
     assert.match(html, /Annualized simple return/)

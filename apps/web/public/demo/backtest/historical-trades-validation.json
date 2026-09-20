@@ -1,0 +1,47 @@
+{
+  "datasetVersion": "wealthora-historical-trades-v1",
+  "profitSeed": "wealthora-4y-public-demo-v1",
+  "provider": "yahoo-finance-chart",
+  "disclosure": "Reconstructed/backtest trade archive validated against historical Yahoo Finance OHLC. Not live executed fills. Canonical daily profit remains wealthora-4y-public-demo-v1.",
+  "dateRange": {
+    "start": "2022-09-01",
+    "end": "2026-08-05"
+  },
+  "totalTradingDays": 1025,
+  "totalTrades": 2567,
+  "winningTrades": 2106,
+  "losingTrades": 461,
+  "winPercentage": 82.04,
+  "averageTradesPerDay": 2.5,
+  "tradesPerDayDistribution": {
+    "1": 200,
+    "2": 300,
+    "3": 333,
+    "4": 192
+  },
+  "pairDistribution": {
+    "EUR/USD": 214,
+    "GBP/USD": 214,
+    "USD/JPY": 214,
+    "USD/CHF": 214,
+    "AUD/USD": 214,
+    "NZD/USD": 214,
+    "USD/CAD": 214,
+    "EUR/JPY": 214,
+    "GBP/JPY": 214,
+    "EUR/GBP": 214,
+    "AUD/JPY": 214,
+    "XAU/USD": 213
+  },
+  "buyCount": 1280,
+  "sellCount": 1287,
+  "rejectedCandidates": 174,
+  "historicalValidationFailures": 174,
+  "dailyReconciliationFailures": 0,
+  "previousSessionFallbacks": 20,
+  "duplicateSkips": 0,
+  "importCount": 2567,
+  "hourlyCoveragePairs": 12,
+  "hourlyFetchFailures": 0,
+  "ok": true
+}

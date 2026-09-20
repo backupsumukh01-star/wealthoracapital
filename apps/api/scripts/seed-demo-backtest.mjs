@@ -197,14 +197,22 @@ async function main() {
     throw new Error('Expected daily_returns.json and trades.json to be JSON arrays')
   }
 
+  const tradesOnly = process.env.HISTORICAL_TRADES_ONLY === '1' || process.argv.includes('--trades-only')
+
   console.log(`Data dir: ${dataDir}`)
-  console.log(`Importing ${dailyReturns.length} daily_returns (status=PUBLISHED) + ${trades.length} trades (status=CLOSED, isPublic=true)…`)
+  if (tradesOnly) {
+    console.log(`Importing ${trades.length} trades only (daily_returns skipped — profit dataset is frozen).`)
+  } else {
+    console.log(`Importing ${dailyReturns.length} daily_returns (status=PUBLISHED) + ${trades.length} trades (status=CLOSED, isPublic=true)…`)
+  }
 
   const prisma = new PrismaClient()
   try {
-    await upsertDailyReturns(prisma, dailyReturns)
+    if (!tradesOnly) {
+      await upsertDailyReturns(prisma, dailyReturns)
+    }
     await upsertTrades(prisma, trades)
-    console.log('Done. Demo backtest rows upserted.')
+    console.log(tradesOnly ? 'Done. Historical trades upserted (idempotent).' : 'Done. Demo backtest rows upserted.')
   } finally {
     await prisma.$disconnect()
   }

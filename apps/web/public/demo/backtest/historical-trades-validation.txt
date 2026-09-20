@@ -1,0 +1,23 @@
+Wealthora historical trade archive
+==================================
+Dataset: wealthora-historical-trades-v1
+Profit seed (unchanged): wealthora-4y-public-demo-v1
+Range: 2022-09-01 → 2026-08-05
+Provider: Yahoo Finance chart API (generation only)
+
+Trading days: 1025
+Trades: 2567
+Winning: 2106
+Losing: 461
+Win rate: 82.04%
+Average trades/day: 2.50
+Trades/day: 1=200, 2=300, 3=333, 4=192
+BUY: 1280  SELL: 1287
+
+Daily reconciliation failures: 0
+Rejected invalid candidates: 174
+Duplicate skips: 0
+Previous-session price fallbacks (FX holidays): 20
+
+Disclosure: reconstructed/backtest records from historical OHLC.
+Not live executed fills. Canonical daily profit is unchanged.
