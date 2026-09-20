@@ -42,7 +42,8 @@ export const salesAuthController = {
   }),
 
   logout: asyncHandler(async (req, res) => {
-    await salesAuthService.logout(req.salesman?.sessionId)
+    const refreshToken = req.cookies?.[SALES_COOKIE_NAMES.refreshToken] as string | undefined
+    await salesAuthService.logout(req.salesman?.sessionId, refreshToken)
     clearSalesCookies(res)
     sendSuccess(res, null)
   }),

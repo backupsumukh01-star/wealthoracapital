@@ -5,6 +5,7 @@ import {
   salesAccessTokenCookieOptions,
   salesRefreshTokenCookieOptions,
 } from './sales-cookies.js'
+import { env, isProduction } from './env.js'
 
 describe('sales cookie options', () => {
   it('uses isolated cookie names', () => {
@@ -24,5 +25,10 @@ describe('sales cookie options', () => {
     expect(refresh.httpOnly).toBe(true)
     expect(refresh.sameSite).toBe('lax')
     expect(refresh.path).toBe('/api/v1/sales/auth')
+  })
+
+  it('uses Secure cookies when COOKIE_SECURE or production is set', () => {
+    const access = salesAccessTokenCookieOptions(60_000)
+    expect(access.secure).toBe(Boolean(env.COOKIE_SECURE) || isProduction)
   })
 })

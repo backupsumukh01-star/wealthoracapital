@@ -95,10 +95,19 @@ export const salesAuthService = {
     return { salesman: publicSalesman(salesman) }
   },
 
-  async logout(sessionId: string | undefined): Promise<void> {
-    if (!sessionId) return
+  async logout(sessionId: string | undefined, rawRefreshToken?: string): Promise<void> {
+    const ids = new Set<string>()
+    if (sessionId) ids.add(sessionId)
+    if (rawRefreshToken) {
+      const existing = await prisma.salesmanSession.findUnique({
+        where: { refreshTokenHash: tokenService.hashToken(rawRefreshToken) },
+        select: { id: true },
+      })
+      if (existing) ids.add(existing.id)
+    }
+    if (ids.size === 0) return
     await prisma.salesmanSession.updateMany({
-      where: { id: sessionId, revokedAt: null },
+      where: { id: { in: [...ids] }, revokedAt: null },
       data: { revokedAt: new Date() },
     })
   },

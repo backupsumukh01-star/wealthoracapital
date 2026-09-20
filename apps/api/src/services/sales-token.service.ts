@@ -48,7 +48,13 @@ export const salesTokenService = {
         issuer: env.JWT_SALES_ISSUER,
         audience: env.JWT_SALES_AUDIENCE,
       })
-      if (typeof decoded === 'string' || decoded.typ !== 'salesman') {
+      if (
+        typeof decoded === 'string' ||
+        decoded.typ !== 'salesman' ||
+        typeof decoded.sub !== 'string' ||
+        typeof decoded.sid !== 'string' ||
+        typeof decoded.jti !== 'string'
+      ) {
         throw unauthorized('Invalid access token.')
       }
       return decoded as SalesAccessTokenPayload

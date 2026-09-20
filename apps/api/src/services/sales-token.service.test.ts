@@ -85,4 +85,49 @@ describe('sales JWT isolation', () => {
     )
     expect(() => salesTokenService.verifyAccessToken(fake)).toThrow()
   })
+
+  it('rejects wrong issuer, audience, token type, and unsigned tokens', () => {
+    const salesmanId = randomUUID()
+    const sessionId = randomUUID()
+    const base = {
+      sub: salesmanId,
+      sid: sessionId,
+      typ: 'salesman' as const,
+      jti: randomUUID(),
+    }
+
+    const wrongIssuer = jwt.sign(
+      { ...base, iss: 'not-sales', aud: env.JWT_SALES_AUDIENCE },
+      env.JWT_SALES_SECRET,
+      { algorithm: 'HS256', expiresIn: '15m' },
+    )
+    expect(() => salesTokenService.verifyAccessToken(wrongIssuer)).toThrow()
+
+    const wrongAudience = jwt.sign(
+      { ...base, iss: env.JWT_SALES_ISSUER, aud: 'not-sales' },
+      env.JWT_SALES_SECRET,
+      { algorithm: 'HS256', expiresIn: '15m' },
+    )
+    expect(() => salesTokenService.verifyAccessToken(wrongAudience)).toThrow()
+
+    const wrongType = jwt.sign(
+      { ...base, typ: 'access', iss: env.JWT_SALES_ISSUER, aud: env.JWT_SALES_AUDIENCE },
+      env.JWT_SALES_SECRET,
+      { algorithm: 'HS256', expiresIn: '15m' },
+    )
+    expect(() => salesTokenService.verifyAccessToken(wrongType)).toThrow()
+
+    const unsigned = [
+      Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url'),
+      Buffer.from(
+        JSON.stringify({
+          ...base,
+          iss: env.JWT_SALES_ISSUER,
+          aud: env.JWT_SALES_AUDIENCE,
+        }),
+      ).toString('base64url'),
+      '',
+    ].join('.')
+    expect(() => salesTokenService.verifyAccessToken(unsigned)).toThrow()
+  })
 })
