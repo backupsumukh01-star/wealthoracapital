@@ -128,7 +128,7 @@ export function useUpdateSalesman() {
   return useMutation({
     mutationFn: (input: {
       salesmanId: string
-      body: { name?: string; email?: string; status?: 'ACTIVE' | 'DISABLED' }
+      body: { name?: string; email?: string; status?: 'ACTIVE' | 'DISABLED'; code?: string }
     }) => salesOwnerService.updateSalesman(input.salesmanId, input.body),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: salesQueryKeys.owner.salesmen() })

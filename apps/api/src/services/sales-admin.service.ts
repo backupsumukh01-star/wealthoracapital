@@ -10,7 +10,7 @@ import { badRequest, conflict, notFound } from '../utils/errors.js'
 import { logger } from '../utils/logger.js'
 import type { SessionContext } from '../types/auth.types.js'
 
-const SALESMAN_CODE_PATTERN = /^S[A-Z0-9]{1,15}$/
+import { SALESMAN_CODE_REGEX } from '../validators/sales.validators.js'
 
 function snapshotSalesman(row: {
   id: string
@@ -49,28 +49,30 @@ function normalizeCode(raw: string): string {
   return raw.trim().toUpperCase()
 }
 
-async function assertCodeAvailable(code: string): Promise<void> {
-  if (!SALESMAN_CODE_PATTERN.test(code)) {
-    throw badRequest('Salesman code must start with S and use 2–16 letters or digits.')
+/**
+ * Salesman codes must be unique among salesmen only.
+ * Collision with User.referralCode is intentional — ACTIVE salesman wins at registration.
+ */
+async function assertSalesmanCodeAvailable(code: string, exceptSalesmanId?: string): Promise<void> {
+  if (!SALESMAN_CODE_REGEX.test(code)) {
+    throw badRequest('Salesman code must be 2–16 letters or digits.')
   }
-  const [existingSalesman, existingInvestor] = await Promise.all([
-    prisma.salesman.findUnique({ where: { code }, select: { id: true } }),
-    userRepository.findByReferralCode(code),
-  ])
-  if (existingSalesman) {
+  const existingSalesman = await prisma.salesman.findUnique({
+    where: { code },
+    select: { id: true },
+  })
+  if (existingSalesman && existingSalesman.id !== exceptSalesmanId) {
     throw conflict('That salesman code is already in use.')
-  }
-  if (existingInvestor) {
-    throw conflict('That code is already an investor referral code.')
   }
 }
 
 async function allocateSalesmanCode(preferred?: string): Promise<string> {
   if (preferred) {
     const code = normalizeCode(preferred)
-    await assertCodeAvailable(code)
+    await assertSalesmanCodeAvailable(code)
     return code
   }
+  // Auto-allocated codes still avoid investor collisions to reduce accidental overlap.
   for (let attempt = 0; attempt < 12; attempt += 1) {
     const code = `S${generateReferralCode(7)}`
     const [salesman, investor] = await Promise.all([
@@ -144,7 +146,7 @@ export const salesAdminService = {
 
   async update(
     salesmanId: string,
-    input: { name?: string; email?: string; status?: 'ACTIVE' | 'DISABLED' },
+    input: { name?: string; email?: string; status?: 'ACTIVE' | 'DISABLED'; code?: string },
     actorId: string,
     context: SessionContext,
   ) {
@@ -153,7 +155,7 @@ export const salesAdminService = {
       throw notFound('Salesman not found.')
     }
 
-    const data: { name?: string; email?: string; status?: 'ACTIVE' | 'DISABLED' } = {}
+    const data: { name?: string; email?: string; status?: 'ACTIVE' | 'DISABLED'; code?: string } = {}
     if (input.name !== undefined) data.name = input.name.trim()
     if (input.email !== undefined) {
       const email = input.email.trim().toLowerCase()
@@ -164,6 +166,13 @@ export const salesAdminService = {
       data.email = email
     }
     if (input.status !== undefined) data.status = input.status
+    if (input.code !== undefined) {
+      const code = normalizeCode(input.code)
+      if (code !== existing.code) {
+        await assertSalesmanCodeAvailable(code, salesmanId)
+        data.code = code
+      }
+    }
     if (Object.keys(data).length === 0) {
       return { salesman: snapshotSalesman(existing) }
     }
@@ -173,6 +182,7 @@ export const salesAdminService = {
         where: { id: salesmanId },
         data,
       })
+      // Code-only changes must not revoke sessions or alter identity/password.
       if (data.status === 'DISABLED' && existing.status !== 'DISABLED') {
         await revokeSalesmanSessions(salesmanId)
       }
@@ -188,7 +198,7 @@ export const salesAdminService = {
       return { salesman: snapshotSalesman(salesman) }
     } catch (err) {
       if (isUniqueViolation(err)) {
-        throw conflict('A salesman with that email already exists.')
+        throw conflict('A salesman with that email or code already exists.')
       }
       throw err
     }

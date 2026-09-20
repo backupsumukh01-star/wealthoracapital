@@ -1904,7 +1904,8 @@ model Salesman {
   email            String         @unique @db.Citext
   passwordHash     String         @map("password_hash")
   name             String         @db.VarChar(120)
-  /// Prefixed salesman code (e.g. S…). Never written to users.referral_code.
+  /// Owner-managed promo code (e.g. S1, HARSH123). Never written to users.referral_code.
+  /// May intentionally collide with an investor referralCode — ACTIVE salesman wins at register.
   code             String         @unique @db.VarChar(16)
   status           SalesmanStatus @default(ACTIVE)
   /// Admin User.id that created this row. Plain UUID — no User relation.

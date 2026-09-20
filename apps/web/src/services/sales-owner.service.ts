@@ -25,7 +25,7 @@ export const salesOwnerService = {
 
   updateSalesman: (
     salesmanId: string,
-    body: { name?: string; email?: string; status?: 'ACTIVE' | 'DISABLED' },
+    body: { name?: string; email?: string; status?: 'ACTIVE' | 'DISABLED'; code?: string },
   ) =>
     apiClient<SalesOwnerSalesmanMutationResponse>(API_ROUTES.sales.ownerSalesman(salesmanId), {
       method: 'PATCH',

@@ -15,7 +15,7 @@ export function SalesReferralWorkspace() {
     <div className="space-y-6">
       <PageHeader
         title="My Referral Link"
-        description="Share your permanent salesman code. New investors who use this code at registration can be attributed to you."
+        description="Share your salesman promo code. New investors who use this code at registration can be attributed to you."
       />
       {me.isLoading ? <Skeleton className="h-48 w-full" /> : null}
       {me.isError ? (

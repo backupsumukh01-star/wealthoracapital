@@ -124,7 +124,7 @@ export function OwnerSalesmenWorkspace() {
           <DialogHeader>
             <DialogTitle>Create salesman</DialogTitle>
             <DialogDescription>
-              A one-time password is generated after save. Codes such as S1–S5 are permanent.
+              A one-time password is generated after save. Promo codes can be changed later by the owner.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -141,7 +141,7 @@ export function OwnerSalesmenWorkspace() {
             </FormField>
             <FormField
               label="Code"
-              hint="Optional. Use S1–S5 for the initial team, or leave blank to generate a unique code."
+              hint="Optional. Letters and digits only (2–16). Leave blank to generate a unique code."
             >
               <Input
                 value={code}

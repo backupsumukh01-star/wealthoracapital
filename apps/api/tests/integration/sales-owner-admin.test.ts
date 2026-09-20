@@ -246,4 +246,165 @@ describe('Sales owner salesman administration', () => {
     const { salesman } = await createSalesmanDirect()
     expect(await prisma.user.findFirst({ where: { email: salesman.email } })).toBeNull()
   })
+
+  it('owner can change salesman promo code; salesman/investor cannot; collision and session rules hold', async () => {
+    const owner = await registerAndLogin('SUPER_ADMIN')
+    const initialCode = uniqueCode()
+    const created = await owner.agent.post('/api/v1/sales/owner/salesmen').send({
+      name: 'Promo Sales',
+      email: uniqueEmail('promo'),
+      code: initialCode,
+    })
+    expect(created.status).toBe(201)
+    const salesmanId = created.body.data.salesman.id as string
+    const salesmanEmail = created.body.data.salesman.email as string
+    const temporaryPassword = created.body.data.temporaryPassword as string
+
+    const salesAgent = request.agent(app)
+    const salesLogin = await salesAgent.post('/api/v1/sales/auth/login').send({
+      email: salesmanEmail,
+      password: temporaryPassword,
+    })
+    expect(salesLogin.status).toBe(200)
+    expect(salesLogin.body.data.salesman.code).toBe(initialCode)
+
+    // Attribute an investor under the original code (first-touch lock).
+    const attributedEmail = uniqueEmail('locked')
+    const attributedReg = await request(app).post('/api/v1/auth/register').send({
+      email: attributedEmail,
+      password: 'SecurePass1!',
+      firstName: 'Lock',
+      lastName: 'Cust',
+      referralCode: initialCode,
+      acceptTerms: true,
+      acceptRisk: true,
+    })
+    expect([200, 201]).toContain(attributedReg.status)
+    const attributedUser = await prisma.user.findFirstOrThrow({ where: { email: attributedEmail } })
+    const lockedAttribution = await prisma.salesAttribution.findUniqueOrThrow({
+      where: { userId: attributedUser.id },
+    })
+    expect(lockedAttribution.salesmanId).toBe(salesmanId)
+
+    // Investor referral code that will intentionally collide after promo rename.
+    const investorCode = `H${randomUUID().replace(/-/g, '').slice(0, 7).toUpperCase()}`
+    await prisma.user.create({
+      data: {
+        email: uniqueEmail('codecollide'),
+        passwordHash: 'x',
+        firstName: 'Code',
+        lastName: 'Holder',
+        status: 'ACTIVE',
+        emailVerifiedAt: new Date(),
+        referralCode: investorCode,
+      },
+    })
+
+    const other = await owner.agent.post('/api/v1/sales/owner/salesmen').send({
+      name: 'Other Sales',
+      email: uniqueEmail('other'),
+      code: uniqueCode(),
+    })
+    expect(other.status).toBe(201)
+    const otherCode = other.body.data.salesman.code as string
+
+    // Reject invalid / empty / whitespace / duplicate salesman codes + mass assignment.
+    const empty = await owner.agent.patch(`/api/v1/sales/owner/salesmen/${salesmanId}`).send({ code: '' })
+    expect(empty.status).toBe(400)
+    const whitespace = await owner.agent
+      .patch(`/api/v1/sales/owner/salesmen/${salesmanId}`)
+      .send({ code: '   ' })
+    expect(whitespace.status).toBe(400)
+    const invalid = await owner.agent
+      .patch(`/api/v1/sales/owner/salesmen/${salesmanId}`)
+      .send({ code: 'BAD-CODE!' })
+    expect(invalid.status).toBe(400)
+    const duplicate = await owner.agent
+      .patch(`/api/v1/sales/owner/salesmen/${salesmanId}`)
+      .send({ code: otherCode })
+    expect(duplicate.status).toBe(409)
+    const massAssign = await owner.agent.patch(`/api/v1/sales/owner/salesmen/${salesmanId}`).send({
+      code: investorCode,
+      role: 'SUPER_ADMIN',
+      staffRole: 'SUPER_ADMIN',
+      isOwner: true,
+      passwordHash: 'hacked',
+      status: 'DISABLED',
+    })
+    expect(massAssign.status).toBe(400)
+
+    // Investor and salesman cannot change the promo code.
+    const investor = await registerAndLogin('investor')
+    const invPatch = await investor.agent
+      .patch(`/api/v1/sales/owner/salesmen/${salesmanId}`)
+      .send({ code: investorCode })
+    expect(invPatch.status).toBe(403)
+    const salesPatch = await salesAgent
+      .patch(`/api/v1/sales/owner/salesmen/${salesmanId}`)
+      .send({ code: investorCode })
+    expect(salesPatch.status).toBe(401)
+
+    // Owner changes code to collide with investor referral — ACTIVE salesman wins.
+    const renamed = await owner.agent
+      .patch(`/api/v1/sales/owner/salesmen/${salesmanId}`)
+      .send({ code: investorCode.toLowerCase() })
+    expect(renamed.status).toBe(200)
+    expect(renamed.body.data.salesman.code).toBe(investorCode)
+    expect(renamed.body.data.salesman.referralLink).toMatch(
+      new RegExp(`/register\\?ref=${investorCode}$`),
+    )
+    expect(renamed.body.data.salesman.status).toBe('ACTIVE')
+
+    // Existing attribution unchanged; session remains valid; me shows new code.
+    const stillLocked = await prisma.salesAttribution.findUniqueOrThrow({
+      where: { userId: attributedUser.id },
+    })
+    expect(stillLocked.salesmanId).toBe(salesmanId)
+    const meAfter = await salesAgent.get('/api/v1/sales/me')
+    expect(meAfter.status).toBe(200)
+    expect(meAfter.body.data.salesman.code).toBe(investorCode)
+    expect(meAfter.body.data.salesman.referralLink).toMatch(
+      new RegExp(`/register\\?ref=${investorCode}$`),
+    )
+    expect(meAfter.body.data.salesman.id).toBe(salesmanId)
+
+    const futureEmail = uniqueEmail('future')
+    const futureReg = await request(app).post('/api/v1/auth/register').send({
+      email: futureEmail,
+      password: 'SecurePass1!',
+      firstName: 'Future',
+      lastName: 'Cust',
+      referralCode: investorCode,
+      acceptTerms: true,
+      acceptRisk: true,
+    })
+    expect([200, 201]).toContain(futureReg.status)
+    const futureUser = await prisma.user.findFirstOrThrow({ where: { email: futureEmail } })
+    expect(futureUser.referredById).toBeNull()
+    const futureAttr = await prisma.salesAttribution.findUniqueOrThrow({
+      where: { userId: futureUser.id },
+    })
+    expect(futureAttr.salesmanId).toBe(salesmanId)
+
+    // Disabled salesman does not capture new registrations; investor referral resumes.
+    const disabled = await owner.agent
+      .patch(`/api/v1/sales/owner/salesmen/${salesmanId}`)
+      .send({ status: 'DISABLED' })
+    expect(disabled.status).toBe(200)
+    const resumeEmail = uniqueEmail('resume')
+    const resumeReg = await request(app).post('/api/v1/auth/register').send({
+      email: resumeEmail,
+      password: 'SecurePass1!',
+      firstName: 'Resume',
+      lastName: 'Investor',
+      referralCode: investorCode,
+      acceptTerms: true,
+      acceptRisk: true,
+    })
+    expect([200, 201]).toContain(resumeReg.status)
+    const resumeUser = await prisma.user.findFirstOrThrow({ where: { email: resumeEmail } })
+    const codeOwner = await prisma.user.findFirstOrThrow({ where: { referralCode: investorCode } })
+    expect(resumeUser.referredById).toBe(codeOwner.id)
+    expect(await prisma.salesAttribution.findUnique({ where: { userId: resumeUser.id } })).toBeNull()
+  })
 })

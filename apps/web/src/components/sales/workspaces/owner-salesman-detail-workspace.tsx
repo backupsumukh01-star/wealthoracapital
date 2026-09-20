@@ -40,6 +40,7 @@ export function OwnerSalesmanDetailWorkspace() {
   const salesman = listQuery.data?.salesmen.find((row) => row.id === salesmanId)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [promoCode, setPromoCode] = useState('')
   const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null)
   const referralLink = salesman
     ? salesman.referralLink ?? salesReferralUrl(env.NEXT_PUBLIC_SITE_URL, salesman.code)
@@ -50,6 +51,7 @@ export function OwnerSalesmanDetailWorkspace() {
     if (!salesman) return
     setName(salesman.name)
     setEmail(salesman.email)
+    setPromoCode(salesman.code)
   }, [salesman])
 
   async function onSaveProfile() {
@@ -61,6 +63,28 @@ export function OwnerSalesmanDetailWorkspace() {
       toast.success('Salesman profile updated.')
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : 'Could not update salesman.')
+    }
+  }
+
+  async function onSavePromoCode() {
+    const nextCode = promoCode.trim().toUpperCase()
+    if (!nextCode) {
+      toast.error('Promo code is required.')
+      return
+    }
+    if (salesman && nextCode === salesman.code) {
+      toast.message('Promo code is unchanged.')
+      return
+    }
+    try {
+      await updateSalesman.mutateAsync({
+        salesmanId,
+        body: { code: nextCode },
+      })
+      toast.success('Salesman promo code updated.')
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : 'Could not update promo code.')
+      if (salesman) setPromoCode(salesman.code)
     }
   }
 
@@ -126,21 +150,42 @@ export function OwnerSalesmanDetailWorkspace() {
               {salesman.status}
             </Badge>
           </div>
-          <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <dt className="text-caption text-fg-subtle">Code</dt>
-              <dd className="text-body-sm">{salesman.code}</dd>
-            </div>
+
+          <div className="space-y-3 rounded-lg border border-border/60 bg-bg-subtle/40 p-4">
+            <FormField
+              label="Salesman Promo Code"
+              hint="Owner-managed. Changing this updates the referral link for future registrations only."
+            >
+              <Input
+                value={promoCode}
+                onChange={(event) => setPromoCode(event.target.value.toUpperCase())}
+                autoComplete="off"
+                spellCheck={false}
+                maxLength={16}
+              />
+            </FormField>
             <div className="min-w-0">
-              <dt className="text-caption text-fg-subtle">Referral link</dt>
-              <dd className="flex min-w-0 items-start gap-2">
+              <p className="text-caption text-fg-subtle">Referral link</p>
+              <div className="mt-1 flex min-w-0 items-start gap-2">
                 <span className="break-all text-caption text-fg-muted">{referralLink}</span>
                 <Button type="button" size="sm" variant="ghost" onClick={() => void copy(referralLink)}>
                   {copied ? 'Copied' : 'Copy'}
                 </Button>
-              </dd>
+              </div>
             </div>
-          </dl>
+            <Button
+              type="button"
+              onClick={() => void onSavePromoCode()}
+              disabled={
+                updateSalesman.isPending ||
+                !promoCode.trim() ||
+                promoCode.trim().toUpperCase() === salesman.code
+              }
+            >
+              Save promo code
+            </Button>
+          </div>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField label="Name">
               <Input value={name} onChange={(event) => setName(event.target.value)} />
