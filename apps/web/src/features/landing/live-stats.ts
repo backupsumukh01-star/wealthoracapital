@@ -431,7 +431,7 @@ export function resolveYearlySeries(
     return demoYearly.map((y) => ({
       year: String(y.year),
       returnPct: Number(y.returnPct.toFixed(1)),
-      profitLabel: 'Demo / backtest programme return',
+      profitLabel: '',
     }))
   }
 
@@ -449,7 +449,7 @@ export function resolveYearlySeries(
         return {
           year: String(year),
           returnPct: Number(sum.toFixed(1)),
-          profitLabel: 'Demo / backtest programme return',
+          profitLabel: '',
         }
       })
   }

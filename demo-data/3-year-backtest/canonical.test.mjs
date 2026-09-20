@@ -280,6 +280,26 @@ test('public marketing components do not compound demo balances', () => {
   }
 })
 
+test('public yearly return cards do not show a demo/backtest label', () => {
+  const liveStats = fs.readFileSync(
+    path.join(repoRoot, 'apps/web/src/features/landing/live-stats.ts'),
+    'utf8',
+  )
+  const showcase = fs.readFileSync(
+    path.join(repoRoot, 'apps/web/src/components/marketing/performance-showcase.tsx'),
+    'utf8',
+  )
+  const hpc = fs.readFileSync(
+    path.join(repoRoot, 'apps/web/src/components/marketing/historical-performance-center.tsx'),
+    'utf8',
+  )
+  assert.equal(liveStats.includes('Demo / backtest programme return'), false)
+  assert.equal(showcase.includes('Demo / backtest'), false)
+  assert.equal(hpc.includes('Demo / backtest'), false)
+  assert.ok(showcase.includes('row.profitLabel ?'))
+  assert.ok(hpc.includes('y.profitLabel ?'))
+})
+
 test('public website prefers canonical demo over publicMeta', () => {
   const liveStats = fs.readFileSync(
     path.join(repoRoot, 'apps/web/src/features/landing/live-stats.ts'),

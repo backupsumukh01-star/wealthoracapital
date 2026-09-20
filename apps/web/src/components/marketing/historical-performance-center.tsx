@@ -227,7 +227,7 @@ function YearlyCards() {
             {y.tradeCount != null ? <li>Total trades: {y.tradeCount.toLocaleString()}</li> : null}
             {y.tradingDays != null ? <li>Trading days: {y.tradingDays}</li> : null}
             {y.winRatePct ? <li>Winning %: {y.winRatePct}%</li> : null}
-            <li>{y.profitLabel}</li>
+            {y.profitLabel ? <li>{y.profitLabel}</li> : null}
           </ul>
         </div>
       ))}

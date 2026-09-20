@@ -102,12 +102,16 @@ export function PerformanceShowcase({
                         {row.returnPct}%
                       </p>
                     </div>
-                    <p className="text-caption text-fg-subtle">
-                      {row.tradeCount != null ? `${row.tradeCount.toLocaleString()} trades` : null}
-                      {row.tradingDays != null ? ` · ${row.tradingDays} days` : null}
-                      {row.winRatePct ? ` · ${row.winRatePct}% win` : null}
-                    </p>
-                    <p className="truncate text-caption text-fg-muted">{row.profitLabel}</p>
+                    {(row.tradeCount != null || row.tradingDays != null || row.winRatePct) ? (
+                      <p className="text-caption text-fg-subtle">
+                        {row.tradeCount != null ? `${row.tradeCount.toLocaleString()} trades` : null}
+                        {row.tradingDays != null ? ` · ${row.tradingDays} days` : null}
+                        {row.winRatePct ? ` · ${row.winRatePct}% win` : null}
+                      </p>
+                    ) : null}
+                    {row.profitLabel ? (
+                      <p className="truncate text-caption text-fg-muted">{row.profitLabel}</p>
+                    ) : null}
                   </li>
                 ))}
               </ul>
