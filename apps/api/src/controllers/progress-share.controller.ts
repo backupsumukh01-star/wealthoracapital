@@ -24,7 +24,7 @@ export const progressShareController = {
     sendSuccess(res, await progressShareService.buildSnapshot(userId))
   }),
 
-  /** Authenticated or token: 1080×1080 PNG. */
+  /** Authenticated or token: 1080×1920 PNG. */
   image: asyncHandler(async (req, res) => {
     const query = req.query as TokenQuery
     const userId = await progressShareService.resolveUserId({
@@ -32,11 +32,11 @@ export const progressShareController = {
       token: query.t,
       userIdQuery: typeof query.userId === 'string' ? query.userId : undefined,
     })
-    const { png } = await progressShareService.renderImage(userId)
+    const { png } = await progressShareService.renderImage(userId, query.kind ?? 'journey')
     res.setHeader('Content-Type', 'image/png')
     res.setHeader('Cache-Control', 'private, max-age=300')
     res.setHeader('X-Content-Type-Options', 'nosniff')
-    res.setHeader('Content-Disposition', 'inline; filename="wealthora-progress.png"')
+    res.setHeader('Content-Disposition', `inline; filename="wealthora-${query.kind ?? 'journey'}.png"`)
     res.status(200).send(png)
   }),
 }

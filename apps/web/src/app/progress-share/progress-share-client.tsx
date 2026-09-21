@@ -9,7 +9,12 @@ import { Copy, Download, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/toast'
 import { env } from '@/lib/env'
-import { progressShareService, type ProgressShareSnapshot } from '@/services/progress-share.service'
+import {
+  progressShareService,
+  type ProgressShareKind,
+  type ProgressShareSnapshot,
+} from '@/services/progress-share.service'
+import { cn } from '@/lib/cn'
 
 async function copyText(value: string): Promise<boolean> {
   try {
@@ -20,25 +25,23 @@ async function copyText(value: string): Promise<boolean> {
   }
 }
 
-/**
- * Public share landing for Daily Profit email CTA and copied links.
- * Requires signed token `t` — never accepts raw userId.
- */
 export default function ProgressSharePage() {
   const params = useSearchParams()
   const token = params.get('t')?.trim() || ''
+  const initialKind = params.get('kind') === 'daily' ? 'daily' : 'journey'
+  const [kind, setKind] = useState<ProgressShareKind>(initialKind)
   const [snapshot, setSnapshot] = useState<ProgressShareSnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(Boolean(token))
 
   const imageUrl = useMemo(() => {
     if (!token) return null
-    return `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.progressShare.image}?t=${encodeURIComponent(token)}`
-  }, [token])
+    return `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.progressShare.image}?t=${encodeURIComponent(token)}&kind=${kind}`
+  }, [token, kind])
 
   const shareUrl =
     typeof window !== 'undefined' && token
-      ? `${window.location.origin}${ROUTES.dashboard.progressShare}?t=${encodeURIComponent(token)}`
+      ? `${window.location.origin}${ROUTES.dashboard.progressShare}?t=${encodeURIComponent(token)}&kind=${kind}`
       : null
 
   useEffect(() => {
@@ -74,11 +77,11 @@ export default function ProgressSharePage() {
   async function onDownload() {
     if (!token) return
     try {
-      const blob = await progressShareService.fetchImageBlob({ token })
+      const blob = await progressShareService.fetchImageBlob({ token, kind })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = 'wealthora-progress.png'
+      a.download = kind === 'daily' ? 'wealthora-todays-earnings.png' : 'wealthora-investment-journey.png'
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -99,14 +102,21 @@ export default function ProgressSharePage() {
   async function onShare() {
     if (!token || !shareUrl) return
     try {
-      const blob = await progressShareService.fetchImageBlob({ token })
-      const file = new File([blob], 'wealthora-progress.png', { type: 'image/png' })
+      const blob = await progressShareService.fetchImageBlob({ token, kind })
+      const file = new File(
+        [blob],
+        kind === 'daily' ? 'wealthora-todays-earnings.png' : 'wealthora-investment-journey.png',
+        { type: 'image/png' },
+      )
       if (typeof navigator.share === 'function') {
         try {
           if (navigator.canShare?.({ files: [file] })) {
             await navigator.share({
               title: 'Wealthora Capital',
-              text: 'My investment progress on Wealthora Capital.',
+              text:
+                kind === 'daily'
+                  ? "Today's earnings on Wealthora Capital."
+                  : 'My investment journey on Wealthora Capital.',
               files: [file],
             })
             return
@@ -134,19 +144,41 @@ export default function ProgressSharePage() {
         <header className="space-y-1.5">
           <p className="text-[11px] font-semibold tracking-[0.14em] text-[#C9A45C]">WEALTHORA CAPITAL</p>
           <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Share My Progress</h1>
+          <p className="text-sm text-[#9AA4B5]">Share your investment journey or today&apos;s earnings.</p>
         </header>
 
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setKind('journey')}
+            className={cn(
+              'rounded-full border px-3 py-2 text-sm',
+              kind === 'journey'
+                ? 'border-[#3CCB91] bg-[#3CCB91]/15 text-[#3CCB91]'
+                : 'border-white/10 text-[#AAB3BD]',
+            )}
+          >
+            Investment Journey
+          </button>
+          <button
+            type="button"
+            onClick={() => setKind('daily')}
+            className={cn(
+              'rounded-full border px-3 py-2 text-sm',
+              kind === 'daily'
+                ? 'border-[#3CCB91] bg-[#3CCB91]/15 text-[#3CCB91]'
+                : 'border-white/10 text-[#AAB3BD]',
+            )}
+          >
+            Today&apos;s Earnings
+          </button>
+        </div>
+
         {loading ? (
-          <div
-            className="w-full animate-pulse rounded-2xl bg-white/5"
-            style={{ aspectRatio: '1080 / 780' }}
-          />
+          <div className="w-full animate-pulse rounded-2xl bg-white/5" style={{ aspectRatio: '9 / 16' }} />
         ) : error ? (
           <div className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
             <p className="text-sm text-[#FFB4B4]">{error}</p>
-            <p className="text-sm text-[#9AA4B5]">
-              Sign in to create a fresh share image from your dashboard.
-            </p>
             <Button asChild size="sm">
               <Link href={ROUTES.auth.login}>Sign in</Link>
             </Button>
@@ -159,24 +191,19 @@ export default function ProgressSharePage() {
                 src={imageUrl}
                 alt={
                   snapshot
-                    ? `${snapshot.displayName} investment progress on Wealthora Capital`
+                    ? `${snapshot.displayName} ${kind === 'daily' ? "today's earnings" : 'investment journey'} on Wealthora Capital`
                     : 'Wealthora Capital progress'
                 }
                 className="block h-auto w-full max-w-full rounded-2xl border border-white/10 shadow-[0_12px_40px_-16px_rgba(0,0,0,0.65)]"
-                style={{ objectFit: 'contain', display: 'block', width: '100%', height: 'auto' }}
                 width={1080}
-                height={780}
+                height={1920}
                 decoding="async"
               />
             ) : null}
 
-            <p className="px-1 text-center text-[15px] leading-snug text-[#C5D0DC] sm:text-base">
-              My investment progress on Wealthora Capital.
-            </p>
-
             {snapshot ? (
               <p className="text-center text-xs text-[#6B7C90]">
-                {snapshot.displayName} · {snapshot.displayCurrency} · as of {snapshot.asOfDate}
+                {snapshot.displayName} · USD · as of {snapshot.asOfDate}
               </p>
             ) : null}
 

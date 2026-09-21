@@ -9,6 +9,14 @@ export default defineConfig({
   sourcemap: true,
   splitting: false,
   dts: false,
+  async onSuccess() {
+    const { cpSync, mkdirSync } = await import('node:fs')
+    mkdirSync('dist/progress-share-assets', { recursive: true })
+    cpSync('src/services/progress-share/assets', 'dist/progress-share-assets', {
+      recursive: true,
+      filter: (src) => !src.includes('_preview') && !src.endsWith('.png'),
+    })
+  },
   // Bundle workspace contracts; keep runtime deps external.
   noExternal: ['@meridian/shared'],
   external: [

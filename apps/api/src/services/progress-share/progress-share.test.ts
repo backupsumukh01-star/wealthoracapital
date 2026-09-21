@@ -8,7 +8,7 @@ import { prisma } from '../../database/prisma.js'
 import { env } from '../../config/env.js'
 import { ledgerService } from '../finance/ledger.service.js'
 import { moneyString } from '../../utils/money.js'
-import { buildProgressShareSvg } from './progress-share.image.js'
+import { buildProgressShareOverlay, buildProgressShareSvg } from './progress-share.image.js'
 import { progressShareService } from './progress-share.service.js'
 import {
   signProgressShareToken,
@@ -67,9 +67,17 @@ function baseSnapshot(over: Partial<ProgressShareSnapshot> = {}): ProgressShareS
     totalInvestment: '5000.00',
     totalEarnings: '542.50',
     earningsTillDate: '542.50',
+    currentValue: '5542.50',
     performancePct: '10.850000',
+    todayEarnings: '42.50',
+    dailyReturnPct: '0.850000',
     asOfDate: '2026-08-11',
     brandName: 'Wealthora Capital',
+    portfolioHistory: [
+      { label: 'STARTED', value: '5000.00' },
+      { label: 'NOW', value: '5542.50' },
+    ],
+    intradayPerformance: [],
     ...over,
   }
 }
@@ -93,7 +101,7 @@ describe('Progress share tokens', () => {
 
 describe('Progress share image content', () => {
   it('includes safe progress fields and omits sensitive data', () => {
-    const svg = buildProgressShareSvg(
+    const overlay = buildProgressShareOverlay(
       baseSnapshot({
         displayName: 'Very Long Investor Name That Should Truncate Nicely',
         displayCurrency: 'USD',
@@ -102,17 +110,35 @@ describe('Progress share image content', () => {
         earningsTillDate: '504.52',
       }),
     )
-    expect(svg).toContain('Wealthora Capital')
-    expect(svg).toContain('EARNINGS TILL DATE')
-    expect(svg).toContain('USD')
+    const svg = buildProgressShareSvg(
+      baseSnapshot({
+        displayName: 'Very Long Investor Name That Should Truncate Nicely',
+        totalInvestment: '5000.00',
+        totalEarnings: '504.52',
+      }),
+    )
+    expect(overlay).toContain('Very Long Investor')
+    expect(overlay).toContain('+10.85')
+    expect(overlay).toContain('5,000.00')
     expect(svg).toContain('width="1080"')
-    expect(svg).toContain('height="780"')
-    expect(svg).not.toContain('@')
-    expect(svg).not.toContain('userId')
-    expect(svg).not.toContain('wallet')
-    expect(svg).not.toContain('0x')
-    expect(svg).not.toContain('KYC')
-    expect(svg).not.toContain('referral')
+    expect(svg).toContain('height="1920"')
+    expect(svg).toContain('data:image/jpeg;base64,')
+    expect(overlay).not.toContain('₹')
+    expect(overlay).not.toContain('INR')
+    expect(overlay).not.toContain('@')
+    expect(overlay).not.toContain('userId')
+    expect(overlay).not.toContain('wallet')
+    expect(overlay).not.toContain('0x')
+    expect(overlay).not.toContain('KYC')
+    expect(overlay).not.toContain('referral')
+  })
+
+  it('daily template overlays earned-today values on the photo', () => {
+    const overlay = buildProgressShareOverlay(baseSnapshot(), 'daily')
+    expect(overlay).toContain('Aisha Khan')
+    expect(overlay).toContain('42.50')
+    expect(overlay).toContain('+0.85')
+    expect(overlay).not.toContain('₹')
   })
 
   it('resolves share display names without privacy placeholders', () => {
@@ -146,17 +172,16 @@ describe('Progress share image content', () => {
     ).toBe('Priya')
   })
 
-  it.each([['USD', '5000.00', '$']] as const)('formats %s display currency', (currency, amount, symbol) => {
+  it.each([['USD', '5000.00']] as const)('formats %s display currency', (_currency, amount) => {
     const svg = buildProgressShareSvg(
       baseSnapshot({
-        displayCurrency: currency,
+        displayCurrency: _currency,
         totalInvestment: amount,
         totalEarnings: amount,
         earningsTillDate: amount,
       }),
     )
-    expect(svg).toContain(currency)
-    expect(svg).toContain(symbol)
+    expect(svg).toContain('5,000.00')
   })
 })
 
@@ -183,6 +208,20 @@ describe('Progress share HTTP API', () => {
     expect((image.body as Buffer).length).toBeGreaterThan(1000)
     // PNG magic bytes
     expect((image.body as Buffer).subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a')
+    const png = image.body as Buffer
+    expect(png.readUInt32BE(16)).toBe(1080)
+    expect(png.readUInt32BE(20)).toBe(1920)
+  })
+
+  it('daily kind renders a separate 1080×1920 PNG', async () => {
+    const email = `ps_daily_${randomUUID().slice(0, 8)}@example.com`
+    const { agent, user } = await registerAndLogin(email, 'SecurePass1!')
+    await seedWallet(user.id, '1000.00', '50.00')
+    const image = await readPng(agent.get('/api/v1/progress-share/image?kind=daily'))
+    expect(image.status).toBe(200)
+    const png = image.body as Buffer
+    expect(png.readUInt32BE(16)).toBe(1080)
+    expect(png.readUInt32BE(20)).toBe(1920)
   })
 
   it('rejects userId query IDOR attempts', async () => {
@@ -255,6 +294,9 @@ describe('Progress share HTTP API', () => {
     expect(snapshot.earningsTillDate).toBe(snapshot.totalEarnings)
     expect(snapshot.earningsTillDate).toBe('321.45')
     expect(snapshot.totalInvestment).toBe('2000.00')
+    expect(snapshot.currentValue).toBeDefined()
+    expect(snapshot.portfolioHistory.length).toBeGreaterThanOrEqual(2)
+    expect(snapshot.intradayPerformance).toEqual([])
   })
 
   it('always presents USD ledger amounts regardless of profile displayCurrency', async () => {
@@ -312,6 +354,8 @@ describe('Progress share HTTP API', () => {
     expect(res.status).toBe(200)
     expect(res.body.data.shareUrl).toContain('/progress-share?t=')
     expect(res.body.data.imageUrl).toContain('/api/v1/progress-share/image?t=')
+    expect(res.body.data.dailyImageUrl).toContain('kind=daily')
+    expect(res.body.data.journeyImageUrl).toContain('kind=journey')
     expect(res.body.data.shareUrl.startsWith(env.APP_URL.replace(/\/$/, ''))).toBe(true)
   })
 })

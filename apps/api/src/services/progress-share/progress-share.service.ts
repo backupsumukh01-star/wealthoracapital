@@ -3,17 +3,22 @@ import { DEFAULT_DISPLAY_CURRENCY, type DisplayCurrency } from '@meridian/shared
 import { env } from '../../config/env.js'
 import { prisma } from '../../database/prisma.js'
 import { badRequest, notFound } from '../../utils/errors.js'
-import { moneyDisplay } from '../../utils/money.js'
+import { d, moneyDisplay } from '../../utils/money.js'
 import { ledgerService } from '../finance/ledger.service.js'
 import { mapWalletAggregate } from '../finance/finance.mappers.js'
 import { performanceService } from '../trading/performance.service.js'
 import { renderProgressSharePng } from './progress-share.image.js'
+import { thinRealPoints } from './progress-share.chart.js'
 import {
   PROGRESS_SHARE_TTL_SECONDS,
   signProgressShareToken,
   verifyProgressShareToken,
 } from './progress-share.token.js'
-import type { ProgressShareLink, ProgressShareSnapshot } from './progress-share.types.js'
+import type {
+  ProgressShareKind,
+  ProgressShareLink,
+  ProgressShareSnapshot,
+} from './progress-share.types.js'
 
 /** Browser / privacy placeholders that should not appear on share cards. */
 const PLACEHOLDER_TOKEN =
@@ -67,17 +72,57 @@ export async function buildProgressShareSnapshot(userId: string): Promise<Progre
   })
   if (!user) throw notFound('User not found.')
 
-  const [wallets, performance] = await Promise.all([
+  const [wallets, performance, equity, todayRows] = await Promise.all([
     ledgerService.ensureWalletsForUser(userId),
     performanceService.summary(userId),
+    performanceService.series(userId, 'all'),
+    prisma.profitDistribution.findMany({
+      where: {
+        userId,
+        isReversed: false,
+        date: new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`),
+      },
+      orderBy: { createdAt: 'asc' },
+      select: { amount: true, returnPct: true, createdAt: true },
+    }),
   ])
 
   const wallet = mapWalletAggregate(wallets)
   const displayCurrency: DisplayCurrency = DEFAULT_DISPLAY_CURRENCY
 
-  // Earnings Till Date = investment wallet totalProfit (excludes referral rewards).
   const earningsUsd = wallet.totalProfit
   const investmentUsd = wallet.investedAmount
+  const currentUsd = wallet.balance
+
+  let todayEarnings = d(0)
+  for (const row of todayRows) todayEarnings = todayEarnings.plus(d(row.amount))
+  const latestToday = todayRows[todayRows.length - 1]
+  const dailyReturnPct = latestToday ? d(latestToday.returnPct).toFixed(6) : '0.00'
+
+  const history = thinRealPoints(
+    equity.points.map((p) => ({ label: p.date, value: p.balance })),
+  )
+  const portfolioHistory =
+    history.length >= 2
+      ? history
+      : [
+          { label: 'STARTED', value: investmentUsd },
+          { label: 'NOW', value: currentUsd },
+        ]
+
+  const intradayPerformance =
+    todayRows.length >= 2
+      ? (() => {
+          let cum = d(0)
+          return todayRows.map((row) => {
+            cum = cum.plus(d(row.amount))
+            return {
+              label: row.createdAt.toISOString().slice(11, 16),
+              value: moneyDisplay(cum),
+            }
+          })
+        })()
+      : []
 
   return {
     displayName: displayNameFromUser(user),
@@ -85,9 +130,14 @@ export async function buildProgressShareSnapshot(userId: string): Promise<Progre
     totalInvestment: moneyDisplay(investmentUsd),
     totalEarnings: moneyDisplay(earningsUsd),
     earningsTillDate: moneyDisplay(earningsUsd),
+    currentValue: moneyDisplay(currentUsd),
     performancePct: performance.roiPct,
+    todayEarnings: moneyDisplay(todayEarnings),
+    dailyReturnPct,
     asOfDate: new Date().toISOString().slice(0, 10),
     brandName: 'Wealthora Capital',
+    portfolioHistory,
+    intradayPerformance,
   }
 }
 
@@ -99,13 +149,17 @@ export async function createProgressShareLink(
   await buildProgressShareSnapshot(userId)
   const { token, expiresAt } = signProgressShareToken(userId, ttlSeconds)
   const encoded = encodeURIComponent(token)
-  const shareUrl = `${env.APP_URL.replace(/\/$/, '')}/progress-share?t=${encoded}`
-  const imageUrl = `${env.API_URL.replace(/\/$/, '')}/api/v1/progress-share/image?t=${encoded}`
+  const shareBase = `${env.APP_URL.replace(/\/$/, '')}/progress-share?t=${encoded}`
+  const imageBase = `${env.API_URL.replace(/\/$/, '')}/api/v1/progress-share/image?t=${encoded}`
   return {
     token,
     expiresAt: expiresAt.toISOString(),
-    shareUrl,
-    imageUrl,
+    shareUrl: shareBase,
+    imageUrl: `${imageBase}&kind=journey`,
+    journeyImageUrl: `${imageBase}&kind=journey`,
+    dailyImageUrl: `${imageBase}&kind=daily`,
+    journeyShareUrl: `${shareBase}&kind=journey`,
+    dailyShareUrl: `${shareBase}&kind=daily`,
   }
 }
 
@@ -127,12 +181,15 @@ export async function resolveProgressShareUserId(input: {
   throw badRequest('Authentication or a valid share token is required.')
 }
 
-export async function renderProgressShareImageForUser(userId: string): Promise<{
+export async function renderProgressShareImageForUser(
+  userId: string,
+  kind: ProgressShareKind = 'journey',
+): Promise<{
   png: Buffer
   snapshot: ProgressShareSnapshot
 }> {
   const snapshot = await buildProgressShareSnapshot(userId)
-  const png = renderProgressSharePng(snapshot)
+  const png = renderProgressSharePng(snapshot, kind)
   return { png, snapshot }
 }
 
