@@ -41,7 +41,7 @@ export function AdminPaymentsOsWorkspace() {
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="Payment Settings"
-        description="INR rails, UPI apps, bank details, and unlimited crypto wallets."
+        description="Bank, UPI, and crypto payout rails."
       />
 
       <AdminPanel>
@@ -72,7 +72,7 @@ export function AdminPaymentsOsWorkspace() {
       </AdminPanel>
 
       <AdminPanel>
-        <AdminPanelHeader title="INR · UPI · Bank" description="Enable or edit each rail." />
+        <AdminPanelHeader title="Bank · UPI" description="Enable or edit each rail." />
         <div className="space-y-4 p-4 sm:p-5">
           {state.inrMethods.map((m) => (
             <InrEditor key={m.id} method={m} onSave={upsertInrMethod} />

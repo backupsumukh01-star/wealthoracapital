@@ -1,17 +1,9 @@
-import {
-  DEFAULT_DISPLAY_CURRENCY,
-  isDisplayCurrency,
-  type DisplayCurrency,
-} from '@meridian/shared'
+import { DEFAULT_DISPLAY_CURRENCY, type DisplayCurrency } from '@meridian/shared'
 
 import { env } from '../../config/env.js'
 import { prisma } from '../../database/prisma.js'
 import { badRequest, notFound } from '../../utils/errors.js'
 import { moneyDisplay } from '../../utils/money.js'
-import {
-  convertFromUsdSync,
-  getPlatformCurrencyRates,
-} from '../finance/currency.service.js'
 import { ledgerService } from '../finance/ledger.service.js'
 import { mapWalletAggregate } from '../finance/finance.mappers.js'
 import { performanceService } from '../trading/performance.service.js'
@@ -57,15 +49,11 @@ export function displayNameFromUser(user: {
   return 'Investor'
 }
 
-function convertUsdField(amountUsd: string, currency: DisplayCurrency, rates: Record<string, string>) {
-  if (currency === 'USD') return moneyDisplay(amountUsd)
-  return convertFromUsdSync(amountUsd, currency, rates)
-}
-
 /**
  * Authoritative progress snapshot for share images.
  * Uses wallet aggregate + performance summary (same Earnings Till Date source as Daily Profit email).
  * Read-only — does not write to wallets or ledger.
+ * Amounts are the USD ledger figures; share cards do not convert display currencies.
  */
 export async function buildProgressShareSnapshot(userId: string): Promise<ProgressShareSnapshot> {
   const user = await prisma.user.findUnique({
@@ -75,22 +63,17 @@ export async function buildProgressShareSnapshot(userId: string): Promise<Progre
       email: true,
       firstName: true,
       lastName: true,
-      profile: { select: { displayCurrency: true } },
     },
   })
   if (!user) throw notFound('User not found.')
 
-  const [wallets, rates, performance] = await Promise.all([
+  const [wallets, performance] = await Promise.all([
     ledgerService.ensureWalletsForUser(userId),
-    getPlatformCurrencyRates(),
     performanceService.summary(userId),
   ])
 
   const wallet = mapWalletAggregate(wallets)
-  const rawCurrency = user.profile?.displayCurrency ?? DEFAULT_DISPLAY_CURRENCY
-  const displayCurrency: DisplayCurrency = isDisplayCurrency(rawCurrency)
-    ? rawCurrency
-    : DEFAULT_DISPLAY_CURRENCY
+  const displayCurrency: DisplayCurrency = DEFAULT_DISPLAY_CURRENCY
 
   // Earnings Till Date = investment wallet totalProfit (excludes referral rewards).
   const earningsUsd = wallet.totalProfit
@@ -99,9 +82,9 @@ export async function buildProgressShareSnapshot(userId: string): Promise<Progre
   return {
     displayName: displayNameFromUser(user),
     displayCurrency,
-    totalInvestment: convertUsdField(investmentUsd, displayCurrency, rates),
-    totalEarnings: convertUsdField(earningsUsd, displayCurrency, rates),
-    earningsTillDate: convertUsdField(earningsUsd, displayCurrency, rates),
+    totalInvestment: moneyDisplay(investmentUsd),
+    totalEarnings: moneyDisplay(earningsUsd),
+    earningsTillDate: moneyDisplay(earningsUsd),
     performancePct: performance.roiPct,
     asOfDate: new Date().toISOString().slice(0, 10),
     brandName: 'Wealthora Capital',

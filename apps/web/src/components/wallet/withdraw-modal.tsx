@@ -378,9 +378,9 @@ export function WithdrawModal({
       stepLabel: 'Step 1 of 2',
     },
     inr: {
-      title: 'INR withdrawal',
+      title: 'Bank withdrawal',
       description: `Available $${availableBalance}`,
-      stepLabel: 'INR',
+      stepLabel: 'Bank',
     },
     crypto: {
       title: 'Crypto withdrawal',
@@ -436,7 +436,7 @@ export function WithdrawModal({
         {step === 'rail' ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <MethodTile
-              title="INR"
+              title="Bank"
               description="Payout to your bank account"
               icon={<Building2 className="size-5" aria-hidden />}
               onClick={() => {
@@ -684,7 +684,7 @@ export function WithdrawModal({
           </div>
         ) : null}
 
-        <span className="sr-only">{rail}</span>
+        <span className="sr-only">{rail === 'CRYPTO' ? 'Crypto' : rail === 'INR' ? 'Bank' : ''}</span>
       </WalletModalShell>
 
       <SuccessModal

@@ -129,7 +129,7 @@ export const depositService = {
     const rate = d(platform.usdInrRate ?? DEFAULT_USD_INR_RATE)
     // Always derive INR server-side — never trust client amountInr (forgery / rate tampering).
     const amountInr = usdToInr(amount, rate)
-    if (!amountInr.isFinite() || amountInr.lte(0)) throw badRequest('Invalid INR amount.')
+    if (!amountInr.isFinite() || amountInr.lte(0)) throw badRequest('Invalid amount.')
 
     const fee = amount.mul(d(method.feePct)).div(100)
     const wallet = await ledgerService.getInvestmentWallet(userId)

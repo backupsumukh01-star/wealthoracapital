@@ -96,15 +96,15 @@ describe('Progress share image content', () => {
     const svg = buildProgressShareSvg(
       baseSnapshot({
         displayName: 'Very Long Investor Name That Should Truncate Nicely',
-        displayCurrency: 'INR',
-        totalInvestment: '465000',
-        totalEarnings: '50452',
-        earningsTillDate: '50452',
+        displayCurrency: 'USD',
+        totalInvestment: '5000.00',
+        totalEarnings: '504.52',
+        earningsTillDate: '504.52',
       }),
     )
     expect(svg).toContain('Wealthora Capital')
     expect(svg).toContain('EARNINGS TILL DATE')
-    expect(svg).toContain('INR')
+    expect(svg).toContain('USD')
     expect(svg).toContain('width="1080"')
     expect(svg).toContain('height="780"')
     expect(svg).not.toContain('@')
@@ -146,12 +146,7 @@ describe('Progress share image content', () => {
     ).toBe('Priya')
   })
 
-  it.each([
-    ['USD', '5000.00', '$'],
-    ['INR', '465000', '₹'],
-    ['EUR', '4600.00', '€'],
-    ['GBP', '3950.00', '£'],
-  ] as const)('formats %s display currency', (currency, amount, symbol) => {
+  it.each([['USD', '5000.00', '$']] as const)('formats %s display currency', (currency, amount, symbol) => {
     const svg = buildProgressShareSvg(
       baseSnapshot({
         displayCurrency: currency,
@@ -262,7 +257,7 @@ describe('Progress share HTTP API', () => {
     expect(snapshot.totalInvestment).toBe('2000.00')
   })
 
-  it('respects display currency conversion for INR/EUR/GBP', async () => {
+  it('always presents USD ledger amounts regardless of profile displayCurrency', async () => {
     const email = `ps_fx_${randomUUID().slice(0, 8)}@example.com`
     const { user } = await registerAndLogin(email, 'SecurePass1!')
     await seedWallet(user.id, '100.00', '10.00')
@@ -273,22 +268,25 @@ describe('Progress share HTTP API', () => {
       update: { displayCurrency: 'INR' },
     })
     const inr = await progressShareService.buildSnapshot(user.id)
-    expect(inr.displayCurrency).toBe('INR')
-    expect(Number(inr.totalInvestment)).toBeGreaterThan(100)
+    expect(inr.displayCurrency).toBe('USD')
+    expect(inr.totalInvestment).toBe('100.00')
+    expect(inr.totalEarnings).toBe('10.00')
 
     await prisma.userProfile.update({
       where: { userId: user.id },
       data: { displayCurrency: 'EUR' },
     })
     const eur = await progressShareService.buildSnapshot(user.id)
-    expect(eur.displayCurrency).toBe('EUR')
+    expect(eur.displayCurrency).toBe('USD')
+    expect(eur.totalInvestment).toBe('100.00')
 
     await prisma.userProfile.update({
       where: { userId: user.id },
       data: { displayCurrency: 'GBP' },
     })
     const gbp = await progressShareService.buildSnapshot(user.id)
-    expect(gbp.displayCurrency).toBe('GBP')
+    expect(gbp.displayCurrency).toBe('USD')
+    expect(gbp.totalInvestment).toBe('100.00')
   })
 
   it('snapshot never includes sensitive fields', async () => {

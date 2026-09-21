@@ -170,7 +170,7 @@ export function DepositModal({
         }
       case 'inr-channel':
         return {
-          title: 'INR deposit',
+          title: 'Bank / UPI deposit',
           description: 'Pay via UPI apps or bank transfer (IMPS / NEFT / RTGS).',
           stepLabel: 'Step 2 of 3',
         }
@@ -180,13 +180,13 @@ export function DepositModal({
         return {
           title: 'UPI deposit',
           description: 'Pay with your preferred UPI app, then upload proof.',
-          stepLabel: 'INR · UPI',
+          stepLabel: 'UPI',
         }
       case 'imps':
         return {
           title: 'Bank transfer',
           description: 'IMPS / NEFT / RTGS to the Wealthora settlement account.',
-          stepLabel: 'INR · IMPS',
+          stepLabel: 'Bank transfer',
         }
       case 'crypto':
         return {
@@ -307,7 +307,7 @@ export function DepositModal({
         {!noMethods && step === 'rail' ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <MethodTile
-              title="INR"
+              title="Bank / UPI"
               description="UPI or IMPS / NEFT / RTGS"
               icon={<Building2 className="size-5" aria-hidden />}
               onClick={() => {
@@ -371,7 +371,7 @@ export function DepositModal({
 
         {step === 'upi-amount' ? (
           <div className="space-y-5">
-            <FormField label="Amount (USD equivalent)" required hint="Desk converts at the live INR rate.">
+            <FormField label="Amount (USD)" required hint="Enter the USD amount you are depositing.">
               <Input
                 numeric
                 prefix="$"
@@ -557,7 +557,10 @@ export function DepositModal({
           </div>
         ) : null}
 
-        <span className="sr-only">{rail}{channel}</span>
+        <span className="sr-only">
+          {rail === 'CRYPTO' ? 'Crypto' : rail === 'INR' ? 'Bank / UPI' : ''}
+          {channel ? ` ${channel}` : ''}
+        </span>
       </WalletModalShell>
 
       <SuccessModal

@@ -3,7 +3,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   DEFAULT_DISPLAY_CURRENCY,
-  DISPLAY_CURRENCIES,
   isDisplayCurrency,
   type DisplayCurrency,
 } from '@meridian/shared'
@@ -41,11 +40,13 @@ export function useDisplayCurrency(options?: QueryHookOptions) {
   })
 
   return {
-    displayCurrency: query.data ?? DEFAULT_DISPLAY_CURRENCY,
+    /** Investor UI is USD-only; stored preference is not used for on-site money display. */
+    displayCurrency: DEFAULT_DISPLAY_CURRENCY,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     setDisplayCurrency: (next: DisplayCurrency) => mutation.mutateAsync(next),
     isSaving: mutation.isPending,
-    currencies: DISPLAY_CURRENCIES,
+    currencies: ['USD'] as const,
+    storedDisplayCurrency: query.data ?? DEFAULT_DISPLAY_CURRENCY,
   }
 }

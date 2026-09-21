@@ -80,7 +80,7 @@ export function PayoutMethodsPanel() {
       <Card variant="glass" className="p-5 sm:p-6">
         <SectionHeader
           title="Bank accounts"
-          description="INR destinations for withdrawals."
+          description="Saved bank accounts for withdrawals."
           as="h2"
           actions={
             <Button

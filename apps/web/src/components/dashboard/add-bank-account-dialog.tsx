@@ -114,7 +114,7 @@ export function AddBankAccountDialog({
         <DialogHeader>
           <DialogTitle>{editing ? 'Edit bank account' : 'Add bank account'}</DialogTitle>
           <DialogDescription>
-            INR destination for withdrawals. Use the account you control.
+            Bank account for withdrawals. Use an account you control.
           </DialogDescription>
         </DialogHeader>
 

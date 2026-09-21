@@ -275,14 +275,14 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
         <TabsContent value="bank" className="mt-4">
           <SettingsCard
             title="Bank details"
-            description="Saved INR payout accounts."
+            description="Saved bank payout accounts."
             icon={Landmark}
           >
             {bankAccounts.length === 0 ? (
               <PremiumEmptyState
                 variant="wallet"
                 title="No bank accounts"
-                description="Add an INR account to receive withdrawals."
+                description="Add a bank account to receive withdrawals."
                 action={
                   <Button
                     variant="secondary"

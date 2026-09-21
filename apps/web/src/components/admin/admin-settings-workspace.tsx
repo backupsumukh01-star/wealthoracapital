@@ -280,12 +280,12 @@ function PlatformSection() {
       <AdminPanel>
         <AdminPanelHeader
           title="USD ↔ INR desk rate"
-          description="Live conversion rate used on deposit/withdraw forms and INR equivalents."
+          description="Used when recording optional INR payment snapshots. Investor balances stay in USD."
         />
         <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
           <FormField
             label="1 USD = ? INR"
-            hint="Whole-rupee display on investor forms. Ledger remains USD."
+            hint="Optional payment-rail snapshot. Ledger remains USD."
           >
             <Input
               inputMode="decimal"

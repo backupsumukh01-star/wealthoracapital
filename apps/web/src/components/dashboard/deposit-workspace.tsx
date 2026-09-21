@@ -549,7 +549,7 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
             {railsAvailable.BANK ? (
               <div className="border-line/70 bg-inset/40 flex flex-col gap-2 rounded-2xl border p-4 text-left opacity-80">
                 <Building2 className="text-accent-300 size-5" aria-hidden />
-                <span className="text-body-sm text-fg font-medium">INR Bank</span>
+                <span className="text-body-sm text-fg font-medium">Bank transfer</span>
                 <span className="text-caption text-warning">Coming Soon</span>
               </div>
             ) : null}

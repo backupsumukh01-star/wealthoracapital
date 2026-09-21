@@ -5,7 +5,7 @@ const money = z
   .regex(/^\d+(\.\d{1,8})?$/, 'Amount must be a positive decimal string.')
 
 /** Whole-rupee INR amount (no fractional digits). */
-const inrMoney = z.string().regex(/^\d+$/, 'INR amount must be a whole-rupee integer string.')
+const inrMoney = z.string().regex(/^\d+$/, 'Optional snapshot amount must be a whole-number integer string.')
 
 export const cursorLimitQuerySchema = z.object({
   cursor: z.string().uuid().optional(),

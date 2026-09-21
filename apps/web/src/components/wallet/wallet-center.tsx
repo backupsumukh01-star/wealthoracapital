@@ -161,7 +161,7 @@ export function WalletCenter() {
               <span className="text-body font-medium text-fg">
                 {kycLocked ? access.nextActionLabel : 'Deposit'}
               </span>
-              <span className="text-caption text-fg-muted">INR UPI / IMPS or crypto</span>
+              <span className="text-caption text-fg-muted">Bank, UPI, or crypto</span>
             </button>
             <button
               type="button"

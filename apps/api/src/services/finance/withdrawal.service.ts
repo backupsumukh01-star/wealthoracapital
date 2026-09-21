@@ -412,7 +412,7 @@ export const withdrawalService = {
         throw badRequest(
           latestRail.rail === 'CRYPTO'
             ? 'Your latest deposit was via crypto. Withdrawals must use a crypto payout method.'
-            : 'Your latest deposit was via INR. Withdrawals must use an INR payout method.',
+            : 'Your latest deposit used a bank/UPI payment method. Withdrawals must use the corresponding payout method.',
           {
             requiredRail: latestRail.rail,
             payoutRail,
@@ -435,7 +435,7 @@ export const withdrawalService = {
     const rate = d(platform.usdInrRate ?? DEFAULT_USD_INR_RATE)
     // Always derive INR server-side — never trust client amountInr (forgery / rate tampering).
     const amountInr = usdToInr(amount, rate)
-    if (!amountInr.isFinite() || amountInr.lte(0)) throw badRequest('Invalid INR amount.')
+    if (!amountInr.isFinite() || amountInr.lte(0)) throw badRequest('Invalid amount.')
 
     // Verify OTP only after amount/method validation so a bad request does not burn the code.
     await emailOtpService.verifyWithdrawalOtp(userId, body.otp, {
