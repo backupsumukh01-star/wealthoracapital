@@ -10,6 +10,9 @@ import {
   computeFundsUnlockAt,
   depositRailFromPaymentType,
   payoutRailFromType,
+  USD_ONLY_WITHDRAWAL_MODE,
+  depositRailConstrainsPayoutRail,
+  withdrawalRailMismatchError,
 } from './currency.service.js'
 
 describe('currency conversion foundation', () => {
@@ -64,6 +67,28 @@ describe('deposit rail detection', () => {
     expect(depositRailFromPaymentType('USDT_TRC20')).toBe('CRYPTO')
     expect(payoutRailFromType('BANK_TRANSFER')).toBe('INR')
     expect(payoutRailFromType('BTC')).toBe('CRYPTO')
+  })
+})
+
+describe('USD-only withdrawal rail policy', () => {
+  it('keeps USD-only mode explicit so deposit rail does not constrain payout', () => {
+    expect(USD_ONLY_WITHDRAWAL_MODE).toBe(true)
+    expect(depositRailConstrainsPayoutRail()).toBe(false)
+  })
+
+  it('allows historical INR/bank/UPI deposit with crypto payout', () => {
+    expect(withdrawalRailMismatchError('INR', 'USDT_TRC20')).toBeNull()
+    expect(withdrawalRailMismatchError('INR', 'CRYPTO')).toBeNull()
+  })
+
+  it('allows historical crypto deposit with crypto payout', () => {
+    expect(withdrawalRailMismatchError('CRYPTO', 'USDT_TRC20')).toBeNull()
+  })
+
+  it('never emits the obsolete bank/UPI rail-matching error', () => {
+    const mismatch = withdrawalRailMismatchError('INR', 'USDT_TRC20')
+    expect(mismatch).toBeNull()
+    expect(JSON.stringify(mismatch)).not.toContain('bank/UPI payment method')
   })
 })
 

@@ -61,6 +61,19 @@ export function computeFundsUnlockAt(approvedAt: Date, lockDays = DEPOSIT_LOCK_D
 
 export type DepositRail = 'INR' | 'CRYPTO' | 'OTHER'
 
+/**
+ * USD-only product mode (INR/Bank/UPI gateways are not enabled).
+ * Investor amounts stay USD; historical deposit rails are retained in the
+ * database but must not constrain which enabled payout method may be used.
+ * Flip this to false when INR payout rails are officially launched.
+ */
+export const USD_ONLY_WITHDRAWAL_MODE = true
+
+/** When false, latest deposit rail does not have to match payout rail. */
+export function depositRailConstrainsPayoutRail(): boolean {
+  return !USD_ONLY_WITHDRAWAL_MODE
+}
+
 export function depositRailFromPaymentType(type: string): DepositRail {
   if (['UPI', 'BANK_TRANSFER', 'MOBILE_WALLET'].includes(type)) return 'INR'
   if (['CRYPTO', 'USDT_TRC20', 'USDT_BEP20', 'BTC', 'ETH'].includes(type)) return 'CRYPTO'
@@ -69,6 +82,31 @@ export function depositRailFromPaymentType(type: string): DepositRail {
 
 export function payoutRailFromType(type: string): DepositRail {
   return depositRailFromPaymentType(type)
+}
+
+const INR_RAIL_MISMATCH_MESSAGE =
+  'Your latest deposit used a bank/UPI payment method. Withdrawals must use the corresponding payout method.'
+const CRYPTO_RAIL_MISMATCH_MESSAGE =
+  'Your latest deposit was via crypto. Withdrawals must use a crypto payout method.'
+
+/**
+ * Deposit-rail → payout-rail mismatch, if any, under the current product mode.
+ * Returns null in USD-only mode so historical INR/CRYPTO deposits cannot block
+ * an otherwise valid USD crypto withdrawal.
+ */
+export function withdrawalRailMismatchError(
+  latestRail: DepositRail | null | undefined,
+  payoutMethodType: string,
+): { message: string; requiredRail: DepositRail; payoutRail: DepositRail } | null {
+  if (!depositRailConstrainsPayoutRail()) return null
+  if (!latestRail || (latestRail !== 'INR' && latestRail !== 'CRYPTO')) return null
+  const payoutRail = payoutRailFromType(payoutMethodType)
+  if (payoutRail === latestRail) return null
+  return {
+    message: latestRail === 'CRYPTO' ? CRYPTO_RAIL_MISMATCH_MESSAGE : INR_RAIL_MISMATCH_MESSAGE,
+    requiredRail: latestRail,
+    payoutRail,
+  }
 }
 
 /**

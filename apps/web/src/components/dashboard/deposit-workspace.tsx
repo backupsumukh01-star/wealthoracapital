@@ -51,6 +51,11 @@ import {
 } from '@/features/deposits/hooks'
 import { ApiError } from '@/lib/api-client'
 import { formatDateTime } from '@/lib/format'
+import {
+  USD_ONLY_INVESTOR_PAYMENTS,
+  filterUsdInvestorPaymentMethods,
+  investorDepositRailCards,
+} from '@/lib/usd-only-investor-payments'
 import { useSession } from '@/providers/session-provider'
 
 const TIMELINE = [
@@ -236,7 +241,8 @@ function DepositHistory() {
   )
 }
 
-function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
+function DepositFlow({ methods: rawMethods }: { methods: PaymentMethod[] }) {
+  const methods = filterUsdInvestorPaymentMethods(rawMethods)
   const createDeposit = useCreateDeposit()
   const createOxapay = useCreateOxapayDeposit()
   const uploadProof = useUploadDepositProof()
@@ -245,7 +251,7 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
   const oxapayEnabled = Boolean(oxapayStatus?.enabled)
 
   const [step, setStep] = useState<Step>('method')
-  const [rail, setRail] = useState<Rail | null>(null)
+  const [rail, setRail] = useState<Rail | null>('CRYPTO')
   const [methodId, setMethodId] = useState<string | null>(null)
   const [depositUsd, setDepositUsd] = useState('')
   const [walletId, setWalletId] = useState<string | null>(null)
@@ -474,7 +480,7 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
 
   function resetFlow() {
     setStep('method')
-    setRail(null)
+    setRail(USD_ONLY_INVESTOR_PAYMENTS ? 'CRYPTO' : null)
     setMethodId(null)
     setDepositUsd('')
     setTxHash('')
@@ -535,31 +541,36 @@ function DepositFlow({ methods }: { methods: PaymentMethod[] }) {
 
         {step === 'method' ? (
           <div className="grid gap-3 sm:grid-cols-3">
-            {railsAvailable.CRYPTO ? (
-              <button
-                type="button"
-                onClick={() => chooseRail('CRYPTO')}
-                className="border-line/70 bg-inset/40 hover:border-accent/50 hover:bg-accent/5 flex flex-col gap-2 rounded-2xl border p-4 text-left transition"
-              >
-                <Wallet className="text-accent-300 size-5" aria-hidden />
-                <span className="text-body-sm text-fg font-medium">USDT / Crypto</span>
-                <span className="text-caption text-fg-subtle">TRC20, BEP20, BTC, ETH</span>
-              </button>
-            ) : null}
-            {railsAvailable.BANK ? (
-              <div className="border-line/70 bg-inset/40 flex flex-col gap-2 rounded-2xl border p-4 text-left opacity-80">
-                <Building2 className="text-accent-300 size-5" aria-hidden />
-                <span className="text-body-sm text-fg font-medium">Bank transfer</span>
-                <span className="text-caption text-warning">Coming Soon</span>
-              </div>
-            ) : null}
-            {railsAvailable.UPI ? (
-              <div className="border-line/70 bg-inset/40 flex flex-col gap-2 rounded-2xl border p-4 text-left opacity-80">
-                <Smartphone className="text-accent-300 size-5" aria-hidden />
-                <span className="text-body-sm text-fg font-medium">UPI</span>
-                <span className="text-caption text-warning">Coming Soon</span>
-              </div>
-            ) : null}
+            {investorDepositRailCards()
+              .filter((item) => item.id !== 'CRYPTO' || railsAvailable.CRYPTO)
+              .map((item) => {
+                const Icon = item.id === 'CRYPTO' ? Wallet : item.id === 'BANK' ? Building2 : Smartphone
+                if (item.soon) {
+                  return (
+                    <div
+                      key={item.id}
+                      className="border-line/70 bg-inset/40 flex flex-col gap-2 rounded-2xl border p-4 text-left opacity-80"
+                    >
+                      <Icon className="text-accent-300 size-5" aria-hidden />
+                      <span className="text-body-sm text-fg font-medium">{item.title}</span>
+                      <span className="text-caption text-warning">{item.desc}</span>
+                    </div>
+                  )
+                }
+                if (item.id === 'CRYPTO' && !railsAvailable.CRYPTO) return null
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => chooseRail(item.id)}
+                    className="border-line/70 bg-inset/40 hover:border-accent/50 hover:bg-accent/5 flex flex-col gap-2 rounded-2xl border p-4 text-left transition"
+                  >
+                    <Icon className="text-accent-300 size-5" aria-hidden />
+                    <span className="text-body-sm text-fg font-medium">{item.title}</span>
+                    <span className="text-caption text-fg-subtle">{item.desc}</span>
+                  </button>
+                )
+              })}
           </div>
         ) : null}
 

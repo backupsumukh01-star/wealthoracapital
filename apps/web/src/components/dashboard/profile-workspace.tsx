@@ -48,9 +48,10 @@ import {
 } from '@/lib/investor-lifecycle'
 import { ApiError } from '@/lib/api-client'
 import { formatDateTime } from '@/lib/format'
+import { USD_ONLY_INVESTOR_PAYMENTS } from '@/lib/usd-only-investor-payments'
+import { cn } from '@/lib/cn'
 import { useSession } from '@/providers/session-provider'
 import { authService } from '@/services/auth.service'
-import { cn } from '@/lib/cn'
 
 function isCryptoType(type: string) {
   return ['CRYPTO', 'USDT_TRC20', 'USDT_BEP20', 'BTC', 'ETH'].includes(type)
@@ -65,6 +66,10 @@ const TABS = [
   { id: 'password', label: 'Password', icon: KeyRound },
   { id: '2fa', label: '2FA', icon: Smartphone },
 ] as const
+
+const INVESTOR_TABS = USD_ONLY_INVESTOR_PAYMENTS
+  ? TABS.filter((t) => t.id !== 'bank')
+  : TABS
 
 function mapKycBadgeStatus(status: KycStatus | string): KycLifecycleStatus {
   switch (status) {
@@ -176,7 +181,7 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
             className="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-base to-transparent sm:hidden"
           />
           <TabsList className="no-scrollbar h-auto w-full max-w-full flex-nowrap justify-start gap-1 overflow-x-auto overscroll-x-contain rounded-xl p-1">
-            {TABS.map((t) => (
+            {INVESTOR_TABS.map((t) => (
               <TabsTrigger
                 key={t.id}
                 value={t.id}
@@ -272,6 +277,7 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
           </SettingsCard>
         </TabsContent>
 
+        {USD_ONLY_INVESTOR_PAYMENTS ? null : (
         <TabsContent value="bank" className="mt-4">
           <SettingsCard
             title="Bank details"
@@ -369,6 +375,7 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
             )}
           </SettingsCard>
         </TabsContent>
+        )}
 
         <TabsContent value="crypto" className="mt-4">
           <SettingsCard
@@ -635,6 +642,7 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
         </TabsContent>
       </Tabs>
 
+      {USD_ONLY_INVESTOR_PAYMENTS ? null : (
       <AddBankAccountDialog
         open={bankOpen}
         onOpenChange={(open) => {
@@ -644,6 +652,7 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
         method={editingBank}
         defaultAsPrimary={bankAccounts.length === 0}
       />
+      )}
       <AddCryptoWalletDialog
         open={walletOpen}
         onOpenChange={(open) => {

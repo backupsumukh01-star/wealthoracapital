@@ -161,7 +161,7 @@ export function WalletCenter() {
               <span className="text-body font-medium text-fg">
                 {kycLocked ? access.nextActionLabel : 'Deposit'}
               </span>
-              <span className="text-caption text-fg-muted">Bank, UPI, or crypto</span>
+              <span className="text-caption text-fg-muted">Crypto (USDT)</span>
             </button>
             <button
               type="button"
@@ -173,7 +173,7 @@ export function WalletCenter() {
                 <ArrowUpFromLine className="size-5" aria-hidden />
               </span>
               <span className="text-body font-medium text-fg">Withdraw</span>
-              <span className="text-caption text-fg-muted">Bank or crypto wallet</span>
+              <span className="text-caption text-fg-muted">Crypto (USDT)</span>
             </button>
           </div>
         </Card>

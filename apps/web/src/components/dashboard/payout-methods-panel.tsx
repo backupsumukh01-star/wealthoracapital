@@ -25,6 +25,7 @@ import {
 } from '@/features/withdrawals/hooks'
 import { ApiError } from '@/lib/api-client'
 import { cn } from '@/lib/cn'
+import { USD_ONLY_INVESTOR_PAYMENTS } from '@/lib/usd-only-investor-payments'
 import { useSession } from '@/providers/session-provider'
 
 function isCryptoType(type: string) {
@@ -77,6 +78,7 @@ export function PayoutMethodsPanel() {
 
   return (
     <>
+      {USD_ONLY_INVESTOR_PAYMENTS ? null : (
       <Card variant="glass" className="p-5 sm:p-6">
         <SectionHeader
           title="Bank accounts"
@@ -157,6 +159,7 @@ export function PayoutMethodsPanel() {
           </ul>
         )}
       </Card>
+      )}
 
       <Card variant="glass" className="p-5 sm:p-6">
         <SectionHeader
@@ -249,6 +252,7 @@ export function PayoutMethodsPanel() {
         )}
       </Card>
 
+      {USD_ONLY_INVESTOR_PAYMENTS ? null : (
       <AddBankAccountDialog
         open={bankOpen}
         onOpenChange={(open) => {
@@ -258,6 +262,7 @@ export function PayoutMethodsPanel() {
         method={editingBank}
         defaultAsPrimary={banks.length === 0}
       />
+      )}
       <AddCryptoWalletDialog
         open={walletOpen}
         onOpenChange={(open) => {

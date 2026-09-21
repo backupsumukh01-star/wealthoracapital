@@ -46,6 +46,11 @@ import {
 import { ApiError } from '@/lib/api-client'
 import { cn } from '@/lib/cn'
 import { formatDateTime } from '@/lib/format'
+import {
+  USD_ONLY_INVESTOR_PAYMENTS,
+  filterUsdInvestorPaymentMethods,
+  investorWithdrawRailCards,
+} from '@/lib/usd-only-investor-payments'
 import { useSession } from '@/providers/session-provider'
 
 type Rail = 'CRYPTO' | 'BANK' | 'UPI'
@@ -147,7 +152,7 @@ export function WithdrawWorkspace() {
   const requestOtp = useRequestWithdrawalOtp()
   const createWithdrawal = useCreateWithdrawal()
 
-  const methods = payoutMethods ?? []
+  const methods = filterUsdInvestorPaymentMethods(payoutMethods ?? [])
   const withdrawals = withdrawalsData?.items ?? []
   const available = toNumber(limits?.availableBalance)
   const pendingWithdrawal = useMemo(
@@ -159,7 +164,7 @@ export function WithdrawWorkspace() {
   )
 
   const [step, setStep] = useState<Step>('home')
-  const [rail, setRail] = useState<Rail | null>(null)
+  const [rail, setRail] = useState<Rail | null>('CRYPTO')
   const [withdrawUsd, setWithdrawUsd] = useState('')
   const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null)
   const [otp, setOtp] = useState('')
@@ -210,7 +215,7 @@ export function WithdrawWorkspace() {
 
   function goHome() {
     setStep('home')
-    setRail(null)
+    setRail(USD_ONLY_INVESTOR_PAYMENTS ? 'CRYPTO' : null)
     setSelectedMethodId(null)
     setOtp('')
     setOtpExpiresHint(null)
@@ -475,41 +480,21 @@ export function WithdrawWorkspace() {
             <div>
               <p className="text-body-sm text-fg mb-2 font-medium">Withdrawal method</p>
               <div className="grid gap-3 sm:grid-cols-3">
-                {(
-                  [
-                    {
-                      id: 'CRYPTO' as const,
-                      title: 'Crypto (USDT)',
-                      desc: 'USDT, BTC, ETH',
-                      icon: Wallet,
-                      soon: false,
-                    },
-                    {
-                      id: 'BANK' as const,
-                      title: 'Bank',
-                      desc: 'Coming Soon',
-                      icon: Building2,
-                      soon: true,
-                    },
-                    {
-                      id: 'UPI' as const,
-                      title: 'UPI',
-                      desc: 'Coming Soon',
-                      icon: Smartphone,
-                      soon: true,
-                    },
-                  ] as const
-                ).map((item) =>
-                  item.soon ? (
-                    <div
-                      key={item.id}
-                      className="border-line/70 bg-inset/40 flex flex-col gap-2 rounded-2xl border p-4 text-left opacity-80"
-                    >
-                      <item.icon className="text-accent-300 size-5" aria-hidden />
-                      <span className="text-body-sm text-fg font-medium">{item.title}</span>
-                      <span className="text-caption text-warning">{item.desc}</span>
-                    </div>
-                  ) : (
+                {investorWithdrawRailCards().map((item) => {
+                  const Icon = item.id === 'CRYPTO' ? Wallet : item.id === 'BANK' ? Building2 : Smartphone
+                  if (item.soon) {
+                    return (
+                      <div
+                        key={item.id}
+                        className="border-line/70 bg-inset/40 flex flex-col gap-2 rounded-2xl border p-4 text-left opacity-80"
+                      >
+                        <Icon className="text-accent-300 size-5" aria-hidden />
+                        <span className="text-body-sm text-fg font-medium">{item.title}</span>
+                        <span className="text-caption text-warning">{item.desc}</span>
+                      </div>
+                    )
+                  }
+                  return (
                     <button
                       key={item.id}
                       type="button"
@@ -521,12 +506,12 @@ export function WithdrawWorkspace() {
                           : 'hover:border-accent/40',
                       )}
                     >
-                      <item.icon className="text-accent-300 size-5" aria-hidden />
+                      <Icon className="text-accent-300 size-5" aria-hidden />
                       <span className="text-body-sm text-fg font-medium">{item.title}</span>
                       <span className="text-caption text-fg-subtle">{item.desc}</span>
                     </button>
-                  ),
-                )}
+                  )
+                })}
               </div>
             </div>
 
@@ -596,7 +581,7 @@ export function WithdrawWorkspace() {
                 Add New Wallet
               </Button>
             ) : null}
-            {rail === 'BANK' ? (
+            {rail === 'BANK' && !USD_ONLY_INVESTOR_PAYMENTS ? (
               <Button
                 type="button"
                 variant="secondary"
@@ -607,7 +592,7 @@ export function WithdrawWorkspace() {
                 Add bank account
               </Button>
             ) : null}
-            {rail === 'UPI' ? (
+            {rail === 'UPI' && !USD_ONLY_INVESTOR_PAYMENTS ? (
               <Button
                 type="button"
                 variant="secondary"
@@ -682,7 +667,7 @@ export function WithdrawWorkspace() {
           </div>
         ) : null}
 
-        {step === 'add-bank' ? (
+        {step === 'add-bank' && !USD_ONLY_INVESTOR_PAYMENTS ? (
           <div className="mx-auto max-w-md space-y-4">
             <FormField label="Account holder name" required>
               <Input
@@ -717,7 +702,7 @@ export function WithdrawWorkspace() {
           </div>
         ) : null}
 
-        {step === 'add-upi' ? (
+        {step === 'add-upi' && !USD_ONLY_INVESTOR_PAYMENTS ? (
           <div className="mx-auto max-w-md space-y-4">
             <FormField label="UPI ID" required>
               <Input

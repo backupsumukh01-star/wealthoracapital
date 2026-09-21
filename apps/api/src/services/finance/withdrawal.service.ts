@@ -13,9 +13,10 @@ import { settingsService } from '../settings.service.js'
 import { mapPayoutMethod, mapWithdrawal } from './finance.mappers.js'
 import { ledgerService } from './ledger.service.js'
 import {
+  depositRailConstrainsPayoutRail,
   getLatestQualifyingDepositRail,
   getWithdrawalEligibility,
-  payoutRailFromType,
+  withdrawalRailMismatchError,
 } from './currency.service.js'
 import { realWithdrawalWhere, isDemoInvestor } from '../demo-investor.js'
 
@@ -105,7 +106,9 @@ export const withdrawalService = {
     })
     const used = d(withdrawnToday._sum.amount ?? 0)
     const eligibility = await getWithdrawalEligibility(userId)
-    const latestRail = await getLatestQualifyingDepositRail(userId)
+    const latestRail = depositRailConstrainsPayoutRail()
+      ? await getLatestQualifyingDepositRail(userId)
+      : null
     const bounds = await platformWithdrawalBounds()
     return {
       min: moneyDisplay(bounds.min),
@@ -404,21 +407,17 @@ export const withdrawalService = {
     })
     if (!payout) throw badRequest('Payout method not found.')
 
-    // Rail rule foundation: latest approved deposit rail must match payout rail when known.
-    const latestRail = await getLatestQualifyingDepositRail(userId)
-    if (latestRail && (latestRail.rail === 'INR' || latestRail.rail === 'CRYPTO')) {
-      const payoutRail = payoutRailFromType(payout.type)
-      if (payoutRail !== latestRail.rail) {
-        throw badRequest(
-          latestRail.rail === 'CRYPTO'
-            ? 'Your latest deposit was via crypto. Withdrawals must use a crypto payout method.'
-            : 'Your latest deposit used a bank/UPI payment method. Withdrawals must use the corresponding payout method.',
-          {
-            requiredRail: latestRail.rail,
-            payoutRail,
-          },
-        )
-      }
+    // USD-only mode: historical deposit rail does not constrain payout rail.
+    // Rail matching is retained behind depositRailConstrainsPayoutRail() for later INR launch.
+    const latestRail = depositRailConstrainsPayoutRail()
+      ? await getLatestQualifyingDepositRail(userId)
+      : null
+    const railMismatch = withdrawalRailMismatchError(latestRail?.rail, payout.type)
+    if (railMismatch) {
+      throw badRequest(railMismatch.message, {
+        requiredRail: railMismatch.requiredRail,
+        payoutRail: railMismatch.payoutRail,
+      })
     }
 
     const eligibility = await getWithdrawalEligibility(userId)

@@ -8,7 +8,10 @@ export default defineConfig({
   root,
   test: {
     environment: 'node',
-    include: ['src/features/landing/live-stats.test.ts'],
+    include: [
+      'src/features/landing/live-stats.test.ts',
+      'src/lib/usd-only-investor-payments.test.ts',
+    ],
   },
   resolve: {
     alias: {

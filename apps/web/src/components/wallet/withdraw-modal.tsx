@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select'
 import { toast } from '@/components/ui/toast'
 import { ApiError } from '@/lib/api-client'
+import { USD_ONLY_INVESTOR_PAYMENTS } from '@/lib/usd-only-investor-payments'
 import { useWallet } from '@/features/wallet/hooks'
 import {
   useCreatePayoutMethod,
@@ -137,8 +138,8 @@ export function WithdrawModal({
   const { data: payoutMethods } = usePayoutMethods({ enabled: open })
   const { data: wallet } = useWallet({ enabled: open })
   const availableBalance = wallet?.availableBalance ?? '0.00'
-  const [step, setStep] = useState<Step>('rail')
-  const [rail, setRail] = useState<Rail>(null)
+  const [step, setStep] = useState<Step>(USD_ONLY_INVESTOR_PAYMENTS ? 'crypto' : 'rail')
+  const [rail, setRail] = useState<Rail>(USD_ONLY_INVESTOR_PAYMENTS ? 'CRYPTO' : null)
   const apiBanks = useMemo(() => mapPayoutBanks(payoutMethods ?? []), [payoutMethods])
   const apiWallets = useMemo(() => mapPayoutWallets(payoutMethods ?? []), [payoutMethods])
   const [banks, setBanks] = useState<BankAccount[]>(initialBanks)
@@ -202,8 +203,8 @@ export function WithdrawModal({
   }, [open, payoutMethods])
 
   function reset() {
-    setStep('rail')
-    setRail(null)
+    setStep(USD_ONLY_INVESTOR_PAYMENTS ? 'crypto' : 'rail')
+    setRail(USD_ONLY_INVESTOR_PAYMENTS ? 'CRYPTO' : null)
     setAmount('100')
     setOtp('')
     setPendingMethodId(null)
@@ -433,7 +434,7 @@ export function WithdrawModal({
           <p className="mb-4 text-body-sm text-fg-muted">No payment methods configured</p>
         ) : null}
 
-        {step === 'rail' ? (
+        {step === 'rail' && !USD_ONLY_INVESTOR_PAYMENTS ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <MethodTile
               title="Bank"
@@ -445,7 +446,21 @@ export function WithdrawModal({
               }}
             />
             <MethodTile
-              title="Crypto"
+              title="Crypto (USDT)"
+              description="Payout to a saved wallet"
+              icon={<Bitcoin className="size-5" aria-hidden />}
+              accent="cyan"
+              onClick={() => {
+                setRail('CRYPTO')
+                setStep(wallets.length === 0 ? 'add-wallet' : 'crypto')
+              }}
+            />
+          </div>
+        ) : null}
+        {step === 'rail' && USD_ONLY_INVESTOR_PAYMENTS ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <MethodTile
+              title="Crypto (USDT)"
               description="Payout to a saved wallet"
               icon={<Bitcoin className="size-5" aria-hidden />}
               accent="cyan"
@@ -457,7 +472,7 @@ export function WithdrawModal({
           </div>
         ) : null}
 
-        {step === 'inr' ? (
+        {step === 'inr' && !USD_ONLY_INVESTOR_PAYMENTS ? (
           <div className="space-y-4">
             {banks.length === 0 ? (
               <p className="text-body-sm text-fg-muted">No payment methods configured</p>
@@ -504,7 +519,7 @@ export function WithdrawModal({
           </div>
         ) : null}
 
-        {step === 'add-bank' ? (
+        {step === 'add-bank' && !USD_ONLY_INVESTOR_PAYMENTS ? (
           <div className="space-y-4">
             <FormField label="Bank name" required>
               <Input value={newBankName} onChange={(e) => setNewBankName(e.target.value)} />
@@ -684,7 +699,7 @@ export function WithdrawModal({
           </div>
         ) : null}
 
-        <span className="sr-only">{rail === 'CRYPTO' ? 'Crypto' : rail === 'INR' ? 'Bank' : ''}</span>
+        <span className="sr-only">{rail === 'CRYPTO' ? 'Crypto' : ''}</span>
       </WalletModalShell>
 
       <SuccessModal

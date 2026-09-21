@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select'
 import { toast } from '@/components/ui/toast'
 import { ApiError } from '@/lib/api-client'
+import { USD_ONLY_INVESTOR_PAYMENTS } from '@/lib/usd-only-investor-payments'
 import {
   useCancelDeposit,
   useCreateDeposit,
@@ -122,8 +123,8 @@ export function DepositModal({
   const createDeposit = useCreateDeposit()
   const uploadProof = useUploadDepositProof()
   const cancelDeposit = useCancelDeposit()
-  const [step, setStep] = useState<Step>('rail')
-  const [rail, setRail] = useState<Rail>(null)
+  const [step, setStep] = useState<Step>(USD_ONLY_INVESTOR_PAYMENTS ? 'crypto' : 'rail')
+  const [rail, setRail] = useState<Rail>(USD_ONLY_INVESTOR_PAYMENTS ? 'CRYPTO' : null)
   const [channel, setChannel] = useState<InrChannel>(null)
   const [amount, setAmount] = useState('500')
   const [utr, setUtr] = useState('')
@@ -200,8 +201,8 @@ export function DepositModal({
   }, [step])
 
   function reset() {
-    setStep('rail')
-    setRail(null)
+    setStep(USD_ONLY_INVESTOR_PAYMENTS ? 'crypto' : 'rail')
+    setRail(USD_ONLY_INVESTOR_PAYMENTS ? 'CRYPTO' : null)
     setChannel(null)
     setAmount('500')
     setUtr('')
@@ -304,7 +305,7 @@ export function DepositModal({
           <p className="text-body-sm text-fg-muted">No payment methods configured</p>
         ) : null}
 
-        {!noMethods && step === 'rail' ? (
+        {!noMethods && step === 'rail' && !USD_ONLY_INVESTOR_PAYMENTS ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <MethodTile
               title="Bank / UPI"
@@ -316,7 +317,21 @@ export function DepositModal({
               }}
             />
             <MethodTile
-              title="Crypto"
+              title="Crypto (USDT)"
+              description="USDT, USDC, BTC, ETH"
+              icon={<Bitcoin className="size-5" aria-hidden />}
+              accent="cyan"
+              onClick={() => {
+                setRail('CRYPTO')
+                setStep('crypto')
+              }}
+            />
+          </div>
+        ) : null}
+        {!noMethods && step === 'rail' && USD_ONLY_INVESTOR_PAYMENTS ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <MethodTile
+              title="Crypto (USDT)"
               description="USDT, USDC, BTC, ETH"
               icon={<Bitcoin className="size-5" aria-hidden />}
               accent="cyan"
@@ -328,7 +343,7 @@ export function DepositModal({
           </div>
         ) : null}
 
-        {step === 'inr-channel' ? (
+        {step === 'inr-channel' && !USD_ONLY_INVESTOR_PAYMENTS ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <MethodTile
               title="UPI"
@@ -369,7 +384,7 @@ export function DepositModal({
           </div>
         ) : null}
 
-        {step === 'upi-amount' ? (
+        {step === 'upi-amount' && !USD_ONLY_INVESTOR_PAYMENTS ? (
           <div className="space-y-5">
             <FormField label="Amount (USD)" required hint="Enter the USD amount you are depositing.">
               <Input
@@ -390,7 +405,7 @@ export function DepositModal({
           </div>
         ) : null}
 
-        {step === 'upi-pay' ? (
+        {step === 'upi-pay' && !USD_ONLY_INVESTOR_PAYMENTS ? (
           <div className="space-y-5">
             {bankDetails.upiId ? (
               <p className="text-body-sm text-fg-muted">
@@ -407,7 +422,7 @@ export function DepositModal({
           </div>
         ) : null}
 
-        {step === 'upi-proof' ? (
+        {step === 'upi-proof' && !USD_ONLY_INVESTOR_PAYMENTS ? (
           <div className="space-y-4">
             <FormField label="Payment proof" required>
               <ProofUpload onFileSelect={setProof} />
@@ -431,7 +446,7 @@ export function DepositModal({
           </div>
         ) : null}
 
-        {step === 'imps' ? (
+        {step === 'imps' && !USD_ONLY_INVESTOR_PAYMENTS ? (
           <div className="space-y-5">
             <p className="text-body-sm text-fg-muted">
               Paying via <span className="font-medium text-fg">{channel ?? 'IMPS'}</span>
@@ -558,8 +573,8 @@ export function DepositModal({
         ) : null}
 
         <span className="sr-only">
-          {rail === 'CRYPTO' ? 'Crypto' : rail === 'INR' ? 'Bank / UPI' : ''}
-          {channel ? ` ${channel}` : ''}
+          {rail === 'CRYPTO' ? 'Crypto' : ''}
+          {channel && !USD_ONLY_INVESTOR_PAYMENTS ? ` ${channel}` : ''}
         </span>
       </WalletModalShell>
 
