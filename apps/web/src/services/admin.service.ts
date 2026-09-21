@@ -632,6 +632,7 @@ export const adminService = {
       method: 'POST',
       body,
       idempotencyKey: body.idempotencyKey,
+      timeoutMs: body.preview ? 60_000 : 5 * 60_000,
     }),
 
   audit: (query?: { q?: string; cursor?: string }) => {

@@ -34,8 +34,13 @@ const envSchema = z.object({
 
   BCRYPT_ROUNDS: z.coerce.number().int().min(10).max(15).default(12),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900_000),
-  /** Global write-heavy budget. Authenticated admin GETs are skipped in middleware. */
+  /**
+   * Global unauthenticated/public budget per IP per window.
+   * Dedicated auth, CSRF bootstrap, webhooks, and authenticated admin/session
+   * console routes are skipped — they use their own limiters or session skip.
+   */
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(600),
+  /** Per-IP cap for password login failures, register, reset, and email verify. */
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
 
   EMAIL_TRANSPORT: z

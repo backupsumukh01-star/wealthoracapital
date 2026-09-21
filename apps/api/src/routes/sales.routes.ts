@@ -5,7 +5,7 @@ import { salesAuthController } from '../controllers/sales-auth.controller.js'
 import { salesNetworkController } from '../controllers/sales-network.controller.js'
 import { authenticate } from '../middlewares/authenticate.js'
 import { authenticateSales, optionalAuthenticateSales } from '../middlewares/authenticate-sales.js'
-import { authRateLimiter } from '../middlewares/rate-limit.js'
+import { loginRateLimiter } from '../middlewares/rate-limit.js'
 import { requireAdminAccess } from '../middlewares/require-permission.js'
 import { validate } from '../middlewares/validate.js'
 import { rejectSalesMutations } from '../middlewares/reject-sales-mutations.js'
@@ -22,7 +22,7 @@ export const salesRouter = Router()
 
 salesRouter.post(
   '/auth/login',
-  authRateLimiter,
+  loginRateLimiter,
   validate(salesLoginSchema),
   salesAuthController.login,
 )

@@ -2,7 +2,7 @@ import { Router } from 'express'
 
 import { authController } from '../controllers/auth.controller.js'
 import { authenticate, optionalAuthenticate } from '../middlewares/authenticate.js'
-import { authRateLimiter, verificationResendRateLimiter } from '../middlewares/rate-limit.js'
+import { authRateLimiter, loginRateLimiter, oauthRateLimiter, verificationResendRateLimiter } from '../middlewares/rate-limit.js'
 import { validate } from '../middlewares/validate.js'
 import {
   changePasswordSchema,
@@ -17,12 +17,12 @@ import {
 export const authRouter = Router()
 
 authRouter.post('/register', authRateLimiter, validate(registerSchema), authController.register)
-authRouter.post('/login', authRateLimiter, validate(loginSchema), authController.login)
+authRouter.post('/login', loginRateLimiter, validate(loginSchema), authController.login)
 authRouter.post('/logout', optionalAuthenticate, authController.logout)
 authRouter.post('/refresh', authController.refresh)
 authRouter.get('/me', authenticate, authController.me)
-authRouter.get('/google', authRateLimiter, authController.googleStart)
-authRouter.get('/google/callback', authRateLimiter, authController.googleCallback)
+authRouter.get('/google', oauthRateLimiter, authController.googleStart)
+authRouter.get('/google/callback', oauthRateLimiter, authController.googleCallback)
 authRouter.post('/verify-email', authRateLimiter, validate(verifyEmailSchema), authController.verifyEmail)
 authRouter.post(
   '/verify-email/resend',

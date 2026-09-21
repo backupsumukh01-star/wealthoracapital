@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { ROUTES } from '@meridian/shared'
 import type { MoneyString } from '@meridian/shared'
 import { toast } from 'sonner'
@@ -44,6 +44,8 @@ export function AdminReturnsWorkspace() {
   const confirmPhrase = `APPLY-${tradingDay}`
   const { data: returnsData, isLoading } = useAdminReturns()
   const publishReturn = usePublishReturn()
+  /** Stable for retries of the same Apply; new UUID only after a successful publish. */
+  const applyIdempotencyKey = useRef<string | null>(null)
   const [returnPct, setReturnPct] = useState('0.00')
   const [notes, setNotes] = useState('')
   const [previewed, setPreviewed] = useState(false)
@@ -132,11 +134,16 @@ export function AdminReturnsWorkspace() {
       return
     }
     try {
+      if (!applyIdempotencyKey.current) {
+        applyIdempotencyKey.current = crypto.randomUUID()
+      }
       const run = await publishReturn.mutateAsync({
         date: tradingDay,
         returnPct,
         notes: notes.trim() || undefined,
+        idempotencyKey: applyIdempotencyKey.current,
       })
+      applyIdempotencyKey.current = null
       setConfirmOpen(false)
       setConfirmText('')
       setPreviewed(false)
@@ -241,7 +248,12 @@ export function AdminReturnsWorkspace() {
               <Button
                 type="button"
                 disabled={publishDisabled}
-                onClick={() => setConfirmOpen(true)}
+                onClick={() => {
+                  if (!applyIdempotencyKey.current) {
+                    applyIdempotencyKey.current = crypto.randomUUID()
+                  }
+                  setConfirmOpen(true)
+                }}
               >
                 Publish
               </Button>

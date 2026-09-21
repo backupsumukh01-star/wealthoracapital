@@ -6,6 +6,9 @@ import { sendFailure } from '../utils/response.js'
 import { processStability } from '../observability/process-stability.js'
 import { HISTORICAL_IMPORT_REQUEST_TIMEOUT_MS } from '../services/historical-import-parse.js'
 
+/** One admin action processes every eligible wallet in a single HTTP request. */
+export const DAILY_RETURN_REQUEST_TIMEOUT_MS = 5 * 60_000
+
 /**
  * Abort long-running requests so a hung handler cannot exhaust the event loop forever.
  * Skips health/metrics endpoints.
@@ -24,9 +27,13 @@ export function requestTimeoutMiddleware(req: Request, res: Response, next: Next
 
   const isHistoricalImport =
     path.includes('/history/import') || path.includes('/history/wipe')
+  const isDailyReturnPublish =
+    (req.method ?? '').toUpperCase() === 'POST' && path.includes('/admin/returns')
   const ms = isHistoricalImport
     ? Math.max(env.REQUEST_TIMEOUT_MS, HISTORICAL_IMPORT_REQUEST_TIMEOUT_MS)
-    : env.REQUEST_TIMEOUT_MS
+    : isDailyReturnPublish
+      ? Math.max(env.REQUEST_TIMEOUT_MS, DAILY_RETURN_REQUEST_TIMEOUT_MS)
+      : env.REQUEST_TIMEOUT_MS
   if (!ms || ms <= 0) {
     next()
     return
