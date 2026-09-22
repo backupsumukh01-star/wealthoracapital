@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { ROUTES } from '@meridian/shared'
 import {
   Activity,
   ArrowDownRight,
+  ArrowRight,
   ArrowUpRight,
   BadgeCheck,
   Bell,
@@ -15,7 +16,6 @@ import {
   HeartPulse,
   Mail,
   Server,
-  ShieldCheck,
   TrendingUp,
   Users,
   Wallet,
@@ -43,6 +43,7 @@ import { Input } from '@/components/ui/input'
 import {
   useAdminHealth,
   useAdminOpsDashboard,
+  useAdminReferralSummary,
   useReviewDeposit,
   useReviewWithdrawal,
   adminQueryKeys,
@@ -52,21 +53,11 @@ import { cn } from '@/lib/cn'
 import { useQueryClient } from '@tanstack/react-query'
 import { adminService, type AdminFinancialPeriod } from '@/services/admin.service'
 
-const QUICK_ACTIONS = [
-  {
-    label: 'Approve Pending Deposits',
-    href: `${ROUTES.admin.deposits}?status=PENDING`,
-    icon: ArrowDownRight,
-  },
-  {
-    label: 'Approve Pending Withdrawals',
-    href: `${ROUTES.admin.withdrawals}?status=PENDING`,
-    icon: ArrowUpRight,
-  },
-  { label: 'Review Pending KYC', href: ROUTES.admin.kyc, icon: ShieldCheck },
+/** Non-redundant shortcuts — KYC / Deposits / Withdrawals live in Action Center. */
+const SECONDARY_ACTIONS = [
   { label: 'Publish Daily Return', href: ROUTES.admin.dailyReturn, icon: TrendingUp },
   { label: 'Manage Users', href: ROUTES.admin.users, icon: Users },
-  { label: 'View Notifications', href: ROUTES.admin.notifications, icon: Bell },
+  { label: 'Notifications', href: ROUTES.admin.notifications, icon: Bell },
   { label: 'System Health', href: ROUTES.admin.systemHealth, icon: HeartPulse },
 ] as const
 
@@ -105,6 +96,63 @@ function ChartTip({
         </p>
       ))}
     </div>
+  )
+}
+
+function ActionCenterCard({
+  title,
+  href,
+  attention,
+  headline,
+  cta,
+  stats,
+}: {
+  title: string
+  href: string
+  attention: boolean
+  headline: ReactNode
+  cta: string
+  stats: Array<{ label: string; value: ReactNode }>
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        'group flex flex-col rounded-2xl border px-4 py-4 transition-colors sm:px-5 sm:py-5',
+        attention
+          ? 'border-warning/35 bg-warning/[0.06] hover:border-warning/50 hover:bg-warning/[0.09]'
+          : 'border-white/[0.08] bg-white/[0.03] hover:border-white/[0.14] hover:bg-white/[0.05]',
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-overline text-fg-subtle">{title}</p>
+        {attention ? (
+          <span className="rounded-md bg-warning/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-warning">
+            Needs review
+          </span>
+        ) : null}
+      </div>
+      <div
+        className={cn(
+          'mt-2 text-lg font-semibold tracking-tight sm:text-xl',
+          attention ? 'text-warning' : 'text-fg',
+        )}
+      >
+        {headline}
+      </div>
+      <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-white/[0.06] pt-3">
+        {stats.map((s) => (
+          <div key={s.label} className="min-w-0">
+            <dt className="text-[10px] uppercase tracking-wide text-fg-subtle">{s.label}</dt>
+            <dd className="mt-0.5 truncate text-caption font-medium tabular-nums text-fg">{s.value}</dd>
+          </div>
+        ))}
+      </dl>
+      <span className="mt-4 inline-flex items-center gap-1 text-caption font-medium text-accent-200 group-hover:text-accent-100">
+        {cta}
+        <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden />
+      </span>
+    </Link>
   )
 }
 
@@ -215,6 +263,7 @@ export function AdminOverviewWorkspace() {
   const queryClient = useQueryClient()
   const { data, isLoading, dataUpdatedAt, isFetching } = useAdminOpsDashboard()
   const { data: health } = useAdminHealth()
+  const { data: referralSummary } = useAdminReferralSummary()
   const reviewDeposit = useReviewDeposit()
   const reviewWithdrawal = useReviewWithdrawal()
   const [period, setPeriod] = useState('today')
@@ -230,6 +279,17 @@ export function AdminOverviewWorkspace() {
   const charts = data?.charts
   const totals = data?.totals
   const pending = data?.pending
+
+  const todayPeriod = periods.today
+  const monthPeriod = periods.month
+  const kycPending = totals?.kyc.pending ?? 0
+  const kycApprovedToday = charts?.kycApprovals?.at(-1)?.value ?? 0
+  const depositsPending = totals?.deposits.pending ?? todayPeriod?.pendingDeposits ?? 0
+  const withdrawalsPending =
+    totals?.withdrawals.pending ?? todayPeriod?.pendingWithdrawals ?? 0
+  const referralClaimable = referralSummary?.availableAmount ?? '0.00'
+  const referralDistributedToday = todayPeriod?.referralDistributed ?? '0.00'
+  const referralClaimedToday = todayPeriod?.referralClaimed ?? '0.00'
 
   const walletChart = useMemo(() => {
     if (!totals?.wallets) return []
@@ -299,7 +359,7 @@ export function AdminOverviewWorkspace() {
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="Operations Dashboard"
-        description="Live platform pulse — deposits, withdrawals, KYC, and settlement in one place."
+        description="What needs your attention right now."
         actions={
           <div className="flex flex-wrap items-center gap-2 text-caption text-fg-muted">
             <span
@@ -322,13 +382,127 @@ export function AdminOverviewWorkspace() {
         }
       />
 
-      {/* Quick actions — sticky on desktop */}
-      <div className="sticky top-[calc(var(--topbar-height)+env(safe-area-inset-top,0px)+0.5rem)] z-20 -mx-1 overflow-x-auto px-1 pb-1">
-        <div className="flex min-w-max gap-2 rounded-2xl border border-white/[0.08] bg-[#0A0D10]/85 p-2 backdrop-blur-xl sm:min-w-0 sm:flex-wrap">
-          {QUICK_ACTIONS.map((action) => {
+      {/* Action Center — primary operational queues */}
+      <section className="space-y-3">
+        <h2 className="text-overline text-fg-subtle">Action Center</h2>
+        {isLoading && !data ? (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-44 animate-pulse rounded-2xl border border-white/[0.06] bg-white/[0.03]"
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <ActionCenterCard
+              title="KYC"
+              href={ROUTES.admin.kyc}
+              attention={kycPending > 0}
+              headline={
+                kycPending > 0 ? (
+                  <>
+                    <span className="tabular-nums">{kycPending}</span> Pending Review
+                  </>
+                ) : (
+                  'No Pending KYC'
+                )
+              }
+              cta={kycPending > 0 ? 'Review KYC' : 'View KYC'}
+              stats={[
+                { label: 'Approved today', value: kycApprovedToday },
+                { label: 'Total pending', value: kycPending },
+              ]}
+            />
+            <ActionCenterCard
+              title="Deposits"
+              href={
+                depositsPending > 0
+                  ? `${ROUTES.admin.deposits}?status=PENDING`
+                  : ROUTES.admin.deposits
+              }
+              attention={depositsPending > 0}
+              headline={
+                depositsPending > 0 ? (
+                  <>
+                    <span className="tabular-nums">{depositsPending}</span> Pending Approval
+                  </>
+                ) : (
+                  'No Pending Deposits'
+                )
+              }
+              cta={depositsPending > 0 ? 'Review Pending Deposits' : 'View Deposits'}
+              stats={[
+                {
+                  label: 'Today',
+                  value: <Money value={todayPeriod?.deposits ?? '0.00'} />,
+                },
+                {
+                  label: 'This Month',
+                  value: <Money value={monthPeriod?.deposits ?? '0.00'} />,
+                },
+              ]}
+            />
+            <ActionCenterCard
+              title="Withdrawals"
+              href={ROUTES.admin.withdrawals}
+              attention={withdrawalsPending > 0}
+              headline={
+                withdrawalsPending > 0 ? (
+                  <>
+                    <span className="tabular-nums">{withdrawalsPending}</span> Pending Approval
+                  </>
+                ) : (
+                  'No Pending Withdrawals'
+                )
+              }
+              cta={
+                withdrawalsPending > 0 ? 'Review Pending Withdrawals' : 'View Withdrawals'
+              }
+              stats={[
+                {
+                  label: 'Today',
+                  value: <Money value={todayPeriod?.withdrawals ?? '0.00'} />,
+                },
+                {
+                  label: 'This Month',
+                  value: <Money value={monthPeriod?.withdrawals ?? '0.00'} />,
+                },
+              ]}
+            />
+            <ActionCenterCard
+              title="Referrals"
+              href={ROUTES.admin.referrals}
+              attention={false}
+              headline={
+                Number(referralClaimable) > 0 ? (
+                  <>
+                    Claimable <Money value={referralClaimable} />
+                  </>
+                ) : (
+                  'No Claimable Rewards'
+                )
+              }
+              cta="View Referrals"
+              stats={[
+                {
+                  label: 'Distributed Today',
+                  value: <Money value={referralDistributedToday} />,
+                },
+                {
+                  label: 'Claimed Today',
+                  value: <Money value={referralClaimedToday} />,
+                },
+              ]}
+            />
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2 pt-1">
+          {SECONDARY_ACTIONS.map((action) => {
             const Icon = action.icon
             return (
-              <Button key={action.href} asChild variant="glass" size="sm" className="shrink-0">
+              <Button key={action.href} asChild variant="ghost" size="sm" className="text-fg-muted">
                 <Link href={action.href}>
                   <Icon className="size-3.5" aria-hidden />
                   {action.label}
@@ -337,34 +511,125 @@ export function AdminOverviewWorkspace() {
             )
           })}
         </div>
-      </div>
+      </section>
 
-      {/* Executive KPI rows — live ledger aggregates */}
-      <section className="space-y-5">
-        <h2 className="text-overline text-fg-subtle">Executive KPIs</h2>
-        {isLoading && !data ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {Array.from({ length: 20 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-24 animate-pulse rounded-2xl border border-white/[0.06] bg-white/[0.03]"
-              />
+      {/* Financial summary — preserved from prior work */}
+      <section>
+        <AdminPanel glow>
+          <AdminPanelHeader title="Financial summary" description="Period totals from live ledger" />
+          <div className="flex flex-wrap gap-2 border-b border-white/[0.06] px-4 py-3 sm:px-5">
+            {Object.keys(PERIOD_LABELS).map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  if (key === 'custom') {
+                    setPeriod('custom')
+                    return
+                  }
+                  setPeriod(key)
+                }}
+                className={cn(
+                  'rounded-lg px-3 py-1.5 text-caption font-medium transition-colors',
+                  period === key
+                    ? 'bg-accent-500/20 text-accent-200'
+                    : 'text-fg-muted hover:bg-white/[0.04] hover:text-fg',
+                )}
+              >
+                {PERIOD_LABELS[key]}
+              </button>
             ))}
           </div>
-        ) : (
-          (data?.executiveKpis ?? []).map((row) => (
-            <div key={row.id} className="space-y-2">
-              <h3 className="text-[11px] font-medium uppercase tracking-wide text-fg-muted">
-                {row.title}
-              </h3>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {row.cards.map((card) => (
-                  <ExecutiveKpiCard key={card.id} {...card} />
-                ))}
-              </div>
+          {period === 'custom' ? (
+            <div className="flex flex-wrap items-end gap-3 border-b border-white/[0.06] px-4 py-3 sm:px-5">
+              <FormField label="From" className="min-w-[9rem] flex-1 sm:flex-none">
+                <Input
+                  type="date"
+                  value={customFrom}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                />
+              </FormField>
+              <FormField label="To" className="min-w-[9rem] flex-1 sm:flex-none">
+                <Input
+                  type="date"
+                  value={customTo}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                />
+              </FormField>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={customLoading}
+                onClick={() => void applyCustomRange()}
+              >
+                {customLoading ? 'Applying…' : 'Apply'}
+              </Button>
             </div>
-          ))
-        )}
+          ) : null}
+          {selected ? (
+            <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4 sm:p-5">
+              {[
+                { label: 'Deposits', value: selected.deposits, hint: `${selected.depositsCount} approved` },
+                {
+                  label: 'Withdrawals',
+                  value: selected.withdrawals,
+                  hint: `${selected.withdrawalsCount} paid`,
+                },
+                { label: 'Profit distributed', value: selected.profitDistributed },
+                {
+                  label: 'Referral Distributed',
+                  value: selected.referralDistributed ?? '0.00',
+                  hint:
+                    typeof selected.referralDistributedCount === 'number'
+                      ? `${selected.referralDistributedCount} reward${selected.referralDistributedCount === 1 ? '' : 's'}`
+                      : undefined,
+                },
+                {
+                  label: 'Referral Claimed',
+                  value: selected.referralClaimed ?? '0.00',
+                  hint:
+                    typeof selected.referralClaimedCount === 'number'
+                      ? `${selected.referralClaimedCount} claimed`
+                      : undefined,
+                },
+                { label: 'Platform balance', value: selected.platformBalance },
+                { label: 'Active investments', value: selected.activeInvestments },
+                {
+                  label: 'Pending deposits',
+                  value: String(selected.pendingDeposits),
+                  isCount: true,
+                },
+                {
+                  label: 'Pending withdrawals',
+                  value: String(selected.pendingWithdrawals),
+                  isCount: true,
+                },
+              ].map((m) => (
+                <div
+                  key={m.label}
+                  className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3"
+                >
+                  <p className="text-[11px] text-fg-muted">{m.label}</p>
+                  <p className="mt-1 text-lg font-semibold tabular-nums text-fg">
+                    {'isCount' in m && m.isCount ? (
+                      m.value
+                    ) : (
+                      <Money value={m.value} />
+                    )}
+                  </p>
+                  {'hint' in m && m.hint ? (
+                    <p className="mt-0.5 text-[10px] text-fg-subtle">{m.hint}</p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : period === 'custom' ? (
+            <p className="px-4 py-6 text-caption text-fg-muted sm:px-5">
+              Choose a date range and click Apply to load Financial summary.
+            </p>
+          ) : null}
+        </AdminPanel>
       </section>
 
       {/* Executive charts — 30-day live series */}
@@ -689,123 +954,32 @@ export function AdminOverviewWorkspace() {
         </section>
       </div>
 
-      {/* Section 5 — Financial summary */}
-      <section>
-        <AdminPanel glow>
-          <AdminPanelHeader title="Financial summary" description="Period totals from live ledger" />
-          <div className="flex flex-wrap gap-2 border-b border-white/[0.06] px-4 py-3 sm:px-5">
-            {Object.keys(PERIOD_LABELS).map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => {
-                  if (key === 'custom') {
-                    setPeriod('custom')
-                    return
-                  }
-                  setPeriod(key)
-                }}
-                className={cn(
-                  'rounded-lg px-3 py-1.5 text-caption font-medium transition-colors',
-                  period === key
-                    ? 'bg-accent-500/20 text-accent-200'
-                    : 'text-fg-muted hover:bg-white/[0.04] hover:text-fg',
-                )}
-              >
-                {PERIOD_LABELS[key]}
-              </button>
+      {/* Executive KPI rows — demoted below Action Center + Financial Summary */}
+      <section className="space-y-5">
+        <h2 className="text-overline text-fg-subtle">Executive KPIs</h2>
+        {isLoading && !data ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-24 animate-pulse rounded-2xl border border-white/[0.06] bg-white/[0.03]"
+              />
             ))}
           </div>
-          {period === 'custom' ? (
-            <div className="flex flex-wrap items-end gap-3 border-b border-white/[0.06] px-4 py-3 sm:px-5">
-              <FormField label="From" className="min-w-[9rem] flex-1 sm:flex-none">
-                <Input
-                  type="date"
-                  value={customFrom}
-                  onChange={(e) => setCustomFrom(e.target.value)}
-                />
-              </FormField>
-              <FormField label="To" className="min-w-[9rem] flex-1 sm:flex-none">
-                <Input
-                  type="date"
-                  value={customTo}
-                  onChange={(e) => setCustomTo(e.target.value)}
-                />
-              </FormField>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={customLoading}
-                onClick={() => void applyCustomRange()}
-              >
-                {customLoading ? 'Applying…' : 'Apply'}
-              </Button>
+        ) : (
+          (data?.executiveKpis ?? []).map((row) => (
+            <div key={row.id} className="space-y-2">
+              <h3 className="text-[11px] font-medium uppercase tracking-wide text-fg-muted">
+                {row.title}
+              </h3>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {row.cards.map((card) => (
+                  <ExecutiveKpiCard key={card.id} {...card} />
+                ))}
+              </div>
             </div>
-          ) : null}
-          {selected ? (
-            <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4 sm:p-5">
-              {[
-                { label: 'Deposits', value: selected.deposits, hint: `${selected.depositsCount} approved` },
-                {
-                  label: 'Withdrawals',
-                  value: selected.withdrawals,
-                  hint: `${selected.withdrawalsCount} paid`,
-                },
-                { label: 'Profit distributed', value: selected.profitDistributed },
-                {
-                  label: 'Referral Distributed',
-                  value: selected.referralDistributed ?? '0.00',
-                  hint:
-                    typeof selected.referralDistributedCount === 'number'
-                      ? `${selected.referralDistributedCount} reward${selected.referralDistributedCount === 1 ? '' : 's'}`
-                      : undefined,
-                },
-                {
-                  label: 'Referral Claimed',
-                  value: selected.referralClaimed ?? '0.00',
-                  hint:
-                    typeof selected.referralClaimedCount === 'number'
-                      ? `${selected.referralClaimedCount} claimed`
-                      : undefined,
-                },
-                { label: 'Platform balance', value: selected.platformBalance },
-                { label: 'Active investments', value: selected.activeInvestments },
-                {
-                  label: 'Pending deposits',
-                  value: String(selected.pendingDeposits),
-                  isCount: true,
-                },
-                {
-                  label: 'Pending withdrawals',
-                  value: String(selected.pendingWithdrawals),
-                  isCount: true,
-                },
-              ].map((m) => (
-                <div
-                  key={m.label}
-                  className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3"
-                >
-                  <p className="text-[11px] text-fg-muted">{m.label}</p>
-                  <p className="mt-1 text-lg font-semibold tabular-nums text-fg">
-                    {'isCount' in m && m.isCount ? (
-                      m.value
-                    ) : (
-                      <Money value={m.value} />
-                    )}
-                  </p>
-                  {'hint' in m && m.hint ? (
-                    <p className="mt-0.5 text-[10px] text-fg-subtle">{m.hint}</p>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          ) : period === 'custom' ? (
-            <p className="px-4 py-6 text-caption text-fg-muted sm:px-5">
-              Choose a date range and click Apply to load Financial summary.
-            </p>
-          ) : null}
-        </AdminPanel>
+          ))
+        )}
       </section>
 
       {/* Section 6 — Analytics */}
