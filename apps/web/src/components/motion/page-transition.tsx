@@ -11,6 +11,7 @@ import { DURATION, EASE_OUT } from './motion-config'
 /**
  * Fade on route change only — no transform.
  * Transforms on this wrapper would break sticky header stacking and cause overlap bugs.
+ * Homepage skips the fade so the LCP headline is not held at opacity 0.
  */
 export function PageTransition({
   children,
@@ -20,6 +21,11 @@ export function PageTransition({
   className?: string
 }) {
   const pathname = usePathname()
+  const isHome = pathname === '/' || pathname === ''
+
+  if (isHome) {
+    return <div className={cn('relative z-0 min-w-0', className)}>{children}</div>
+  }
 
   return (
     <motion.div

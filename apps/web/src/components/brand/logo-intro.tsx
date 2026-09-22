@@ -52,6 +52,14 @@ export function LogoIntro() {
       return
     }
 
+    // Mobile / Save-Data: shorten splash so LCP text is not covered as long.
+    const isMobile = window.matchMedia('(max-width: 639px)').matches
+    const saveData =
+      'connection' in navigator &&
+      Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData)
+    const showMs = isMobile || saveData ? 650 : SHOW_MS
+    const hardMaxMs = isMobile || saveData ? 900 : HARD_MAX_MS
+
     let cancelled = false
     let fadeTimer = 0
     const prevOverflow = document.body.style.overflow
@@ -77,8 +85,8 @@ export function LogoIntro() {
       fadeTimer = window.setTimeout(destroy, FADE_MS)
     }
 
-    const showTimer = window.setTimeout(beginFade, SHOW_MS)
-    const hardTimer = window.setTimeout(beginFade, HARD_MAX_MS)
+    const showTimer = window.setTimeout(beginFade, showMs)
+    const hardTimer = window.setTimeout(beginFade, hardMaxMs)
 
     return () => {
       cancelled = true

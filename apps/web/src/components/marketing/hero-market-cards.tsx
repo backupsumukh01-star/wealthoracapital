@@ -21,15 +21,29 @@ export function HeroMarketCards() {
 
     let raf = 0
     let last = performance.now()
+    let maxScroll = 0
+    const mobileMq = window.matchMedia('(max-width: 639px)')
+    let isMobile = mobileMq.matches
+
+    const measure = () => {
+      maxScroll = el.scrollWidth - el.clientWidth
+    }
+    measure()
+
+    const onResize = () => {
+      isMobile = mobileMq.matches
+      measure()
+    }
+    window.addEventListener('resize', onResize, { passive: true })
+    mobileMq.addEventListener('change', onResize)
 
     const tick = (now: number) => {
       const dt = now - last
       last = now
-      if (!pausedRef.current && window.matchMedia('(max-width: 639px)').matches) {
-        const max = el.scrollWidth - el.clientWidth
-        if (max > 0) {
+      if (!pausedRef.current && isMobile) {
+        if (maxScroll > 0) {
           let next = el.scrollLeft + dt * 0.035
-          if (next >= max - 0.5) next = 0
+          if (next >= maxScroll - 0.5) next = 0
           el.scrollLeft = next
         }
       }
@@ -37,7 +51,11 @@ export function HeroMarketCards() {
     }
 
     raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', onResize)
+      mobileMq.removeEventListener('change', onResize)
+    }
   }, [prefersReducedMotion, cards.length])
 
   if (cards.length === 0) {

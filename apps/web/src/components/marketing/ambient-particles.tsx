@@ -1,19 +1,26 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 
-const PARTICLE_COUNT = 28
-
-/** Soft floating particles behind marketing pages — decorative, non-interactive. */
+/** Soft floating particles — fewer on mobile to cut main-thread animation work. */
 export function AmbientParticles() {
   const prefersReducedMotion = usePrefersReducedMotion()
+  const [count, setCount] = useState(8)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)')
+    const sync = () => setCount(mq.matches ? 8 : 28)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
 
   const particles = useMemo(
     () =>
-      Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
+      Array.from({ length: count }, (_, i) => ({
         id: i,
         left: `${(i * 37) % 100}%`,
         top: `${(i * 53) % 100}%`,
@@ -22,7 +29,7 @@ export function AmbientParticles() {
         delay: (i % 10) * 0.4,
         opacity: 0.12 + (i % 5) * 0.04,
       })),
-    [],
+    [count],
   )
 
   if (prefersReducedMotion) return null

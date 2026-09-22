@@ -3,29 +3,19 @@
 /**
  * Landing sections gated by Frontend CMS `section.visible` flags.
  * Does not redesign the page — only wraps existing marketing components.
+ * Heavy / below-the-fold sections are dynamically imported so the hero LCP path stays light.
  */
 
 import dynamic from 'next/dynamic'
 import type { ReactNode } from 'react'
-
-import { CtaBand } from '@/components/marketing/cta-band'
-import { DistributionsStrip } from '@/components/marketing/distributions-strip'
-import { FeatureMosaic } from '@/components/marketing/feature-mosaic'
-import { Hero } from '@/components/marketing/hero'
-import { HomeFaq } from '@/components/marketing/home-faq'
-import { HowItWorks } from '@/components/marketing/how-it-works'
-import { InvestmentTimeline } from '@/components/marketing/investment-timeline'
-import { OperatingModel } from '@/components/marketing/operating-model'
-import { PerformanceHighlights } from '@/components/marketing/performance-highlights'
-import { StatsBand } from '@/components/marketing/stats-band'
-import { TrustStrip } from '@/components/marketing/trust-strip'
-import { WhyChooseUs } from '@/components/marketing/why-choose-us'
-import { usePublishedFrontend } from '@/features/cms/frontend-hooks'
 import Link from 'next/link'
 import { ROUTES } from '@meridian/shared'
 import { ArrowRight } from 'lucide-react'
 
+import { Hero } from '@/components/marketing/hero'
+import { TrustStrip } from '@/components/marketing/trust-strip'
 import { Button } from '@/components/ui/button'
+import { usePublishedFrontend } from '@/features/cms/frontend-hooks'
 
 function HistoryCtaBand() {
   const { getSection } = usePublishedFrontend()
@@ -65,15 +55,47 @@ function HistoryCtaBand() {
   )
 }
 
+const StatsBand = dynamic(
+  () => import('@/components/marketing/stats-band').then((m) => m.StatsBand),
+  { loading: () => <div className="section-y min-h-[12rem]" aria-hidden /> },
+)
+const PerformanceHighlights = dynamic(
+  () =>
+    import('@/components/marketing/performance-highlights').then(
+      (m) => m.PerformanceHighlights,
+    ),
+  { loading: () => <div className="section-y min-h-[16rem]" aria-hidden /> },
+)
 const PerformanceShowcase = dynamic(
   () =>
     import('@/components/marketing/performance-showcase').then((m) => m.PerformanceShowcase),
   { loading: () => <div className="section-y min-h-[28rem]" aria-hidden /> },
 )
+const WhyChooseUs = dynamic(
+  () => import('@/components/marketing/why-choose-us').then((m) => m.WhyChooseUs),
+  { loading: () => <div className="section-y min-h-[20rem]" aria-hidden /> },
+)
+const FeatureMosaic = dynamic(
+  () => import('@/components/marketing/feature-mosaic').then((m) => m.FeatureMosaic),
+  { loading: () => <div className="section-y min-h-[24rem]" aria-hidden /> },
+)
+const OperatingModel = dynamic(
+  () => import('@/components/marketing/operating-model').then((m) => m.OperatingModel),
+  { loading: () => <div className="section-y min-h-[16rem]" aria-hidden /> },
+)
 const StrategyEngine = dynamic(
   () =>
     import('@/components/marketing/trading-system/strategies').then((m) => m.StrategyEngine),
   { loading: () => <div className="section-y min-h-[24rem]" aria-hidden /> },
+)
+const HowItWorks = dynamic(
+  () => import('@/components/marketing/how-it-works').then((m) => m.HowItWorks),
+  { loading: () => <div className="section-y min-h-[20rem]" aria-hidden /> },
+)
+const InvestmentTimeline = dynamic(
+  () =>
+    import('@/components/marketing/investment-timeline').then((m) => m.InvestmentTimeline),
+  { loading: () => <div className="section-y min-h-[20rem]" aria-hidden /> },
 )
 const RiskManagementPanel = dynamic(
   () =>
@@ -98,12 +120,25 @@ const Testimonials = dynamic(
   () => import('@/components/marketing/testimonials').then((m) => m.Testimonials),
   { loading: () => <div className="section-y min-h-[20rem]" aria-hidden /> },
 )
+const DistributionsStrip = dynamic(
+  () =>
+    import('@/components/marketing/distributions-strip').then((m) => m.DistributionsStrip),
+  { loading: () => <div className="section-y min-h-[28rem]" aria-hidden /> },
+)
 const GlobalFootprintLazy = dynamic(
   () =>
     import('@/components/marketing/global-footprint-section').then(
       (m) => m.GlobalFootprintSection,
     ),
   { loading: () => <div className="section-y min-h-[28rem]" aria-hidden /> },
+)
+const HomeFaq = dynamic(
+  () => import('@/components/marketing/home-faq').then((m) => m.HomeFaq),
+  { loading: () => <div className="section-y min-h-[16rem]" aria-hidden /> },
+)
+const CtaBand = dynamic(
+  () => import('@/components/marketing/cta-band').then((m) => m.CtaBand),
+  { loading: () => <div className="section-y min-h-[12rem]" aria-hidden /> },
 )
 
 function Gate({

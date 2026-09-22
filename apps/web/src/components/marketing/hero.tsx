@@ -1,6 +1,8 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { ROUTES } from '@meridian/shared'
 import { ArrowRight, BadgeCheck, Lock, Shield } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -16,8 +18,20 @@ import { useLandingLiveStats } from '@/features/landing'
 import { usePublishedLanding } from '@/features/cms/site'
 
 import { HeroMarketCards } from './hero-market-cards'
-import { HeroVisual } from './hero-visual'
 import { HistoricalNote } from './historical-note'
+
+const HeroVisual = dynamic(
+  () => import('./hero-visual').then((m) => m.HeroVisual),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="aspect-[16/9] w-full animate-pulse rounded-2xl border border-glass-line bg-raised/40"
+        aria-hidden
+      />
+    ),
+  },
+)
 
 const TRUST = [
   { label: 'Published trade history', icon: BadgeCheck },
@@ -39,6 +53,15 @@ export function Hero() {
   const prefersReducedMotion = usePrefersReducedMotion()
   const { landing: cms } = usePublishedLanding()
   const { stats: live } = useLandingLiveStats()
+  const [isMobile, setIsMobile] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)')
+    const sync = () => setIsMobile(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
 
   const companyName = cms.companyName?.trim() || DEMO.companyName
   const heroTitle = cms.heroTitle?.trim() || DEMO.heroTitle
@@ -48,8 +71,13 @@ export function Hero() {
 
   // Demo Mode atmosphere — never let thin CMS meta extinguish the premium look.
   const intensity = Math.max(0.85, cms.heroMotion?.intensity ?? 1)
-  const showGlow = !prefersReducedMotion && cms.heroMotion?.glowEnabled !== false
-  const showParticles = !prefersReducedMotion && cms.heroMotion?.particlesEnabled !== false
+  // Glow/particle loops stay desktop-only until viewport is known (mobile-first).
+  const isDesktop = isMobile === false
+  const showGlow =
+    isDesktop && !prefersReducedMotion && cms.heroMotion?.glowEnabled !== false
+  const showParticles =
+    isDesktop && !prefersReducedMotion && cms.heroMotion?.particlesEnabled !== false
+  const particleCount = Math.round(12 * intensity)
 
   const stats: {
     label: string
@@ -119,7 +147,7 @@ export function Hero() {
       ) : null}
 
       {showParticles
-        ? Array.from({ length: Math.round(12 * intensity) }).map((_, i) => (
+        ? Array.from({ length: particleCount }).map((_, i) => (
             <motion.span
               key={i}
               aria-hidden
@@ -134,8 +162,8 @@ export function Hero() {
           ))
         : null}
 
-      {/* Floating accent orbs — Demo Mode atmosphere */}
-      {!prefersReducedMotion ? (
+      {/* Floating accent orbs — desktop only (mobile keeps static radial, skips micro-orbs) */}
+      {isDesktop && !prefersReducedMotion ? (
         <>
           <motion.div
             aria-hidden
@@ -176,18 +204,17 @@ export function Hero() {
           </div>
         </FadeIn>
 
-        <FadeIn delay={0.06}>
-          <h1 className="text-display-xl max-w-4xl break-words text-fg">
-            {heroTitle.includes('every trade') ? (
-              <>
-                Forex investing with
-                <span className="text-gradient block">every trade on record</span>
-              </>
-            ) : (
-              heroTitle
-            )}
-          </h1>
-        </FadeIn>
+        {/* LCP element — paint immediately; do not gate behind FadeIn opacity:0 */}
+        <h1 className="text-display-xl max-w-4xl break-words text-fg">
+          {heroTitle.includes('every trade') ? (
+            <>
+              Forex investing with
+              <span className="text-gradient block">every trade on record</span>
+            </>
+          ) : (
+            heroTitle
+          )}
+        </h1>
 
         <FadeIn delay={0.12}>
           <p className="prose-measure mx-auto mt-5 max-w-[40ch] text-body-md text-fg-muted sm:mt-6 sm:max-w-none sm:text-body-lg">

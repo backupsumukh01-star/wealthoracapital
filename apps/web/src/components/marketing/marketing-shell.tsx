@@ -1,17 +1,26 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import type { ReactNode } from 'react'
 
 import { PageTransition } from '@/components/motion/page-transition'
 
-import { AmbientParticles } from './ambient-particles'
 import { CmsSeoEffects } from './cms-seo-effects'
 import { CmsSiteOverlays } from './cms-site-overlays'
 import { ForexTicker } from './forex-ticker'
-import { LiveActivityToasts } from './live-activity-toasts'
 import { PremiumAtmosphere } from './premium-atmosphere'
 import { Footer } from './footer'
 import { NavBar } from './nav-bar'
+
+const AmbientParticles = dynamic(
+  () => import('./ambient-particles').then((m) => m.AmbientParticles),
+  { ssr: false },
+)
+
+const LiveActivityToasts = dynamic(
+  () => import('./live-activity-toasts').then((m) => m.LiveActivityToasts),
+  { ssr: false },
+)
 
 /**
  * Marketing chrome — sticky header + sticky ticker as one stack (in document flow),

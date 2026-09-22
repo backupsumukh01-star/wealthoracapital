@@ -9,9 +9,20 @@ import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 export function PremiumAtmosphere() {
   const prefersReducedMotion = usePrefersReducedMotion()
   const [pos, setPos] = useState({ x: 50, y: 30 })
+  const [enableFollow, setEnableFollow] = useState(false)
 
   useEffect(() => {
     if (prefersReducedMotion) return
+    // Pointer-follow is desktop-only — mobile has no hover and the listener costs main-thread time.
+    const mq = window.matchMedia('(pointer: fine) and (min-width: 640px)')
+    const sync = () => setEnableFollow(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [prefersReducedMotion])
+
+  useEffect(() => {
+    if (!enableFollow) return
     const onMove = (e: PointerEvent) => {
       const x = (e.clientX / window.innerWidth) * 100
       const y = (e.clientY / window.innerHeight) * 100
@@ -19,7 +30,7 @@ export function PremiumAtmosphere() {
     }
     window.addEventListener('pointermove', onMove, { passive: true })
     return () => window.removeEventListener('pointermove', onMove)
-  }, [prefersReducedMotion])
+  }, [enableFollow])
 
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
@@ -30,7 +41,7 @@ export function PremiumAtmosphere() {
       <div className="absolute -right-24 top-[40%] size-[24rem] rounded-full bg-hl-violet/10 blur-3xl" />
       <div className="absolute bottom-0 left-1/3 size-[22rem] rounded-full bg-hl-cyan/8 blur-3xl" />
 
-      {!prefersReducedMotion ? (
+      {enableFollow ? (
         <motion.div
           className="absolute size-[32rem] -translate-x-1/2 -translate-y-1/2 rounded-full"
           style={{
