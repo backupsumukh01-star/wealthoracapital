@@ -11,6 +11,24 @@ import {
 import { apiClient } from './http'
 import type { AdminHealthSnapshot, PlatformCmsDocument, SearchHit } from '@/types/domain'
 
+/** One Financial Summary period payload from `/admin/dashboard/ops` (and custom period). */
+export type AdminFinancialPeriod = {
+  period: string
+  deposits: string
+  depositsCount: number
+  withdrawals: string
+  withdrawalsCount: number
+  profitDistributed: string
+  platformBalance: string
+  activeInvestments: string
+  pendingDeposits: number
+  pendingWithdrawals: number
+  referralDistributed?: string
+  referralDistributedCount?: number
+  referralClaimed?: string
+  referralClaimedCount?: number
+}
+
 export type AdminUserHistoryActivity = 'DEPOSIT' | 'PROFIT' | 'WITHDRAWAL' | 'REFERRAL'
 
 export type AdminUserHistoryPayload = {
@@ -182,21 +200,7 @@ export const adminService = {
           href: string
         }>
       }>
-      periods: Record<
-        string,
-        {
-          period: string
-          deposits: string
-          depositsCount: number
-          withdrawals: string
-          withdrawalsCount: number
-          profitDistributed: string
-          platformBalance: string
-          activeInvestments: string
-          pendingDeposits: number
-          pendingWithdrawals: number
-        }
-      >
+      periods: Record<string, AdminFinancialPeriod>
       charts: {
         depositsPerDay: Array<{ day: string; value: number }>
         withdrawalsPerDay: Array<{ day: string; value: number }>
@@ -276,6 +280,12 @@ export const adminService = {
         at: string
       }>
     }>(API_ROUTES.admin.dashboardOps),
+
+  /** Read-only custom Financial Summary range (inclusive UTC YYYY-MM-DD). */
+  dashboardOpsPeriod: (from: string, to: string) =>
+    apiClient<AdminFinancialPeriod>(
+      `${API_ROUTES.admin.dashboardOpsPeriod}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    ),
 
   search: (q: string) =>
     apiClient<{ hits: SearchHit[] }>(

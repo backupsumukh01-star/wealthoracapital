@@ -2,6 +2,8 @@ import { prisma } from '../database/prisma.js'
 import { activityService } from './activity.service.js'
 import { cache } from './cache/index.js'
 import { moneyDisplay, d } from '../utils/money.js'
+import { badRequest } from '../utils/errors.js'
+import { logger } from '../utils/logger.js'
 import { realDepositWhere, realInvestorUser, realKycWhere, realProfitWhere, realWithdrawalWhere } from './demo-investor.js'
 
 type PeriodKey = 'today' | 'yesterday' | 'week' | 'month' | 'all'
@@ -135,25 +137,115 @@ async function profitDistributed(from: Date | null, to: Date | null) {
   }
 }
 
-async function periodFinancials(period: PeriodKey) {
-  const { from, to } = rangeFor(period)
-  const [deposits, withdrawals, profit, pendingDeps, pendingWdr, aum] = await Promise.all([
-    depositStats(from, to),
-    withdrawalStats(from, to),
-    profitDistributed(from, to),
-    prisma.deposit.count({
-      where: realDepositWhere({ status: { in: ['PENDING', 'UNDER_REVIEW'] } }),
+/**
+ * Read-only referral period totals from ReferralReward rows.
+ * Distributed = rewards created in range (excludes CANCELLED).
+ * Claimed = rewards with status REDEEMED whose redeemedAt falls in range.
+ */
+async function referralPeriodStats(from: Date | null, to: Date | null) {
+  const createdAt =
+    from || to
+      ? {
+          createdAt: {
+            ...(from ? { gte: from } : {}),
+            ...(to ? { lt: to } : {}),
+          },
+        }
+      : {}
+  const redeemedAt =
+    from || to
+      ? {
+          redeemedAt: {
+            ...(from ? { gte: from } : {}),
+            ...(to ? { lt: to } : {}),
+          },
+        }
+      : {}
+
+  const [distributed, claimed] = await Promise.all([
+    prisma.referralReward.aggregate({
+      where: {
+        status: { not: 'CANCELLED' },
+        referrer: realInvestorUser,
+        referee: realInvestorUser,
+        ...createdAt,
+      },
+      _sum: { rewardAmount: true },
+      _count: true,
     }),
-    prisma.withdrawal.count({
-      where: realWithdrawalWhere({
-        status: { in: ['PENDING', 'UNDER_REVIEW', 'APPROVED', 'PROCESSING'] },
-      }),
-    }),
-    prisma.wallet.aggregate({
-      where: { kind: 'INVESTMENT', user: realInvestorUser },
-      _sum: { availableBalance: true, lockedBalance: true, investedAmount: true },
+    prisma.referralReward.aggregate({
+      where: {
+        status: 'REDEEMED',
+        referrer: realInvestorUser,
+        referee: realInvestorUser,
+        ...redeemedAt,
+      },
+      _sum: { rewardAmount: true },
+      _count: true,
     }),
   ])
+
+  return {
+    referralDistributed: moneyDisplay(distributed._sum.rewardAmount ?? 0),
+    referralDistributedCount: distributed._count,
+    referralClaimed: moneyDisplay(claimed._sum.rewardAmount ?? 0),
+    referralClaimedCount: claimed._count,
+  }
+}
+
+const EMPTY_REFERRAL_PERIOD = {
+  referralDistributed: moneyDisplay(0),
+  referralDistributedCount: 0,
+  referralClaimed: moneyDisplay(0),
+  referralClaimedCount: 0,
+}
+
+/** Isolate referral reporting so ops snapshot still loads if this aggregate fails. */
+async function safeReferralPeriodStats(from: Date | null, to: Date | null) {
+  try {
+    return await referralPeriodStats(from, to)
+  } catch (err) {
+    logger.warn(
+      { err: err instanceof Error ? err.message : String(err) },
+      'admin financial summary: referral period stats failed',
+    )
+    return { ...EMPTY_REFERRAL_PERIOD }
+  }
+}
+
+/** Parse YYYY-MM-DD as UTC midnight; end date is inclusive → exclusive next-day bound. */
+function parseUtcInclusiveRange(fromYmd: string, toYmd: string): { from: Date; to: Date } {
+  const fromParts = fromYmd.split('-').map(Number)
+  const toParts = toYmd.split('-').map(Number)
+  const from = new Date(Date.UTC(fromParts[0]!, fromParts[1]! - 1, fromParts[2]!, 0, 0, 0, 0))
+  const toExclusive = new Date(Date.UTC(toParts[0]!, toParts[1]! - 1, toParts[2]! + 1, 0, 0, 0, 0))
+  return { from, to: toExclusive }
+}
+
+async function periodFinancialsForRange(
+  period: string,
+  from: Date | null,
+  to: Date | null,
+) {
+  const [deposits, withdrawals, profit, pendingDeps, pendingWdr, aum, referral] =
+    await Promise.all([
+      depositStats(from, to),
+      withdrawalStats(from, to),
+      profitDistributed(from, to),
+      prisma.deposit.count({
+        where: realDepositWhere({ status: { in: ['PENDING', 'UNDER_REVIEW'] } }),
+      }),
+      prisma.withdrawal.count({
+        where: realWithdrawalWhere({
+          status: { in: ['PENDING', 'UNDER_REVIEW', 'APPROVED', 'PROCESSING'] },
+        }),
+      }),
+      prisma.wallet.aggregate({
+        where: { kind: 'INVESTMENT', user: realInvestorUser },
+        _sum: { availableBalance: true, lockedBalance: true, investedAmount: true },
+      }),
+      safeReferralPeriodStats(from, to),
+    ])
   const platformBalance = d(aum._sum.availableBalance ?? 0)
     .plus(d(aum._sum.lockedBalance ?? 0))
   const activeInvestments = d(aum._sum.investedAmount ?? 0)
@@ -168,7 +260,13 @@ async function periodFinancials(period: PeriodKey) {
     activeInvestments: moneyDisplay(activeInvestments),
     pendingDeposits: pendingDeps,
     pendingWithdrawals: pendingWdr,
+    ...referral,
   }
+}
+
+async function periodFinancials(period: PeriodKey) {
+  const { from, to } = rangeFor(period)
+  return periodFinancialsForRange(period, from, to)
 }
 
 export type OpsLiveCard = {
@@ -201,12 +299,24 @@ export const dashboardService = {
    * Short TTL cache (10s) — UI polls every 30s.
    */
   async getOpsSnapshot() {
-    const cacheKey = 'admin:dashboard:ops-v5'
+    const cacheKey = 'admin:dashboard:ops-v6'
     const cached = await cache.get<Awaited<ReturnType<typeof this.buildOpsSnapshot>>>(cacheKey)
     if (cached) return cached
     const data = await this.buildOpsSnapshot()
     await cache.set(cacheKey, data, 10)
     return data
+  },
+
+  /**
+   * Read-only Financial Summary for a custom inclusive UTC date range (YYYY-MM-DD).
+   * Same shape as preset periods; does not mutate any ledger/referral state.
+   */
+  async getCustomPeriodFinancials(fromYmd: string, toYmd: string) {
+    const { from, to } = parseUtcInclusiveRange(fromYmd, toYmd)
+    if (from.getTime() >= to.getTime()) {
+      throw badRequest('Custom range "from" must be on or before "to".')
+    }
+    return periodFinancialsForRange('custom', from, to)
   },
 
   async buildOpsSnapshot() {

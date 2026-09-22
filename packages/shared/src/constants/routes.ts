@@ -294,6 +294,7 @@ export const API_ROUTES = {
     activity: '/admin/activity',
     dashboard: '/admin/dashboard',
     dashboardOps: '/admin/dashboard/ops',
+    dashboardOpsPeriod: '/admin/dashboard/ops/period',
     users: '/admin/users',
     kyc: '/admin/kyc',
     deposits: '/admin/deposits',

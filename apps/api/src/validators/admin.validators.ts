@@ -196,6 +196,21 @@ export const idParamSchema = z.object({
   id: z.string().uuid(),
 })
 
+const ymdDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD')
+
+/** Custom Financial Summary range — inclusive UTC calendar days. */
+export const adminOpsPeriodQuerySchema = z
+  .object({
+    from: ymdDate,
+    to: ymdDate,
+  })
+  .refine((q) => q.from <= q.to, {
+    message: 'from must be on or before to',
+    path: ['from'],
+  })
+
 export const adminImportIdParamSchema = z.object({
   id: z.string().uuid(),
   importId: z.string().uuid(),

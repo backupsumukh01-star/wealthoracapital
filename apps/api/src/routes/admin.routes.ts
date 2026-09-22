@@ -24,6 +24,7 @@ import {
   adminActivityQuerySchema,
   adminAuditQuerySchema,
   adminCreateUserSchema,
+  adminOpsPeriodQuerySchema,
   adminStatusReasonSchema,
   adminUpdateUserSchema,
   adminUserHistoryCreateSchema,
@@ -47,6 +48,13 @@ adminRouter.get(
   '/dashboard/ops',
   requirePermission(PERMISSIONS['dashboard.view']),
   adminDashboardController.ops,
+)
+
+adminRouter.get(
+  '/dashboard/ops/period',
+  requirePermission(PERMISSIONS['dashboard.view']),
+  validate(adminOpsPeriodQuerySchema, 'query'),
+  adminDashboardController.opsPeriod,
 )
 
 adminRouter.get(

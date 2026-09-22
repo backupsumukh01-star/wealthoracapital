@@ -38,6 +38,8 @@ import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import { Money } from '@/components/common/money'
 import { PageHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
+import { FormField } from '@/components/ui/form-field'
+import { Input } from '@/components/ui/input'
 import {
   useAdminHealth,
   useAdminOpsDashboard,
@@ -48,6 +50,7 @@ import {
 import { formatDateTime, formatMoney } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useQueryClient } from '@tanstack/react-query'
+import { adminService, type AdminFinancialPeriod } from '@/services/admin.service'
 
 const QUICK_ACTIONS = [
   {
@@ -73,6 +76,14 @@ const PERIOD_LABELS: Record<string, string> = {
   week: 'This Week',
   month: 'This Month',
   all: 'Lifetime',
+  custom: 'Custom',
+}
+
+function utcYmd(offsetDays = 0): string {
+  const x = new Date()
+  x.setUTCHours(0, 0, 0, 0)
+  x.setUTCDate(x.getUTCDate() + offsetDays)
+  return x.toISOString().slice(0, 10)
 }
 
 function ChartTip({
@@ -208,9 +219,14 @@ export function AdminOverviewWorkspace() {
   const reviewWithdrawal = useReviewWithdrawal()
   const [period, setPeriod] = useState('today')
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [customFrom, setCustomFrom] = useState(() => utcYmd(-6))
+  const [customTo, setCustomTo] = useState(() => utcYmd(0))
+  const [customApplied, setCustomApplied] = useState<AdminFinancialPeriod | null>(null)
+  const [customLoading, setCustomLoading] = useState(false)
 
   const periods = data?.periods ?? {}
-  const selected = periods[period] ?? periods.today
+  const selected =
+    period === 'custom' ? customApplied : (periods[period] ?? periods.today)
   const charts = data?.charts
   const totals = data?.totals
   const pending = data?.pending
@@ -247,6 +263,27 @@ export function AdminOverviewWorkspace() {
       toast.error(err instanceof Error ? err.message : 'Review failed')
     } finally {
       setBusyId(null)
+    }
+  }
+
+  async function applyCustomRange() {
+    if (!customFrom || !customTo) {
+      toast.error('Select both From and To dates')
+      return
+    }
+    if (customFrom > customTo) {
+      toast.error('From date must be on or before To date')
+      return
+    }
+    setCustomLoading(true)
+    try {
+      const row = await adminService.dashboardOpsPeriod(customFrom, customTo)
+      setCustomApplied(row)
+      setPeriod('custom')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Custom range failed')
+    } finally {
+      setCustomLoading(false)
     }
   }
 
@@ -661,7 +698,13 @@ export function AdminOverviewWorkspace() {
               <button
                 key={key}
                 type="button"
-                onClick={() => setPeriod(key)}
+                onClick={() => {
+                  if (key === 'custom') {
+                    setPeriod('custom')
+                    return
+                  }
+                  setPeriod(key)
+                }}
                 className={cn(
                   'rounded-lg px-3 py-1.5 text-caption font-medium transition-colors',
                   period === key
@@ -673,6 +716,33 @@ export function AdminOverviewWorkspace() {
               </button>
             ))}
           </div>
+          {period === 'custom' ? (
+            <div className="flex flex-wrap items-end gap-3 border-b border-white/[0.06] px-4 py-3 sm:px-5">
+              <FormField label="From" className="min-w-[9rem] flex-1 sm:flex-none">
+                <Input
+                  type="date"
+                  value={customFrom}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                />
+              </FormField>
+              <FormField label="To" className="min-w-[9rem] flex-1 sm:flex-none">
+                <Input
+                  type="date"
+                  value={customTo}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                />
+              </FormField>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={customLoading}
+                onClick={() => void applyCustomRange()}
+              >
+                {customLoading ? 'Applying…' : 'Apply'}
+              </Button>
+            </div>
+          ) : null}
           {selected ? (
             <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4 sm:p-5">
               {[
@@ -683,6 +753,22 @@ export function AdminOverviewWorkspace() {
                   hint: `${selected.withdrawalsCount} paid`,
                 },
                 { label: 'Profit distributed', value: selected.profitDistributed },
+                {
+                  label: 'Referral Distributed',
+                  value: selected.referralDistributed ?? '0.00',
+                  hint:
+                    typeof selected.referralDistributedCount === 'number'
+                      ? `${selected.referralDistributedCount} reward${selected.referralDistributedCount === 1 ? '' : 's'}`
+                      : undefined,
+                },
+                {
+                  label: 'Referral Claimed',
+                  value: selected.referralClaimed ?? '0.00',
+                  hint:
+                    typeof selected.referralClaimedCount === 'number'
+                      ? `${selected.referralClaimedCount} claimed`
+                      : undefined,
+                },
                 { label: 'Platform balance', value: selected.platformBalance },
                 { label: 'Active investments', value: selected.activeInvestments },
                 {
@@ -714,6 +800,10 @@ export function AdminOverviewWorkspace() {
                 </div>
               ))}
             </div>
+          ) : period === 'custom' ? (
+            <p className="px-4 py-6 text-caption text-fg-muted sm:px-5">
+              Choose a date range and click Apply to load Financial summary.
+            </p>
           ) : null}
         </AdminPanel>
       </section>

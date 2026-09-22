@@ -3,11 +3,16 @@ import { auditService } from '../services/audit.service.js'
 import { dashboardService } from '../services/dashboard.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import { sendSuccess } from '../utils/response.js'
-import type { adminActivityQuerySchema, adminAuditQuerySchema } from '../validators/admin.validators.js'
+import type {
+  adminActivityQuerySchema,
+  adminAuditQuerySchema,
+  adminOpsPeriodQuerySchema,
+} from '../validators/admin.validators.js'
 import type { z } from 'zod'
 
 type AuditQuery = z.infer<typeof adminAuditQuerySchema>
 type ActivityQuery = z.infer<typeof adminActivityQuerySchema>
+type OpsPeriodQuery = z.infer<typeof adminOpsPeriodQuerySchema>
 
 export const adminDashboardController = {
   summary: asyncHandler(async (_req, res) => {
@@ -17,6 +22,11 @@ export const adminDashboardController = {
 
   ops: asyncHandler(async (_req, res) => {
     sendSuccess(res, await dashboardService.getOpsSnapshot())
+  }),
+
+  opsPeriod: asyncHandler(async (req, res) => {
+    const query = req.query as unknown as OpsPeriodQuery
+    sendSuccess(res, await dashboardService.getCustomPeriodFinancials(query.from, query.to))
   }),
 
   activity: asyncHandler(async (req, res) => {
