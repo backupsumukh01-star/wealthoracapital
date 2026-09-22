@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { ROUTES } from '@meridian/shared'
 import { ArrowRight } from 'lucide-react'
 
+import { DeferredMount } from '@/components/marketing/deferred-mount'
 import { Hero } from '@/components/marketing/hero'
 import { TrustStrip } from '@/components/marketing/trust-strip'
 import { Button } from '@/components/ui/button'
@@ -201,7 +202,12 @@ export function LandingSections() {
 
       <Gate sectionKey="markets" visible={isSectionVisible}>
         <TodaysMarkets />
-        <LiveTradesPreview />
+        <DeferredMount
+          minHeight="28rem"
+          fallback={<div className="section-y min-h-[24rem]" aria-hidden />}
+        >
+          <LiveTradesPreview />
+        </DeferredMount>
       </Gate>
 
       <Gate sectionKey="performance" visible={isSectionVisible}>

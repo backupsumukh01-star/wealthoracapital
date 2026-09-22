@@ -8,6 +8,8 @@ export const DEMO_BACKTEST_FILES = {
   dailyReturns: `${DEMO_BACKTEST_BASE}/daily_returns.json`,
   monthlyReturns: `${DEMO_BACKTEST_BASE}/monthly_returns.json`,
   trades: `${DEMO_BACKTEST_BASE}/trades.json`,
+  /** Homepage blotter only — recent slice; full `trades` remains for HPC. */
+  tradesPreview: `${DEMO_BACKTEST_BASE}/trades-preview.json`,
   reportCatalog: `${DEMO_BACKTEST_BASE}/report_catalog.json`,
 } as const
 

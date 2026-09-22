@@ -28,7 +28,7 @@ export function useLandingLiveStats(): {
   const { landing: cms, isLoading: cmsLoading } = usePublishedLanding()
   const { data: pub, isLoading: pubLoading } = usePublicPerformance()
   const { data: demo, isLoading: demoLoading } = useDemoDashboardStats()
-  const { data: charts } = useDemoCharts()
+  // Prefer tiny dashboard_stats over charts.json (~104 KiB) for marketing counters.
   const { data: demoMonthly } = useDemoMonthlyReturns()
   const { data: reports } = usePublishedDownloads()
 
@@ -42,7 +42,13 @@ export function useLandingLiveStats(): {
       buildLandingLiveStats({
         pub,
         demo,
-        demoMeta: charts?.meta,
+        demoMeta: demo
+          ? {
+              totalReturnPct: demo.totalReturnPct,
+              startDate: undefined,
+              endDate: undefined,
+            }
+          : null,
         cms: {
           investorCount: cms.investorCount,
           aum: cms.aum,
@@ -54,7 +60,7 @@ export function useLandingLiveStats(): {
         reportCount: reports?.length ?? 0,
         monthCount: monthlySeries.length,
       }),
-    [pub, demo, charts?.meta, cms, reports?.length, monthlySeries.length],
+    [pub, demo, cms, reports?.length, monthlySeries.length],
   )
 
   return {

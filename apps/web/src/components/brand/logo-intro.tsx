@@ -52,13 +52,21 @@ export function LogoIntro() {
       return
     }
 
-    // Mobile / Save-Data: shorten splash so LCP text is not covered as long.
+    // Mobile / Save-Data: skip splash so LCP text is never covered on cold loads.
     const isMobile = window.matchMedia('(max-width: 639px)').matches
     const saveData =
       'connection' in navigator &&
       Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData)
-    const showMs = isMobile || saveData ? 650 : SHOW_MS
-    const hardMaxMs = isMobile || saveData ? 900 : HARD_MAX_MS
+    if (isMobile || saveData) {
+      introDismissed = true
+      try {
+        sessionStorage.setItem(STORAGE_KEY, '1')
+      } catch {
+        /* ignore */
+      }
+      setPhase('done')
+      return
+    }
 
     let cancelled = false
     let fadeTimer = 0
@@ -85,8 +93,8 @@ export function LogoIntro() {
       fadeTimer = window.setTimeout(destroy, FADE_MS)
     }
 
-    const showTimer = window.setTimeout(beginFade, showMs)
-    const hardTimer = window.setTimeout(beginFade, hardMaxMs)
+    const showTimer = window.setTimeout(beginFade, SHOW_MS)
+    const hardTimer = window.setTimeout(beginFade, HARD_MAX_MS)
 
     return () => {
       cancelled = true

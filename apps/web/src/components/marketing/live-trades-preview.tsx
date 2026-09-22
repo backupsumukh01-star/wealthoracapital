@@ -12,7 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { demoHistoryUsable } from '@/features/landing/live-stats'
 import { usePublicPerformance } from '@/features/performance/hooks'
 import { usePublicTradeStats, usePublicTradesInfinite } from '@/features/trades/hooks'
-import { useDemoDashboardStats, useDemoTrades } from '@/lib/demo-backtest'
+import { useNearViewport } from '@/hooks/use-near-viewport'
+import { useDemoDashboardStats, useDemoTradesPreview } from '@/lib/demo-backtest'
 import { cn } from '@/lib/cn'
 import type { Trade } from '@meridian/shared'
 import type { DemoTrade } from '@/lib/demo-backtest'
@@ -130,10 +131,15 @@ function computeStatsFromTrades(trades: DeskTrade[]) {
 
 /** Public desk feed — canonical demo blotter when present, live API only as fallback. */
 export function LiveTradesPreview() {
-  const apiInfinite = usePublicTradesInfinite({ limit: 40 })
-  const { data: apiStats } = usePublicTradeStats()
-  const { data: pub } = usePublicPerformance()
-  const { data: demoTrades = [], isLoading: demoLoading } = useDemoTrades()
+  const rootRef = useRef<HTMLDivElement>(null)
+  const near = useNearViewport(rootRef, { rootMargin: '320px 0px' })
+
+  const apiInfinite = usePublicTradesInfinite({ limit: 40, enabled: near })
+  const { data: apiStats } = usePublicTradeStats({ enabled: near })
+  const { data: pub } = usePublicPerformance({ enabled: near })
+  const { data: demoTrades = [], isLoading: demoLoading } = useDemoTradesPreview({
+    enabled: near,
+  })
   const { data: demoStats } = useDemoDashboardStats()
 
   const apiTrades = useMemo(
@@ -145,13 +151,13 @@ export function LiveTradesPreview() {
   const useDemo = demoOk || (!apiInfinite.isLoading && apiTrades.length === 0)
 
   const deskTrades = useMemo(() => {
+    if (!near) return []
     if (useDemo) {
-      return [...demoTrades]
-        .sort((a, b) => String(b.tradeDate).localeCompare(String(a.tradeDate)))
-        .map(toDeskFromDemo)
+      // Preview file is already newest-first (~80 rows).
+      return demoTrades.map(toDeskFromDemo)
     }
     return apiTrades.map((t) => toDeskFromApi(t as Trade & { status?: string }))
-  }, [useDemo, apiTrades, demoTrades])
+  }, [near, useDemo, apiTrades, demoTrades])
 
   const [visible, setVisible] = useState(40)
   const listRef = useRef<HTMLUListElement | null>(null)
@@ -239,7 +245,7 @@ export function LiveTradesPreview() {
   const avgWin = localStats?.avgWinPct ?? 0
   const avgLoss = localStats?.avgLossPct ?? 0
 
-  const loading = apiInfinite.isLoading && demoLoading && deskTrades.length === 0
+  const loading = !near || ((apiInfinite.isLoading || demoLoading) && deskTrades.length === 0)
 
   const statCards = [
     { label: 'Win rate', value: `${winRate.toFixed(1)}%` },
@@ -253,6 +259,7 @@ export function LiveTradesPreview() {
   ]
 
   return (
+    <div ref={rootRef}>
     <Section
       id="trades"
       eyebrow="Daily trade preview"
@@ -345,5 +352,6 @@ export function LiveTradesPreview() {
         </Button>
       </div>
     </Section>
+    </div>
   )
 }

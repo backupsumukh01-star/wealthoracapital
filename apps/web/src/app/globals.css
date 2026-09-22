@@ -284,10 +284,10 @@
 @keyframes gradient-shift {
   0%,
   100% {
-    background-position: 0% 50%;
+    transform: translate3d(0, 0, 0);
   }
   50% {
-    background-position: 100% 50%;
+    transform: translate3d(-12%, 0, 0);
   }
 }
 
@@ -712,7 +712,8 @@
       rgb(201 164 92 / 0.18),
       rgb(212 217 223 / 0.28)
     );
-    background-size: 200% 200%;
+    background-size: 220% 220%;
+    will-change: transform;
     animation: gradient-shift 10s ease-in-out infinite;
     mask:
       linear-gradient(#000 0 0) content-box,
@@ -733,7 +734,8 @@
     rgb(201 164 92 / 0.18),
     transparent
   );
-  background-size: 200% 100%;
+  background-size: 220% 100%;
+  will-change: transform;
   animation: gradient-shift 8s ease-in-out infinite;
 }
 

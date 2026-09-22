@@ -187,24 +187,22 @@ export function Hero() {
       ) : null}
 
       <div className="container-page flex min-w-0 flex-col items-center text-center">
-        <FadeIn>
-          <div className="mb-7 flex flex-col items-center gap-3.5 sm:mb-8 sm:gap-4">
-            <div className="relative">
-              <div
-                className="pointer-events-none absolute -inset-6 rounded-full bg-[#D4D9DF]/10 blur-2xl"
-                aria-hidden
-              />
-              <LogoMark className="relative size-16 sm:size-[4.5rem]" />
-            </div>
-            <p className="text-[1.75rem] font-semibold tracking-tight sm:text-[2rem]">
-              <span className="bg-gradient-to-r from-[#C4CBD3] via-[#D4D9DF] to-[#F2F4F7] bg-clip-text text-transparent">
-                {companyName || SITE.wordmark.primary}
-              </span>
-            </p>
+        <div className="mb-7 flex flex-col items-center gap-3.5 sm:mb-8 sm:gap-4">
+          <div className="relative">
+            <div
+              className="pointer-events-none absolute -inset-6 rounded-full bg-[#D4D9DF]/10 blur-2xl"
+              aria-hidden
+            />
+            <LogoMark className="relative size-16 sm:size-[4.5rem]" />
           </div>
-        </FadeIn>
+          <p className="text-[1.75rem] font-semibold tracking-tight sm:text-[2rem]">
+            <span className="bg-gradient-to-r from-[#C4CBD3] via-[#D4D9DF] to-[#F2F4F7] bg-clip-text text-transparent">
+              {companyName || SITE.wordmark.primary}
+            </span>
+          </p>
+        </div>
 
-        {/* LCP element — paint immediately; do not gate behind FadeIn opacity:0 */}
+        {/* LCP candidates — paint immediately; do not gate behind FadeIn opacity:0 */}
         <h1 className="text-display-xl max-w-4xl break-words text-fg">
           {heroTitle.includes('every trade') ? (
             <>
@@ -216,29 +214,25 @@ export function Hero() {
           )}
         </h1>
 
-        <FadeIn delay={0.12}>
-          <p className="prose-measure mx-auto mt-5 max-w-[40ch] text-body-md text-fg-muted sm:mt-6 sm:max-w-none sm:text-body-lg">
-            {heroSubtitle}
-          </p>
-        </FadeIn>
+        <p className="prose-measure mx-auto mt-5 max-w-[40ch] text-body-md text-fg-muted sm:mt-6 sm:max-w-none sm:text-body-lg">
+          {heroSubtitle}
+        </p>
 
-        <FadeIn delay={0.16}>
-          <div className="mt-8 flex w-full max-w-md flex-col gap-3 sm:mt-10 sm:max-w-none sm:flex-row sm:justify-center">
-            <Magnetic>
-              <Button asChild size="lg" className="w-full sm:w-auto">
-                <Link href={ROUTES.auth.register}>
-                  {heroPrimaryCta}
-                  <ArrowRight aria-hidden />
-                </Link>
-              </Button>
-            </Magnetic>
-            <Button asChild size="lg" variant="glass" className="w-full sm:w-auto">
-              <Link href={ROUTES.marketing.performance}>{heroSecondaryCta}</Link>
+        <div className="mt-8 flex w-full max-w-md flex-col gap-3 sm:mt-10 sm:max-w-none sm:flex-row sm:justify-center">
+          <Magnetic>
+            <Button asChild size="lg" className="w-full sm:w-auto">
+              <Link href={ROUTES.auth.register}>
+                {heroPrimaryCta}
+                <ArrowRight aria-hidden />
+              </Link>
             </Button>
-          </div>
-        </FadeIn>
+          </Magnetic>
+          <Button asChild size="lg" variant="glass" className="w-full sm:w-auto">
+            <Link href={ROUTES.marketing.performance}>{heroSecondaryCta}</Link>
+          </Button>
+        </div>
 
-        <FadeIn delay={0.2}>
+        <FadeIn delay={0.08}>
           <ul className="mt-7 flex max-w-xl flex-wrap items-center justify-center gap-2 sm:mt-8">
             {TRUST.map((t) => (
               <li

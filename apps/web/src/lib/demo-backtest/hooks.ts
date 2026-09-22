@@ -26,35 +26,49 @@ export function useDemoDashboardStats() {
   })
 }
 
-export function useDemoCharts() {
+export function useDemoCharts(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['demo-backtest', 'charts'],
     queryFn: () => fetchJson<DemoChartsPayload>(DEMO_BACKTEST_FILES.charts),
     staleTime: Infinity,
+    enabled: options?.enabled,
   })
 }
 
-export function useDemoMonthlyReturns() {
+export function useDemoMonthlyReturns(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['demo-backtest', 'monthly-returns'],
     queryFn: () => fetchJson<DemoMonthlyReturn[]>(DEMO_BACKTEST_FILES.monthlyReturns),
     staleTime: Infinity,
+    enabled: options?.enabled,
   })
 }
 
-export function useDemoDailyReturns() {
+export function useDemoDailyReturns(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['demo-backtest', 'daily-returns'],
     queryFn: () => fetchJson<DemoDailyReturn[]>(DEMO_BACKTEST_FILES.dailyReturns),
     staleTime: Infinity,
+    enabled: options?.enabled,
   })
 }
 
-export function useDemoTrades() {
+export function useDemoTrades(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['demo-backtest', 'trades'],
     queryFn: () => fetchJson<DemoTrade[]>(DEMO_BACKTEST_FILES.trades),
     staleTime: Infinity,
+    enabled: options?.enabled,
+  })
+}
+
+/** Homepage blotter — recent trades only (~80 KiB vs full trades.json). */
+export function useDemoTradesPreview(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['demo-backtest', 'trades-preview'],
+    queryFn: () => fetchJson<DemoTrade[]>(DEMO_BACKTEST_FILES.tradesPreview),
+    staleTime: Infinity,
+    enabled: options?.enabled,
   })
 }
 
