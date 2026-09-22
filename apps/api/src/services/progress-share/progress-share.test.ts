@@ -238,6 +238,287 @@ describe('Progress share HTTP API', () => {
     expect(overlay).toContain('2,625.00')
   })
 
+  it('real user daily return comes only from live ProfitDistribution', async () => {
+    const email = `ps_real_dr_${randomUUID().slice(0, 8)}@example.com`
+    const { user } = await registerAndLogin(email, 'SecurePass1!')
+    await seedWallet(user.id, '1000.00', '0.00')
+    const today = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`)
+
+    await prisma.dailyReturn.upsert({
+      where: { date: today },
+      create: {
+        date: today,
+        status: 'DISTRIBUTED',
+        netReturnPct: moneyString('9.990000'),
+        computedReturnPct: moneyString('9.990000'),
+      },
+      update: {
+        status: 'DISTRIBUTED',
+        netReturnPct: moneyString('9.990000'),
+        computedReturnPct: moneyString('9.990000'),
+      },
+    })
+
+    // Real user without today's distribution must stay at 0 — programme DailyReturn is not used.
+    const empty = await progressShareService.buildSnapshot(user.id)
+    expect(empty.dailyReturnPct).toBe('0.00')
+
+    const daily = await prisma.dailyReturn.findUniqueOrThrow({ where: { date: today } })
+    const run = await prisma.dailyReturnRun.create({
+      data: {
+        dailyReturnId: daily.id,
+        date: today,
+        returnPct: moneyString('1.250000'),
+        returnBasis: 'BALANCE',
+        status: 'COMPLETED',
+        eligibleWallets: 1,
+        processedWallets: 1,
+        successfulWallets: 1,
+        totalBaseAmount: moneyString(1000),
+        totalDistributed: moneyString(12.5),
+        idempotencyKey: `ps-real-${randomUUID()}`,
+      },
+    })
+    await prisma.profitDistribution.create({
+      data: {
+        runId: run.id,
+        userId: user.id,
+        date: today,
+        eligibleBalance: moneyString(1000),
+        returnPct: moneyString('1.250000'),
+        grossAmount: moneyString(12.5),
+        amount: moneyString(12.5),
+        balanceAfter: moneyString(1012.5),
+        idempotencyKey: `ps-real-dist-${randomUUID()}`,
+      },
+    })
+
+    const withLive = await progressShareService.buildSnapshot(user.id)
+    expect(withLive.dailyReturnPct).toBe('1.250000')
+    expect(withLive.todayEarnings).toBe('12.50')
+  })
+
+  it('demo user daily return comes from programme DailyReturn without ledger writes', async () => {
+    const adminEmail = `ps_adm_${randomUUID().slice(0, 8)}@example.com`
+    const admin = await registerAndLogin(adminEmail, 'SecurePass1!', 'Admin')
+    await prisma.user.update({
+      where: { id: admin.user.id },
+      data: { role: 'SUPER_ADMIN', staffRole: 'SUPER_ADMIN' },
+    })
+
+    const demo = await prisma.user.create({
+      data: {
+        email: `ps_demo_${randomUUID().slice(0, 8)}@example.com`,
+        passwordHash: 'x',
+        firstName: 'Demo',
+        lastName: 'Investor',
+        status: 'ACTIVE',
+        emailVerifiedAt: new Date(),
+        kycStatus: 'APPROVED',
+        role: 'USER',
+        createdByAdminId: admin.user.id,
+      },
+    })
+    await seedWallet(demo.id, '5000.00', '100.00')
+
+    const today = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`)
+    await prisma.dailyReturn.upsert({
+      where: { date: today },
+      create: {
+        date: today,
+        status: 'DISTRIBUTED',
+        netReturnPct: moneyString('0.960000'),
+        computedReturnPct: moneyString('0.960000'),
+      },
+      update: {
+        status: 'DISTRIBUTED',
+        netReturnPct: moneyString('0.960000'),
+        computedReturnPct: moneyString('0.960000'),
+      },
+    })
+
+    const beforeWallet = await prisma.wallet.findUniqueOrThrow({
+      where: { userId_kind: { userId: demo.id, kind: 'INVESTMENT' } },
+    })
+    const beforeLedger = await prisma.ledgerEntry.count({
+      where: { wallet: { userId: demo.id } },
+    })
+    const beforeDist = await prisma.profitDistribution.count({ where: { userId: demo.id } })
+    const beforeDeposits = await prisma.deposit.count({ where: { userId: demo.id } })
+    const beforeWithdrawals = await prisma.withdrawal.count({ where: { userId: demo.id } })
+
+    const snapshot = await progressShareService.buildSnapshot(demo.id)
+    expect(snapshot.dailyReturnPct).toBe('0.960000')
+    expect(Number(snapshot.todayEarnings)).toBeCloseTo(48, 0) // 5000 * 0.96%
+    const overlay = buildProgressShareOverlay(snapshot, 'daily')
+    expect(overlay).toContain('+0.96')
+
+    const afterWallet = await prisma.wallet.findUniqueOrThrow({
+      where: { userId_kind: { userId: demo.id, kind: 'INVESTMENT' } },
+    })
+    expect(afterWallet.availableBalance.toString()).toBe(beforeWallet.availableBalance.toString())
+    expect(afterWallet.balance.toString()).toBe(beforeWallet.balance.toString())
+    expect(await prisma.ledgerEntry.count({ where: { wallet: { userId: demo.id } } })).toBe(
+      beforeLedger,
+    )
+    expect(await prisma.profitDistribution.count({ where: { userId: demo.id } })).toBe(beforeDist)
+    expect(await prisma.deposit.count({ where: { userId: demo.id } })).toBe(beforeDeposits)
+    expect(await prisma.withdrawal.count({ where: { userId: demo.id } })).toBe(beforeWithdrawals)
+  })
+
+  it('demo user falls back to historical ProfitDistribution return when no DailyReturn today', async () => {
+    const admin = await prisma.user.create({
+      data: {
+        email: `ps_adm2_${randomUUID().slice(0, 8)}@example.com`,
+        passwordHash: 'x',
+        firstName: 'Admin',
+        lastName: 'Two',
+        status: 'ACTIVE',
+        role: 'SUPER_ADMIN',
+        staffRole: 'SUPER_ADMIN',
+        emailVerifiedAt: new Date(),
+      },
+    })
+    const demo = await prisma.user.create({
+      data: {
+        email: `ps_demo2_${randomUUID().slice(0, 8)}@example.com`,
+        passwordHash: 'x',
+        firstName: 'Hist',
+        lastName: 'Demo',
+        status: 'ACTIVE',
+        emailVerifiedAt: new Date(),
+        kycStatus: 'APPROVED',
+        role: 'USER',
+        createdByAdminId: admin.id,
+      },
+    })
+    await seedWallet(demo.id, '2000.00', '50.00')
+
+    const past = new Date('2026-01-15T00:00:00.000Z')
+    const daily = await prisma.dailyReturn.upsert({
+      where: { date: past },
+      create: { date: past, status: 'DISTRIBUTED', netReturnPct: moneyString('0.500000') },
+      update: {},
+    })
+    const run = await prisma.dailyReturnRun.create({
+      data: {
+        dailyReturnId: daily.id,
+        date: past,
+        returnPct: moneyString('0.750000'),
+        returnBasis: 'BALANCE',
+        status: 'COMPLETED',
+        eligibleWallets: 1,
+        processedWallets: 1,
+        successfulWallets: 1,
+        totalBaseAmount: moneyString(2000),
+        totalDistributed: moneyString(15),
+        idempotencyKey: `ps-hist-${randomUUID()}`,
+      },
+    })
+    await prisma.profitDistribution.create({
+      data: {
+        runId: run.id,
+        userId: demo.id,
+        date: past,
+        eligibleBalance: moneyString(2000),
+        returnPct: moneyString('0.750000'),
+        grossAmount: moneyString(15),
+        amount: moneyString(15),
+        balanceAfter: moneyString(2015),
+        idempotencyKey: `ps-hist-dist-${randomUUID()}`,
+      },
+    })
+
+    // Ensure today has no programme return for this test isolation when possible —
+    // resolveDemoShareDailyReturn prefers today's DailyReturn; delete today's row if we created one
+    // only for this test. Prefer historical by removing today's net if present from prior tests.
+    const today = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`)
+    const todayRow = await prisma.dailyReturn.findUnique({ where: { date: today } })
+    if (todayRow) {
+      await prisma.dailyReturn.update({
+        where: { date: today },
+        data: { netReturnPct: null, computedReturnPct: null },
+      })
+    }
+
+    const snapshot = await progressShareService.buildSnapshot(demo.id)
+    expect(snapshot.dailyReturnPct).toBe('0.750000')
+  })
+
+  it('demo share snapshot does not alter a separate real user wallet', async () => {
+    const admin = await prisma.user.create({
+      data: {
+        email: `ps_adm3_${randomUUID().slice(0, 8)}@example.com`,
+        passwordHash: 'x',
+        firstName: 'Admin',
+        lastName: 'Three',
+        status: 'ACTIVE',
+        role: 'SUPER_ADMIN',
+        staffRole: 'SUPER_ADMIN',
+        emailVerifiedAt: new Date(),
+      },
+    })
+    const demo = await prisma.user.create({
+      data: {
+        email: `ps_demo3_${randomUUID().slice(0, 8)}@example.com`,
+        passwordHash: 'x',
+        firstName: 'Demo',
+        lastName: 'Three',
+        status: 'ACTIVE',
+        emailVerifiedAt: new Date(),
+        kycStatus: 'APPROVED',
+        role: 'USER',
+        createdByAdminId: admin.id,
+      },
+    })
+    const realEmail = `ps_real_iso_${randomUUID().slice(0, 8)}@example.com`
+    const { user: realUser } = await registerAndLogin(realEmail, 'SecurePass1!', 'Real')
+    await seedWallet(demo.id, '3000.00', '0.00')
+    await seedWallet(realUser.id, '4000.00', '0.00')
+
+    const today = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`)
+    await prisma.dailyReturn.upsert({
+      where: { date: today },
+      create: {
+        date: today,
+        status: 'DISTRIBUTED',
+        netReturnPct: moneyString('1.100000'),
+        computedReturnPct: moneyString('1.100000'),
+      },
+      update: {
+        netReturnPct: moneyString('1.100000'),
+        computedReturnPct: moneyString('1.100000'),
+      },
+    })
+
+    const beforeReal = await prisma.wallet.findUniqueOrThrow({
+      where: { userId_kind: { userId: realUser.id, kind: 'INVESTMENT' } },
+    })
+    await progressShareService.buildSnapshot(demo.id)
+    const afterReal = await prisma.wallet.findUniqueOrThrow({
+      where: { userId_kind: { userId: realUser.id, kind: 'INVESTMENT' } },
+    })
+    expect(afterReal.availableBalance.toString()).toBe(beforeReal.availableBalance.toString())
+    expect(await prisma.profitDistribution.count({ where: { userId: realUser.id } })).toBe(0)
+  })
+
+  it('admin financial filters still exclude demo investors', async () => {
+    const { realInvestorUser, realDepositWhere, realProfitWhere } = await import(
+      '../demo-investor.js'
+    )
+    expect(realInvestorUser).toEqual({
+      createdByAdminId: null,
+      role: 'USER',
+      deletedAt: null,
+    })
+    expect(realDepositWhere()).toMatchObject({
+      AND: [{ user: { createdByAdminId: null, role: 'USER', deletedAt: null } }],
+    })
+    expect(realProfitWhere()).toMatchObject({
+      AND: [{ user: { createdByAdminId: null, role: 'USER', deletedAt: null } }],
+    })
+  })
+
   it('authenticated user can generate their own image', async () => {
     const email = `ps_auth_${randomUUID().slice(0, 8)}@example.com`
     const { agent, user } = await registerAndLogin(email, 'SecurePass1!')

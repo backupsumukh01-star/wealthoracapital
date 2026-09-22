@@ -7,6 +7,7 @@ import { d, moneyDisplay } from '../../utils/money.js'
 import { ledgerService } from '../finance/ledger.service.js'
 import { mapWalletAggregate } from '../finance/finance.mappers.js'
 import { performanceService } from '../trading/performance.service.js'
+import { resolveDemoShareDailyReturn } from './progress-share.demo-return.js'
 import { renderProgressSharePng } from './progress-share.image.js'
 import { thinRealPoints } from './progress-share.chart.js'
 import {
@@ -68,9 +69,13 @@ export async function buildProgressShareSnapshot(userId: string): Promise<Progre
       email: true,
       firstName: true,
       lastName: true,
+      createdByAdminId: true,
     },
   })
   if (!user) throw notFound('User not found.')
+
+  const isDemo = Boolean(user.createdByAdminId)
+  const asOfDate = new Date().toISOString().slice(0, 10)
 
   const [wallets, performance, equity, todayRows] = await Promise.all([
     ledgerService.ensureWalletsForUser(userId),
@@ -80,7 +85,7 @@ export async function buildProgressShareSnapshot(userId: string): Promise<Progre
       where: {
         userId,
         isReversed: false,
-        date: new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`),
+        date: new Date(`${asOfDate}T00:00:00.000Z`),
       },
       orderBy: { createdAt: 'asc' },
       select: { amount: true, returnPct: true, createdAt: true },
@@ -98,7 +103,18 @@ export async function buildProgressShareSnapshot(userId: string): Promise<Progre
   let todayEarnings = d(0)
   for (const row of todayRows) todayEarnings = todayEarnings.plus(d(row.amount))
   const latestToday = todayRows[todayRows.length - 1]
-  const dailyReturnPct = latestToday ? d(latestToday.returnPct).toFixed(6) : '0.00'
+
+  // Real investors: only their live ProfitDistribution for today (unchanged).
+  // Demo/lookalike: when no today distribution, read programme/historical DailyReturn
+  // for display only — never credit wallets or create ledger rows.
+  let dailyReturnPct = latestToday ? d(latestToday.returnPct).toFixed(6) : '0.00'
+  if (!latestToday && isDemo) {
+    const demoReturn = await resolveDemoShareDailyReturn(userId, currentUsd, asOfDate)
+    dailyReturnPct = demoReturn.dailyReturnPct
+    if (demoReturn.displayTodayEarnings && todayEarnings.eq(0)) {
+      todayEarnings = d(demoReturn.displayTodayEarnings)
+    }
+  }
 
   const history = thinRealPoints(
     equity.points.map((p) => ({ label: p.date, value: p.balance })),
@@ -135,7 +151,7 @@ export async function buildProgressShareSnapshot(userId: string): Promise<Progre
     performancePct: performance.roiPct,
     todayEarnings: moneyDisplay(todayEarnings),
     dailyReturnPct,
-    asOfDate: new Date().toISOString().slice(0, 10),
+    asOfDate,
     brandName: 'Wealthora Capital',
     portfolioHistory,
     intradayPerformance,
