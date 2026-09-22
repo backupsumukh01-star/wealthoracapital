@@ -16,8 +16,15 @@ import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { useLandingLiveStats } from '@/features/landing'
 import { usePublishedLanding } from '@/features/cms/site'
 
-import { HeroMarketCards } from './hero-market-cards'
 import { HistoricalNote } from './historical-note'
+
+const HeroMarketCards = dynamic(
+  () => import('./hero-market-cards').then((m) => m.HeroMarketCards),
+  {
+    ssr: false,
+    loading: () => <div className="h-24 w-full" aria-hidden />,
+  },
+)
 
 const HeroVisual = dynamic(
   () => import('./hero-visual').then((m) => m.HeroVisual),

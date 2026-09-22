@@ -5,7 +5,6 @@ import { useEffect, useState, type ReactNode } from 'react'
 
 import { PageTransition } from '@/components/motion/page-transition'
 
-import { CmsSeoEffects } from './cms-seo-effects'
 import { CmsSiteOverlays } from './cms-site-overlays'
 import { ForexTicker } from './forex-ticker'
 import { PremiumAtmosphere } from './premium-atmosphere'
@@ -22,6 +21,11 @@ const LiveActivityToasts = dynamic(
   { ssr: false },
 )
 
+const CmsSeoEffects = dynamic(
+  () => import('./cms-seo-effects').then((m) => m.CmsSeoEffects),
+  { ssr: false },
+)
+
 function useIdleReady(timeoutMs: number) {
   const [ready, setReady] = useState(false)
 
@@ -30,11 +34,10 @@ function useIdleReady(timeoutMs: number) {
     const go = () => {
       if (!cancelled) setReady(true)
     }
-    const w = window as Window &
-      typeof globalThis & {
-        requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
-        cancelIdleCallback?: (id: number) => void
-      }
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
+      cancelIdleCallback?: (id: number) => void
+    }
     if (typeof w.requestIdleCallback === 'function') {
       const id = w.requestIdleCallback(go, { timeout: timeoutMs })
       return () => {
@@ -64,6 +67,13 @@ function IdleLiveActivityToasts() {
   return <LiveActivityToasts />
 }
 
+function IdleCmsSeoEffects() {
+  // Analytics / title overrides after first paint — do not block LCP/TBT.
+  const ready = useIdleReady(3000)
+  if (!ready) return null
+  return <CmsSeoEffects />
+}
+
 /**
  * Marketing chrome — sticky header + sticky ticker as one stack (in document flow),
  * so content never starts underneath and both stay visible while scrolling.
@@ -73,7 +83,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
     <div className="relative flex min-h-dvh flex-col overflow-x-clip">
       <PremiumAtmosphere />
       <IdleAmbientParticles />
-      <CmsSeoEffects />
+      <IdleCmsSeoEffects />
       <CmsSiteOverlays />
 
       <div className="sticky top-0 z-50 w-full min-w-0">

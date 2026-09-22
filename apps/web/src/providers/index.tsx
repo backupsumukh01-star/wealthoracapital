@@ -9,8 +9,6 @@ import { DeployVersionGuard } from '@/components/system/deploy-version-guard'
 import { NetworkStatusBanner } from '@/components/system/network-status-banner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
-import { AdminOsProvider } from './admin-os-provider'
-import { NotificationsProvider } from './notifications-provider'
 import { QueryProvider } from './query-provider'
 import { SessionProvider, type Session } from './session-provider'
 import { ThemeProvider } from './theme-provider'
@@ -53,7 +51,10 @@ function IdleToastProvider() {
   return <ToastProvider />
 }
 
-/** One composition point, so the root layout stays a table of contents. */
+/**
+ * Root providers for every route.
+ * Admin OS + investor notifications are scoped to their layouts — not the marketing homepage.
+ */
 export function Providers({
   children,
   session = null,
@@ -65,19 +66,15 @@ export function Providers({
     <ThemeProvider>
       <QueryProvider>
         <SessionProvider session={session}>
-          <AdminOsProvider>
-            <NotificationsProvider>
-              <MotionConfigProvider>
-                <TooltipProvider delayDuration={200}>
-                  <DeployVersionGuard />
-                  <NetworkStatusBanner />
-                  <LogoIntro />
-                  {children}
-                  <IdleToastProvider />
-                </TooltipProvider>
-              </MotionConfigProvider>
-            </NotificationsProvider>
-          </AdminOsProvider>
+          <MotionConfigProvider>
+            <TooltipProvider delayDuration={200}>
+              <DeployVersionGuard />
+              <NetworkStatusBanner />
+              <LogoIntro />
+              {children}
+              <IdleToastProvider />
+            </TooltipProvider>
+          </MotionConfigProvider>
         </SessionProvider>
       </QueryProvider>
     </ThemeProvider>
