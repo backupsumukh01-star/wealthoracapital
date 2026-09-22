@@ -8,6 +8,7 @@ import { ROUTES } from '@meridian/shared'
 import { AuthCard } from '@/components/auth/auth-card'
 import { Spinner } from '@/components/ui/spinner'
 import { authQueryKeys } from '@/features/auth/hooks'
+import { investorHomeAfterAuth } from '@/lib/account-access'
 import { ensureCsrfToken } from '@/lib/csrf'
 import { isStaffOauthNext, safeStaffNext } from '@/lib/staff-next'
 import { authService } from '@/services/auth.service'
@@ -80,9 +81,7 @@ function OAuthCallbackInner() {
           return
         }
 
-        router.replace(
-          session.user.kycStatus === 'APPROVED' ? ROUTES.dashboard.root : ROUTES.auth.onboarding,
-        )
+        router.replace(investorHomeAfterAuth(session.user.kycStatus))
       })
       .catch(() => {
         queryClient.setQueryData(authQueryKeys.session(), null)

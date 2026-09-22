@@ -11,6 +11,7 @@ export default defineConfig({
     include: [
       'src/components/admin/admin-attribution.test.ts',
       'src/features/landing/live-stats.test.ts',
+      'src/lib/account-access.test.ts',
       'src/lib/usd-only-investor-payments.test.ts',
     ],
   },

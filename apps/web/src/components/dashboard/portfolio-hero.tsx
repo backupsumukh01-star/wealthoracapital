@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { useWalletSummary } from '@/features/wallet/hooks'
 import { useDisplayCurrency } from '@/hooks/use-display-currency'
 import { useExchangeRate } from '@/hooks/use-exchange-rate'
-import { accountAccessMessage, canTransact } from '@/lib/account-access'
+import { canTransact } from '@/lib/account-access'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
@@ -55,7 +55,6 @@ export function PortfolioHero({
   const todayReturnPct = summary?.today.returnPct ?? '0.00'
   const name = session?.user.firstName ?? 'Investor'
   const allowed = canTransact(session?.user.kycStatus)
-  const access = accountAccessMessage(session?.user.kycStatus)
   const balanceDisplay =
     displayCurrency === 'USD' ? null : convertFromUsd(balance, displayCurrency)
   const displayRate = rates[displayCurrency]
@@ -72,7 +71,10 @@ export function PortfolioHero({
           Deposit
         </>
       ) : (
-        access.nextActionLabel
+        <>
+          <ArrowDownToLine aria-hidden />
+          Deposit locked
+        </>
       )}
     </Button>
   ) : (

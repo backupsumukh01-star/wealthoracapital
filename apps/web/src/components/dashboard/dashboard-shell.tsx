@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 
 import { ProtectedRoute } from '@/components/auth/protected-route'
+import { AccountStatusBanner } from '@/components/dashboard/account-status-banner'
 import { MobileBottomNav } from '@/components/dashboard/mobile-nav'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { Topbar } from '@/components/dashboard/topbar'
@@ -62,7 +63,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                 'pb-[calc(7.25rem+env(safe-area-inset-bottom))] lg:pb-10',
               )}
             >
-              <PageTransition className="mx-auto w-full min-w-0 max-w-content">
+              <PageTransition className="mx-auto w-full min-w-0 max-w-content space-y-4">
+                <AccountStatusBanner />
                 {children}
               </PageTransition>
             </main>

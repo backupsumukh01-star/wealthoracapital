@@ -108,10 +108,18 @@ export function WalletCenter() {
 
       {kycLocked ? (
         <Alert tone="warning" title={access.label}>
-          {access.description}{' '}
-          <Link href={access.nextActionHref} className="text-accent-300 underline-offset-4 hover:underline">
-            {access.nextActionLabel}
-          </Link>
+          {access.description}
+          {access.nextActionHref && access.nextActionLabel ? (
+            <>
+              {' '}
+              <Link
+                href={access.nextActionHref}
+                className="text-accent-300 underline-offset-4 hover:underline"
+              >
+                {access.nextActionLabel}
+              </Link>
+            </>
+          ) : null}
         </Alert>
       ) : null}
 

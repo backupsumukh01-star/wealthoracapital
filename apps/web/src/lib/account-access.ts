@@ -6,11 +6,31 @@ export function canTransact(kycStatus: KycStatus | string | undefined | null): b
   return kycStatus === 'APPROVED'
 }
 
+/** Submitted / awaiting compliance — app access OK, money moves locked. */
+export function isKycPendingReview(kycStatus: KycStatus | string | undefined | null): boolean {
+  return kycStatus === 'UNDER_REVIEW' || kycStatus === 'SUBMITTED'
+}
+
+/**
+ * Investor must complete or fix KYC on the onboarding surface.
+ * Pending review is intentionally excluded — those users stay in the app.
+ */
+export function requiresKycOnboarding(kycStatus: KycStatus | string | undefined | null): boolean {
+  if (!kycStatus || kycStatus === 'APPROVED') return false
+  return !isKycPendingReview(kycStatus)
+}
+
+/** Post-login / OAuth destination for investors. */
+export function investorHomeAfterAuth(kycStatus: KycStatus | string | undefined | null): string {
+  if (requiresKycOnboarding(kycStatus)) return ROUTES.auth.onboarding
+  return ROUTES.dashboard.root
+}
+
 export function accountAccessMessage(kycStatus: KycStatus | string | undefined | null): {
   label: string
   description: string
-  nextActionLabel: string
-  nextActionHref: string
+  nextActionLabel?: string
+  nextActionHref?: string
 } {
   switch (kycStatus) {
     case 'APPROVED':
@@ -23,10 +43,9 @@ export function accountAccessMessage(kycStatus: KycStatus | string | undefined |
     case 'UNDER_REVIEW':
     case 'SUBMITTED':
       return {
-        label: 'KYC under review',
-        description: 'Deposits unlock after compliance approval.',
-        nextActionLabel: 'View status',
-        nextActionHref: ROUTES.auth.onboarding,
+        label: 'KYC Under Review',
+        description:
+          'Your KYC verification is currently being reviewed. Expected review: 24–48 hours.',
       }
     case 'REJECTED':
     case 'NEED_MORE_INFO':

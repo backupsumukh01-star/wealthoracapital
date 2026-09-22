@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { ROUTES } from '@meridian/shared'
 import { toast } from 'sonner'
 
-import { AccountStatusBanner } from '@/components/dashboard/account-status-banner'
 import { ActivityTimeline } from '@/components/dashboard/activity-timeline'
 import { DashboardHomeSkeleton } from '@/components/dashboard/dashboard-home-skeleton'
 import { InvestmentStatus } from '@/components/dashboard/investment-status'
@@ -21,7 +20,7 @@ import { WalletFab } from '@/components/dashboard/wallet-fab'
 import { WealthQuickActions } from '@/components/dashboard/wealth-quick-actions'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
-import { accountAccessMessage, canTransact } from '@/lib/account-access'
+import { accountAccessMessage, canTransact, requiresKycOnboarding } from '@/lib/account-access'
 import { useCmsBootstrap } from '@/features/cms/hooks'
 import { useSession } from '@/providers/session-provider'
 
@@ -47,7 +46,9 @@ export function WealthHome() {
   function tryDeposit() {
     if (!allowed) {
       toast.message(access.label, { description: access.description })
-      router.push(access.nextActionHref || ROUTES.auth.onboarding)
+      if (requiresKycOnboarding(session?.user.kycStatus)) {
+        router.push(ROUTES.auth.onboarding)
+      }
       return
     }
     router.push(ROUTES.dashboard.deposit)
@@ -56,7 +57,9 @@ export function WealthHome() {
   function tryWithdraw() {
     if (!allowed) {
       toast.message(access.label, { description: access.description })
-      router.push(access.nextActionHref || ROUTES.auth.onboarding)
+      if (requiresKycOnboarding(session?.user.kycStatus)) {
+        router.push(ROUTES.auth.onboarding)
+      }
       return
     }
     router.push(ROUTES.dashboard.withdraw)
@@ -69,8 +72,6 @@ export function WealthHome() {
   return (
     <>
       <div className="space-y-6 lg:space-y-8">
-        <AccountStatusBanner />
-
         {cmsReady && cmsBoot?.platform.riskDisclaimer ? (
           <p className="rounded-xl border border-white/[0.06] bg-inset/40 px-4 py-3 text-caption text-fg-subtle">
             {cmsBoot.platform.riskDisclaimer}

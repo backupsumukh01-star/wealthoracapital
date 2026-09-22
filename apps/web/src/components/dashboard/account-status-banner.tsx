@@ -1,10 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
+import { AlertTriangle, ArrowRight } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { accountAccessMessage, canTransact } from '@/lib/account-access'
+import { accountAccessMessage, canTransact, isKycPendingReview } from '@/lib/account-access'
 import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
 
@@ -40,7 +40,7 @@ function toneForStatus(kycStatus: string | undefined) {
   }
 }
 
-/** Status strip — badge, description, next action. Driven by API session KYC. */
+/** Compact KYC status strip — shown across the investor shell when money moves are locked. */
 export function AccountStatusBanner({ className }: { className?: string }) {
   const { session, isLoading } = useSession()
   if (isLoading || !session) return null
@@ -48,32 +48,51 @@ export function AccountStatusBanner({ className }: { className?: string }) {
 
   const access = accountAccessMessage(session.user.kycStatus)
   const tone = toneForStatus(session.user.kycStatus)
+  const pending = isKycPendingReview(session.user.kycStatus)
+  const showAction = Boolean(access.nextActionHref && access.nextActionLabel)
 
   return (
     <div
+      role="status"
       className={cn(
-        'flex flex-col gap-3 rounded-2xl border px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5',
+        'flex flex-col gap-2.5 rounded-xl border px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-4 sm:py-3',
         toneClass[tone],
         className,
       )}
     >
-      <div className="min-w-0 space-y-1">
-        <span
+      <div className="flex min-w-0 gap-2.5">
+        <AlertTriangle
           className={cn(
-            'inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium',
-            badgeClass[tone],
+            'mt-0.5 size-4 shrink-0',
+            tone === 'warning' && 'text-warning',
+            tone === 'loss' && 'text-loss',
+            tone === 'info' && 'text-info',
           )}
-        >
-          {access.label}
-        </span>
-        <p className="text-body-sm text-fg-muted">{access.description}</p>
+          aria-hidden
+        />
+        <div className="min-w-0 space-y-0.5">
+          <span
+            className={cn(
+              'inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium',
+              badgeClass[tone],
+            )}
+          >
+            {access.label}
+          </span>
+          <p className="text-caption text-fg-muted sm:text-body-sm">{access.description}</p>
+          {pending ? (
+            <p className="text-[11px] text-fg-subtle">Deposit and withdrawal remain locked.</p>
+          ) : null}
+        </div>
       </div>
-      <Button asChild size="sm" className="shrink-0">
-        <Link href={access.nextActionHref}>
-          {access.nextActionLabel}
-          <ArrowRight aria-hidden />
-        </Link>
-      </Button>
+      {showAction ? (
+        <Button asChild size="sm" className="shrink-0 self-start sm:self-center">
+          <Link href={access.nextActionHref!}>
+            {access.nextActionLabel}
+            <ArrowRight aria-hidden />
+          </Link>
+        </Button>
+      ) : null}
     </div>
   )
 }

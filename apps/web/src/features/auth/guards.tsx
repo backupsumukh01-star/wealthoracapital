@@ -10,6 +10,7 @@ import { useSession } from '@/providers/session-provider'
 import type { Permission } from '@/config/permissions.config'
 import { ADMIN_ROUTE_PERMISSIONS } from '@/config/admin-route-permissions'
 import { INVESTOR_ROUTE_PERMISSIONS } from '@/config/investor-route-permissions'
+import { requiresKycOnboarding } from '@/lib/account-access'
 
 export { ProtectedRoute }
 
@@ -143,7 +144,9 @@ export function InvestorPermissionRouteGuard({ children }: { children: ReactNode
     if (isLoading || !isAuthenticated) return
     const kycStatus = session?.user.kycStatus
     const isInvestor = session?.user.role === 'USER' && !isStaff
-    if (isInvestor && kycStatus && kycStatus !== 'APPROVED') {
+    // Pending review (UNDER_REVIEW / SUBMITTED) may use the normal app with money moves locked.
+    // Only force onboarding when KYC still needs to be started or fixed.
+    if (isInvestor && requiresKycOnboarding(kycStatus)) {
       if (pathname !== ROUTES.auth.onboarding) {
         router.replace(ROUTES.auth.onboarding)
       }

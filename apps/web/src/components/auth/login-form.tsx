@@ -18,6 +18,7 @@ import { CheckboxField } from '@/components/ui/checkbox'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
 import { useLogin } from '@/features/auth/hooks'
+import { investorHomeAfterAuth } from '@/lib/account-access'
 import { ApiError } from '@/lib/api-client'
 import { loginSchema, normalizeReferralRefParam, type LoginInput } from '@/lib/auth-schemas'
 import { env } from '@/lib/env'
@@ -76,9 +77,7 @@ export function LoginForm() {
     const dest =
       next && next.startsWith('/') && !next.startsWith('//')
         ? next
-        : kycStatus === 'APPROVED'
-          ? ROUTES.dashboard.root
-          : ROUTES.auth.onboarding
+        : investorHomeAfterAuth(kycStatus)
     router.push(dest)
     router.refresh()
   }

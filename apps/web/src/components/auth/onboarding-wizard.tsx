@@ -30,6 +30,7 @@ import {
   useUpdateKyc,
   useUploadKycDocument,
 } from '@/features/kyc/hooks'
+import { isKycPendingReview } from '@/lib/account-access'
 import { ApiError } from '@/lib/api-client'
 import {
   COUNTRIES,
@@ -110,8 +111,12 @@ export function OnboardingWizard() {
     if (sessionLoading) return
     if (!isAuthenticated) {
       router.replace(`${ROUTES.auth.login}?next=${encodeURIComponent(ROUTES.auth.onboarding)}`)
+      return
     }
-  }, [sessionLoading, isAuthenticated, router])
+    if (isKycPendingReview(kycStatus)) {
+      router.replace(ROUTES.dashboard.root)
+    }
+  }, [sessionLoading, isAuthenticated, router, kycStatus])
 
   const progress = useMemo(() => {
     const index = STEPS.findIndex((item) => item.id === step)
@@ -202,6 +207,7 @@ export function OnboardingWizard() {
       toast.success('KYC submitted', { description: 'Expected review: 24–48 hours.' })
       setStep(4)
       setSuccessOpen(true)
+      router.replace(ROUTES.dashboard.root)
     } catch (error) {
       setSubmitError(
         error instanceof ApiError
@@ -233,16 +239,14 @@ export function OnboardingWizard() {
     )
   }
 
-  if (kycStatus === 'UNDER_REVIEW' || kycStatus === 'SUBMITTED') {
+  // Pending review belongs in the normal app (banner + locked deposits), not a full-screen gate.
+  if (isKycPendingReview(kycStatus)) {
     return (
-      <AuthCard
-        title="KYC under review"
-        description="Your KYC is currently under review."
-      >
-        <Alert tone="warning" title="Deposit locked">
-          You cannot deposit or withdraw until KYC is approved. Expected review: 24–48 hours.
-        </Alert>
-        <Button fullWidth size="lg" onClick={() => router.push(ROUTES.dashboard.root)}>
+      <AuthCard title="KYC under review" description="Taking you to your dashboard…">
+        <p className="text-body-sm text-fg-muted">
+          Your KYC verification is currently being reviewed. Expected review: 24–48 hours.
+        </p>
+        <Button fullWidth size="lg" onClick={() => router.replace(ROUTES.dashboard.root)}>
           Go to dashboard
         </Button>
       </AuthCard>
