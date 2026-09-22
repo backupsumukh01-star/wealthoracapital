@@ -139,6 +139,10 @@ export const adminUpdateUserSchema = z.object({
 export const adminStatusReasonSchema = z.object({
   reason: z.string().trim().min(3).max(500).optional(),
   mode: z.enum(['soft', 'hard']).optional(),
+  /** Required when mode=hard — must equal DELETE. */
+  confirmPhrase: z.string().trim().optional(),
+  /** Required when mode=hard — admin must have downloaded the export. */
+  exportAcknowledged: z.boolean().optional(),
 })
 
 export const adminAuditQuerySchema = z.object({

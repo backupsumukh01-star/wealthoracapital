@@ -144,7 +144,11 @@ export const adminUsersController = {
   }),
 
   remove: asyncHandler(async (req, res) => {
-    const body = req.body as ReasonBody & { mode?: 'soft' | 'hard' }
+    const body = req.body as ReasonBody & {
+      mode?: 'soft' | 'hard'
+      confirmPhrase?: string
+      exportAcknowledged?: boolean
+    }
     const mode = body.mode === 'hard' ? 'hard' : 'soft'
     const data =
       mode === 'hard'
@@ -153,6 +157,10 @@ export const adminUsersController = {
             req.params.id!,
             body.reason ?? null,
             requestContext(req),
+            {
+              confirmPhrase: body.confirmPhrase,
+              exportAcknowledged: body.exportAcknowledged,
+            },
           )
         : await adminUsersService.softDelete(
             req.user!.id,
@@ -161,6 +169,19 @@ export const adminUsersController = {
             requestContext(req),
           )
     sendSuccess(res, data)
+  }),
+
+  dataExport: asyncHandler(async (req, res) => {
+    const { adminUserPermanentDeleteService } = await import(
+      '../services/admin-user-permanent-delete.service.js'
+    )
+    const file = await adminUserPermanentDeleteService.buildExportArchive(
+      req.user!.id,
+      req.params.id!,
+    )
+    res.setHeader('Content-Type', file.contentType)
+    res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`)
+    res.send(file.body)
   }),
 
   restore: asyncHandler(async (req, res) => {

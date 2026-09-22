@@ -559,11 +559,47 @@ export const adminService = {
       body: {},
     }),
 
-  deleteUser: (id: string, body: { mode: 'soft' | 'hard'; reason?: string }) =>
-    apiClient<{ id: string; deleted?: boolean } | User>(`${API_ROUTES.admin.users}/${id}/delete`, {
-      method: 'POST',
-      body,
-    }),
+  deleteUser: (
+    id: string,
+    body: {
+      mode: 'soft' | 'hard'
+      reason?: string
+      confirmPhrase?: string
+      exportAcknowledged?: boolean
+    },
+  ) =>
+    apiClient<{ id: string; deleted?: boolean; deletionRef?: string } | User>(
+      `${API_ROUTES.admin.users}/${id}/delete`,
+      {
+        method: 'POST',
+        body,
+      },
+    ),
+
+  downloadUserDataExport: async (id: string) => {
+    const { env } = await import('@/lib/env')
+    const response = await fetch(
+      `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.admin.userDataExport(id)}`,
+      { credentials: 'include', cache: 'no-store' },
+    )
+    if (!response.ok) {
+      const text = await response.text().catch(() => '')
+      throw new Error(text || 'Could not download user data export.')
+    }
+    const disposition = response.headers.get('Content-Disposition') ?? ''
+    const match = /filename="([^"]+)"/i.exec(disposition)
+    const filename = match?.[1] ?? `user-export-${id.slice(0, 8)}.zip`
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+    return { filename }
+  },
 
   restoreUser: (id: string) =>
     apiClient<User>(`${API_ROUTES.admin.users}/${id}/restore`, {

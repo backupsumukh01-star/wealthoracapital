@@ -877,51 +877,30 @@ export const adminUsersService = {
   },
 
   /**
-   * SUPER_ADMIN only — permanently remove user + auth surface so email/phone can re-register.
-   * Financial ledger rows that Cascade will go; prefer softDelete for audit retention.
+   * SUPER_ADMIN only — permanently remove one investor so email/phone can re-register.
+   * Ordered transactional wipe; does not cascade-delete other users or salesmen.
+   * Requires export acknowledgement + confirm phrase DELETE.
    */
   async hardDelete(
     actorId: string,
     id: string,
     reason: string | null,
     context: { ip?: string | null; userAgent?: string | null },
+    options?: { confirmPhrase?: string; exportAcknowledged?: boolean },
   ) {
-    const actor = await userRepository.findById(actorId)
-    if (!actor || actor.role !== 'SUPER_ADMIN') {
-      throw forbidden('Hard delete requires SUPER_ADMIN.')
-    }
-    const existing = await userRepository.findByIdIncludingDeleted(id)
-    if (!existing) throw notFound('User not found.')
-    if (existing.id === actorId) throw badRequest('You cannot delete your own account.')
-    if (existing.role === 'SUPER_ADMIN') {
-      throw forbidden('Cannot hard-delete a SUPER_ADMIN account.')
-    }
-
-    await sessionRepository.revokeAllForUser(id)
-    await auditService.record({
+    const { adminUserPermanentDeleteService } = await import(
+      './admin-user-permanent-delete.service.js'
+    )
+    return adminUserPermanentDeleteService.permanentDelete(
       actorId,
-      targetUserId: id,
-      action: 'user.hard_delete',
-      module: 'users',
-      oldValue: snapshotUser(existing),
-      newValue: null,
-      reason,
-      ip: context.ip,
-      userAgent: context.userAgent,
-    })
-
-    // Release unique email/phone by anonymizing then deleting.
-    const tombstone = `deleted_${id.slice(0, 8)}_${Date.now()}`
-    await userRepository.update(id, {
-      email: `${tombstone}@deleted.local`,
-      phone: null,
-      googleId: null,
-      passwordHash: null,
-      deletedAt: new Date(),
-      status: 'ARCHIVED',
-    })
-    await prisma.user.delete({ where: { id } })
-    return { id, deleted: true as const }
+      id,
+      {
+        confirmPhrase: options?.confirmPhrase ?? '',
+        exportAcknowledged: Boolean(options?.exportAcknowledged),
+        reason,
+      },
+      context,
+    )
   },
 
   async restore(

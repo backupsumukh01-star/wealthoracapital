@@ -224,6 +224,13 @@ adminRouter.post(
   adminUsersController.block,
 )
 
+adminRouter.get(
+  '/users/:id/data-export',
+  requirePermission(PERMISSIONS['users.delete']),
+  validate(idParamSchema, 'params'),
+  adminUsersController.dataExport,
+)
+
 adminRouter.post(
   '/users/:id/delete',
   requirePermission(PERMISSIONS['users.delete']),

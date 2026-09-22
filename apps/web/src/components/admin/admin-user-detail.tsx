@@ -30,6 +30,14 @@ import { DualMoney } from '@/components/common/dual-money'
 import { Money } from '@/components/common/money'
 import { PageHeader, SectionHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
@@ -64,6 +72,10 @@ export function AdminUserDetailWorkspace() {
   const [adjustAmount, setAdjustAmount] = useState('')
   const [adjustDirection, setAdjustDirection] = useState<'CREDIT' | 'DEBIT'>('CREDIT')
   const [adjustReason, setAdjustReason] = useState('')
+  const [permanentDeleteOpen, setPermanentDeleteOpen] = useState(false)
+  const [permanentConfirmPhrase, setPermanentConfirmPhrase] = useState('')
+  const [exportReady, setExportReady] = useState(false)
+  const [exportDownloading, setExportDownloading] = useState(false)
 
   type AdminUserDetail = NonNullable<typeof user> & {
     referral?: { referredBy: { id: string; name: string; username: string; referralCode: string | null } } | null
@@ -295,14 +307,34 @@ export function AdminUserDetailWorkspace() {
     mutationFn: () =>
       adminService.deleteUser(userId, {
         mode: 'hard',
-        reason: 'Hard-deleted by super admin',
+        reason: 'Permanent single-user deletion after export acknowledgement',
+        confirmPhrase: permanentConfirmPhrase,
+        exportAcknowledged: exportReady,
       }),
     onSuccess: () => {
-      toast.success('User permanently deleted — email and phone released')
-      window.location.href = ROUTES.admin.users
+      toast.success('User permanently deleted.')
+      setPermanentDeleteOpen(false)
+      queryClient.removeQueries({ queryKey: adminQueryKeys.user(userId) })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.ops() })
+      router.replace(ROUTES.admin.users)
     },
-    onError: (err: Error) => toast.error(err.message || 'Hard delete failed'),
+    onError: (err: Error) => toast.error(err.message || 'Permanent deletion failed'),
   })
+
+  async function downloadPermanentExport() {
+    setExportDownloading(true)
+    try {
+      await adminService.downloadUserDataExport(userId)
+      setExportReady(true)
+      toast.success('Export downloaded. You can confirm permanent deletion.')
+    } catch (err) {
+      setExportReady(false)
+      toast.error(err instanceof Error ? err.message : 'Export failed — deletion blocked')
+    } finally {
+      setExportDownloading(false)
+    }
+  }
 
   const restoreUser = useMutation({
     mutationFn: () => adminService.restoreUser(userId),
@@ -1257,7 +1289,7 @@ export function AdminUserDetailWorkspace() {
             <AdminPanel>
               <AdminPanelHeader
                 title="Delete user"
-                description="Soft delete disables login and keeps financial + audit records. Hard delete is SUPER_ADMIN only and permanently removes the account so email/phone can register again."
+                description="Soft delete disables login and keeps financial + audit records. Permanent delete is SUPER_ADMIN only: exports this user's data, then removes only this investor so the email can register fresh. Referral descendants, salesman accounts, and other investors are preserved."
               />
               <div className="flex flex-wrap gap-2 px-4 py-4 sm:px-5">
                 <Button
@@ -1292,20 +1324,113 @@ export function AdminUserDetailWorkspace() {
                     type="button"
                     size="sm"
                     variant="danger"
-                    disabled={hardDelete.isPending || session?.user.role !== 'SUPER_ADMIN'}
+                    disabled={
+                      hardDelete.isPending ||
+                      session?.user.role !== 'SUPER_ADMIN' ||
+                      Boolean(user.deletedAt) ||
+                      user.role !== 'USER'
+                    }
                     onClick={() => {
-                      const typed = window.prompt(
-                        'HARD DELETE is permanent. Type DELETE to confirm releasing email/phone and removing credentials.',
-                      )
-                      if (typed === 'DELETE') hardDelete.mutate()
+                      setPermanentConfirmPhrase('')
+                      setExportReady(false)
+                      setPermanentDeleteOpen(true)
                     }}
                   >
-                    Hard delete
+                    Delete User Permanently
                   </Button>
                 </PermissionGate>
               </div>
             </AdminPanel>
           </PermissionGate>
+
+          <Dialog
+            open={permanentDeleteOpen}
+            onOpenChange={(open) => {
+              if (hardDelete.isPending) return
+              setPermanentDeleteOpen(open)
+              if (!open) {
+                setPermanentConfirmPhrase('')
+                setExportReady(false)
+              }
+            }}
+          >
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Permanently Delete User?</DialogTitle>
+                <DialogDescription asChild>
+                  <div className="space-y-3 text-left text-caption text-fg-muted">
+                    <p>
+                      <span className="font-medium text-fg">
+                        {user.firstName} {user.lastName}
+                      </span>
+                      <br />
+                      {user.email}
+                    </p>
+                    <p>
+                      This permanently deletes this user account and all data belonging to this
+                      user. This cannot be undone from the Admin panel.
+                    </p>
+                    <p>
+                      Other users, salesman accounts, referral networks, and platform data will{' '}
+                      <strong className="text-fg">NOT</strong> be deleted. Downstream referrals keep
+                      their accounts (parent link cleared).
+                    </p>
+                    <ol className="list-decimal space-y-1 pl-4">
+                      <li>Download the user data export (required).</li>
+                      <li>Type DELETE to confirm.</li>
+                      <li>Click Delete Permanently.</li>
+                    </ol>
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 py-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={exportDownloading}
+                  onClick={() => void downloadPermanentExport()}
+                >
+                  {exportDownloading
+                    ? 'Preparing export…'
+                    : exportReady
+                      ? 'Export downloaded ✓ — download again'
+                      : '1. Download user data export'}
+                </Button>
+                <FormField label='Type DELETE to confirm'>
+                  <Input
+                    value={permanentConfirmPhrase}
+                    onChange={(e) => setPermanentConfirmPhrase(e.target.value)}
+                    placeholder="DELETE"
+                    autoComplete="off"
+                    disabled={hardDelete.isPending}
+                  />
+                </FormField>
+              </div>
+              <DialogFooter className="gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={hardDelete.isPending}
+                  onClick={() => setPermanentDeleteOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  disabled={
+                    hardDelete.isPending ||
+                    !exportReady ||
+                    permanentConfirmPhrase !== 'DELETE'
+                  }
+                  onClick={() => hardDelete.mutate()}
+                >
+                  {hardDelete.isPending ? 'Deleting…' : 'Delete Permanently'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="timeline" className="space-y-4">
