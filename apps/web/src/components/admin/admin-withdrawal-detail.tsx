@@ -13,6 +13,7 @@ import {
   mapKycStatus,
   mapWithdrawalStatus,
 } from '@/components/admin/admin-api-adapters'
+import { AdminAttributionPanel } from '@/components/admin/admin-attribution-panel'
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import {
   AdminAccountPill,
@@ -308,6 +309,13 @@ export function AdminWithdrawalDetailWorkspace() {
           )}
         </AdminPanel>
       </div>
+
+      <AdminAttributionPanel
+        attribution={{
+          referral: withdrawal.referral ?? null,
+          salesman: withdrawal.salesman ?? null,
+        }}
+      />
 
       <div className="grid gap-5 lg:grid-cols-2">
         <AdminPanel>

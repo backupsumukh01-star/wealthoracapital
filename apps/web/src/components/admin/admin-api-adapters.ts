@@ -36,9 +36,23 @@ export type AdminUserRef = {
   kycStatus?: KycStatus
 }
 
+/** Read-only referral / salesman fields from admin detail APIs (Prompt 1). */
+export type AdminReferredBySummary = {
+  id: string
+  name: string
+  username: string
+  referralCode: string | null
+}
+
+export type AdminUserAttributionFields = {
+  referral?: { referredBy: AdminReferredBySummary } | null
+  salesman?: { id: string; name: string; code: string } | null
+}
+
 export type AdminDetailRecord = Record<string, unknown>
 
-export type AdminDepositRow = Deposit & {
+export type AdminDepositRow = Deposit &
+  AdminUserAttributionFields & {
   user?: AdminUserRef
   currency?: string
   notes?: string | null
@@ -62,7 +76,8 @@ export type AdminDepositRow = Deposit & {
   paymentMethod?: AdminDetailRecord | null
 }
 
-export type AdminWithdrawalRow = Withdrawal & {
+export type AdminWithdrawalRow = Withdrawal &
+  AdminUserAttributionFields & {
   user?: AdminUserRef
   currency?: string
   destinationSnapshot?: AdminDetailRecord | null

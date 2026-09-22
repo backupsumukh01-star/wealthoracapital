@@ -17,6 +17,7 @@ import {
   mapWithdrawalStatus,
   methodLabel,
 } from '@/components/admin/admin-api-adapters'
+import { AdminAttributionPanel } from '@/components/admin/admin-attribution-panel'
 import { AdminKycDocumentsGrid } from '@/components/admin/admin-kyc-review'
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import {
@@ -65,6 +66,8 @@ export function AdminUserDetailWorkspace() {
   const [adjustReason, setAdjustReason] = useState('')
 
   type AdminUserDetail = NonNullable<typeof user> & {
+    referral?: { referredBy: { id: string; name: string; username: string; referralCode: string | null } } | null
+    salesman?: { id: string; name: string; code: string } | null
     countryName?: string | null
     city?: string | null
     address?: string | null
@@ -553,6 +556,10 @@ export function AdminUserDetailWorkspace() {
               </AdminPanel>
             ))}
           </div>
+
+          <AdminAttributionPanel
+            attribution={{ referral: detail?.referral ?? null, salesman: detail?.salesman ?? null }}
+          />
 
           <AdminPanel>
             <AdminPanelHeader

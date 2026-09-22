@@ -14,6 +14,7 @@ import {
   mapKycStatus,
   methodLabel,
 } from '@/components/admin/admin-api-adapters'
+import { AdminAttributionPanel } from '@/components/admin/admin-attribution-panel'
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
 import { AdminAccountPill, AdminDepositPill, AdminKycPill } from '@/components/admin/admin-status-pills'
 import { DepositProofViewer } from '@/components/common/deposit-proof-viewer'
@@ -337,6 +338,10 @@ export function AdminDepositDetailWorkspace() {
               </div>
             </dl>
           </AdminPanel>
+
+          <AdminAttributionPanel
+            attribution={{ referral: deposit.referral ?? null, salesman: deposit.salesman ?? null }}
+          />
 
           <AdminPanel>
             <AdminPanelHeader title="Submission details" />
