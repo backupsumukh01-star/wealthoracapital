@@ -26,6 +26,8 @@ export type DailyShareInput = {
   todayEarnings: string
   dailyReturn: string
   totalEarnings: string
+  /** Live portfolio / account balance (same as dashboard Total portfolio). */
+  currentValue: string
   date: string
   chartData: ProgressShareChartPoint[]
 }

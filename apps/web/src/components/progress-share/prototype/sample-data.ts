@@ -25,6 +25,7 @@ export const SAMPLE_DAILY: DailyShareInput = {
   todayEarnings: '$48.32',
   dailyReturn: '+0.96%',
   totalEarnings: '$1,016.59',
+  currentValue: '$6,198.68',
   date: '21 Sep 2026',
   chartData: [],
 }

@@ -149,6 +149,8 @@ export function buildProgressShareOverlay(
       coverRects(DAILY_COVERS),
       slotText(DAILY_SLOTS.name, name),
       slotText(DAILY_SLOTS.earnedToday, usdSymbol(snapshot.todayEarnings)),
+      slotText(DAILY_SLOTS.currentBalanceLabel, 'CURRENT BALANCE'),
+      slotText(DAILY_SLOTS.currentBalance, usdSymbol(snapshot.currentValue)),
       slotText(DAILY_SLOTS.dailyReturn, pctDisplay(snapshot.dailyReturnPct)),
       slotText(DAILY_SLOTS.totalEarnings, formatDecimal(snapshot.totalEarnings, 2)),
       slotText(DAILY_SLOTS.todayProfit, usdSymbol(snapshot.todayEarnings)),

@@ -121,6 +121,7 @@ export function ProgressSharePrototypeCanvas({
     ? formatPercent(data.dailyReturn.replace('%', ''), { decimals: 2, signed: true })
     : formatPercent(data.performance.replace('%', ''), { decimals: 2, signed: true })
   const total = amount(data.totalEarnings)
+  const balance = 'currentValue' in data ? money(data.currentValue) : ''
   const date = posterDate(data.date)
 
   return (
@@ -160,6 +161,8 @@ export function ProgressSharePrototypeCanvas({
         <>
           <Guide slot={DAILY_SLOTS.name} label="name" />
           <Guide slot={DAILY_SLOTS.earnedToday} label="earnedToday" />
+          <Guide slot={DAILY_SLOTS.currentBalanceLabel} label="currentBalanceLabel" />
+          <Guide slot={DAILY_SLOTS.currentBalance} label="currentBalance" />
           <Guide slot={DAILY_SLOTS.dailyReturn} label="dailyReturn" />
           <Guide slot={DAILY_SLOTS.totalEarnings} label="totalEarnings" />
           <Guide slot={DAILY_SLOTS.date} label="date" />
@@ -172,6 +175,16 @@ export function ProgressSharePrototypeCanvas({
       <Field id="progress-share-earned-today" slot={DAILY_SLOTS.earnedToday}>
         {earned}
       </Field>
+      {daily && balance ? (
+        <>
+          <Field id="progress-share-current-balance-label" slot={DAILY_SLOTS.currentBalanceLabel}>
+            CURRENT BALANCE
+          </Field>
+          <Field id="progress-share-current-balance" slot={DAILY_SLOTS.currentBalance}>
+            {balance}
+          </Field>
+        </>
+      ) : null}
       <Field id="progress-share-daily-return" slot={DAILY_SLOTS.dailyReturn}>
         {ret}
       </Field>

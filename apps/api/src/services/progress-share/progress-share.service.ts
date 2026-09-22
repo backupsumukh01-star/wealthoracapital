@@ -92,7 +92,8 @@ export async function buildProgressShareSnapshot(userId: string): Promise<Progre
 
   const earningsUsd = wallet.totalProfit
   const investmentUsd = wallet.investedAmount
-  const currentUsd = wallet.balance
+  // Same live figure as investor dashboard "Total portfolio" (GET /wallet/summary).
+  const currentUsd = wallet.availableBalance
 
   let todayEarnings = d(0)
   for (const row of todayRows) todayEarnings = todayEarnings.plus(d(row.amount))

@@ -149,6 +149,8 @@ describe('Progress share image content', () => {
     expect(overlay).toContain('Aisha Khan')
     expect(overlay).toContain('42.50')
     expect(overlay).toContain('+0.85')
+    expect(overlay).toContain('CURRENT BALANCE')
+    expect(overlay).toContain('5,542.50')
     expect(overlay).not.toContain('₹')
   })
 
@@ -215,6 +217,25 @@ describe('Progress share HTTP API', () => {
         update: {},
       })
     }
+  })
+
+  it('snapshot currentValue matches live available balance', async () => {
+    const email = `ps_bal_${randomUUID().slice(0, 8)}@example.com`
+    const { user } = await registerAndLogin(email, 'SecurePass1!')
+    await seedWallet(user.id, '2500.00', '125.00')
+    await prisma.wallet.update({
+      where: { userId_kind: { userId: user.id, kind: 'INVESTMENT' } },
+      data: {
+        balance: moneyString('2800.00'),
+        availableBalance: moneyString('2625.00'),
+      },
+    })
+
+    const snapshot = await progressShareService.buildSnapshot(user.id)
+    expect(snapshot.currentValue).toBe('2625.00')
+    const overlay = buildProgressShareOverlay(snapshot, 'daily')
+    expect(overlay).toContain('CURRENT BALANCE')
+    expect(overlay).toContain('2,625.00')
   })
 
   it('authenticated user can generate their own image', async () => {

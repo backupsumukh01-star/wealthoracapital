@@ -17,7 +17,14 @@ export type OverlaySlot = {
 }
 
 export const DAILY_SLOTS: Record<
-  'name' | 'earnedToday' | 'dailyReturn' | 'totalEarnings' | 'date' | 'todayProfit',
+  | 'name'
+  | 'earnedToday'
+  | 'currentBalance'
+  | 'currentBalanceLabel'
+  | 'dailyReturn'
+  | 'totalEarnings'
+  | 'date'
+  | 'todayProfit',
   OverlaySlot
 > = {
   name: { x: 72, y: 258, size: 78, color: '#F3F6F8', weight: 800, tracking: '-0.035em' },
@@ -31,6 +38,15 @@ export const DAILY_SLOTS: Record<
     gradient: { from: '#F6FFFB', mid: '#A8F4D8', to: '#2ED48C' },
     shadow: '0 0 22px rgba(80,220,170,0.45)',
   },
+  currentBalanceLabel: {
+    x: 68,
+    y: 562,
+    size: 18,
+    color: '#A8B4BE',
+    weight: 600,
+    tracking: '0.12em',
+  },
+  currentBalance: { x: 68, y: 592, size: 40, color: '#F4F7FA', weight: 700, tracking: '-0.03em' },
   dailyReturn: { x: 242, y: 778, size: 34, color: '#F4F7FA', weight: 700, tracking: '-0.03em' },
   totalEarnings: { x: 668, y: 778, size: 42, color: '#F4F7FA', weight: 700, tracking: '-0.03em' },
   date: { x: 138, y: 1748, size: 30, color: '#E8EEF2', weight: 700, tracking: '0.08em' },

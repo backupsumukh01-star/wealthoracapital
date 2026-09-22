@@ -12,6 +12,9 @@ export const DAILY_SLOTS = {
     weight: 800,
     gradient: { from: '#F6FFFB', mid: '#A8F4D8', to: '#2ED48C' },
   },
+  /** Live account balance — under earned-today hero, above metric tiles. */
+  currentBalance: { x: 68, y: 592, size: 40, color: '#F4F7FA', weight: 700 },
+  currentBalanceLabel: { x: 68, y: 562, size: 18, color: '#A8B4BE', weight: 600 },
   dailyReturn: { x: 242, y: 778, size: 34, color: '#F4F7FA', weight: 700 },
   totalEarnings: { x: 668, y: 778, size: 42, color: '#F4F7FA', weight: 700 },
   date: { x: 138, y: 1748, size: 30, color: '#E8EEF2', weight: 700 },
