@@ -19,10 +19,12 @@ import type {
   adminUpdateUserSchema,
   adminUserHistoryCreateSchema,
   adminUserListQuerySchema,
+  adminDeletedUsersQuerySchema,
   adminUserNoteSchema,
 } from '../validators/admin.validators.js'
 
 type ListQuery = z.infer<typeof adminUserListQuerySchema>
+type DeletedListQuery = z.infer<typeof adminDeletedUsersQuerySchema>
 type CreateBody = z.infer<typeof adminCreateUserSchema>
 type UpdateBody = z.infer<typeof adminUpdateUserSchema>
 type ReasonBody = z.infer<typeof adminStatusReasonSchema>
@@ -61,6 +63,19 @@ export const adminUsersController = {
       cursor: query.cursor,
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
+    })
+    sendSuccess(res, result)
+  }),
+
+  listDeleted: asyncHandler(async (req, res) => {
+    const query = req.query as unknown as DeletedListQuery
+    const { adminUserPermanentDeleteService } = await import(
+      '../services/admin-user-permanent-delete.service.js'
+    )
+    const result = await adminUserPermanentDeleteService.listDeleted({
+      q: query.q,
+      page: query.page,
+      limit: query.limit,
     })
     sendSuccess(res, result)
   }),

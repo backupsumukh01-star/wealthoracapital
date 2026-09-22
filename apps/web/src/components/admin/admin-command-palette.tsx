@@ -35,6 +35,13 @@ const ACTIONS: Action[] = [
     permission: 'users.view',
   },
   {
+    id: 'deleted-users',
+    label: 'Deleted Users',
+    hint: 'Permanent deletion audit',
+    href: ROUTES.admin.deletedUsers,
+    permission: 'users.delete',
+  },
+  {
     id: 'deposit',
     label: 'Open Deposits',
     hint: 'Finance queue',

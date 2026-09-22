@@ -97,6 +97,14 @@ describe('adminUserPermanentDeleteService', () => {
     expect(await prisma.session.count({ where: { userId: B.id } })).toBe(0)
     expect(await prisma.wallet.count({ where: { userId: B.id } })).toBe(0)
 
+    const deletedList = await adminUserPermanentDeleteService.listDeleted({ page: 1, limit: 50 })
+    const auditRow = deletedList.items.find((row) => row.deletedUserId === B.id)
+    expect(auditRow).toBeTruthy()
+    expect(auditRow?.email).toBe(B.email)
+    expect(auditRow?.deletionRef).toBe(result.deletionRef)
+    expect(auditRow?.deletedBy.id).toBe(superAdminId)
+    expect(JSON.stringify(auditRow)).not.toMatch(/password|balance|wallet|deposit|kycDocument/i)
+
     const a2 = await prisma.user.findUniqueOrThrow({ where: { id: A.id } })
     const c2 = await prisma.user.findUniqueOrThrow({ where: { id: C.id } })
     const d2 = await prisma.user.findUniqueOrThrow({ where: { id: D.id } })
@@ -154,6 +162,14 @@ describe('adminUserPermanentDeleteService', () => {
     ).rejects.toThrow(/DELETE/)
 
     expect(await prisma.user.findUnique({ where: { id: target.id } })).not.toBeNull()
+
+    const deletedList = await adminUserPermanentDeleteService.listDeleted({
+      q: target.email,
+      page: 1,
+      limit: 20,
+    })
+    expect(deletedList.items.some((row) => row.deletedUserId === target.id)).toBe(false)
+
     await prisma.user.delete({ where: { id: target.id } })
   })
 

@@ -353,6 +353,37 @@ export const adminService = {
     }>(`${API_ROUTES.admin.users}${qs ? `?${qs}` : ''}`)
   },
 
+  deletedUsers: (query?: { q?: string; page?: number; limit?: number }) => {
+    const params = new URLSearchParams()
+    if (query?.q) params.set('q', query.q)
+    if (query?.page) params.set('page', String(query.page))
+    if (query?.limit) params.set('limit', String(query.limit))
+    const qs = params.toString()
+    return apiClient<{
+      items: Array<{
+        id: string
+        deletionRef: string | null
+        deletedUserId: string | null
+        displayName: string | null
+        username: string | null
+        email: string | null
+        deletedAt: string
+        deletedBy: {
+          id: string | null
+          name: string | null
+          email: string | null
+        }
+      }>
+      pagination: {
+        page: number
+        limit: number
+        total: number
+        totalPages: number
+        hasNext?: boolean
+      }
+    }>(`${API_ROUTES.admin.deletedUsers}${qs ? `?${qs}` : ''}`)
+  },
+
   user: (id: string) => apiClient<User>(`${API_ROUTES.admin.users}/${id}`),
 
   addUserNote: (id: string, note: string) =>

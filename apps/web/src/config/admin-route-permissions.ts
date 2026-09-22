@@ -14,6 +14,7 @@ export const ADMIN_ROUTE_PERMISSIONS: Record<string, Permission | Permission[]> 
   [ROUTES.admin.withdrawals]: 'finance.review',
   [ROUTES.admin.referrals]: 'finance.view',
   [ROUTES.admin.users]: 'users.view',
+  [ROUTES.admin.deletedUsers]: 'users.delete',
   [ROUTES.admin.newUser]: 'users.edit',
   [ROUTES.admin.kyc]: 'kyc.review',
   [ROUTES.admin.wallets]: 'finance.adjust',

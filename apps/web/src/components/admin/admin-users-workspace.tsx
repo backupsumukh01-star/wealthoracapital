@@ -210,6 +210,11 @@ export function AdminUsersWorkspace() {
         description="Live investors only. Lookalike accounts used for historical import are hidden unless you open that filter."
         actions={
           <>
+            <PermissionGate permission="users.delete">
+              <Button asChild variant="secondary" size="sm">
+                <Link href={ROUTES.admin.deletedUsers}>Deleted users</Link>
+              </Button>
+            </PermissionGate>
             <PermissionGate permission="users.edit">
               <Button asChild size="sm">
                 <Link href={ROUTES.admin.newUser}>Create user</Link>

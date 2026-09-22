@@ -6,6 +6,15 @@ import { prisma } from '../database/prisma.js'
 import { badRequest, forbidden, notFound } from '../utils/errors.js'
 import { moneyDisplay } from '../utils/money.js'
 import { auditService } from './audit.service.js'
+import {
+  PERMANENT_DELETE_AUDIT_ACTION,
+  PERMANENT_DELETE_AUDIT_MODULE,
+  buildPermanentDeleteSnapshot,
+  isCompletedPermanentDeleteAudit,
+  parsePermanentDeleteSnapshot,
+  permanentDeleteAuditNewValue,
+  permanentDeleteAuditReason,
+} from './admin-user-deletion-audit.js'
 import { cache } from './cache/index.js'
 import { storage } from './storage/index.js'
 import { sessionRepository } from '../repositories/session.repository.js'
@@ -406,6 +415,23 @@ export const adminUserPermanentDeleteService = {
     const existing = await this.assertDeletableTarget(actorId, userId)
     const deletionRef = `del_${userId.slice(0, 8)}_${randomUUID().slice(0, 8)}`
 
+    const actor = await prisma.user.findFirst({
+      where: { id: actorId, deletedAt: null },
+      select: { id: true, email: true, firstName: true, lastName: true },
+    })
+
+    const identitySnapshot = buildPermanentDeleteSnapshot({
+      user: {
+        id: existing.id,
+        email: existing.email,
+        firstName: existing.firstName,
+        lastName: existing.lastName,
+        referralCode: existing.referralCode,
+      },
+      actor,
+      deletionRef,
+    })
+
     // Collect file keys before DB wipe (KYC docs + avatar).
     const [kycDocs, avatarKey] = await Promise.all([
       prisma.kycDocument.findMany({
@@ -421,31 +447,29 @@ export const adminUserPermanentDeleteService = {
 
     await sessionRepository.revokeAllForUser(userId)
 
-    // Minimal non-PII audit BEFORE user row disappears (targetUserId SetNull-capable).
-    await auditService.record({
-      actorId,
-      targetUserId: userId,
-      action: 'user.permanent_delete',
-      module: 'users',
-      oldValue: {
-        deletionRef,
-        role: existing.role,
-        status: existing.status,
-        hadReferralCode: Boolean(existing.referralCode),
-        referredByIdPresent: Boolean(existing.referredById),
-      },
-      newValue: { deleted: true, deletionRef },
-      reason: input.reason ?? 'Permanent single-user deletion after export acknowledgement',
-      ip: context.ip,
-      userAgent: context.userAgent,
-    })
-
+    // Audit is written ONLY after a successful wipe so failed deletes never appear
+    // in the Deleted Users list.
     await prisma.$transaction(
       async (tx) => {
         await this.deleteUserOwnedRecords(tx, userId, actorId)
       },
       { timeout: 180_000, maxWait: 20_000 },
     )
+
+    await auditService.record({
+      actorId,
+      // User row is gone — do not connect targetUser; identity lives in JSON snapshot.
+      targetUserId: null,
+      action: PERMANENT_DELETE_AUDIT_ACTION,
+      module: PERMANENT_DELETE_AUDIT_MODULE,
+      oldValue: identitySnapshot,
+      newValue: permanentDeleteAuditNewValue(deletionRef),
+      reason: input.reason?.trim()
+        ? `${input.reason.trim()} · ${permanentDeleteAuditReason(identitySnapshot)}`
+        : permanentDeleteAuditReason(identitySnapshot),
+      ip: context.ip,
+      userAgent: context.userAgent,
+    })
 
     // External files after successful commit — best effort; DB already clean.
     for (const key of storageKeys) {
@@ -464,6 +488,91 @@ export const adminUserPermanentDeleteService = {
       deleted: true as const,
       deletionRef,
       emailReleased: true as const,
+    }
+  },
+
+  /**
+   * Read-only Deleted Users audit list (successful permanent deletions only).
+   * Does not restore users or return financial/KYC history.
+   */
+  async listDeleted(input: {
+    q?: string
+    page: number
+    limit: number
+  }) {
+    const where: Prisma.AuditLogWhereInput = {
+      action: PERMANENT_DELETE_AUDIT_ACTION,
+      module: PERMANENT_DELETE_AUDIT_MODULE,
+      newValue: {
+        path: ['status'],
+        equals: 'COMPLETED',
+      },
+      ...(input.q
+        ? {
+            OR: [
+              { reason: { contains: input.q, mode: 'insensitive' } },
+              {
+                actor: {
+                  OR: [
+                    { email: { contains: input.q, mode: 'insensitive' } },
+                    { firstName: { contains: input.q, mode: 'insensitive' } },
+                    { lastName: { contains: input.q, mode: 'insensitive' } },
+                  ],
+                },
+              },
+            ],
+          }
+        : {}),
+    }
+
+    const skip = (input.page - 1) * input.limit
+    const [rows, total] = await prisma.$transaction([
+      prisma.auditLog.findMany({
+        where,
+        include: {
+          actor: {
+            select: { id: true, firstName: true, lastName: true, email: true, role: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: input.limit,
+      }),
+      prisma.auditLog.count({ where }),
+    ])
+
+    const items = rows
+      .filter((row) => isCompletedPermanentDeleteAudit(row))
+      .map((row) => {
+        const snapshot = parsePermanentDeleteSnapshot(row.oldValue)
+        const actorLiveName = row.actor
+          ? `${row.actor.firstName} ${row.actor.lastName}`.trim()
+          : null
+        return {
+          id: row.id,
+          deletionRef: snapshot?.deletionRef ?? null,
+          deletedUserId: snapshot?.deletedUserId ?? null,
+          displayName: snapshot?.displayName ?? null,
+          username: snapshot?.username ?? null,
+          email: snapshot?.email ?? null,
+          deletedAt: row.createdAt.toISOString(),
+          deletedBy: {
+            id: snapshot?.deletedByAdminId || row.actorId,
+            name: snapshot?.deletedByName || actorLiveName,
+            email: snapshot?.deletedByEmail || row.actor?.email || null,
+          },
+        }
+      })
+
+    return {
+      items,
+      pagination: {
+        page: input.page,
+        limit: input.limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / input.limit)),
+        hasNext: skip + rows.length < total,
+      },
     }
   },
 

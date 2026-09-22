@@ -29,6 +29,7 @@ import {
   adminUpdateUserSchema,
   adminUserHistoryCreateSchema,
   adminUserListQuerySchema,
+  adminDeletedUsersQuerySchema,
   adminUserNoteSchema,
   idParamSchema,
   adminImportIdParamSchema,
@@ -88,6 +89,13 @@ adminRouter.get(
   requirePermission(PERMISSIONS['users.view']),
   validate(adminUserListQuerySchema, 'query'),
   adminUsersController.list,
+)
+
+adminRouter.get(
+  '/users/deleted',
+  requirePermission(PERMISSIONS['users.delete']),
+  validate(adminDeletedUsersQuerySchema, 'query'),
+  adminUsersController.listDeleted,
 )
 
 adminRouter.post(

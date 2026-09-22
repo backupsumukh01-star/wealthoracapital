@@ -159,6 +159,13 @@ export const adminAuditQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 })
 
+/** Deleted Users audit list (successful permanent deletions only). */
+export const adminDeletedUsersQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  q: z.string().trim().min(1).max(100).optional(),
+})
+
 export const adminActivityQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
