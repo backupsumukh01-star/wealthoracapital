@@ -19,6 +19,7 @@ import {
   withdrawalRailMismatchError,
 } from './currency.service.js'
 import { realWithdrawalWhere, isDemoInvestor } from '../demo-investor.js'
+import { adminUserAttributionService } from '../admin-user-attribution.service.js'
 
 type Ctx = { ip?: string | null; userAgent?: string | null }
 
@@ -841,13 +842,18 @@ export const withdrawalService = {
     })
     if (!row || row.user.createdByAdminId) throw notFound('Withdrawal not found.')
     const { createdByAdminId: _demoFlag, ...publicUser } = row.user
-    const wallet = await prisma.wallet.findUnique({
-      where: { userId_kind: { userId: row.userId, kind: 'INVESTMENT' } },
-      select: { availableBalance: true, balance: true },
-    })
+    const [wallet, attribution] = await Promise.all([
+      prisma.wallet.findUnique({
+        where: { userId_kind: { userId: row.userId, kind: 'INVESTMENT' } },
+        select: { availableBalance: true, balance: true },
+      }),
+      adminUserAttributionService.getForUserId(row.userId),
+    ])
     return {
       ...mapWithdrawal(row),
       user: publicUser,
+      referral: attribution.referral,
+      salesman: attribution.salesman,
       internalNotes: row.internalNotes,
       payoutMethod: mapPayoutMethod(row.payoutMethod),
       destinationSnapshot: row.destinationSnapshot,

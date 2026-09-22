@@ -21,6 +21,7 @@ import {
   mapPayoutMethod,
   singleUserFinance,
 } from './admin-users-finance.js'
+import { adminUserAttributionService } from './admin-user-attribution.service.js'
 
 const DEFAULT_COUNTRY = 'IN'
 const COUNTRY_LABELS: Record<string, string> = {
@@ -318,7 +319,7 @@ export const adminUsersService = {
       throw notFound('User not found.')
     }
 
-    const [finance, profile, kyc, payoutMethods, deposits, withdrawals, profits, tickets, sessions, activities, tradeAllocations, txHistory] =
+    const [finance, profile, kyc, payoutMethods, deposits, withdrawals, profits, tickets, sessions, activities, tradeAllocations, txHistory, attribution] =
       await Promise.all([
         singleUserFinance(id),
         prisma.userProfile.findUnique({ where: { userId: id } }),
@@ -431,6 +432,7 @@ export const adminUsersService = {
           orderBy: { createdAt: 'desc' },
           take: 100,
         }),
+        adminUserAttributionService.getForUserId(id),
       ])
 
     const { country, countryName } = resolveCountry(user.country, kyc?.country)
@@ -471,6 +473,8 @@ export const adminUsersService = {
       createdByAdminId: user.createdByAdminId,
       referralCode: user.referralCode,
       referredById: user.referredById,
+      referral: attribution.referral,
+      salesman: attribution.salesman,
       lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
       lastLoginIp: user.lastLoginIp,
       twoFactorEnabled: user.twoFactorEnabled,

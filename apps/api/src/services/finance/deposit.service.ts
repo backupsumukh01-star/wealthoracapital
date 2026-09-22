@@ -22,6 +22,7 @@ import { paymentMethodService } from './payment-method.service.js'
 import { referralService } from './referral.service.js'
 import { DEPOSIT_LOCK_DAYS_DEFAULT, computeFundsUnlockAt } from './currency.service.js'
 import { realDepositWhere, isDemoInvestor } from '../demo-investor.js'
+import { adminUserAttributionService } from '../admin-user-attribution.service.js'
 
 type Ctx = { ip?: string | null; userAgent?: string | null }
 
@@ -600,12 +601,15 @@ export const depositService = {
     const mapped = mapDeposit(deposit)
     const proofImageUrl = mapped.hasProof ? adminProofUrl : null
     const { createdByAdminId: _demoFlag, ...publicUser } = deposit.user
+    const attribution = await adminUserAttributionService.getForUserId(deposit.userId)
     return {
       ...mapped,
       user: {
         ...publicUser,
         phone: publicUser.phone ?? null,
       },
+      referral: attribution.referral,
+      salesman: attribution.salesman,
       internalNotes: deposit.internalNotes,
       notes: deposit.notes,
       submissionDetails: details,
