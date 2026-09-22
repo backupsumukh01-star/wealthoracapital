@@ -242,6 +242,73 @@ describe('Admin user referral and salesman attribution', () => {
     expectAttribution(res.body.data, {})
   })
 
+  it('inherits salesman through the referral chain for admin profile', async () => {
+    const { agent, csrf } = await loginAdmin()
+    const salesman = await createSalesman()
+    const u1 = await createInvestor({ salesmanId: salesman.id })
+    const u2 = await createInvestor({ referredById: u1.id })
+    const u3 = await createInvestor({ referredById: u2.id })
+    const u4 = await createInvestor({ referredById: u3.id })
+    const u5 = await createInvestor({ referredById: u4.id })
+
+    for (const [user, referrer] of [
+      [u1, null],
+      [u2, u1],
+      [u3, u2],
+      [u5, u4],
+    ] as const) {
+      const res = await agent.get(`/api/v1/admin/users/${user.id}`).set('x-csrf-token', csrf)
+      expect(res.status).toBe(200)
+      expectAttribution(res.body.data, {
+        ...(referrer
+          ? { referrer: { id: referrer.id, referralCode: referrer.referralCode } }
+          : {}),
+        salesman: { id: salesman.id, code: salesman.code },
+      })
+    }
+
+    // CASE 8: U3's referredBy stays U2 even though salesman comes from U1.
+    const u3Res = await agent.get(`/api/v1/admin/users/${u3.id}`).set('x-csrf-token', csrf)
+    expect(u3Res.body.data.referral.referredBy.id).toBe(u2.id)
+    expect(u3Res.body.data.salesman.id).toBe(salesman.id)
+  })
+
+  it('lets a mid-chain direct SalesAttribution win for that user and descendants', async () => {
+    const { agent, csrf } = await loginAdmin()
+    const salesman1 = await createSalesman()
+    const salesman2 = await createSalesman()
+    const u1 = await createInvestor({ salesmanId: salesman1.id })
+    const u2 = await createInvestor({ referredById: u1.id, salesmanId: salesman2.id })
+    const u3 = await createInvestor({ referredById: u2.id })
+
+    const u2Res = await agent.get(`/api/v1/admin/users/${u2.id}`).set('x-csrf-token', csrf)
+    expect(u2Res.status).toBe(200)
+    expectAttribution(u2Res.body.data, {
+      referrer: { id: u1.id, referralCode: u1.referralCode },
+      salesman: { id: salesman2.id, code: salesman2.code },
+    })
+
+    const u3Res = await agent.get(`/api/v1/admin/users/${u3.id}`).set('x-csrf-token', csrf)
+    expect(u3Res.status).toBe(200)
+    expectAttribution(u3Res.body.data, {
+      referrer: { id: u2.id, referralCode: u2.referralCode },
+      salesman: { id: salesman2.id, code: salesman2.code },
+    })
+  })
+
+  it('terminates safely when the referral chain contains a cycle', async () => {
+    const { agent, csrf } = await loginAdmin()
+    const u1 = await createInvestor()
+    const u2 = await createInvestor({ referredById: u1.id })
+    const u3 = await createInvestor({ referredById: u2.id })
+    await prisma.user.update({ where: { id: u1.id }, data: { referredById: u3.id } })
+
+    const res = await agent.get(`/api/v1/admin/users/${u3.id}`).set('x-csrf-token', csrf)
+    expect(res.status).toBe(200)
+    expect(res.body.data.salesman).toBeNull()
+    expect(res.body.data.referral.referredBy.id).toBe(u2.id)
+  })
+
   it('resolves attribution on admin deposit detail from deposit user', async () => {
     const { agent, csrf } = await loginAdmin()
     const referrer = await createReferrer()
@@ -253,6 +320,22 @@ describe('Admin user referral and salesman attribution', () => {
     expect(res.status).toBe(200)
     expectAttribution(res.body.data, {
       referrer: { id: referrer.id, referralCode: referrer.referralCode },
+      salesman: { id: salesman.id, code: salesman.code },
+    })
+  })
+
+  it('resolves inherited salesman on admin deposit detail', async () => {
+    const { agent, csrf } = await loginAdmin()
+    const salesman = await createSalesman()
+    const u1 = await createInvestor({ salesmanId: salesman.id })
+    const u2 = await createInvestor({ referredById: u1.id })
+    const u3 = await createInvestor({ referredById: u2.id })
+    const deposit = await seedDeposit(u3.id)
+
+    const res = await agent.get(`/api/v1/admin/deposits/${deposit.id}`).set('x-csrf-token', csrf)
+    expect(res.status).toBe(200)
+    expectAttribution(res.body.data, {
+      referrer: { id: u2.id, referralCode: u2.referralCode },
       salesman: { id: salesman.id, code: salesman.code },
     })
   })
@@ -270,6 +353,24 @@ describe('Admin user referral and salesman attribution', () => {
     expect(res.status).toBe(200)
     expectAttribution(res.body.data, {
       referrer: { id: referrer.id, referralCode: referrer.referralCode },
+      salesman: { id: salesman.id, code: salesman.code },
+    })
+  })
+
+  it('resolves inherited salesman on admin withdrawal detail', async () => {
+    const { agent, csrf } = await loginAdmin()
+    const salesman = await createSalesman()
+    const u1 = await createInvestor({ salesmanId: salesman.id })
+    const u2 = await createInvestor({ referredById: u1.id })
+    const u3 = await createInvestor({ referredById: u2.id })
+    const withdrawal = await seedWithdrawal(u3.id)
+
+    const res = await agent
+      .get(`/api/v1/admin/withdrawals/${withdrawal.id}`)
+      .set('x-csrf-token', csrf)
+    expect(res.status).toBe(200)
+    expectAttribution(res.body.data, {
+      referrer: { id: u2.id, referralCode: u2.referralCode },
       salesman: { id: salesman.id, code: salesman.code },
     })
   })
