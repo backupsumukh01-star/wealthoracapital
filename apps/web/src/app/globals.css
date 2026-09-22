@@ -193,7 +193,7 @@
 @keyframes fade-up {
   from {
     opacity: 0;
-    transform: translate3d(0, 24px, 0);
+    transform: translate3d(0, var(--fade-y, 24px), 0);
   }
   to {
     opacity: 1;

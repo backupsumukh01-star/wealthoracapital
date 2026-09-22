@@ -1,39 +1,61 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { MotionConfig } from 'framer-motion'
+import { ComponentType, useEffect, useState } from 'react'
 
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 
+import { DURATION, EASE_IN_OUT, EASE_OUT, EASE_SPRING } from './motion-tokens'
+
+export { DURATION, EASE_IN_OUT, EASE_OUT, EASE_SPRING }
+
+type MotionConfigProps = {
+  children?: ReactNode
+  reducedMotion?: 'always' | 'never' | 'user'
+  transition?: { duration: number; ease: readonly number[] }
+}
+
 /**
- * Motion is configured once, here, and inherited by every wrapper below it.
- *
- * That is the whole point: `prefers-reduced-motion` cannot be forgotten per-component, because
- * no component decides for itself. Under reduced motion Framer resolves every animation to its
- * final state instantly — reveals land visible, counters jump to their number, nothing hides.
+ * Lazy MotionConfig — avoids pulling framer-motion into the first paint graph.
+ * Below-fold Framer components still work once this hydrates.
  */
 export function MotionConfigProvider({ children }: { children: ReactNode }) {
   const prefersReducedMotion = usePrefersReducedMotion()
+  const [Config, setConfig] = useState<ComponentType<MotionConfigProps> | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const load = () => {
+      void import('framer-motion').then((m) => {
+        if (!cancelled) setConfig(() => m.MotionConfig as ComponentType<MotionConfigProps>)
+      })
+    }
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
+      cancelIdleCallback?: (id: number) => void
+    }
+    if (typeof w.requestIdleCallback === 'function') {
+      const id = w.requestIdleCallback(load, { timeout: 1800 })
+      return () => {
+        cancelled = true
+        w.cancelIdleCallback?.(id)
+      }
+    }
+    const t = globalThis.setTimeout(load, 1)
+    return () => {
+      cancelled = true
+      globalThis.clearTimeout(t)
+    }
+  }, [])
+
+  if (!Config) return <>{children}</>
 
   return (
-    <MotionConfig
+    <Config
       reducedMotion={prefersReducedMotion ? 'always' : 'user'}
-      transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.24, ease: EASE_OUT }}
     >
       {children}
-    </MotionConfig>
+    </Config>
   )
 }
-
-/** The shared easing curve, in the tuple form Framer expects. Matches `--motion-ease-out`. */
-export const EASE_OUT = [0.16, 1, 0.3, 1] as const
-export const EASE_IN_OUT = [0.65, 0, 0.35, 1] as const
-export const EASE_SPRING = [0.34, 1.56, 0.64, 1] as const
-
-export const DURATION = {
-  instant: 0.1,
-  fast: 0.16,
-  normal: 0.24,
-  slow: 0.36,
-  slower: 0.56,
-} as const

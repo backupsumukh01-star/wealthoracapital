@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { animate, useInView } from 'framer-motion'
 
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { cn } from '@/lib/cn'
@@ -18,29 +17,25 @@ export interface CountUpProps {
 }
 
 /**
- * Animates a figure from zero to its value on first view, once.
- *
- * Tabular figures are non-negotiable here: a count-up on proportional digits wobbles, and
- * wobbling money looks unserious. Under reduced motion the number is simply printed.
+ * Formats a figure; optional light tween without Framer Motion.
+ * Under reduced motion / missing data the final value prints immediately.
  */
 export function CountUp({
   value,
   prefix = '',
   suffix = '',
   decimals = 0,
-  durationMs = 1200,
+  durationMs = 900,
   className,
   locale = 'en-US',
 }: CountUpProps) {
   const ref = useRef<HTMLSpanElement>(null)
-  const isInView = useInView(ref, { once: true, amount: 0.4 })
   const prefersReducedMotion = usePrefersReducedMotion()
-
   const trimmed = value.trim()
   const target = Number(trimmed)
-  // An empty string is not "zero" — treat it as missing data, not a real numeric value.
   const isNumeric = trimmed !== '' && Number.isFinite(target)
-  const [display, setDisplay] = useState(isNumeric ? 0 : Number.NaN)
+  const [display, setDisplay] = useState(isNumeric ? target : Number.NaN)
+  const [started, setStarted] = useState(false)
 
   useEffect(() => {
     if (!isNumeric) {
@@ -51,16 +46,47 @@ export function CountUp({
       setDisplay(target)
       return
     }
-    if (!isInView) return
 
-    const controls = animate(0, target, {
-      duration: durationMs / 1000,
-      ease: [0.16, 1, 0.3, 1],
-      onUpdate: setDisplay,
-    })
+    const el = ref.current
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setDisplay(target)
+      return
+    }
 
-    return () => controls.stop()
-  }, [isInView, isNumeric, prefersReducedMotion, target, durationMs])
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setStarted(true)
+          io.disconnect()
+        }
+      },
+      { threshold: 0.4 },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [isNumeric, prefersReducedMotion, target])
+
+  useEffect(() => {
+    if (!isNumeric || prefersReducedMotion || !started) return
+
+    // Mobile: skip tween — avoids main-thread animation work on first view.
+    if (window.matchMedia('(max-width: 639px)').matches) {
+      setDisplay(target)
+      return
+    }
+
+    let raf = 0
+    const t0 = performance.now()
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - t0) / durationMs)
+      const eased = 1 - Math.pow(1 - p, 3)
+      setDisplay(target * eased)
+      if (p < 1) raf = requestAnimationFrame(tick)
+      else setDisplay(target)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [started, isNumeric, prefersReducedMotion, target, durationMs])
 
   const formatted =
     isNumeric && Number.isFinite(display)
@@ -77,7 +103,6 @@ export function CountUp({
 
   return (
     <span ref={ref} data-numeric className={cn('tabular-nums', className)}>
-      {/* The final value is always in the DOM for assistive technology, animation or not. */}
       <span aria-hidden>
         {isNumeric ? (
           <>

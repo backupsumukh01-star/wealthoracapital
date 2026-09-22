@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
 
 import { SITE } from '@/lib/constants'
 
@@ -18,8 +17,8 @@ let introDismissed = false
 type Phase = 'boot' | 'show' | 'fade' | 'done'
 
 /**
- * One-shot splash (1.5–2s). Fades out, then returns null — fully removed from the DOM.
- * Never depends on usePrefersReducedMotion (that hook starts false and can clear timers mid-show).
+ * One-shot splash via CSS opacity — no Framer Motion on the critical path.
+ * Skipped entirely on mobile / Save-Data / reduced-motion.
  */
 export function LogoIntro() {
   const [phase, setPhase] = useState<Phase>('boot')
@@ -41,23 +40,12 @@ export function LogoIntro() {
     }
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduced) {
-      introDismissed = true
-      try {
-        sessionStorage.setItem(STORAGE_KEY, '1')
-      } catch {
-        /* ignore */
-      }
-      setPhase('done')
-      return
-    }
-
-    // Mobile / Save-Data: skip splash so LCP text is never covered on cold loads.
     const isMobile = window.matchMedia('(max-width: 639px)').matches
     const saveData =
       'connection' in navigator &&
       Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData)
-    if (isMobile || saveData) {
+
+    if (reduced || isMobile || saveData) {
       introDismissed = true
       try {
         sessionStorage.setItem(STORAGE_KEY, '1')
@@ -105,52 +93,26 @@ export function LogoIntro() {
     }
   }, [])
 
-  /* Completely absent from the tree after dismiss — no fixed layer, no z-index. */
   if (phase === 'boot' || phase === 'done') return null
 
   return (
-    <motion.div
-      className="fixed inset-0 z-[200] grid place-items-center bg-[#07090B]"
-      initial={{ opacity: 1 }}
-      animate={{ opacity: phase === 'fade' ? 0 : 1 }}
-      transition={{ duration: FADE_MS / 1000, ease: [0.16, 1, 0.3, 1] }}
-      onAnimationComplete={() => {
-        if (phase === 'fade') {
-          introDismissed = true
-          try {
-            sessionStorage.setItem(STORAGE_KEY, '1')
-          } catch {
-            /* ignore */
-          }
-          document.body.style.overflow = ''
-          setPhase('done')
-        }
-      }}
+    <div
+      className="fixed inset-0 z-[200] grid place-items-center bg-[#07090B] transition-opacity duration-300 ease-out"
+      style={{ opacity: phase === 'fade' ? 0 : 1 }}
       aria-hidden
       role="presentation"
     >
       <div className="flex flex-col items-center gap-5">
-        <motion.div
-          initial={{ scale: 0.92, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="relative"
-        >
+        <div className="relative motion-safe:animate-fade-in">
           <div className="absolute -inset-8 rounded-full bg-[#D4D9DF]/10 blur-3xl" />
           <LogoMark className="size-20 sm:size-24" tone="color" animated />
-        </motion.div>
-
-        <motion.p
-          className="text-2xl font-semibold tracking-tight sm:text-3xl"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-        >
+        </div>
+        <p className="text-2xl font-semibold tracking-tight motion-safe:animate-fade-up sm:text-3xl">
           <span className="bg-gradient-to-r from-[#C4CBD3] via-[#D4D9DF] to-[#F2F4F7] bg-clip-text text-transparent">
             {SITE.wordmark.primary}
           </span>
-        </motion.p>
+        </p>
       </div>
-    </motion.div>
+    </div>
   )
 }

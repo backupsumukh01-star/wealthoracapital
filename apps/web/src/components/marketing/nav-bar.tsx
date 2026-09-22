@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ROUTES } from '@meridian/shared'
@@ -12,7 +13,10 @@ import { usePublishedPlatform } from '@/features/cms/site'
 import { useSession } from '@/providers/session-provider'
 import { cn } from '@/lib/cn'
 
-import { MobileNav } from './mobile-nav'
+const MobileNav = dynamic(
+  () => import('./mobile-nav').then((m) => m.MobileNav),
+  { ssr: false, loading: () => <span className="inline-block size-9" aria-hidden /> },
+)
 
 function isNavActive(pathname: string, href: string) {
   if (href === '/') return pathname === '/'

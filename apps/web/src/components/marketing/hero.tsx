@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { ROUTES } from '@meridian/shared'
 import { ArrowRight, BadgeCheck, Lock, Shield } from 'lucide-react'
-import { motion } from 'framer-motion'
 
 import { LogoMark } from '@/components/common/logo'
 import { CountUp } from '@/components/motion/count-up'
@@ -48,7 +47,7 @@ const DEMO = {
   heroSecondaryCta: 'View Historical Performance',
 } as const
 
-/** Premium centered hero — Wealthora brand, CTAs, trust, markets, equity visual. */
+/** Premium centered hero — no Framer Motion on the critical path. */
 export function Hero() {
   const prefersReducedMotion = usePrefersReducedMotion()
   const { landing: cms } = usePublishedLanding()
@@ -69,15 +68,10 @@ export function Hero() {
   const heroPrimaryCta = cms.heroPrimaryCta?.trim() || DEMO.heroPrimaryCta
   const heroSecondaryCta = cms.heroSecondaryCta?.trim() || DEMO.heroSecondaryCta
 
-  // Demo Mode atmosphere — never let thin CMS meta extinguish the premium look.
   const intensity = Math.max(0.85, cms.heroMotion?.intensity ?? 1)
-  // Glow/particle loops stay desktop-only until viewport is known (mobile-first).
   const isDesktop = isMobile === false
   const showGlow =
     isDesktop && !prefersReducedMotion && cms.heroMotion?.glowEnabled !== false
-  const showParticles =
-    isDesktop && !prefersReducedMotion && cms.heroMotion?.particlesEnabled !== false
-  const particleCount = Math.round(12 * intensity)
 
   const stats: {
     label: string
@@ -125,63 +119,20 @@ export function Hero() {
       />
       {showGlow ? (
         <>
-          <motion.div
-            className="pointer-events-none absolute left-1/2 top-20 -z-10 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-accent-500/15 blur-3xl"
-            animate={{
-              scale: [1, 1.12, 1],
-              opacity: [0.35 * intensity, 0.55 * intensity, 0.35 * intensity],
-            }}
-            transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          <motion.div
-            className="pointer-events-none absolute -left-16 top-[40%] -z-10 h-64 w-64 rounded-full bg-hl-cyan/10 blur-3xl"
-            animate={{ x: [0, 18, 0], opacity: [0.25 * intensity, 0.45 * intensity, 0.25 * intensity] }}
-            transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          <motion.div
-            className="pointer-events-none absolute -right-20 top-32 -z-10 h-72 w-72 rounded-full bg-hl-violet/10 blur-3xl"
-            animate={{ y: [0, 22, 0], opacity: [0.2 * intensity, 0.4 * intensity, 0.2 * intensity] }}
-            transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
-          />
-        </>
-      ) : null}
-
-      {showParticles
-        ? Array.from({ length: particleCount }).map((_, i) => (
-            <motion.span
-              key={i}
-              aria-hidden
-              className="pointer-events-none absolute -z-10 size-1 rounded-full bg-accent-300/35"
-              style={{
-                left: `${8 + ((i * 17) % 84)}%`,
-                top: `${14 + ((i * 23) % 60)}%`,
-              }}
-              animate={{ y: [0, -16, 0], opacity: [0.15, 0.55, 0.15] }}
-              transition={{ duration: 5 + (i % 3), delay: i * 0.28, repeat: Infinity }}
-            />
-          ))
-        : null}
-
-      {/* Floating accent orbs — desktop only (mobile keeps static radial, skips micro-orbs) */}
-      {isDesktop && !prefersReducedMotion ? (
-        <>
-          <motion.div
+          <div
+            className="pointer-events-none absolute left-1/2 top-20 -z-10 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-accent-500/15 blur-3xl motion-safe:animate-float"
+            style={{ opacity: 0.45 * intensity }}
             aria-hidden
-            className="pointer-events-none absolute left-[8%] top-[28%] -z-10 size-2 rounded-full bg-accent-300/50 shadow-[0_0_18px_rgb(212_217_223_/_0.10)]"
-            animate={{ y: [0, -20, 0], x: [0, 8, 0] }}
-            transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
           />
-          <motion.div
+          <div
+            className="pointer-events-none absolute -left-16 top-[40%] -z-10 h-64 w-64 rounded-full bg-hl-cyan/10 blur-3xl motion-safe:animate-float"
+            style={{ opacity: 0.35 * intensity, animationDuration: '14s' }}
             aria-hidden
-            className="pointer-events-none absolute right-[12%] top-[36%] -z-10 size-1.5 rounded-full bg-hl-cyan/60 shadow-[0_0_14px_rgb(42_232_255_/_0.4)]"
-            animate={{ y: [0, 14, 0], x: [0, -10, 0] }}
-            transition={{ duration: 8.5, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
           />
-          <motion.div
+          <div
+            className="pointer-events-none absolute -right-20 top-32 -z-10 h-72 w-72 rounded-full bg-hl-violet/10 blur-3xl motion-safe:animate-float"
+            style={{ opacity: 0.3 * intensity, animationDuration: '12s', animationDelay: '1s' }}
             aria-hidden
-            className="pointer-events-none absolute left-[18%] top-[62%] -z-10 size-1.5 rounded-full bg-accent-200/40"
-            animate={{ y: [0, -12, 0] }}
-            transition={{ duration: 6.2, repeat: Infinity, ease: 'easeInOut', delay: 1.1 }}
           />
         </>
       ) : null}
@@ -202,7 +153,7 @@ export function Hero() {
           </p>
         </div>
 
-        {/* LCP candidates — paint immediately; do not gate behind FadeIn opacity:0 */}
+        {/* LCP candidates — paint immediately */}
         <h1 className="text-display-xl max-w-4xl break-words text-fg">
           {heroTitle.includes('every trade') ? (
             <>
@@ -246,7 +197,7 @@ export function Hero() {
           </ul>
         </FadeIn>
 
-        <FadeIn delay={0.22} className="mt-8 w-full max-w-3xl sm:mt-9">
+        <FadeIn delay={0.12} className="mt-8 w-full max-w-3xl sm:mt-9">
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
             {stats.map((stat) => (
               <div
@@ -267,12 +218,12 @@ export function Hero() {
           </div>
         </FadeIn>
 
-        <FadeIn delay={0.24} className="mt-8 w-full max-w-3xl sm:mt-10">
+        <FadeIn delay={0.16} className="mt-8 w-full max-w-3xl sm:mt-10">
           <HeroMarketCards />
         </FadeIn>
       </div>
 
-      <FadeIn delay={0.28} y={28} className="container-page mt-12 sm:mt-14 lg:mt-16">
+      <FadeIn delay={0.2} y={28} className="container-page mt-12 sm:mt-14 lg:mt-16">
         <div className="relative mx-auto max-w-5xl">
           <div
             className="pointer-events-none absolute -inset-6 -z-10 rounded-[2.5rem] bg-accent-500/10 blur-3xl sm:-inset-10"

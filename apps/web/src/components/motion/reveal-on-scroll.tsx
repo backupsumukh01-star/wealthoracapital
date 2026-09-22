@@ -4,7 +4,7 @@ import { useState, type ElementType, type ReactNode } from 'react'
 
 import { cn } from '@/lib/cn'
 
-import { DURATION, EASE_OUT } from './motion-config'
+import { DURATION, EASE_OUT } from './motion-tokens'
 import { useMotionComponent } from './use-motion-component'
 
 export interface RevealOnScrollProps {

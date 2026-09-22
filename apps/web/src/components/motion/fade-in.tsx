@@ -1,41 +1,42 @@
 'use client'
 
 import type { ElementType, ReactNode } from 'react'
+import { createElement } from 'react'
 
 import { cn } from '@/lib/cn'
-
-import { DURATION, EASE_OUT } from './motion-config'
-import { useMotionComponent } from './use-motion-component'
 
 export interface FadeInProps {
   children: ReactNode
   delay?: number
   duration?: number
-  /** Distance travelled, in pixels. Transform only — layout never animates. */
+  /** Distance travelled, in pixels — applied via CSS custom property. */
   y?: number
   as?: ElementType
   className?: string
 }
 
-/** Entrance animation for content that is already on screen when the page mounts. */
+/**
+ * CSS entrance — no Framer Motion dependency on the critical path.
+ * Prefer transform/opacity so layout work stays off the animation.
+ */
 export function FadeIn({
   children,
   delay = 0,
-  duration = DURATION.slower,
+  duration = 0.56,
   y = 16,
   as = 'div',
   className,
 }: FadeInProps) {
-  const Component = useMotionComponent(as)
-
-  return (
-    <Component
-      initial={{ opacity: 0, y }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration, delay, ease: EASE_OUT }}
-      className={cn(className)}
-    >
-      {children}
-    </Component>
+  return createElement(
+    as,
+    {
+      className: cn('motion-safe:animate-fade-up', className),
+      style: {
+        animationDelay: `${delay}s`,
+        animationDuration: `${duration}s`,
+        ['--fade-y' as string]: `${y}px`,
+      },
+    },
+    children,
   )
 }
