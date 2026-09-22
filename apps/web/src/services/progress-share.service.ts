@@ -49,8 +49,8 @@ export const progressShareService = {
     const url =
       opts?.imageUrl ??
       (opts?.token
-        ? `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.progressShare.image}?t=${encodeURIComponent(opts.token)}&kind=${opts.kind ?? 'journey'}`
-        : `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.progressShare.image}?kind=${opts?.kind ?? 'journey'}`)
+        ? `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.progressShare.image}?t=${encodeURIComponent(opts.token)}&kind=${opts.kind ?? 'daily'}`
+        : `${env.NEXT_PUBLIC_API_URL}${API_ROUTES.progressShare.image}?kind=${opts?.kind ?? 'daily'}`)
 
     const response = await fetch(url, {
       method: 'GET',

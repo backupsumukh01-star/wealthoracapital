@@ -154,8 +154,8 @@ export async function createProgressShareLink(
   return {
     token,
     expiresAt: expiresAt.toISOString(),
-    shareUrl: shareBase,
-    imageUrl: `${imageBase}&kind=journey`,
+    shareUrl: `${shareBase}&kind=daily`,
+    imageUrl: `${imageBase}&kind=daily`,
     journeyImageUrl: `${imageBase}&kind=journey`,
     dailyImageUrl: `${imageBase}&kind=daily`,
     journeyShareUrl: `${shareBase}&kind=journey`,
@@ -183,7 +183,7 @@ export async function resolveProgressShareUserId(input: {
 
 export async function renderProgressShareImageForUser(
   userId: string,
-  kind: ProgressShareKind = 'journey',
+  kind: ProgressShareKind = 'daily',
 ): Promise<{
   png: Buffer
   snapshot: ProgressShareSnapshot

@@ -2,40 +2,72 @@
 
 import { formatDecimal, formatPercent } from '@meridian/shared'
 
+import {
+  DAILY_COVERS,
+  DAILY_POSTERS,
+  DAILY_SLOTS,
+  POSTER_SIZE,
+  type OverlaySlot,
+} from './overlay-layout'
 import type { ProgressShareInput } from './types'
 
-export const PROTOTYPE_CANVAS = { width: 1080, height: 1920 } as const
+export const PROTOTYPE_CANVAS = POSTER_SIZE
 
-function pctBare(value: string): string {
-  return formatPercent(value.replace('%', ''), { decimals: 2, signed: true }).replace(/%/g, '')
+/** Matches filled Today’s Earnings artwork. */
+
+const FONT = 'Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif'
+
+function posterDate(value: string): string {
+  const iso = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!iso) return value.trim().toUpperCase()
+  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+  return `${iso[3]} ${months[Number(iso[2]) - 1]} ${iso[1]}`
+}
+
+function money(value: string): string {
+  return `$${formatDecimal(value.replace(/[^0-9.-]/g, '') || '0', 2)}`
+}
+
+function amount(value: string): string {
+  return formatDecimal(value.replace(/[^0-9.-]/g, '') || '0', 2)
 }
 
 function Field({
-  left,
-  top,
-  fontSize,
-  color,
+  slot,
+  id,
   children,
 }: {
-  left: number
-  top: number
-  fontSize: number
-  color: string
+  slot: OverlaySlot
+  id: string
   children: string
 }) {
+  const gradient = slot.gradient
   return (
     <div
+      id={id}
       style={{
         position: 'absolute',
-        left,
-        top,
-        fontSize,
-        fontWeight: 750,
-        color,
-        letterSpacing: '-0.03em',
+        left: slot.x,
+        top: slot.y,
+        fontSize: slot.size,
+        fontWeight: slot.weight,
+        letterSpacing: slot.tracking ?? '-0.03em',
         lineHeight: 1,
         whiteSpace: 'nowrap',
-        fontFamily: 'Segoe UI, Helvetica Neue, Arial, sans-serif',
+        fontFamily: FONT,
+        ...(gradient
+          ? {
+              color: 'transparent',
+              backgroundImage: `linear-gradient(90deg, ${gradient.from} 0%, ${gradient.mid} 42%, ${gradient.to} 100%)`,
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+              filter:
+                'drop-shadow(0 0 18px rgba(80,220,170,0.55)) drop-shadow(0 10px 28px rgba(46,212,140,0.28))',
+            }
+          : {
+              color: slot.color,
+              textShadow: slot.shadow,
+            }),
       }}
     >
       {children}
@@ -43,10 +75,53 @@ function Field({
   )
 }
 
-export function ProgressSharePrototypeCanvas({ data }: { data: ProgressShareInput; design?: string }) {
+function Guide({ slot, label }: { slot: OverlaySlot; label: string }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: slot.x - 6,
+        top: slot.y - 6,
+        minWidth: 160,
+        minHeight: slot.size + 12,
+        border: '1px dashed rgba(255,80,80,0.85)',
+        pointerEvents: 'none',
+      }}
+    >
+      <span
+        style={{
+          position: 'absolute',
+          top: -18,
+          left: 0,
+          fontSize: 14,
+          color: '#FF8A8A',
+          fontWeight: 600,
+        }}
+      >
+        {label} ({slot.x},{slot.y})
+      </span>
+    </div>
+  )
+}
+
+export function ProgressSharePrototypeCanvas({
+  data,
+  poster = 'a',
+  showGuides = false,
+}: {
+  data: ProgressShareInput
+  poster?: 'a' | 'b'
+  showGuides?: boolean
+}) {
+  const src = DAILY_POSTERS[poster]
   const daily = data.type === 'daily'
-  const src = daily ? '/progress-share/daily.jpg' : '/progress-share/journey.jpg'
   const name = data.investorName
+  const earned = daily ? money(data.todayEarnings) : money(data.totalEarnings)
+  const ret = daily
+    ? formatPercent(data.dailyReturn.replace('%', ''), { decimals: 2, signed: true })
+    : formatPercent(data.performance.replace('%', ''), { decimals: 2, signed: true })
+  const total = amount(data.totalEarnings)
+  const date = posterDate(data.date)
 
   return (
     <article
@@ -67,42 +142,48 @@ export function ProgressSharePrototypeCanvas({ data }: { data: ProgressShareInpu
         height={PROTOTYPE_CANVAS.height}
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill' }}
       />
-      {daily ? (
+      {DAILY_COVERS.map((cover) => (
+        <div
+          key={`${cover.x}-${cover.y}`}
+          style={{
+            position: 'absolute',
+            left: cover.x,
+            top: cover.y,
+            width: cover.w,
+            height: cover.h,
+            background: cover.fill,
+            borderRadius: 'rx' in cover ? cover.rx : 12,
+          }}
+        />
+      ))}
+      {showGuides ? (
         <>
-          <Field left={98} top={291} fontSize={name.length > 16 ? 34 : 46} color="#F4F7FA">
-            {name}
-          </Field>
-          <Field left={268} top={510} fontSize={72} color="#5EE4B0">
-            {formatDecimal(data.todayEarnings.replace(/[^0-9.-]/g, '') || '0', 2)}
-          </Field>
-          <Field left={200} top={799} fontSize={36} color="#F4F7FA">
-            {pctBare(data.dailyReturn)}
-          </Field>
-          <Field left={700} top={799} fontSize={34} color="#F4F7FA">
-            {formatDecimal(data.totalEarnings.replace(/[^0-9.-]/g, '') || '0', 2)}
-          </Field>
+          <Guide slot={DAILY_SLOTS.name} label="name" />
+          <Guide slot={DAILY_SLOTS.earnedToday} label="earnedToday" />
+          <Guide slot={DAILY_SLOTS.dailyReturn} label="dailyReturn" />
+          <Guide slot={DAILY_SLOTS.totalEarnings} label="totalEarnings" />
+          <Guide slot={DAILY_SLOTS.date} label="date" />
+          <Guide slot={DAILY_SLOTS.todayProfit} label="todayProfit" />
         </>
-      ) : (
-        <>
-          <Field left={99} top={291} fontSize={name.length > 16 ? 34 : 46} color="#F4F7FA">
-            {name}
-          </Field>
-          <Field left={108} top={531} fontSize={84} color="#5EE4B0">
-            {pctBare(data.performance)}
-          </Field>
-          <Field left={248} top={846} fontSize={40} color="#5EE4B0">
-            {data.totalEarnings.startsWith('+')
-              ? data.totalEarnings.replace('$', '')
-              : `+${data.totalEarnings.replace('$', '')}`}
-          </Field>
-          <Field left={335} top={980} fontSize={28} color="#F4F7FA">
-            {formatDecimal(data.totalInvestment.replace(/[^0-9.-]/g, '') || '0', 2)}
-          </Field>
-          <Field left={790} top={980} fontSize={28} color="#F4F7FA">
-            {formatDecimal(data.currentValue.replace(/[^0-9.-]/g, '') || '0', 2)}
-          </Field>
-        </>
-      )}
+      ) : null}
+      <Field id="progress-share-name" slot={DAILY_SLOTS.name}>
+        {name}
+      </Field>
+      <Field id="progress-share-earned-today" slot={DAILY_SLOTS.earnedToday}>
+        {earned}
+      </Field>
+      <Field id="progress-share-daily-return" slot={DAILY_SLOTS.dailyReturn}>
+        {ret}
+      </Field>
+      <Field id="progress-share-total-earnings" slot={DAILY_SLOTS.totalEarnings}>
+        {total}
+      </Field>
+      <Field id="progress-share-today-profit" slot={DAILY_SLOTS.todayProfit}>
+        {earned}
+      </Field>
+      <Field id="progress-share-date" slot={DAILY_SLOTS.date}>
+        {date}
+      </Field>
     </article>
   )
 }

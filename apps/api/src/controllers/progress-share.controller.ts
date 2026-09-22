@@ -32,11 +32,12 @@ export const progressShareController = {
       token: query.t,
       userIdQuery: typeof query.userId === 'string' ? query.userId : undefined,
     })
-    const { png } = await progressShareService.renderImage(userId, query.kind ?? 'journey')
+    const kind = query.kind ?? 'daily'
+    const { png } = await progressShareService.renderImage(userId, kind)
     res.setHeader('Content-Type', 'image/png')
     res.setHeader('Cache-Control', 'private, max-age=300')
     res.setHeader('X-Content-Type-Options', 'nosniff')
-    res.setHeader('Content-Disposition', `inline; filename="wealthora-${query.kind ?? 'journey'}.png"`)
+    res.setHeader('Content-Disposition', `inline; filename="wealthora-${kind}.png"`)
     res.status(200).send(png)
   }),
 }

@@ -8,7 +8,7 @@ import { prisma } from '../../database/prisma.js'
 import { env } from '../../config/env.js'
 import { ledgerService } from '../finance/ledger.service.js'
 import { moneyString } from '../../utils/money.js'
-import { buildProgressShareOverlay, buildProgressShareSvg } from './progress-share.image.js'
+import { buildProgressShareOverlay, buildProgressShareSvg, renderProgressSharePng } from './progress-share.image.js'
 import { progressShareService } from './progress-share.service.js'
 import {
   signProgressShareToken,
@@ -133,11 +133,32 @@ describe('Progress share image content', () => {
     expect(overlay).not.toContain('referral')
   })
 
+  it('renders approved 1080×1920 PNGs for both kinds', () => {
+    const daily = renderProgressSharePng(baseSnapshot(), 'daily')
+    const journey = renderProgressSharePng(baseSnapshot(), 'journey')
+    expect(daily.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a')
+    expect(journey.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a')
+    expect(daily.readUInt32BE(16)).toBe(1080)
+    expect(daily.readUInt32BE(20)).toBe(1920)
+    expect(journey.readUInt32BE(16)).toBe(1080)
+    expect(journey.readUInt32BE(20)).toBe(1920)
+  })
+
   it('daily template overlays earned-today values on the photo', () => {
     const overlay = buildProgressShareOverlay(baseSnapshot(), 'daily')
     expect(overlay).toContain('Aisha Khan')
     expect(overlay).toContain('42.50')
     expect(overlay).toContain('+0.85')
+    expect(overlay).not.toContain('₹')
+  })
+
+  it('journey template overlays live growth fields on the photo', () => {
+    const overlay = buildProgressShareOverlay(baseSnapshot(), 'journey')
+    expect(overlay).toContain('Aisha Khan')
+    expect(overlay).toContain('+10.85')
+    expect(overlay).toContain('+$542.50')
+    expect(overlay).toContain('5,000.00')
+    expect(overlay).toContain('5,542.50')
     expect(overlay).not.toContain('₹')
   })
 
@@ -353,7 +374,9 @@ describe('Progress share HTTP API', () => {
     const res = await agent.post('/api/v1/progress-share/link')
     expect(res.status).toBe(200)
     expect(res.body.data.shareUrl).toContain('/progress-share?t=')
+    expect(res.body.data.shareUrl).toContain('kind=daily')
     expect(res.body.data.imageUrl).toContain('/api/v1/progress-share/image?t=')
+    expect(res.body.data.imageUrl).toContain('kind=daily')
     expect(res.body.data.dailyImageUrl).toContain('kind=daily')
     expect(res.body.data.journeyImageUrl).toContain('kind=journey')
     expect(res.body.data.shareUrl.startsWith(env.APP_URL.replace(/\/$/, ''))).toBe(true)
