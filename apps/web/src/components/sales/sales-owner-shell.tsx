@@ -7,7 +7,6 @@ import { ArrowLeft, Menu } from 'lucide-react'
 import { ROUTES } from '@meridian/shared'
 
 import { Logo } from '@/components/common/logo'
-import { ThemeToggle } from '@/components/common/theme-toggle'
 import { PageTransition } from '@/components/motion/page-transition'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -91,7 +90,6 @@ function OwnerTopbar() {
         </SheetContent>
       </Sheet>
       <p className="min-w-0 flex-1 truncate text-body-sm font-medium text-fg">Sales Owner</p>
-      <ThemeToggle />
       <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
         <Link href={ROUTES.admin.root}>
           <ArrowLeft className="size-4" aria-hidden />

@@ -624,7 +624,7 @@ export const LANDING_FAQS = [
   {
     question: 'Is my capital insured or guaranteed?',
     answer:
-      'No. Only commit funds you can afford to lose. Past performance does not guarantee future results. Read the risk disclosure before you register or deposit.',
+      'No. Capital is not insured and returns are not guaranteed. Daily results can be negative.',
   },
   {
     question: 'Who manages the AI strategies?',

@@ -21,7 +21,6 @@ import { WealthQuickActions } from '@/components/dashboard/wealth-quick-actions'
 import { RevealOnScroll } from '@/components/motion/reveal-on-scroll'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { accountAccessMessage, canTransact, requiresKycOnboarding } from '@/lib/account-access'
-import { useCmsBootstrap } from '@/features/cms/hooks'
 import { useSession } from '@/providers/session-provider'
 
 /** Premium investor home — wealth experience, not an admin grid. */
@@ -31,7 +30,6 @@ export function WealthHome() {
   const { session } = useSession()
   const allowed = canTransact(session?.user.kycStatus)
   const access = accountAccessMessage(session?.user.kycStatus)
-  const { data: cmsBoot, isSuccess: cmsReady } = useCmsBootstrap()
   const [booting, setBooting] = useState(!prefersReducedMotion)
 
   useEffect(() => {
@@ -72,12 +70,6 @@ export function WealthHome() {
   return (
     <>
       <div className="space-y-6 lg:space-y-8">
-        {cmsReady && cmsBoot?.platform.riskDisclaimer ? (
-          <p className="rounded-xl border border-white/[0.06] bg-inset/40 px-4 py-3 text-caption text-fg-subtle">
-            {cmsBoot.platform.riskDisclaimer}
-          </p>
-        ) : null}
-
         <PortfolioHero onDeposit={tryDeposit} onWithdraw={tryWithdraw} />
 
         <RevealOnScroll y={14} amount={0.1}>

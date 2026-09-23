@@ -4,18 +4,17 @@ import type { ReactNode } from 'react'
 import { ThemeProvider as NextThemeProvider } from 'next-themes'
 
 /**
- * Dark-first: a financial dashboard is looked at for long stretches and dark surfaces make
- * coloured data legible. The light theme is a first-class citizen, not an afterthought — it is
- * the same token names remapped, so nothing else in the app knows which one is active.
+ * Dark-only product UI. Theme switching is disabled — the app always renders dark.
  */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   return (
     <NextThemeProvider
       attribute="class"
+      forcedTheme="dark"
       defaultTheme="dark"
-      enableSystem
+      enableSystem={false}
       disableTransitionOnChange
-      themes={['dark', 'light']}
+      themes={['dark']}
     >
       {children}
     </NextThemeProvider>

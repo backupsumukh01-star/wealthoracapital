@@ -4,21 +4,17 @@ import { useMemo, useState } from 'react'
 import type { KycStatus, PayoutMethod, User, UserStatus } from '@meridian/shared'
 import {
   BadgeCheck,
-  KeyRound,
   Landmark,
   MoreHorizontal,
-  ShieldCheck,
   SlidersHorizontal,
   Smartphone,
   UserRound,
-  Wallet,
 } from 'lucide-react'
 
 import { PageHeader } from '@/components/common/page-header'
 import { AddBankAccountDialog } from '@/components/dashboard/add-bank-account-dialog'
-import { AddCryptoWalletDialog } from '@/components/dashboard/add-crypto-wallet-dialog'
 import { DisplayCurrencySelector } from '@/components/dashboard/display-currency-selector'
-import { SettingsCard, SettingsRow } from '@/components/dashboard/settings-card'
+import { SettingsCard } from '@/components/dashboard/settings-card'
 import { StatusPill } from '@/components/dashboard/status-pill'
 import { PremiumEmptyState } from '@/components/dashboard/premium-empty-state'
 import { LifecycleStatusBadge, KycStatusBadge } from '@/components/auth/lifecycle-status-badge'
@@ -35,7 +31,6 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/toast'
-import { useChangePassword } from '@/features/auth/hooks'
 import {
   useDeletePayoutMethod,
   usePayoutMethods,
@@ -51,7 +46,6 @@ import { formatDateTime } from '@/lib/format'
 import { USD_ONLY_INVESTOR_PAYMENTS } from '@/lib/usd-only-investor-payments'
 import { cn } from '@/lib/cn'
 import { useSession } from '@/providers/session-provider'
-import { authService } from '@/services/auth.service'
 
 function isCryptoType(type: string) {
   return ['CRYPTO', 'USDT_TRC20', 'USDT_BEP20', 'BTC', 'ETH'].includes(type)
@@ -60,10 +54,7 @@ function isCryptoType(type: string) {
 const TABS = [
   { id: 'personal', label: 'Personal', icon: UserRound },
   { id: 'bank', label: 'Bank', icon: Landmark },
-  { id: 'crypto', label: 'Crypto', icon: Wallet },
-  { id: 'security', label: 'Security', icon: ShieldCheck },
   { id: 'kyc', label: 'KYC', icon: BadgeCheck },
-  { id: 'password', label: 'Password', icon: KeyRound },
   { id: '2fa', label: '2FA', icon: Smartphone },
 ] as const
 
@@ -98,23 +89,15 @@ function mapLifecycleStatus(user: User): LifecycleStatus {
 
 export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }) {
   const { session } = useSession()
-  const changePassword = useChangePassword()
   const { data: payoutMethods = [] } = usePayoutMethods({ enabled: Boolean(session) })
   const deleteMethod = useDeletePayoutMethod()
   const setDefault = useSetDefaultPayoutMethod()
   const [twoFa, setTwoFa] = useState(false)
-  const [passwordBusy, setPasswordBusy] = useState(false)
   const [bankOpen, setBankOpen] = useState(false)
-  const [walletOpen, setWalletOpen] = useState(false)
   const [editingBank, setEditingBank] = useState<PayoutMethod | null>(null)
-  const [editingWallet, setEditingWallet] = useState<PayoutMethod | null>(null)
 
   const bankAccounts = useMemo(
     () => payoutMethods.filter((m) => !isCryptoType(m.type)),
-    [payoutMethods],
-  )
-  const cryptoWallets = useMemo(
-    () => payoutMethods.filter((m) => isCryptoType(m.type)),
     [payoutMethods],
   )
 
@@ -377,161 +360,6 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
         </TabsContent>
         )}
 
-        <TabsContent value="crypto" className="mt-4">
-          <SettingsCard
-            title="Crypto wallets"
-            description="Saved withdrawal addresses."
-            icon={Wallet}
-          >
-            {cryptoWallets.length === 0 ? (
-              <PremiumEmptyState
-                variant="wallet"
-                title="No wallets yet"
-                description="Save a crypto address for faster withdrawals."
-                action={
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      setEditingWallet(null)
-                      setWalletOpen(true)
-                    }}
-                  >
-                    Add wallet
-                  </Button>
-                }
-              />
-            ) : (
-              <>
-                <ul className="space-y-2.5">
-                  {cryptoWallets.map((w) => (
-                    <li
-                      key={w.id}
-                      className={cn(
-                        'rounded-xl border px-3.5 py-3',
-                        w.isDefault
-                          ? 'border-accent-700/40 bg-accent-500/8'
-                          : 'border-line/80 bg-inset/30',
-                      )}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-body-sm font-medium text-fg">
-                              {w.label}
-                              {w.isDefault ? (
-                                <span className="ml-2 text-caption text-accent-300">Primary</span>
-                              ) : null}
-                            </p>
-                            <span className="text-caption text-fg-subtle">
-                              {w.type.replaceAll('_', ' ')}
-                            </span>
-                          </div>
-                          <div className="mt-2 flex items-start gap-2">
-                            <p className="min-w-0 flex-1 break-all font-mono text-caption text-fg-muted">
-                              {w.maskedDetails}
-                            </p>
-                            <CopyButton
-                              value={w.details?.address ?? w.maskedDetails}
-                              label="Wallet address"
-                            />
-                          </div>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="size-9 shrink-0 rounded-full p-0"
-                              aria-label={`Manage ${w.label}`}
-                            >
-                              <MoreHorizontal aria-hidden />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onSelect={() => {
-                                setEditingWallet(w)
-                                setWalletOpen(true)
-                              }}
-                            >
-                              Edit
-                            </DropdownMenuItem>
-                            {!w.isDefault ? (
-                              <DropdownMenuItem onSelect={() => void onSetDefault(w.id)}>
-                                Set as primary
-                              </DropdownMenuItem>
-                            ) : null}
-                            <DropdownMenuItem destructive onSelect={() => void onDelete(w.id)}>
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  className="mt-3.5"
-                  variant="secondary"
-                  onClick={() => {
-                    setEditingWallet(null)
-                    setWalletOpen(true)
-                  }}
-                >
-                  Add wallet
-                </Button>
-              </>
-            )}
-          </SettingsCard>
-        </TabsContent>
-
-        <TabsContent value="security" className="mt-4 space-y-4">
-          <SettingsCard
-            title="Security overview"
-            description="Sessions and account hardening."
-            icon={ShieldCheck}
-          >
-            <div className="space-y-2.5">
-              <SettingsRow
-                label="Email verified"
-                value={
-                  <span className={user.emailVerified ? 'text-profit' : 'text-warning'}>
-                    {user.emailVerified ? 'Yes' : 'No'}
-                  </span>
-                }
-              />
-              <SettingsRow label="Two-factor authentication" value={twoFa ? 'Enabled' : 'Off'} />
-              <SettingsRow label="Active sessions" value="1 (this device)" />
-            </div>
-            <Button
-              className="mt-3.5"
-              variant="secondary"
-              onClick={() => {
-                void authService
-                  .terminateOtherSessions()
-                  .then((data) => {
-                    toast.success(
-                      data.revokedSessions > 0
-                        ? `Signed out ${data.revokedSessions} other device${data.revokedSessions === 1 ? '' : 's'}`
-                        : 'No other sessions were active',
-                    )
-                  })
-                  .catch((error: unknown) => {
-                    toast.error(
-                      error instanceof ApiError
-                        ? error.message
-                        : error instanceof Error
-                          ? error.message
-                          : 'Could not sign out other devices',
-                    )
-                  })
-              }}
-            >
-              Sign out other devices
-            </Button>
-          </SettingsCard>
-        </TabsContent>
-
         <TabsContent value="kyc" className="mt-4">
           <SettingsCard
             title="KYC verification"
@@ -550,59 +378,6 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
                 </p>
               </div>
             </div>
-          </SettingsCard>
-        </TabsContent>
-
-        <TabsContent value="password" className="mt-4">
-          <SettingsCard
-            title="Change password"
-            description="Requires your current password and a new password."
-            icon={KeyRound}
-          >
-            <form
-              className="max-w-md space-y-3.5"
-              onSubmit={(e) => {
-                e.preventDefault()
-                const fd = new FormData(e.currentTarget)
-                const currentPassword = String(fd.get('current') ?? '')
-                const newPassword = String(fd.get('next') ?? '')
-                const confirm = String(fd.get('confirm') ?? '')
-                if (newPassword !== confirm) {
-                  toast.error('Passwords do not match')
-                  return
-                }
-                setPasswordBusy(true)
-                void changePassword
-                  .mutateAsync({ currentPassword, newPassword })
-                  .then(() => {
-                    toast.success('Password updated')
-                    e.currentTarget.reset()
-                  })
-                  .catch((error: unknown) => {
-                    toast.error(
-                      error instanceof ApiError
-                        ? error.message
-                        : error instanceof Error
-                          ? error.message
-                          : 'Could not update password',
-                    )
-                  })
-                  .finally(() => setPasswordBusy(false))
-              }}
-            >
-              <FormField label="Current password" required>
-                <Input name="current" type="password" autoComplete="current-password" />
-              </FormField>
-              <FormField label="New password" required>
-                <Input name="next" type="password" autoComplete="new-password" />
-              </FormField>
-              <FormField label="Confirm new password" required>
-                <Input name="confirm" type="password" autoComplete="new-password" />
-              </FormField>
-              <Button type="submit" loading={passwordBusy}>
-                Update password
-              </Button>
-            </form>
           </SettingsCard>
         </TabsContent>
 
@@ -653,15 +428,6 @@ export function ProfileWorkspace({ showHeader = true }: { showHeader?: boolean }
         defaultAsPrimary={bankAccounts.length === 0}
       />
       )}
-      <AddCryptoWalletDialog
-        open={walletOpen}
-        onOpenChange={(open) => {
-          setWalletOpen(open)
-          if (!open) setEditingWallet(null)
-        }}
-        method={editingWallet}
-        defaultAsPrimary={cryptoWallets.length === 0}
-      />
     </div>
   )
 }

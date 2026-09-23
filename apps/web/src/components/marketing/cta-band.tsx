@@ -33,7 +33,7 @@ export function CtaBand() {
             </h2>
             <p className="prose-measure mx-auto mt-4 text-body-md text-fg-muted sm:mt-5 sm:text-body-lg">
               {section?.description ||
-                'Historical performance is published for transparency. Past results do not guarantee future returns — read the risk disclosure before you fund.'}
+                'Historical performance is published for transparency. Past results do not guarantee future returns.'}
             </p>
 
             <div className="mx-auto mt-6 flex w-full max-w-[340px] flex-col items-stretch justify-center gap-2.5 sm:mt-8 sm:max-w-none sm:flex-row sm:items-center">

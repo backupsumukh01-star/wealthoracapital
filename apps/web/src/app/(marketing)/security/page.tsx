@@ -1,16 +1,13 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { ROUTES } from '@meridian/shared'
-import { ArrowRight, Clock3 } from 'lucide-react'
+import { Clock3 } from 'lucide-react'
 
 import { Section } from '@/components/common/section'
 import { CtaBand } from '@/components/marketing/cta-band'
 import { PageHero } from '@/components/marketing/page-hero'
 import { CapitalProtection } from '@/components/marketing/trading-system/capital-protection'
-import { ImportantNotice } from '@/components/marketing/trading-system/important-notice'
 import { RiskManagementPanel } from '@/components/marketing/trading-system/risk-management'
 import { StaggerGroup, StaggerItem } from '@/components/motion/stagger-group'
-import { Button } from '@/components/ui/button'
 
 export const metadata: Metadata = {
   title: 'Security',
@@ -35,14 +32,7 @@ export default function SecurityPage() {
         eyebrow="Security"
         title="Controls that contain risk — not eliminate it"
         description="Capital is always exposed to markets. These layers exist so no single unchecked ticket can define the book."
-      >
-        <Button asChild size="lg" className="mt-2 w-full sm:w-auto">
-          <Link href={ROUTES.marketing.legal.riskDisclosure}>
-            Read risk disclosure
-            <ArrowRight aria-hidden />
-          </Link>
-        </Button>
-      </PageHero>
+      />
 
       <div className="container-page space-y-16 pb-8 sm:space-y-20">
         <RiskManagementPanel />
@@ -73,9 +63,6 @@ export default function SecurityPage() {
         </StaggerGroup>
       </Section>
 
-      <div className="container-page pb-10">
-        <ImportantNotice />
-      </div>
       <CtaBand />
     </>
   )

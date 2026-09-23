@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { ROUTES } from '@meridian/shared'
 
-import { RiskDisclosure } from '@/components/common/risk-disclosure'
 import { LegalDocument } from '@/components/marketing/legal-document'
 
 export const metadata: Metadata = {
@@ -24,8 +23,6 @@ export default function RiskDisclosurePage() {
         { heading: 'Past performance', summary: 'Why the published track record does not predict future results.' },
         { heading: 'Suitability', summary: 'The programme is not appropriate for funds you cannot afford to lose, including emergency savings.' },
       ]}
-    >
-      <RiskDisclosure />
-    </LegalDocument>
+    />
   )
 }

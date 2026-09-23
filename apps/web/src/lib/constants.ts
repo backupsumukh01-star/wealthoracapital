@@ -15,16 +15,6 @@ export const SITE = {
   supportEmail: env.NEXT_PUBLIC_SUPPORT_EMAIL,
 } as const
 
-/**
- * Full risk statement for the dedicated legal page and deposit confirmation surfaces.
- * Marketing chrome uses a short past-performance note + Risk Disclosure footer link.
- */
-export const RISK_DISCLOSURE =
-  'Trading involves risk and can result in the loss of your capital. Historical performance ' +
-  'is provided for transparency only. Losing days are shown with the same prominence as ' +
-  'winning ones. Past performance does not guarantee future results. Only commit funds you ' +
-  'can afford to lose.'
-
 export const QUERY_STALE_TIME = {
   slow: 5 * 60 * 1000,
   normal: 60 * 1000,

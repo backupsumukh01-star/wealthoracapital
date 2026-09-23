@@ -6,7 +6,6 @@ import { ROUTES } from '@meridian/shared'
 import { LogOut, Menu } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { ThemeToggle } from '@/components/common/theme-toggle'
 import { SalesSidebarNav } from '@/components/sales/sales-sidebar'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -56,7 +55,6 @@ export function SalesTopbar() {
         {code ? <p className="truncate text-caption text-fg-subtle">Code {code}</p> : null}
       </div>
 
-      <ThemeToggle />
       <Button
         variant="ghost"
         size="sm"

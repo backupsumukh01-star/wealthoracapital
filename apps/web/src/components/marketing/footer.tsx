@@ -3,7 +3,6 @@
 import { useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
-import { ROUTES } from '@meridian/shared'
 
 import { Logo } from '@/components/common/logo'
 import { Button } from '@/components/ui/button'
@@ -59,11 +58,11 @@ export function Footer() {
               {landing.footerTagline || SITE.description}
             </p>
 
-            <div className="gradient-border-soft p-4 sm:p-5">
+            <div className="rounded-2xl border border-line/80 bg-raised/80 p-4 sm:p-5">
               <p className="text-overline mb-3 text-fg-subtle">Newsletter</p>
               <form
                 onSubmit={onNewsletter}
-                className="flex flex-col gap-2 sm:flex-row sm:items-center"
+                className="flex flex-col gap-2.5 sm:flex-row sm:items-stretch"
               >
                 <Input
                   type="email"
@@ -72,15 +71,20 @@ export function Footer() {
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  required
                   aria-label="Email for newsletter"
-                  className="rounded-xl sm:min-w-[200px]"
+                  className="min-h-12 flex-1 rounded-xl sm:min-w-0"
                 />
-                <Button type="submit" size="md" className="w-full shrink-0 sm:w-auto">
+                <Button
+                  type="submit"
+                  size="md"
+                  className="w-full shrink-0 hover:scale-100 active:scale-100 sm:w-auto"
+                >
                   Subscribe
                   <ArrowRight aria-hidden />
                 </Button>
               </form>
-              <p className="mt-2 text-caption text-fg-subtle" role="status">
+              <p className="mt-2.5 min-h-[1.25rem] text-caption text-fg-subtle" role="status">
                 {status === 'ok'
                   ? 'Thanks — we will only send performance updates and product news.'
                   : 'Monthly performance notes. No spam. Unsubscribe anytime.'}
@@ -135,16 +139,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 space-y-4 border-t border-line/70 pt-8">
-          <p className="text-caption leading-relaxed text-fg-subtle">
-            Past performance does not guarantee future results.{' '}
-            <Link
-              href={ROUTES.marketing.legal.riskDisclosure}
-              className="underline decoration-line underline-offset-2 hover:text-fg"
-            >
-              Risk Disclosure
-            </Link>
-          </p>
+        <div className="mt-12 border-t border-line/70 pt-8">
           <p className="text-caption text-fg-subtle">
             © {year} {landing.companyName || 'Wealthora Capital'}. All rights reserved.
           </p>

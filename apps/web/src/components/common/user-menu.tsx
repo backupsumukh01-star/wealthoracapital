@@ -77,7 +77,7 @@ export function UserMenu({ className }: { className?: string }) {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href={ROUTES.marketing.contact}>
+          <Link href={ROUTES.dashboard.support}>
             <LifeBuoy aria-hidden />
             Support
           </Link>

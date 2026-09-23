@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Bell, Palette, SlidersHorizontal } from 'lucide-react'
+import { Bell, SlidersHorizontal } from 'lucide-react'
 
-import { ThemeToggle } from '@/components/common/theme-toggle'
 import { DisplayCurrencySelector } from '@/components/dashboard/display-currency-selector'
 import { SettingsCard } from '@/components/dashboard/settings-card'
 import { Switch } from '@/components/ui/switch'
@@ -52,15 +51,6 @@ export function PreferencesPanel() {
         icon={SlidersHorizontal}
       >
         <DisplayCurrencySelector />
-      </SettingsCard>
-
-      <SettingsCard
-        title="Appearance"
-        description="Dark is the default. Light is fully supported."
-        icon={Palette}
-        action={<ThemeToggle />}
-      >
-        <p className="text-caption text-fg-subtle">Theme controls live in the header of this card.</p>
       </SettingsCard>
 
       <SettingsCard

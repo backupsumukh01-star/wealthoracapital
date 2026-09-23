@@ -8,7 +8,6 @@ import { LogOut, Menu, Search } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { AdminOpsNotificationBell } from '@/components/admin/admin-ops-notification-bell'
-import { ThemeToggle } from '@/components/common/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -79,7 +78,6 @@ export function AdminTopbar() {
           Ctrl K
         </kbd>
         <AdminOpsNotificationBell />
-        <ThemeToggle />
         <div className="hidden items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-caption text-fg-muted sm:flex">
           <span className="size-1.5 rounded-full bg-profit" aria-hidden />
           {session?.user.email ?? 'admin'}

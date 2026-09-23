@@ -62,10 +62,6 @@ export function AuthLayout({
         <main id="main" className="flex min-w-0 flex-1 items-center justify-center py-6 sm:py-10">
           <div className={cn('w-full min-w-0', maxWidthClassName)}>{children}</div>
         </main>
-
-        <p className="px-1 text-center text-[11px] text-fg-subtle sm:text-caption">
-          Capital at risk. Returns are not guaranteed.
-        </p>
       </div>
 
       {showIllustration ? (

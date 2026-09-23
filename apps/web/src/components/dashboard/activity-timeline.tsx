@@ -94,20 +94,20 @@ export function ActivityTimeline({
 
   return (
     <div className="glass glass-edge card-lift noise-overlay relative overflow-hidden rounded-3xl p-5 shadow-e2 sm:p-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="min-w-0 space-y-3">
         <div>
           <p className="text-overline text-accent-300">Activity</p>
           <p className="mt-1 text-body-sm text-fg-muted">Money moves on a living timeline</p>
         </div>
         {showFilters ? (
-          <div className="flex gap-1 rounded-xl border border-line bg-inset/50 p-1">
+          <div className="flex w-full min-w-0 flex-wrap gap-1 rounded-xl border border-line bg-inset/50 p-1">
             {FILTERS.map((f) => (
               <button
                 key={f.id}
                 type="button"
                 onClick={() => setFilter(f.id)}
                 className={cn(
-                  'rounded-lg px-2.5 py-1 text-caption font-medium',
+                  'rounded-lg px-2.5 py-1.5 text-caption font-medium sm:py-1',
                   filter === f.id ? 'bg-accent-500/20 text-accent-200' : 'text-fg-subtle',
                 )}
               >

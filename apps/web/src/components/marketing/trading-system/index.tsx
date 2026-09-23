@@ -7,7 +7,6 @@ import { Section } from '@/components/common/section'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 
 import { CapitalProtection } from './capital-protection'
-import { ImportantNotice } from './important-notice'
 import { TradeLifecycle } from './lifecycle'
 import { PerformanceTransparency } from './performance-transparency'
 import { RiskManagementPanel } from './risk-management'
@@ -107,7 +106,6 @@ export function TradingSystemSection({
         <TradingSessionsMap />
         <CapitalProtection />
         <PerformanceTransparency />
-        <ImportantNotice />
       </div>
     </Section>
   )

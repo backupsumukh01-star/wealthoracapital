@@ -7,7 +7,6 @@ import { ROUTES } from '@meridian/shared'
 import { ArrowDownToLine, BadgeCheck, Menu } from 'lucide-react'
 
 import { NotificationBell } from '@/components/common/notification-bell'
-import { ThemeToggle } from '@/components/common/theme-toggle'
 import { UserMenu } from '@/components/common/user-menu'
 import { NotificationSheet } from '@/components/dashboard/notification-sheet'
 import { SidebarNav } from '@/components/dashboard/sidebar'
@@ -98,7 +97,6 @@ export function Topbar() {
               Deposit
             </Link>
           </Button>
-          <ThemeToggle className="size-10 rounded-full [&_svg]:size-5" />
           <NotificationBell onOpen={() => setNotifOpen(true)} />
           <UserMenu />
         </div>
