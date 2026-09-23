@@ -5,6 +5,7 @@ import { moneyDisplay, d } from '../utils/money.js'
 import { badRequest } from '../utils/errors.js'
 import { logger } from '../utils/logger.js'
 import { realDepositWhere, realInvestorUser, realKycWhere, realProfitWhere, realWithdrawalWhere } from './demo-investor.js'
+import { sumPublishedDailyReturnPcts } from './dashboard-month-return.js'
 
 type PeriodKey = 'today' | 'yesterday' | 'week' | 'month' | 'all'
 
@@ -299,7 +300,7 @@ export const dashboardService = {
    * Short TTL cache (10s) — UI polls every 30s.
    */
   async getOpsSnapshot() {
-    const cacheKey = 'admin:dashboard:ops-v6'
+    const cacheKey = 'admin:dashboard:ops-v7'
     const cached = await cache.get<Awaited<ReturnType<typeof this.buildOpsSnapshot>>>(cacheKey)
     if (cached) return cached
     const data = await this.buildOpsSnapshot()
@@ -362,7 +363,7 @@ export const dashboardService = {
       monthProfit,
       activeInvestorCount,
       openSupportTickets,
-      avgMonthlyReturnPct,
+      currentMonthReturnPct,
     ] = await Promise.all([
       prisma.user.count({
         where: { ...realInvestorUser, createdAt: { gte: today, lt: tomorrow } },
@@ -508,7 +509,7 @@ export const dashboardService = {
       prisma.supportTicket.count({
         where: { status: { in: ['OPEN', 'PENDING'] } },
       }),
-      this.averageMonthlyReturnPct(),
+      this.currentMonthPublishedReturnPct(),
     ])
 
     const liveCards: OpsLiveCard[] = [
@@ -751,10 +752,10 @@ export const dashboardService = {
             href: '/admin/daily-return',
           },
           {
-            id: 'avg-monthly-return',
-            label: 'Average Monthly Return',
+            id: 'current-month-return',
+            label: 'Current Month Return',
             kind: 'percent',
-            value: avgMonthlyReturnPct,
+            value: currentMonthReturnPct,
             href: '/admin/performance',
           },
         ],
@@ -864,39 +865,30 @@ export const dashboardService = {
     }
   },
 
-  async averageMonthlyReturnPct() {
-    const from = new Date()
-    from.setUTCMonth(from.getUTCMonth() - 12)
-    from.setUTCHours(0, 0, 0, 0)
+  /**
+   * Sum of published daily return percentages for the current UTC calendar month
+   * (month start through today). Not an average / not compounded across months.
+   * Source: DailyReturn rows with status PUBLISHED | DISTRIBUTED (one per trading day).
+   */
+  async currentMonthPublishedReturnPct() {
+    const today = utcDayStart(0)
+    const tomorrow = utcDayStart(1)
+    const monthStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1))
 
-    const runs = await prisma.dailyReturnRun.findMany({
-      where: { status: 'COMPLETED', date: { gte: from } },
-      select: { date: true, returnPct: true },
+    const days = await prisma.dailyReturn.findMany({
+      where: {
+        status: { in: ['PUBLISHED', 'DISTRIBUTED'] },
+        date: { gte: monthStart, lt: tomorrow },
+      },
+      select: { netReturnPct: true, computedReturnPct: true },
       orderBy: { date: 'asc' },
     })
 
-    if (runs.length === 0) return '0.00'
+    if (days.length === 0) return '0.00'
 
-    const byMonth = new Map<string, Array<ReturnType<typeof d>>>()
-    for (const run of runs) {
-      const key = run.date.toISOString().slice(0, 7)
-      const bucket = byMonth.get(key) ?? []
-      bucket.push(d(run.returnPct))
-      byMonth.set(key, bucket)
-    }
-
-    const monthly: ReturnType<typeof d>[] = []
-    for (const pcts of byMonth.values()) {
-      let factor = d(1)
-      for (const pct of pcts) {
-        factor = factor.mul(d(1).plus(pct.div(100)))
-      }
-      monthly.push(factor.minus(1).mul(100))
-    }
-
-    if (monthly.length === 0) return '0.00'
-    const sum = monthly.reduce((acc, n) => acc.plus(n), d(0))
-    return sum.div(monthly.length).toFixed(2)
+    return sumPublishedDailyReturnPcts(
+      days.map((row) => row.netReturnPct ?? row.computedReturnPct ?? 0),
+    )
   },
 
   async buildChartSeries(from: Date, to: Date) {

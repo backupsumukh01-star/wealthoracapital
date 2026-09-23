@@ -480,6 +480,7 @@ export const adminUserPermanentDeleteService = {
       }
     }
 
+    await cache.del('admin:dashboard:ops-v7').catch(() => undefined)
     await cache.del('admin:dashboard:ops-v6').catch(() => undefined)
     await cache.del('admin:dashboard:ops-v5').catch(() => undefined)
 

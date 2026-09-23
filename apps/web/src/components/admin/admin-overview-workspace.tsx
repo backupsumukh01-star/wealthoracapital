@@ -227,8 +227,10 @@ export function AdminOverviewWorkspace() {
   const activeInvestors =
     findExecKpi(executiveKpis, 'users-aum', 'active-investors-balance') ?? '0'
   const aumValue = findExecKpi(executiveKpis, 'users-aum', 'total-aum') ?? '0.00'
-  const avgMonthlyReturn =
-    findExecKpi(executiveKpis, 'profit', 'avg-monthly-return') ?? '0'
+  const currentMonthReturn =
+    findExecKpi(executiveKpis, 'profit', 'current-month-return') ??
+    findExecKpi(executiveKpis, 'profit', 'avg-monthly-return') ??
+    '0'
   const openSupportTickets = findExecKpi(executiveKpis, 'ops', 'support-open')
 
   const walletChart = useMemo(() => {
@@ -612,9 +614,9 @@ export function AdminOverviewWorkspace() {
             href={ROUTES.admin.dailyReturn}
           />
           <CompactMetric
-            label="Average Monthly Return"
+            label="Current Month Return"
             kind="percent"
-            value={avgMonthlyReturn}
+            value={currentMonthReturn}
             href={ROUTES.admin.performance}
           />
         </div>
