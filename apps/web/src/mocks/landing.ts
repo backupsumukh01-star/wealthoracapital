@@ -436,13 +436,13 @@ export const LIVE_ACTIVITY = [
   { type: 'withdrawal' as const, name: 'Sofia R.', region: 'ES', amount: '750.00' },
 ] as const
 
-/** Glowing hubs on the investor map (x/y as % of 1000×500 viewBox). */
+/** Glowing hubs on the investor map (x/y as % of equirectangular world map). */
 export const INVESTOR_HUBS = [
   {
     id: 'nyc',
     label: 'New York',
-    x: 24.0,
-    y: 36.0,
+    x: 27.5,
+    y: 34.0,
     investors: '820+',
     aum: '$2.1M',
     activity: '18 deposits · 11 withdrawals',
@@ -450,8 +450,8 @@ export const INVESTOR_HUBS = [
   {
     id: 'tor',
     label: 'Toronto',
-    x: 22.5,
-    y: 32.0,
+    x: 26.0,
+    y: 30.5,
     investors: '310+',
     aum: '$780K',
     activity: '6 deposits · 4 withdrawals',
@@ -459,8 +459,8 @@ export const INVESTOR_HUBS = [
   {
     id: 'lon',
     label: 'London',
-    x: 48.2,
-    y: 32.5,
+    x: 48.5,
+    y: 29.5,
     investors: '1,140+',
     aum: '$4.6M',
     activity: '24 deposits · 19 withdrawals',
@@ -468,8 +468,8 @@ export const INVESTOR_HUBS = [
   {
     id: 'fra',
     label: 'Frankfurt',
-    x: 51.0,
-    y: 34.0,
+    x: 51.5,
+    y: 31.0,
     investors: '420+',
     aum: '$1.1M',
     activity: '9 deposits · 7 withdrawals',
@@ -477,8 +477,8 @@ export const INVESTOR_HUBS = [
   {
     id: 'dxb',
     label: 'Dubai',
-    x: 62.5,
-    y: 42.0,
+    x: 63.0,
+    y: 40.5,
     investors: '690+',
     aum: '$2.8M',
     activity: '15 deposits · 12 withdrawals',
@@ -486,8 +486,8 @@ export const INVESTOR_HUBS = [
   {
     id: 'mum',
     label: 'Mumbai',
-    x: 70.5,
-    y: 46.5,
+    x: 70.0,
+    y: 44.0,
     investors: '1,260+',
     aum: '$3.2M',
     activity: '31 deposits · 22 withdrawals',
@@ -495,8 +495,8 @@ export const INVESTOR_HUBS = [
   {
     id: 'sgp',
     label: 'Singapore',
-    x: 78.5,
-    y: 58.0,
+    x: 78.0,
+    y: 54.5,
     investors: '540+',
     aum: '$1.9M',
     activity: '11 deposits · 8 withdrawals',
@@ -504,8 +504,8 @@ export const INVESTOR_HUBS = [
   {
     id: 'tyo',
     label: 'Tokyo',
-    x: 86.0,
-    y: 40.0,
+    x: 86.5,
+    y: 37.5,
     investors: '380+',
     aum: '$1.4M',
     activity: '8 deposits · 5 withdrawals',
@@ -513,8 +513,8 @@ export const INVESTOR_HUBS = [
   {
     id: 'syd',
     label: 'Sydney',
-    x: 88.0,
-    y: 72.0,
+    x: 89.0,
+    y: 68.5,
     investors: '290+',
     aum: '$920K',
     activity: '5 deposits · 3 withdrawals',

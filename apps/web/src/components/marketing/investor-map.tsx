@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Activity, Landmark, Users } from 'lucide-react'
@@ -26,17 +27,7 @@ function curvePath(a: Hub, b: Hub) {
   return `M ${p1.x} ${p1.y} Q ${mx} ${my} ${p2.x} ${p2.y}`
 }
 
-/** Dot-grid fill for tech landmasses (SVG pattern + clip). */
-const LAND_PATHS = [
-  'M70 130 C140 85 210 95 270 140 C320 185 300 250 240 270 C170 290 90 240 70 180 Z',
-  'M200 275 C245 268 275 320 255 375 C235 430 185 455 150 420 C115 385 150 295 200 275 Z',
-  'M420 115 C475 90 530 100 560 140 C590 180 575 230 530 245 C480 265 430 220 420 165 Z',
-  'M470 235 C520 225 555 275 545 335 C535 400 485 445 445 420 C405 395 430 280 470 235 Z',
-  'M560 125 C660 85 780 105 860 170 C930 230 945 310 890 355 C830 400 720 390 640 350 C560 310 540 210 560 125 Z',
-  'M820 340 C880 325 940 360 950 405 C960 445 910 470 855 455 C800 440 790 375 820 340 Z',
-] as const
-
-/** Premium interactive global footprint — dark tech network aesthetic. */
+/** Custom tech world map + interactive hub network overlay. */
 export function InvestorMap({ showHeader = true }: { showHeader?: boolean }) {
   const prefersReducedMotion = usePrefersReducedMotion()
   const [activeId, setActiveId] = useState('lon')
@@ -85,46 +76,33 @@ export function InvestorMap({ showHeader = true }: { showHeader?: boolean }) {
 
         <div className="relative z-[1] grid min-w-0 gap-4 lg:grid-cols-[1fr_16rem]">
           <div className="relative aspect-[4/3] w-full min-w-0 overflow-hidden rounded-2xl border border-white/[0.06] bg-[#030508] sm:aspect-[16/10] lg:aspect-[2/1]">
-            {/* Soft side glows — matches tech-map reference */}
-            <div
-              className="pointer-events-none absolute inset-0"
-              aria-hidden
-              style={{
-                background:
-                  'radial-gradient(ellipse 45% 60% at 8% 50%, rgba(180,70,60,0.18), transparent 55%), radial-gradient(ellipse 50% 70% at 92% 45%, rgba(40,120,200,0.22), transparent 55%), radial-gradient(ellipse 40% 35% at 50% 100%, rgba(30,90,160,0.12), transparent 60%)',
-              }}
+            <Image
+              src="/marketing/tech-world-map.png"
+              alt=""
+              fill
+              sizes="(max-width: 1024px) 100vw, 70vw"
+              className="object-cover object-center opacity-95"
+              priority={false}
             />
 
             <svg
               viewBox={`0 0 ${W} ${H}`}
-              className="relative h-full w-full"
+              className="absolute inset-0 h-full w-full"
               role="img"
               aria-label="World investor network map"
             >
               <defs>
-                <radialGradient id="im-ocean" cx="50%" cy="42%" r="65%">
-                  <stop offset="0%" stopColor="#0A1018" />
-                  <stop offset="100%" stopColor="#030508" />
-                </radialGradient>
-                <linearGradient id="im-land" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#1A2A3D" />
-                  <stop offset="55%" stopColor="#152233" />
-                  <stop offset="100%" stopColor="#101820" />
-                </linearGradient>
                 <linearGradient id="im-arc" x1="0" y1="0" x2="1" y2="0">
                   <stop offset="0%" stopColor="#7EB8FF" stopOpacity="0.05" />
-                  <stop offset="35%" stopColor="#E8F2FF" stopOpacity="0.85" />
-                  <stop offset="65%" stopColor="#9FD0FF" stopOpacity="0.75" />
+                  <stop offset="35%" stopColor="#E8F2FF" stopOpacity="0.9" />
+                  <stop offset="65%" stopColor="#9FD0FF" stopOpacity="0.8" />
                   <stop offset="100%" stopColor="#5A9FE8" stopOpacity="0.05" />
                 </linearGradient>
                 <linearGradient id="im-arc-hot" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#C9A45C" stopOpacity="0.1" />
-                  <stop offset="50%" stopColor="#F2F6FA" stopOpacity="1" />
-                  <stop offset="100%" stopColor="#7EB8FF" stopOpacity="0.15" />
+                  <stop offset="0%" stopColor="#C9A45C" stopOpacity="0.12" />
+                  <stop offset="50%" stopColor="#FFFFFF" stopOpacity="1" />
+                  <stop offset="100%" stopColor="#7EB8FF" stopOpacity="0.18" />
                 </linearGradient>
-                <pattern id="im-dots" width="10" height="10" patternUnits="userSpaceOnUse">
-                  <circle cx="1.2" cy="1.2" r="0.9" fill="#5A7A9A" fillOpacity="0.55" />
-                </pattern>
                 <filter id="im-glow" x="-80%" y="-80%" width="260%" height="260%">
                   <feGaussianBlur stdDeviation="2.8" result="b" />
                   <feMerge>
@@ -139,38 +117,8 @@ export function InvestorMap({ showHeader = true }: { showHeader?: boolean }) {
                     <feMergeNode in="SourceGraphic" />
                   </feMerge>
                 </filter>
-                <clipPath id="im-land-clip">
-                  {LAND_PATHS.map((d) => (
-                    <path key={d.slice(0, 12)} d={d} />
-                  ))}
-                </clipPath>
               </defs>
 
-              <rect width={W} height={H} fill="url(#im-ocean)" />
-
-              {/* Faint grid */}
-              <g stroke="#1E2A38" strokeWidth="0.6" opacity="0.35">
-                {Array.from({ length: 12 }, (_, i) => (
-                  <line key={`h${i}`} x1="0" y1={(i + 1) * (H / 13)} x2={W} y2={(i + 1) * (H / 13)} />
-                ))}
-                {Array.from({ length: 20 }, (_, i) => (
-                  <line key={`v${i}`} x1={(i + 1) * (W / 21)} y1="0" x2={(i + 1) * (W / 21)} y2={H} />
-                ))}
-              </g>
-
-              {/* Solid landmasses */}
-              <g fill="url(#im-land)" stroke="#3A5268" strokeOpacity="0.45" strokeWidth="1">
-                {LAND_PATHS.map((d) => (
-                  <path key={d.slice(0, 14)} d={d} />
-                ))}
-              </g>
-
-              {/* Dot-matrix overlay on land */}
-              <g clipPath="url(#im-land-clip)" opacity="0.55">
-                <rect width={W} height={H} fill="url(#im-dots)" />
-              </g>
-
-              {/* Network arcs */}
               {MAP_LINKS.map(([a, b], i) => {
                 const from = hubsById[a]
                 const to = hubsById[b]
@@ -183,8 +131,8 @@ export function InvestorMap({ showHeader = true }: { showHeader?: boolean }) {
                       d={d}
                       fill="none"
                       stroke={hot ? 'url(#im-arc-hot)' : 'url(#im-arc)'}
-                      strokeWidth={hot ? 2.2 : 1.35}
-                      strokeOpacity={hot ? 1 : 0.55}
+                      strokeWidth={hot ? 2.4 : 1.4}
+                      strokeOpacity={hot ? 1 : 0.6}
                       filter={hot ? 'url(#im-glow)' : undefined}
                     />
                     {!prefersReducedMotion ? (
@@ -204,7 +152,6 @@ export function InvestorMap({ showHeader = true }: { showHeader?: boolean }) {
                 )
               })}
 
-              {/* Hubs */}
               {INVESTOR_HUBS.map((hub, i) => {
                 const { x, y } = hubPoint(hub)
                 const on = activeId === hub.id
