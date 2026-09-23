@@ -7,6 +7,7 @@ import { Section } from '@/components/common/section'
 import { AdvantagesGrid } from '@/components/marketing/advantages-grid'
 import { CtaBand } from '@/components/marketing/cta-band'
 import { DistributionsStrip } from '@/components/marketing/distributions-strip'
+import { GlobalFootprintSection } from '@/components/marketing/global-footprint-section'
 import { PageHero } from '@/components/marketing/page-hero'
 import { StatsBand } from '@/components/marketing/stats-band'
 import { Testimonials } from '@/components/marketing/testimonials'
@@ -42,6 +43,7 @@ export default function InvestorsPage() {
       <TrustLogos />
       <Testimonials />
       <DistributionsStrip />
+      <GlobalFootprintSection />
       <AdvantagesGrid />
 
       <Section centered className="!pt-0">

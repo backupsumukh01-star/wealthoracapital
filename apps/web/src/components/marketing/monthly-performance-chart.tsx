@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table'
 import { useLandingLiveStats, useLandingMonthlySeries } from '@/features/landing'
 import { buildGrowthOf100Rows } from '@/features/landing/live-stats'
+import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { cn } from '@/lib/cn'
 
 const MONTH_SHORT = [
@@ -386,11 +387,75 @@ export function MonthlyPerformanceChart() {
   )
 }
 
-/** Expandable monthly performance timeline across every year. */
+type TimelineMonth = ReturnType<typeof buildGrowth>[number]
+
+function TimelineMonthRow({
+  m,
+  open,
+  onToggle,
+}: {
+  m: TimelineMonth
+  open: boolean
+  onToggle: () => void
+}) {
+  const up = m.value >= 0
+  return (
+    <li className="min-w-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        className={cn(
+          'flex w-full min-w-0 items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors',
+          open
+            ? 'border-accent-700 bg-accent-500/10'
+            : 'border-line bg-inset/40 hover:border-line-strong',
+        )}
+      >
+        <span className="w-16 shrink-0 text-caption font-medium text-fg-muted sm:w-20">
+          {m.label}
+        </span>
+        <span
+          className={cn(
+            'min-w-0 flex-1 text-body-sm font-medium tabular-nums',
+            up ? 'text-profit' : 'text-loss',
+          )}
+        >
+          {up ? '+' : ''}
+          {m.value.toFixed(2)}%
+        </span>
+        <span className="hidden shrink-0 text-caption tabular-nums text-fg-subtle sm:inline">
+          ${m.endBalance.toFixed(0)}
+        </span>
+      </button>
+      {open ? (
+        <div className="mt-1.5 rounded-xl border border-line bg-raised/60 px-3 py-3 text-caption text-fg-muted">
+          <p className="font-medium text-fg">{m.fullLabel}</p>
+          <p className="mt-1">
+            Return{' '}
+            <span className="tabular-nums text-fg">
+              {up ? '+' : ''}
+              {m.value.toFixed(2)}%
+            </span>
+          </p>
+          <p className="mt-1 tabular-nums">
+            Start ${m.startBalance.toFixed(2)} · End ${m.endBalance.toFixed(2)} · Profit{' '}
+            {m.profit >= 0 ? '+' : ''}
+            ${m.profit.toFixed(2)}
+          </p>
+        </div>
+      ) : null}
+    </li>
+  )
+}
+
+/** Expandable monthly performance timeline — loops with continuous auto-scroll. */
 export function MonthlyPerformanceTimeline() {
   const [open, setOpen] = useState<string | null>(null)
+  const prefersReducedMotion = usePrefersReducedMotion()
   const series = useMonthlySeries()
   const growth = useMemo(() => buildGrowth(series), [series])
+  const loop = useMemo(() => [...growth, ...growth], [growth])
+  const durationSec = Math.max(48, growth.length * 2.4)
 
   return (
     <div className="min-w-0 rounded-2xl border border-white/[0.07] bg-raised/50 p-3 sm:p-5">
@@ -398,58 +463,64 @@ export function MonthlyPerformanceTimeline() {
       <p className="mt-0.5 text-[11px] text-fg-subtle">
         Every month across the full history — tap for starting/ending balance
       </p>
-      <ul className="mt-4 max-h-[28rem] space-y-2 overflow-y-auto overscroll-contain pr-1">
-        {growth.map((m) => {
-          const up = m.value >= 0
-          const isOpen = open === m.key
-          return (
-            <li key={m.key} className="min-w-0">
-              <button
-                type="button"
-                onClick={() => setOpen(isOpen ? null : m.key)}
-                className={cn(
-                  'flex w-full min-w-0 items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors',
-                  isOpen
-                    ? 'border-accent-700 bg-accent-500/10'
-                    : 'border-line bg-inset/40 hover:border-line-strong',
-                )}
-              >
-                <span className="w-16 shrink-0 text-caption font-medium text-fg-muted sm:w-20">
-                  {m.label}
-                </span>
-                <span
-                  className={cn(
-                    'min-w-0 flex-1 text-body-sm font-medium tabular-nums',
-                    up ? 'text-profit' : 'text-loss',
-                  )}
-                >
-                  {up ? '+' : ''}
-                  {m.value.toFixed(2)}%
-                </span>
-                <span className="hidden shrink-0 text-caption tabular-nums text-fg-subtle sm:inline">
-                  ${m.endBalance.toFixed(0)}
-                </span>
-              </button>
-              {isOpen ? (
-                <div className="mt-1.5 rounded-xl border border-line bg-raised/60 px-3 py-3 text-caption text-fg-muted">
-                  <p className="font-medium text-fg">{m.fullLabel}</p>
-                  <p className="mt-1">
-                    Return{' '}
-                    <span className="tabular-nums text-fg">
-                      {up ? '+' : ''}
-                      {m.value.toFixed(2)}%
-                    </span>
-                  </p>
-                  <p className="mt-1 tabular-nums">
-                    Start ${m.startBalance.toFixed(2)} · End ${m.endBalance.toFixed(2)} · Profit{' '}
-                    {m.profit >= 0 ? '+' : ''}
-                    ${m.profit.toFixed(2)}
-                  </p>
-                </div>
-              ) : null}
-            </li>
-          )
-        })}
+      <div
+        className="relative mt-4 h-[28rem] overflow-hidden overscroll-contain"
+        style={{
+          maskImage:
+            'linear-gradient(to bottom, transparent, black 6%, black 94%, transparent)',
+          WebkitMaskImage:
+            'linear-gradient(to bottom, transparent, black 6%, black 94%, transparent)',
+        }}
+      >
+        {prefersReducedMotion || growth.length === 0 ? (
+          <ul className="h-full space-y-2 overflow-y-auto pr-1">
+            {growth.map((m) => (
+              <TimelineMonthRow
+                key={m.key}
+                m={m}
+                open={open === m.key}
+                onToggle={() => setOpen(open === m.key ? null : m.key)}
+              />
+            ))}
+          </ul>
+        ) : (
+          <div
+            className={cn(
+              'will-change-transform',
+              'hover:[animation-play-state:paused] focus-within:[animation-play-state:paused] active:[animation-play-state:paused]',
+              open && '[animation-play-state:paused]',
+            )}
+            style={{
+              animation: `trade-ticker ${durationSec}s linear infinite`,
+            }}
+            data-auto-scroll
+            onTouchStart={(e) => {
+              ;(e.currentTarget as HTMLElement).style.animationPlayState = 'paused'
+            }}
+            onTouchEnd={(e) => {
+              if (!open) (e.currentTarget as HTMLElement).style.animationPlayState = ''
+            }}
+          >
+            <ul className="space-y-2" aria-hidden>
+              {loop.map((m, i) => (
+                <TimelineMonthRow
+                  key={`${m.key}-${i}`}
+                  m={m}
+                  open={open === m.key}
+                  onToggle={() => setOpen(open === m.key ? null : m.key)}
+                />
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+      <ul className="sr-only">
+        {growth.map((m) => (
+          <li key={m.key}>
+            {m.fullLabel}: {m.value >= 0 ? '+' : ''}
+            {m.value.toFixed(2)}%
+          </li>
+        ))}
       </ul>
     </div>
   )

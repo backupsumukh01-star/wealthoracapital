@@ -742,15 +742,18 @@
 /* ==========================================================================
    Reduced motion — implemented once, inherited everywhere (docs/10 §5).
    Reveals resolve to their final state; nothing is left invisible.
+   Continuous marketing tapes (marquee / trade ticker) are handled in React
+   via usePrefersReducedMotion — do not force-kill them here or they freeze
+   mid-loop when the media query and hydration disagree for a frame.
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
 
-  *,
-  *::before,
-  *::after {
+  *:not(.marquee-track):not([data-auto-scroll]),
+  *:not(.marquee-track):not([data-auto-scroll])::before,
+  *:not(.marquee-track):not([data-auto-scroll])::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

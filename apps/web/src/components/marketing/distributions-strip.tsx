@@ -1,6 +1,5 @@
 'use client'
 
-import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { ROUTES } from '@meridian/shared'
 import { ArrowRight, Clock, Wallet } from 'lucide-react'
@@ -14,14 +13,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { RECENT_DISTRIBUTIONS } from '@/lib/landing-data'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
-
-const InvestorMap = dynamic(
-  () => import('./investor-map').then((m) => m.InvestorMap),
-  {
-    ssr: false,
-    loading: () => <div className="mt-10 min-h-[16rem]" aria-hidden />,
-  },
-)
 
 /** Illustrative payout examples — not verified ledger withdrawals. */
 export function DistributionsStrip() {
@@ -72,8 +63,6 @@ export function DistributionsStrip() {
           </StaggerItem>
         ))}
       </StaggerGroup>
-
-      <InvestorMap />
 
       <RevealOnScroll className="mt-6 flex justify-center sm:mt-8">
         <Button asChild size="lg" className="w-full max-w-md sm:w-auto sm:max-w-none">

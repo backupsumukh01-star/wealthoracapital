@@ -181,8 +181,14 @@ export function Testimonials() {
           className={cn(
             'columns-1 gap-0 px-3 pt-3 sm:columns-2 sm:px-4 lg:columns-3',
             !prefersReducedMotion &&
-              'animate-masonry-up hover:[animation-play-state:paused] focus-within:[animation-play-state:paused] active:[animation-play-state:paused]',
+              'hover:[animation-play-state:paused] focus-within:[animation-play-state:paused] active:[animation-play-state:paused]',
           )}
+          data-auto-scroll={!prefersReducedMotion ? true : undefined}
+          style={
+            prefersReducedMotion
+              ? undefined
+              : { animation: 'masonry-up 70s linear infinite' }
+          }
           onTouchStart={(e) => {
             if (prefersReducedMotion) return
             ;(e.currentTarget as HTMLElement).style.animationPlayState = 'paused'

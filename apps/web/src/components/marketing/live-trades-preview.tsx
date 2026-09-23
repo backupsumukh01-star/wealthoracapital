@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { ROUTES } from '@meridian/shared'
 import { ArrowRight, Radio } from 'lucide-react'
@@ -13,6 +13,7 @@ import { demoHistoryUsable } from '@/features/landing/live-stats'
 import { usePublicPerformance } from '@/features/performance/hooks'
 import { usePublicTradeStats, usePublicTradesInfinite } from '@/features/trades/hooks'
 import { useNearViewport } from '@/hooks/use-near-viewport'
+import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { useDemoDashboardStats, useDemoTradesPreview } from '@/lib/demo-backtest'
 import { cn } from '@/lib/cn'
 import type { Trade } from '@meridian/shared'
@@ -98,7 +99,6 @@ const TradeRow = memo(function TradeRow({ trade }: { trade: DeskTrade }) {
       <span className="hidden text-right text-[10px] uppercase tracking-wide text-fg-subtle sm:inline">
         {trade.status}
       </span>
-      {/* Mobile secondary line */}
       <span className="col-span-3 flex items-center justify-between gap-2 text-[10px] text-fg-subtle sm:hidden">
         <span>
           {trade.direction} · {trade.entry} → {trade.exit}
@@ -129,10 +129,13 @@ function computeStatsFromTrades(trades: DeskTrade[]) {
   }
 }
 
+const AUTO_SCROLL_ROWS = 48
+
 /** Public desk feed — canonical demo blotter when present, live API only as fallback. */
 export function LiveTradesPreview() {
   const rootRef = useRef<HTMLDivElement>(null)
   const near = useNearViewport(rootRef, { rootMargin: '320px 0px' })
+  const prefersReducedMotion = usePrefersReducedMotion()
 
   const apiInfinite = usePublicTradesInfinite({ limit: 40, enabled: near })
   const { data: apiStats } = usePublicTradeStats({ enabled: near })
@@ -153,39 +156,14 @@ export function LiveTradesPreview() {
   const deskTrades = useMemo(() => {
     if (!near) return []
     if (useDemo) {
-      // Preview file is already newest-first (~80 rows).
       return demoTrades.map(toDeskFromDemo)
     }
     return apiTrades.map((t) => toDeskFromApi(t as Trade & { status?: string }))
   }, [near, useDemo, apiTrades, demoTrades])
 
-  const [visible, setVisible] = useState(40)
-  const listRef = useRef<HTMLUListElement | null>(null)
-  const sentinelRef = useRef<HTMLDivElement | null>(null)
-
-  const shown = useMemo(() => deskTrades.slice(0, visible), [deskTrades, visible])
-
-  const loadMore = useCallback(() => {
-    if (!useDemo && apiInfinite.hasNextPage && !apiInfinite.isFetchingNextPage) {
-      void apiInfinite.fetchNextPage()
-      return
-    }
-    setVisible((v) => Math.min(v + 40, deskTrades.length))
-  }, [useDemo, apiInfinite, deskTrades.length])
-
-  useEffect(() => {
-    const el = sentinelRef.current
-    const root = listRef.current
-    if (!el || !root) return
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) loadMore()
-      },
-      { root, rootMargin: '120px' },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [loadMore])
+  const feed = useMemo(() => deskTrades.slice(0, AUTO_SCROLL_ROWS), [deskTrades])
+  const loop = useMemo(() => [...feed, ...feed], [feed])
+  const durationSec = Math.max(36, feed.length * 1.8)
 
   const localStats = useMemo(() => computeStatsFromTrades(deskTrades), [deskTrades])
 
@@ -260,98 +238,125 @@ export function LiveTradesPreview() {
 
   return (
     <div ref={rootRef}>
-    <Section
-      id="trades"
-      eyebrow="Daily trade preview"
-      title="The exact trades behind each daily return"
-      description="Published desk tickets — pair, direction, entry, exit and return percentage. Newest first."
-    >
-      <RevealOnScroll>
-        <div
-          className={cn(
-            'overflow-hidden rounded-2xl border border-white/10',
-            'bg-gradient-to-b from-white/[0.07] via-white/[0.03] to-transparent',
-            'shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl',
-          )}
-        >
-          <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-white/[0.06] px-4 sm:px-5">
-            <div className="flex items-center gap-2">
-              <span className="relative flex size-2">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-profit opacity-60" />
-                <span className="relative inline-flex size-2 rounded-full bg-profit" />
-              </span>
-              <p className="text-body-sm font-medium text-fg">Live desk feed</p>
-            </div>
-            <p className="inline-flex items-center gap-1.5 text-caption text-fg-subtle">
-              <Radio className="size-3.5 text-accent-300" aria-hidden />
-              Newest first
-            </p>
-          </div>
-
-          <div className="hidden border-b border-white/[0.05] px-4 py-2 text-[10px] uppercase tracking-wide text-fg-subtle sm:grid sm:grid-cols-[5.5rem_4.5rem_3.25rem_minmax(0,1fr)_minmax(0,1fr)_4.5rem_4.25rem] sm:gap-3">
-            <span>Date</span>
-            <span>Pair</span>
-            <span>Side</span>
-            <span className="text-right">Entry</span>
-            <span className="text-right">Exit</span>
-            <span className="text-right">Return</span>
-            <span className="text-right">Status</span>
-          </div>
-
-          <div className="relative h-[320px] sm:h-[360px]">
-            {loading ? (
-              <div className="space-y-2 p-4">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            ) : shown.length === 0 ? (
-              <p className="grid h-full place-items-center px-6 text-center text-body-sm text-fg-muted">
-                No published trades are available right now.
-              </p>
-            ) : (
-              <ul
-                ref={listRef}
-                className="absolute inset-0 overflow-y-auto overscroll-contain [scrollbar-width:thin]"
-              >
-                {shown.map((trade) => (
-                  <TradeRow key={trade.id} trade={trade} />
-                ))}
-                <div ref={sentinelRef} className="py-3 text-center text-[11px] text-fg-subtle">
-                  {apiInfinite.isFetchingNextPage || visible < deskTrades.length
-                    ? 'Loading more…'
-                    : `${shown.length.toLocaleString()} trades loaded`}
-                </div>
-              </ul>
+      <Section
+        id="trades"
+        eyebrow="Daily trade preview"
+        title="The exact trades behind each daily return"
+        description="Published desk tickets — pair, direction, entry, exit and return percentage. Newest first."
+      >
+        <RevealOnScroll>
+          <div
+            className={cn(
+              'overflow-hidden rounded-2xl border border-white/10',
+              'bg-gradient-to-b from-white/[0.07] via-white/[0.03] to-transparent',
+              'shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl',
             )}
+          >
+            <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-white/[0.06] px-4 sm:px-5">
+              <div className="flex items-center gap-2">
+                <span className="relative flex size-2">
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-profit opacity-60" />
+                  <span className="relative inline-flex size-2 rounded-full bg-profit" />
+                </span>
+                <p className="text-body-sm font-medium text-fg">Live desk feed</p>
+              </div>
+              <p className="inline-flex items-center gap-1.5 text-caption text-fg-subtle">
+                <Radio className="size-3.5 text-accent-300" aria-hidden />
+                Newest first
+              </p>
+            </div>
+
+            <div className="hidden border-b border-white/[0.05] px-4 py-2 text-[10px] uppercase tracking-wide text-fg-subtle sm:grid sm:grid-cols-[5.5rem_4.5rem_3.25rem_minmax(0,1fr)_minmax(0,1fr)_4.5rem_4.25rem] sm:gap-3">
+              <span>Date</span>
+              <span>Pair</span>
+              <span>Side</span>
+              <span className="text-right">Entry</span>
+              <span className="text-right">Exit</span>
+              <span className="text-right">Return</span>
+              <span className="text-right">Status</span>
+            </div>
+
+            <div
+              className="relative h-[320px] overflow-hidden sm:h-[360px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              style={{
+                maskImage:
+                  'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)',
+                WebkitMaskImage:
+                  'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)',
+              }}
+            >
+              {loading ? (
+                <div className="space-y-2 p-4">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ) : feed.length === 0 ? (
+                <p className="grid h-full place-items-center px-6 text-center text-body-sm text-fg-muted">
+                  No published trades are available right now.
+                </p>
+              ) : prefersReducedMotion ? (
+                <ul className="absolute inset-0 overflow-y-auto overscroll-contain [scrollbar-width:thin]">
+                  {feed.map((trade) => (
+                    <TradeRow key={trade.id} trade={trade} />
+                  ))}
+                </ul>
+              ) : (
+                <div
+                  className="will-change-transform hover:[animation-play-state:paused] focus-within:[animation-play-state:paused] active:[animation-play-state:paused]"
+                  style={{ animation: `trade-ticker ${durationSec}s linear infinite` }}
+                  data-auto-scroll
+                  aria-hidden
+                  onTouchStart={(e) => {
+                    ;(e.currentTarget as HTMLElement).style.animationPlayState = 'paused'
+                  }}
+                  onTouchEnd={(e) => {
+                    ;(e.currentTarget as HTMLElement).style.animationPlayState = ''
+                  }}
+                >
+                  <ul className="flex flex-col">
+                    {loop.map((trade, i) => (
+                      <TradeRow key={`${trade.id}-${i}`} trade={trade} />
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
+        </RevealOnScroll>
+
+        <ul className="sr-only">
+          {feed.slice(0, 12).map((trade) => (
+            <li key={trade.id}>
+              {trade.date} {trade.pair} {trade.direction} {formatPct(trade.returnPct, 2)}
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:grid-cols-4">
+          {statCards.map((stat) => (
+            <div key={stat.label} className="card-fill flex h-full flex-col p-3.5 text-center sm:p-4">
+              <p className="text-[11px] text-fg-subtle">{stat.label}</p>
+              <p className="mt-1 text-heading-sm tabular-nums text-fg">{stat.value}</p>
+            </div>
+          ))}
         </div>
-      </RevealOnScroll>
 
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:grid-cols-4">
-        {statCards.map((stat) => (
-          <div key={stat.label} className="card-fill flex h-full flex-col p-3.5 text-center sm:p-4">
-            <p className="text-[11px] text-fg-subtle">{stat.label}</p>
-            <p className="mt-1 text-heading-sm tabular-nums text-fg">{stat.value}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:mt-8 sm:flex-row sm:items-center">
-        <Button asChild size="lg" className="w-full sm:w-auto">
-          <Link href={ROUTES.marketing.historicalPerformance}>
-            Explore Historical Performance
-            <ArrowRight aria-hidden />
-          </Link>
-        </Button>
-        <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto">
-          <Link href={ROUTES.marketing.historicalPerformance}>
-            Browse Performance History
-            <ArrowRight aria-hidden />
-          </Link>
-        </Button>
-      </div>
-    </Section>
+        <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:mt-8 sm:flex-row sm:items-center">
+          <Button asChild size="lg" className="w-full sm:w-auto">
+            <Link href={ROUTES.marketing.historicalPerformance}>
+              Explore Historical Performance
+              <ArrowRight aria-hidden />
+            </Link>
+          </Button>
+          <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto">
+            <Link href={ROUTES.marketing.historicalPerformance}>
+              Browse Performance History
+              <ArrowRight aria-hidden />
+            </Link>
+          </Button>
+        </div>
+      </Section>
     </div>
   )
 }

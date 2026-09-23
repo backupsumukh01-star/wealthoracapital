@@ -194,7 +194,9 @@ const RecentTradesTicker = memo(function RecentTradesTicker({
           </ul>
         ) : (
           <div
-            className="animate-trade-ticker will-change-transform hover:[animation-play-state:paused] focus-within:[animation-play-state:paused] active:[animation-play-state:paused]"
+            className="will-change-transform hover:[animation-play-state:paused] focus-within:[animation-play-state:paused] active:[animation-play-state:paused]"
+            style={{ animation: 'trade-ticker 36s linear infinite' }}
+            data-auto-scroll
             aria-hidden
           >
             <ul className="flex flex-col">

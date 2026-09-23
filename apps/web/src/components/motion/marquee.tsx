@@ -45,7 +45,6 @@ export function Marquee({
       className={cn(
         'group relative min-w-0 overflow-hidden',
         pauseOnHover && '[&:hover_.marquee-track]:[animation-play-state:paused]',
-        pauseOnHover && '[&:focus-within_.marquee-track]:[animation-play-state:paused]',
         className,
       )}
       aria-hidden
@@ -55,7 +54,10 @@ export function Marquee({
           'marquee-track flex w-max will-change-transform',
           direction === 'left' ? 'animate-marquee' : 'animate-marquee-reverse',
         )}
-        style={{ animationDuration: `${speed}s` }}
+        data-auto-scroll
+        style={{
+          animation: `${direction === 'left' ? 'marquee-left' : 'marquee-right'} ${speed}s linear infinite`,
+        }}
       >
         <div className={cn('flex shrink-0 items-center', rowGap)}>{items}</div>
         <div className={cn('flex shrink-0 items-center', rowGap)} aria-hidden>

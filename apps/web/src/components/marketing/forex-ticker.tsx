@@ -19,7 +19,7 @@ export function ForexTicker() {
             {data?.message || (isLoading ? 'Loading market data…' : 'Market data unavailable')}
           </p>
         ) : (
-          <Marquee speed={52} direction="left" className="min-w-0 flex-1" pauseOnHover dense>
+          <Marquee speed={28} direction="left" className="min-w-0 flex-1" pauseOnHover dense>
             {quotes.map((tick, i) => {
               const { text, tone } = formatMarketChangePct(tick.changePercent)
               return (
