@@ -72,16 +72,12 @@ export function WealthHome() {
       <div className="space-y-6 lg:space-y-8">
         <PortfolioHero onDeposit={tryDeposit} onWithdraw={tryWithdraw} />
 
-        <RevealOnScroll y={14} amount={0.1}>
-          <ProgressShareControls />
-        </RevealOnScroll>
-
         <RevealOnScroll y={18} amount={0.12}>
           <LivePerformanceChart />
         </RevealOnScroll>
 
         <RevealOnScroll y={16} delay={0.04}>
-          <WealthQuickActions onDeposit={tryDeposit} onWithdraw={tryWithdraw} />
+          <WealthQuickActions />
         </RevealOnScroll>
 
         <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
@@ -109,6 +105,10 @@ export function WealthHome() {
             <PremiumProfileCard />
           </RevealOnScroll>
         </div>
+
+        <RevealOnScroll y={14} amount={0.1}>
+          <ProgressShareControls />
+        </RevealOnScroll>
       </div>
 
       <LiveActivityFeed />
