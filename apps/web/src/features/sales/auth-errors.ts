@@ -56,6 +56,9 @@ export function salesQueryErrorMessage(error: unknown): string {
       return error.message
     }
     if (error.status === 401 || error.code === ERROR_CODES.UNAUTHENTICATED) {
+      if (typeof window !== 'undefined' && window.location.pathname.startsWith('/sales/owner')) {
+        return 'Your admin session expired. Sign in again with Google from Sales Owner sign-in.'
+      }
       return 'Your sales session has expired. Please sign in again.'
     }
     if (error.code === ERROR_CODES.ACCOUNT_SUSPENDED) {

@@ -239,7 +239,11 @@ export const authController = {
       const parsed = googleOAuthService.parseAndValidateState(state, nonceCookie)
       frontendRedirect = parsed.redirect
       try {
-        adminIntent = new URL(frontendRedirect).searchParams.get('next') === 'admin'
+        const next = new URL(frontendRedirect).searchParams.get('next')
+        // Treat Admin console and Sales Owner portal as staff Google intent.
+        adminIntent =
+          next === 'admin' ||
+          Boolean(next && (next.startsWith('/admin') || next.startsWith('/sales/owner')))
       } catch {
         adminIntent = false
       }

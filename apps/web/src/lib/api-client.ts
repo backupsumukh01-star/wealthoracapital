@@ -209,8 +209,13 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
     return apiClient<T>(path, { ...options, skipCsrfRetry: true })
   }
 
-  // Retry once, and only once, behind a silent refresh.
-  if (response.status === 401 && code === ERROR_CODES.TOKEN_EXPIRED && !skipRefresh) {
+  // Retry once behind silent refresh for expired access tokens OR revoked session
+  // markers that still have a usable refresh cookie (common after OAuth race).
+  if (
+    response.status === 401 &&
+    !skipRefresh &&
+    (code === ERROR_CODES.TOKEN_EXPIRED || code === ERROR_CODES.UNAUTHENTICATED)
+  ) {
     const refreshed = await refreshSession(refreshPath)
     if (refreshed) {
       return apiClient<T>(path, { ...options, skipRefresh: true })

@@ -38,8 +38,8 @@ interface SessionContextValue {
 
 const SessionContext = createContext<SessionContextValue | null>(null)
 
-function isStaffUser(role: Role | null, _staffRole: StaffRole | null): boolean {
-  return role === 'ADMIN' || role === 'SUPER_ADMIN'
+function isStaffUser(role: Role | null, staffRole: StaffRole | null): boolean {
+  return role === 'ADMIN' || role === 'SUPER_ADMIN' || Boolean(staffRole)
 }
 
 export function SessionProvider({

@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useRef } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { ROUTES } from '@meridian/shared'
@@ -23,16 +23,19 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   invalid_referral: 'Invalid referral code.',
 }
 
+/** Survives React Strict Mode remounts (useRef does not). */
+let oauthCallbackLock: string | null = null
+
 function OAuthCallbackInner() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
-  const started = useRef(false)
 
   useEffect(() => {
-    if (started.current) return
-    started.current = true
+    const lockKey = searchParams.toString() || (error ? `err:${error}` : 'ok')
+    if (oauthCallbackLock === lockKey) return
+    oauthCallbackLock = lockKey
 
     if (error) {
       const reason = OAUTH_ERROR_MESSAGES[error] ? error : 'oauth_failed'
@@ -54,18 +57,15 @@ function OAuthCallbackInner() {
       return
     }
 
-    // Cookies were set on the API domain during the Google redirect — hydrate session.
+    // Cookies were set on the API during the Google redirect — hydrate session only.
+    // Do NOT call /auth/refresh here: React Strict Mode remounts this effect, a second
+    // refresh with the same token triggers reuse detection, and the whole session family
+    // is revoked — leaving Sales Owner / Admin pages with a cached UI session and 401 APIs.
     void ensureCsrfToken(true)
       .then(() => authService.me())
       .then(async (session) => {
         queryClient.setQueryData(authQueryKeys.session(), session)
-        // Ensure refresh cookie works for the new session family.
-        try {
-          await authService.refresh()
-          await ensureCsrfToken(true)
-        } catch {
-          // Access token may still be valid; continue.
-        }
+        await ensureCsrfToken(true)
         const next = searchParams.get('next')
         const isStaff =
           session.user.role === 'ADMIN' ||
