@@ -52,10 +52,12 @@ export const depositService = {
   ) {
     await requireActiveInvestor(userId)
     const limit = Math.min(query.limit ?? 20, 100)
+    const { oxapayUserVisibleWhere } = await import('./oxapay/oxapay-visibility.js')
     const items = await prisma.deposit.findMany({
       where: {
         userId,
         ...(query.status ? { status: query.status } : {}),
+        ...oxapayUserVisibleWhere(),
       },
       include: { paymentMethod: { select: { id: true, name: true, type: true } } },
       orderBy: { createdAt: 'desc' },
@@ -474,8 +476,16 @@ export const depositService = {
     limit: number
     cursor?: string
   }) {
+    const { oxapayAdminOperationalExcludeWhere } = await import('./oxapay/oxapay-visibility.js')
+    // Pending / under-review operational queues must not list unpaid OxaPay attempts.
+    // Approved / rejected / cancelled / all keep historical OxaPay rows for audit.
+    const excludeOpenOxapay =
+      query.status === 'PENDING' || query.status === 'UNDER_REVIEW'
+        ? oxapayAdminOperationalExcludeWhere()
+        : {}
     const where = realDepositWhere({
       ...(query.status ? { status: query.status } : {}),
+      ...excludeOpenOxapay,
       ...(query.paymentMethodId ? { paymentMethodId: query.paymentMethodId } : {}),
       ...(query.reviewerId ? { reviewedById: query.reviewerId } : {}),
       ...(query.from || query.to
@@ -602,6 +612,26 @@ export const depositService = {
     const proofImageUrl = mapped.hasProof ? adminProofUrl : null
     const { createdByAdminId: _demoFlag, ...publicUser } = deposit.user
     const attribution = await adminUserAttributionService.getForUserId(deposit.userId)
+    let reviewedBy: { id: string; email: string; name: string } | null = null
+    if (deposit.reviewedById) {
+      const reviewer = await prisma.user.findUnique({
+        where: { id: deposit.reviewedById },
+        select: { id: true, email: true, firstName: true, lastName: true },
+      })
+      if (reviewer) {
+        reviewedBy = {
+          id: reviewer.id,
+          email: reviewer.email,
+          name: [reviewer.firstName, reviewer.lastName].filter(Boolean).join(' ').trim() || reviewer.email,
+        }
+      }
+    }
+    const providerReview = deposit.reviews.find((r) => r.decision === 'PROVIDER_CONFIRM')
+    const approvedByLabel =
+      mapped.status === 'APPROVED'
+        ? reviewedBy?.email ??
+          (mapped.gateway === 'oxapay' || providerReview ? 'System / OxaPay' : null)
+        : null
     return {
       ...mapped,
       user: {
@@ -626,6 +656,9 @@ export const depositService = {
       reviews: deposit.reviews,
       queue: deposit.queue,
       paymentMethod: mapPaymentMethodDetailed(deposit.paymentMethod),
+      reviewedBy,
+      approvedByLabel,
+      reviewedAt: deposit.reviewedAt?.toISOString() ?? null,
     }
   },
 

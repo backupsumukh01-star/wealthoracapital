@@ -34,6 +34,7 @@ const HANDLER_TO_GROUP: Record<JobName, QueueGroup> = {
   'email-outbox-process': 'email',
   'cleanup-expired-sessions': 'cleanup',
   'cleanup-expired-tokens': 'cleanup',
+  'cleanup-oxapay-pending-deposits': 'cleanup',
   'daily-return-prepare': 'trading',
   'portfolio-snapshots': 'trading',
   'performance-recalculate': 'trading',
@@ -108,6 +109,7 @@ export async function registerRepeatableJobs(): Promise<void> {
     { name: 'performance-recalculate', every: 24 * 60 * 60 * 1000 },
     { name: 'cleanup-expired-sessions', every: 60 * 60 * 1000 },
     { name: 'cleanup-expired-tokens', every: 60 * 60 * 1000 },
+    { name: 'cleanup-oxapay-pending-deposits', every: 5 * 60 * 1000 },
     { name: 'daily-owner-report', every: 24 * 60 * 60 * 1000 },
     { name: 'stability-monitor', every: 60_000 },
   ]

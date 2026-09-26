@@ -20,13 +20,18 @@ import {
   mapKycStatus,
 } from '@/components/admin/admin-api-adapters'
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
+import { AdminQuickResponseField } from '@/components/admin/admin-quick-response-field'
+import {
+  KYC_NEED_INFO_PRESETS,
+  KYC_REJECT_PRESETS,
+} from '@/components/admin/admin-quick-response-presets'
 import { AdminAccountPill, AdminKycPill } from '@/components/admin/admin-status-pills'
 import { PageHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { useAdminUser } from '@/features/admin/hooks'
 import { peekAdminListLocation } from '@/lib/admin-nav'
 import { cn } from '@/lib/cn'
+import { formatDateTime } from '@/lib/format'
 import { kycService } from '@/services/kyc.service'
 
 type KycDoc = {
@@ -457,15 +462,7 @@ export function AdminKycReviewWorkspace() {
     },
   })
   const [reason, setReason] = useState('')
-  const [reasonPreset, setReasonPreset] = useState('')
-
-  const REJECTION_PRESETS = [
-    'Document blurry',
-    'Photo cropped',
-    'Address proof expired',
-    'Name mismatch',
-    'Other',
-  ] as const
+  const [reasonMode, setReasonMode] = useState<'reject' | 'need_info'>('reject')
 
   function goBackToQueue() {
     const remembered = peekAdminListLocation()
@@ -478,15 +475,6 @@ export function AdminKycReviewWorkspace() {
       return
     }
     router.push(ROUTES.admin.kyc)
-  }
-
-  const applyPreset = (preset: string) => {
-    setReasonPreset(preset)
-    if (preset === 'Other') {
-      setReason((prev) => prev.trim() || '')
-      return
-    }
-    setReason(preset)
   }
 
   const invalidate = () => {
@@ -542,7 +530,15 @@ export function AdminKycReviewWorkspace() {
     )
   }
 
-  const submission = kycDetail
+  const submission = kycDetail as
+    | (NonNullable<typeof kycDetail> & {
+        status?: string
+        reviewedAt?: string | null
+        rejectionReason?: string | null
+        infoRequestMessage?: string | null
+      })
+    | null
+    | undefined
   // Prefer the user id from the route — resolveSubmission accepts user or submission id.
   const ownerId = userId
   const documents = (submission?.documents ?? []) as KycDoc[]
@@ -623,33 +619,58 @@ export function AdminKycReviewWorkspace() {
 
       <AdminPanel className="space-y-4 p-4 sm:p-5">
         <AdminPanelHeader title="Decision" className="border-0 px-0 py-0" />
+        {(submission?.status === 'APPROVED' ||
+          submission?.status === 'REJECTED' ||
+          submission?.status === 'NEED_MORE_INFO') && (
+          <dl className="grid gap-2 text-caption sm:grid-cols-2">
+            <div>
+              <dt className="text-fg-subtle">Status</dt>
+              <dd className="mt-1">
+                <AdminKycPill status={mapKycStatus(submission.status)} />
+              </dd>
+            </div>
+            <div>
+              <dt className="text-fg-subtle">Reviewed at</dt>
+              <dd className="text-fg">
+                {submission.reviewedAt ? formatDateTime(submission.reviewedAt) : '—'}
+              </dd>
+            </div>
+            {(submission.rejectionReason || submission.infoRequestMessage) && (
+              <div className="sm:col-span-2">
+                <dt className="text-fg-subtle">Reason</dt>
+                <dd className="text-fg">
+                  {submission.rejectionReason || submission.infoRequestMessage}
+                </dd>
+              </div>
+            )}
+          </dl>
+        )}
         <div className="flex flex-wrap gap-2">
-          {REJECTION_PRESETS.map((preset) => (
-            <button
-              key={preset}
-              type="button"
-              onClick={() => applyPreset(preset)}
-              className={cn(
-                'rounded-lg border px-2.5 py-1 text-caption transition',
-                reasonPreset === preset
-                  ? 'border-accent/40 bg-accent/10 text-fg'
-                  : 'border-white/[0.08] text-fg-muted hover:border-white/20 hover:text-fg',
-              )}
-            >
-              {preset}
-            </button>
-          ))}
+          <Button
+            type="button"
+            size="sm"
+            variant={reasonMode === 'reject' ? 'secondary' : 'ghost'}
+            onClick={() => setReasonMode('reject')}
+          >
+            Reject presets
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={reasonMode === 'need_info' ? 'secondary' : 'ghost'}
+            onClick={() => setReasonMode('need_info')}
+          >
+            Need-info presets
+          </Button>
         </div>
-        <Textarea
+        <AdminQuickResponseField
+          label="Reason / message"
+          hint="Required for reject and need-info. Investor sees the final edited text."
           value={reason}
-          onChange={(e) => {
-            setReason(e.target.value)
-            if (reasonPreset && reasonPreset !== 'Other' && e.target.value !== reasonPreset) {
-              setReasonPreset('Other')
-            }
-          }}
-          placeholder="Rejection reason is required to reject…"
-          rows={4}
+          onChange={setReason}
+          presets={reasonMode === 'reject' ? KYC_REJECT_PRESETS : KYC_NEED_INFO_PRESETS}
+          placeholder="Rejection / need-info reason…"
+          required
         />
         <div className="flex flex-wrap gap-2">
           <Button disabled={busy} onClick={() => approve.mutate()}>

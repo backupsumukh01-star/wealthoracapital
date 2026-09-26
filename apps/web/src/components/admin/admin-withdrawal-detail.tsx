@@ -15,6 +15,12 @@ import {
 } from '@/components/admin/admin-api-adapters'
 import { AdminAttributionPanel } from '@/components/admin/admin-attribution-panel'
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
+import { AdminQuickResponseField } from '@/components/admin/admin-quick-response-field'
+import {
+  WITHDRAWAL_APPROVE_PRESETS,
+  WITHDRAWAL_NEED_INFO_PRESETS,
+  WITHDRAWAL_REJECT_PRESETS,
+} from '@/components/admin/admin-quick-response-presets'
 import {
   AdminAccountPill,
   AdminKycPill,
@@ -25,14 +31,30 @@ import { Money } from '@/components/common/money'
 import { PageHeader, SectionHeader } from '@/components/common/page-header'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { FormField } from '@/components/ui/form-field'
-import { Textarea } from '@/components/ui/textarea'
 import {
   useAdminUser,
   useAdminWithdrawal,
   useReviewWithdrawal,
 } from '@/features/admin/hooks'
 import { formatDateTime } from '@/lib/format'
+
+const WITHDRAWAL_REASON_PRESETS = [
+  ...WITHDRAWAL_APPROVE_PRESETS.map((p) => ({
+    ...p,
+    id: `a-${p.id}`,
+    label: `Approve · ${p.label}`,
+  })),
+  ...WITHDRAWAL_REJECT_PRESETS.map((p) => ({
+    ...p,
+    id: `r-${p.id}`,
+    label: `Reject · ${p.label}`,
+  })),
+  ...WITHDRAWAL_NEED_INFO_PRESETS.map((p) => ({
+    ...p,
+    id: `n-${p.id}`,
+    label: `Need info · ${p.label}`,
+  })),
+] as const
 
 type WithdrawalDecision = 'APPROVE' | 'REJECT' | 'REQUEST_INFORMATION' | 'PAID'
 type DetailRecord = Record<string, unknown>
@@ -121,8 +143,6 @@ export function AdminWithdrawalDetailWorkspace() {
   const name = investor
     ? `${investor.firstName} ${investor.lastName}`
     : investorName(withdrawal.user, withdrawal.user?.id ?? withdrawalId)
-  const userEmail = investor?.email ?? withdrawal.user?.email ?? '—'
-  const userPhone = investor?.phone ?? withdrawal.user?.phone ?? '—'
   const destinationSnapshot = asRecord(withdrawal.destinationSnapshot)
   const payoutMethod = asRecord(withdrawal.payoutMethod)
   const destinationEntries = detailEntries(destinationSnapshot)
@@ -348,6 +368,11 @@ export function AdminWithdrawalDetailWorkspace() {
               <dd className="text-fg">
                 {withdrawal.reviewedAt ? formatDateTime(withdrawal.reviewedAt) : '—'}
               </dd>
+              <dd className="text-[11px] text-fg-subtle">
+                {(withdrawal as { decidedByLabel?: string | null }).decidedByLabel ||
+                  (withdrawal as { reviewedBy?: { email?: string } }).reviewedBy?.email ||
+                  '—'}
+              </dd>
             </div>
             <div>
               <dt className="text-fg-subtle">Paid</dt>
@@ -364,15 +389,14 @@ export function AdminWithdrawalDetailWorkspace() {
           title="Decision"
           description="Rejection releases the locked amount back to available balance."
         />
-        <FormField label="Reason / payment note" hint="Required when rejecting or requesting info.">
-          <Textarea
-            rows={3}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            className="border-white/10 bg-white/[0.04]"
-            placeholder="Optional on approve / mark paid..."
-          />
-        </FormField>
+        <AdminQuickResponseField
+          label="Reason / payment note"
+          hint="Required when rejecting or requesting info. Preset is optional — edit before submit."
+          value={reason}
+          onChange={setReason}
+          presets={WITHDRAWAL_REASON_PRESETS}
+          placeholder="Optional on approve / mark paid..."
+        />
         {actionable ? (
           <div className="flex flex-wrap gap-2">
             <Button

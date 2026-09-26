@@ -43,6 +43,12 @@ export function registerDefaultJobs(): void {
     })
     logger.info({ deleted: result.count }, 'cleanup-expired-tokens completed')
   })
+  jobQueue.register('cleanup-oxapay-pending-deposits', async () => {
+    const { oxapayPendingCleanupService } = await import(
+      '../services/finance/oxapay/oxapay-pending-cleanup.service.js'
+    )
+    await oxapayPendingCleanupService.run()
+  })
   jobQueue.register('send-email', async (payload) => {
     logger.debug({ payload }, 'send-email job executed')
   })
@@ -130,6 +136,7 @@ function registerInProcessScheduler(): void {
   schedule('broadcast-scheduled-send', minuteMs)
   schedule('cleanup-expired-sessions', hourMs)
   schedule('cleanup-expired-tokens', hourMs)
+  schedule('cleanup-oxapay-pending-deposits', 5 * minuteMs)
   schedule('daily-owner-report', dayMs)
   schedule('stability-monitor', minuteMs)
 }

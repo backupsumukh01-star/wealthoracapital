@@ -108,6 +108,14 @@ export function mapDeposit(deposit: DepositWithMethod) {
     paymentUrl,
     oxapayTrackId,
     expiresAt: deposit.expiresAt?.toISOString() ?? null,
+    reviewedById: deposit.reviewedById ?? null,
+    confirmationSource: (() => {
+      if (deposit.status !== 'APPROVED') return null
+      if (gateway === 'oxapay' && !deposit.reviewedById) return 'oxapay' as const
+      if (deposit.reviewedById) return 'admin' as const
+      if (gateway === 'oxapay') return 'oxapay' as const
+      return deposit.reviewedById ? ('admin' as const) : ('system' as const)
+    })(),
   }
 }
 
@@ -251,6 +259,7 @@ export function mapWithdrawal(withdrawal: Withdrawal) {
     otpVerifiedAt: withdrawal.otpVerifiedAt?.toISOString() ?? null,
     createdAt: withdrawal.createdAt.toISOString(),
     reviewedAt: withdrawal.reviewedAt?.toISOString() ?? null,
+    reviewedById: withdrawal.reviewedById ?? null,
     paidAt: withdrawal.paidAt?.toISOString() ?? null,
   }
 }

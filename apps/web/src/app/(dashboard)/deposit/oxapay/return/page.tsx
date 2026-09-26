@@ -43,6 +43,17 @@ function OxapayReturnInner() {
     deposit?.status === 'CANCELLED' ||
     deposit?.status === 'EXPIRED'
 
+  const expiresAtMs = deposit?.expiresAt ? Date.parse(deposit.expiresAt) : NaN
+  const countdownLabel = (() => {
+    if (!Number.isFinite(expiresAtMs)) return null
+    const remaining = expiresAtMs - Date.now()
+    if (remaining <= 0) return 'Payment window expired'
+    const totalSec = Math.floor(remaining / 1000)
+    const m = Math.floor(totalSec / 60)
+    const s = totalSec % 60
+    return `Payment window: ${m}:${String(s).padStart(2, '0')} remaining`
+  })()
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -50,6 +61,9 @@ function OxapayReturnInner() {
         description="This page never credits your balance. Funds update only after OxaPay server confirmation."
       />
       <Card variant="glass" className="mx-auto max-w-lg space-y-4 p-6">
+        {countdownLabel && !confirmed && !failed ? (
+          <p className="text-caption tabular-nums text-fg-muted">{countdownLabel}</p>
+        ) : null}
         {isLoading && !deposit ? (
           <p className="text-body-sm text-fg-subtle">Loading deposit status…</p>
         ) : !deposit ? (

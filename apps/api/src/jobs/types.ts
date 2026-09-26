@@ -2,6 +2,7 @@ export type JobName =
   | 'send-email'
   | 'cleanup-expired-sessions'
   | 'cleanup-expired-tokens'
+  | 'cleanup-oxapay-pending-deposits'
   | 'daily-return-prepare'
   | 'portfolio-snapshots'
   | 'performance-recalculate'
@@ -17,6 +18,7 @@ export interface JobPayloadMap {
   'send-email': { to: string; template: string }
   'cleanup-expired-sessions': Record<string, never>
   'cleanup-expired-tokens': Record<string, never>
+  'cleanup-oxapay-pending-deposits': Record<string, never>
   'daily-return-prepare': Record<string, never>
   'portfolio-snapshots': Record<string, never>
   'performance-recalculate': Record<string, never>

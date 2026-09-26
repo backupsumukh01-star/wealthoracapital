@@ -21,7 +21,8 @@ import { DualMoney } from '@/components/common/dual-money'
 import { Money } from '@/components/common/money'
 import { PageHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
-import { FormField } from '@/components/ui/form-field'
+import { AdminQuickResponseField } from '@/components/admin/admin-quick-response-field'
+import { DEPOSIT_REVIEW_PRESETS } from '@/components/admin/admin-quick-response-presets'
 import { Input } from '@/components/ui/input'
 import {
   Sheet,
@@ -33,7 +34,6 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Textarea } from '@/components/ui/textarea'
 import { useAdminDeposit, useAdminDeposits, useReviewDeposit } from '@/features/admin/hooks'
 import { formatDateTime } from '@/lib/format'
 
@@ -119,12 +119,17 @@ function oxapayTrackId(deposit: AdminDepositRow): string {
 
 function confirmationLabel(deposit: AdminDepositRow): string {
   if (deposit.status !== 'APPROVED') return '—'
+  const approvedBy =
+    typeof (deposit as { approvedByLabel?: string }).approvedByLabel === 'string'
+      ? (deposit as { approvedByLabel?: string }).approvedByLabel
+      : null
+  if (approvedBy) return `Approved by: ${approvedBy}`
   const details = asRecord(deposit.submissionDetails)
   if (details?.oxapayConfirmedAt || details?.oxapayVerificationResult === 'ok') {
-    return 'Provider auto-confirmed'
+    return 'Approved by: System / OxaPay'
   }
-  if (gatewayLabel(deposit) === 'OxaPay') return 'Provider confirmed'
-  return 'Admin approved'
+  if (gatewayLabel(deposit) === 'OxaPay') return 'Approved by: System / OxaPay'
+  return 'Approved by: Admin'
 }
 
 export function AdminDepositsWorkspace() {
@@ -449,15 +454,14 @@ export function AdminDepositsWorkspace() {
                   </div>
                 </dl>
                 {selectedActionable ? (
-                  <FormField label="Reason / note" hint="Required for reject and need info.">
-                    <Textarea
-                      rows={3}
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      className="border-white/10 bg-white/[0.04]"
-                      placeholder="Optional on approve…"
-                    />
-                  </FormField>
+                  <AdminQuickResponseField
+                    label="Reason / note"
+                    hint="Required for reject and need info. Preset is optional — edit before submit."
+                    value={reason}
+                    onChange={setReason}
+                    presets={DEPOSIT_REVIEW_PRESETS}
+                    placeholder="Optional on approve…"
+                  />
                 ) : null}
               </SheetBody>
               <SheetFooter>

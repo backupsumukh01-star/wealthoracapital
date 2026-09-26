@@ -29,6 +29,8 @@ export const walletService = {
 
   async summary(userId: string) {
     const wallet = await this.get(userId)
+    const { oxapayUserVisibleWhere } = await import('./oxapay/oxapay-visibility.js')
+    const visiblePending = oxapayUserVisibleWhere()
     const [
       pendingDeposits,
       pendingWithdrawals,
@@ -37,13 +39,21 @@ export const walletService = {
       unreadNotifications,
     ] = await Promise.all([
       prisma.deposit.count({
-        where: { userId, status: { in: ['PENDING', 'UNDER_REVIEW'] } },
+        where: {
+          userId,
+          status: { in: ['PENDING', 'UNDER_REVIEW'] },
+          ...visiblePending,
+        },
       }),
       prisma.withdrawal.count({
         where: { userId, status: { in: ['PENDING', 'UNDER_REVIEW', 'APPROVED', 'PROCESSING'] } },
       }),
       prisma.deposit.aggregate({
-        where: { userId, status: { in: ['PENDING', 'UNDER_REVIEW'] } },
+        where: {
+          userId,
+          status: { in: ['PENDING', 'UNDER_REVIEW'] },
+          ...visiblePending,
+        },
         _sum: { amount: true },
       }),
       prisma.withdrawal.aggregate({
@@ -247,6 +257,22 @@ export const walletService = {
       }
       const wallets = await ledgerService.ensureWalletsForUser(userId, tx)
       return mapWalletAggregate(wallets)
+    }).then(async (result) => {
+      const { auditService } = await import('../audit.service.js')
+      await auditService.record({
+        actorId,
+        targetUserId: userId,
+        action:
+          input.direction === 'CREDIT' ? 'wallet.adjust_credit' : 'wallet.adjust_debit',
+        module: 'finance',
+        reason: input.reason,
+        newValue: {
+          direction: input.direction,
+          amount: moneyDisplay(amount),
+          idempotencyKey: input.idempotencyKey,
+        },
+      })
+      return result
     })
   },
 }

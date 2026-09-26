@@ -143,14 +143,18 @@ export const reconciliationService = {
       })
     }
 
-    // 6) Processed deposit.confirmed webhooks still PENDING (auto-confirm off)
+    // 6) Provider-confirmed webhooks still awaiting admin (auto-confirm off)
     const confirmedPending = await prisma.paymentWebhookEvent.findMany({
       where: {
-        eventType: 'deposit.confirmed',
         status: 'PROCESSED',
         depositId: { not: null },
+        OR: [
+          { eventType: 'deposit.confirmed' },
+          { eventType: 'oxapay.paid' },
+          { eventType: { startsWith: 'oxapay.paid' } },
+        ],
       },
-      select: { depositId: true, eventId: true },
+      select: { depositId: true, eventId: true, eventType: true },
       take: 500,
     })
     for (const ev of confirmedPending) {
@@ -163,10 +167,10 @@ export const reconciliationService = {
         issues.push({
           code: 'PROVIDER_CONFIRMED_AWAITING_ADMIN',
           severity: 'info',
-          message: `Deposit ${dep.reference} provider-confirmed, awaiting admin approval`,
+          message: `Deposit ${dep.reference} provider-confirmed (${ev.eventType}), awaiting admin approval`,
           entityType: 'DEPOSIT',
           entityId: dep.id,
-          meta: { eventId: ev.eventId },
+          meta: { eventId: ev.eventId, eventType: ev.eventType },
         })
       }
     }

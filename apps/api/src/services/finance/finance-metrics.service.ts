@@ -14,6 +14,7 @@ function dayBounds() {
 export const financeMetricsService = {
   async dashboard() {
     const { start, end } = dayBounds()
+    const { oxapayAdminOperationalExcludeWhere } = await import('./oxapay/oxapay-visibility.js')
 
     const [
       depositsToday,
@@ -40,7 +41,10 @@ export const financeMetricsService = {
         _count: { _all: true },
       }),
       prisma.deposit.count({
-        where: realDepositWhere({ status: { in: ['PENDING', 'UNDER_REVIEW'] } }),
+        where: realDepositWhere({
+          status: { in: ['PENDING', 'UNDER_REVIEW'] },
+          ...oxapayAdminOperationalExcludeWhere(),
+        }),
       }),
       prisma.withdrawal.count({
         where: realWithdrawalWhere({

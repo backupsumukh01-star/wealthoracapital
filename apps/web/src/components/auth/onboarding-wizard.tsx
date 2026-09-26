@@ -318,9 +318,18 @@ export function OnboardingWizard() {
         </div>
 
         {needsResubmit ? (
-          <Alert tone="warning" title={kycStatus === 'REJECTED' ? 'KYC rejected' : 'More information needed'}>
-            {infoRequestMessage?.trim() ||
-              'Please update your documents and submit again for review.'}
+          <Alert
+            tone="warning"
+            title={kycStatus === 'REJECTED' ? 'KYC Rejected' : 'Additional Information Required'}
+          >
+            {infoRequestMessage?.trim() ? (
+              <>
+                <span className="font-medium text-fg">Reason:</span>{' '}
+                {infoRequestMessage.trim()}
+              </>
+            ) : (
+              'Please update your documents and submit again for review.'
+            )}
           </Alert>
         ) : null}
 

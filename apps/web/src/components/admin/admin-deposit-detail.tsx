@@ -16,13 +16,13 @@ import {
 } from '@/components/admin/admin-api-adapters'
 import { AdminAttributionPanel } from '@/components/admin/admin-attribution-panel'
 import { AdminPanel, AdminPanelHeader } from '@/components/admin/admin-panel'
+import { AdminQuickResponseField } from '@/components/admin/admin-quick-response-field'
+import { DEPOSIT_REVIEW_PRESETS } from '@/components/admin/admin-quick-response-presets'
 import { AdminAccountPill, AdminDepositPill, AdminKycPill } from '@/components/admin/admin-status-pills'
 import { DepositProofViewer } from '@/components/common/deposit-proof-viewer'
 import { DualMoney } from '@/components/common/dual-money'
 import { PageHeader, SectionHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
-import { FormField } from '@/components/ui/form-field'
-import { Textarea } from '@/components/ui/textarea'
 import {
   useAdminDeposit,
   useAdminUser,
@@ -392,15 +392,44 @@ export function AdminDepositDetailWorkspace() {
               title="Decision"
               description="Approval credits the wallet in production via the admin API."
             />
-            <FormField label="Reason / note" hint="Required when rejecting or requesting info.">
-              <Textarea
-                rows={3}
+            <dl className="grid gap-2 text-caption sm:grid-cols-2">
+              <div>
+                <dt className="text-fg-subtle">Status</dt>
+                <dd className="mt-1">
+                  <AdminDepositPill status={mapDepositStatus(status)} />
+                </dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">Approved by</dt>
+                <dd className="text-fg">
+                  {typeof (deposit as { approvedByLabel?: string }).approvedByLabel === 'string'
+                    ? (deposit as { approvedByLabel?: string }).approvedByLabel
+                    : asRecord(deposit.submissionDetails)?.gateway === 'oxapay' && status === 'APPROVED'
+                      ? 'System / OxaPay'
+                      : (deposit as { reviewedBy?: { email?: string } }).reviewedBy?.email ?? '—'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-fg-subtle">Approved at</dt>
+                <dd className="text-fg">
+                  {deposit.reviewedAt ? formatDateTime(deposit.reviewedAt) : '—'}
+                </dd>
+              </div>
+            </dl>
+            {actionable ? (
+              <AdminQuickResponseField
+                label="Reason / note"
+                hint="Required when rejecting or requesting info. Preset is optional."
                 value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="border-white/10 bg-white/[0.04]"
+                onChange={setReason}
+                presets={DEPOSIT_REVIEW_PRESETS}
                 placeholder="Optional on approve…"
               />
-            </FormField>
+            ) : deposit.rejectionReason ? (
+              <p className="text-caption text-fg-muted">
+                Reason: <span className="text-fg">{deposit.rejectionReason}</span>
+              </p>
+            ) : null}
             {actionable ? (
               <div className="flex flex-wrap gap-2">
                 {asRecord(deposit.submissionDetails)?.gateway === 'oxapay' &&

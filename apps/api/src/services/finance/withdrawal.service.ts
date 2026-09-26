@@ -849,6 +849,20 @@ export const withdrawalService = {
       }),
       adminUserAttributionService.getForUserId(row.userId),
     ])
+    let reviewedBy: { id: string; email: string; name: string } | null = null
+    if (row.reviewedById) {
+      const reviewer = await prisma.user.findUnique({
+        where: { id: row.reviewedById },
+        select: { id: true, email: true, firstName: true, lastName: true },
+      })
+      if (reviewer) {
+        reviewedBy = {
+          id: reviewer.id,
+          email: reviewer.email,
+          name: [reviewer.firstName, reviewer.lastName].filter(Boolean).join(' ').trim() || reviewer.email,
+        }
+      }
+    }
     return {
       ...mapWithdrawal(row),
       user: publicUser,
@@ -861,6 +875,8 @@ export const withdrawalService = {
       queue: row.queue,
       availableBalance: moneyDisplay(wallet?.availableBalance ?? 0),
       walletBalance: moneyDisplay(wallet?.balance ?? 0),
+      reviewedBy,
+      decidedByLabel: reviewedBy?.email ?? null,
     }
   },
 
@@ -1166,6 +1182,8 @@ export const withdrawalService = {
         where: { id: row.id },
         data: {
           status: 'UNDER_REVIEW',
+          reviewedById: actorId,
+          reviewedAt: new Date(),
           internalNotes: body.internalNotes ?? row.internalNotes,
         },
       })
@@ -1177,6 +1195,17 @@ export const withdrawalService = {
           reason: body.reason,
           internalNotes: body.internalNotes ?? null,
         },
+      })
+      await auditService.record({
+        actorId,
+        targetUserId: row.userId,
+        action: 'withdrawal.request_information',
+        module: 'finance',
+        reason: body.reason,
+        oldValue: { status: row.status },
+        newValue: { status: 'UNDER_REVIEW', withdrawalId: row.id },
+        ip: context.ip,
+        userAgent: context.userAgent,
       })
       await notificationService.notify({
         userId: row.userId,
