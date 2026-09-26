@@ -23,6 +23,7 @@ import { auditService } from '../audit.service.js'
 import { notificationService } from '../notification.service.js'
 import { storage } from '../storage/index.js'
 import { mapDocument, mapSubmission, toKycProfile } from './kyc.mapper.js'
+import { resolveKycApprover } from './kyc-approver.js'
 import { assessKycRisk } from './risk-engine.js'
 import { virusScanner } from './virus-scan.js'
 import { realKycWhere } from '../demo-investor.js'
@@ -35,6 +36,8 @@ const ALLOWED_MIME = new Set([
   'application/pdf',
 ])
 const MAX_BYTES = 8 * 1024 * 1024
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 const EDITABLE: KycStatus[] = ['PENDING', 'NEED_MORE_INFO', 'REJECTED']
 const LOCKED: KycStatus[] = ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED']
@@ -449,6 +452,9 @@ export const kycService = {
               { user: { email: { contains: input.q, mode: 'insensitive' } } },
               { user: { firstName: { contains: input.q, mode: 'insensitive' } } },
               { user: { lastName: { contains: input.q, mode: 'insensitive' } } },
+              ...(UUID_RE.test(input.q)
+                ? [{ userId: input.q }, { id: input.q }]
+                : []),
               ...(input.q.length === 2 ? [{ country: input.q.toUpperCase() }] : []),
             ],
           }
@@ -462,10 +468,39 @@ export const kycService = {
       take: input.limit,
       cursor: input.cursor,
       sortOrder: input.sortOrder,
+      orderByReviewedAt: input.status === 'APPROVED',
     })
+
+    // Fallback reviewers for approved rows where KycReview side-effect may be missing
+    // but assignedReviewerId was persisted on the decision.
+    const missingReviewerIds = [
+      ...new Set(
+        items
+          .filter((row) => {
+            const approveReview = row.reviews?.[0]
+            return !approveReview?.reviewer && row.assignedReviewerId
+          })
+          .map((row) => row.assignedReviewerId!)
+      ),
+    ]
+    const fallbackReviewers =
+      missingReviewerIds.length > 0
+        ? await prisma.user.findMany({
+            where: { id: { in: missingReviewerIds } },
+            select: { id: true, email: true, firstName: true, lastName: true },
+          })
+        : []
+    const fallbackById = new Map(fallbackReviewers.map((u) => [u.id, u]))
 
     const mapped = items.map((row) => {
       const profile = toKycProfile(row)
+      const approveReview = row.reviews?.[0]
+      const resolved = resolveKycApprover({
+        approveReviewer: approveReview?.reviewer ?? null,
+        assignedReviewer: row.assignedReviewerId
+          ? fallbackById.get(row.assignedReviewerId) ?? null
+          : null,
+      })
       return {
         ...row.user,
         role: 'USER' as const,
@@ -474,8 +509,15 @@ export const kycService = {
         avatarUrl: null,
         emailVerified: true,
         createdAt: row.user.createdAt.toISOString(),
-        kyc: profile,
+        kyc: {
+          ...profile,
+          referenceId: row.referenceId,
+          assignedReviewerId: row.assignedReviewerId,
+        },
         submission: mapSubmission(row),
+        reviewedBy: resolved.reviewedBy,
+        approvedByLabel: resolved.approvedByLabel,
+        reviewedAt: row.reviewedAt?.toISOString() ?? null,
       }
     })
 

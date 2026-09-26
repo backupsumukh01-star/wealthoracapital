@@ -87,6 +87,9 @@ export const kycService = {
     country?: string
     riskLevel?: string
     cursor?: string
+    page?: number
+    limit?: number
+    sortOrder?: 'asc' | 'desc'
   }) => {
     const params = new URLSearchParams()
     if (query?.status) params.set('status', query.status)
@@ -94,10 +97,28 @@ export const kycService = {
     if (query?.country) params.set('country', query.country)
     if (query?.riskLevel) params.set('riskLevel', query.riskLevel)
     if (query?.cursor) params.set('cursor', query.cursor)
+    if (query?.page != null) params.set('page', String(query.page))
+    if (query?.limit != null) params.set('limit', String(query.limit))
+    if (query?.sortOrder) params.set('sortOrder', query.sortOrder)
     const qs = params.toString()
-    return apiClient<{ items: Array<User & { kyc: KycProfile }>; nextCursor: string | null }>(
-      `${API_ROUTES.admin.kyc}${qs ? `?${qs}` : ''}`,
-    )
+    return apiClient<{
+      items: Array<
+        User & {
+          kyc: KycProfile & { referenceId?: string | null; assignedReviewerId?: string | null }
+          reviewedBy?: { id: string; email: string; name: string } | null
+          approvedByLabel?: string | null
+          reviewedAt?: string | null
+        }
+      >
+      nextCursor: string | null
+      pagination?: {
+        page: number
+        limit: number
+        total: number
+        totalPages: number
+        hasNext: boolean
+      }
+    }>(`${API_ROUTES.admin.kyc}${qs ? `?${qs}` : ''}`)
   },
 
   adminMetrics: () => apiClient<Record<string, unknown>>(`${API_ROUTES.admin.kyc}/metrics`),

@@ -131,7 +131,16 @@ export const kycRepository = {
     take: number
     cursor?: string
     sortOrder: 'asc' | 'desc'
+    /** When listing approved/cleared KYC, prefer reviewedAt for newest-first. */
+    orderByReviewedAt?: boolean
   }) {
+    const orderBy: Prisma.KycSubmissionOrderByWithRelationInput[] = input.orderByReviewedAt
+      ? [
+          { reviewedAt: { sort: input.sortOrder, nulls: 'last' } },
+          { createdAt: input.sortOrder },
+        ]
+      : [{ createdAt: input.sortOrder }]
+
     const [items, total] = await prisma.$transaction([
       prisma.kycSubmission.findMany({
         where: input.where,
@@ -149,8 +158,23 @@ export const kycRepository = {
             },
           },
           documents: { where: { deletedAt: null } },
+          reviews: {
+            where: { decision: 'APPROVE' },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            include: {
+              reviewer: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
         },
-        orderBy: { createdAt: input.sortOrder },
+        orderBy,
         ...(input.cursor
           ? { cursor: { id: input.cursor }, skip: 1, take: input.take }
           : { skip: input.skip, take: input.take }),
