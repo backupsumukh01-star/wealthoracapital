@@ -56,8 +56,10 @@ async function diskUsagePct(root: string): Promise<number | null> {
 }
 
 /**
- * Periodic production watchdog — CPU / disk / DB / email queue.
- * Memory is recorded for System Health only; it does not send ops mail.
+ * Periodic production watchdog — disk / DB / email queue.
+ * CPU load and memory are recorded for System Health only. On Render,
+ * os.loadavg() and os.cpus() describe the shared host, not this instance,
+ * so they must not send ops mail or Telegram.
  * Never throws to the scheduler.
  */
 export const stabilityMonitorService = {
@@ -100,15 +102,6 @@ export const stabilityMonitorService = {
       const load1 = os.loadavg()[0] ?? 0
       const cores = Math.max(1, os.cpus().length)
       const cpuPct = (load1 / cores) * 100
-      if (cpuPct >= 90) {
-        await alertOnce('cpu-high', {
-          title: 'CPU exceeds threshold',
-          action: `Load1 ${load1.toFixed(2)} across ${cores} cores (~${cpuPct.toFixed(0)}%)`,
-          details: {
-            'Suggested cause': 'Blocking work, heavy query, or tight cron overlap',
-          },
-        })
-      }
 
       const uploadRoot = path.resolve(env.UPLOAD_ROOT)
       const diskRoot = uploadRoot.startsWith('/data') ? '/data' : uploadRoot
