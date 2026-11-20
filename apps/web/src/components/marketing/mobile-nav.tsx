@@ -69,8 +69,6 @@ export function MobileNav() {
     }
   }, [open])
 
-  const dashboardHref = isAuthenticated ? ROUTES.dashboard.root : ROUTES.auth.login
-
   const drawer =
     mounted &&
     createPortal(
@@ -171,25 +169,28 @@ export function MobileNav() {
               </div>
 
               <div className="shrink-0 space-y-2 border-t border-glass-line px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-                <Button asChild fullWidth size="md">
-                  <Link href={ROUTES.auth.register} onClick={() => setOpen(false)}>
-                    Get started
-                    <ArrowRight aria-hidden />
-                  </Link>
-                </Button>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button asChild variant="secondary" fullWidth size="md">
-                    <Link href={ROUTES.auth.login} onClick={() => setOpen(false)}>
-                      Login
-                    </Link>
-                  </Button>
-                  <Button asChild variant="glass" fullWidth size="md">
-                    <Link href={dashboardHref} onClick={() => setOpen(false)}>
+                {isAuthenticated ? (
+                  <Button asChild fullWidth size="md">
+                    <Link href={ROUTES.dashboard.root} onClick={() => setOpen(false)}>
                       <LayoutDashboard aria-hidden />
                       Dashboard
                     </Link>
                   </Button>
-                </div>
+                ) : (
+                  <>
+                    <Button asChild fullWidth size="md">
+                      <Link href={ROUTES.auth.register} onClick={() => setOpen(false)}>
+                        Get started
+                        <ArrowRight aria-hidden />
+                      </Link>
+                    </Button>
+                    <Button asChild variant="secondary" fullWidth size="md">
+                      <Link href={ROUTES.auth.login} onClick={() => setOpen(false)}>
+                        Login
+                      </Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </motion.aside>
           </div>

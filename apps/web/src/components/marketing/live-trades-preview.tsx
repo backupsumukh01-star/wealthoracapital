@@ -342,16 +342,10 @@ export function LiveTradesPreview() {
           ))}
         </div>
 
-        <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:mt-8 sm:flex-row sm:items-center">
+        <div className="mt-6 flex justify-center sm:mt-8">
           <Button asChild size="lg" className="w-full sm:w-auto">
             <Link href={ROUTES.marketing.historicalPerformance}>
-              Explore Historical Performance
-              <ArrowRight aria-hidden />
-            </Link>
-          </Button>
-          <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto">
-            <Link href={ROUTES.marketing.historicalPerformance}>
-              Browse Performance History
+              View Historical Performance
               <ArrowRight aria-hidden />
             </Link>
           </Button>

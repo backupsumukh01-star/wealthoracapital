@@ -14,7 +14,6 @@ import { ArrowRight } from 'lucide-react'
 
 import { DeferredMount } from '@/components/marketing/deferred-mount'
 import { Hero } from '@/components/marketing/hero'
-import { TrustStrip } from '@/components/marketing/trust-strip'
 import { Button } from '@/components/ui/button'
 import { usePublishedFrontend } from '@/features/cms/frontend-hooks'
 
@@ -37,16 +36,10 @@ function HistoryCtaBand() {
             Charts, trade blotter and downloadable reports live on the Historical Performance page.
           </p>
         )}
-        <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+        <div className="mt-6 flex justify-center">
           <Button asChild size="lg" className="w-full sm:w-auto">
             <Link href={ROUTES.marketing.historicalPerformance}>
-              Explore Historical Performance
-              <ArrowRight aria-hidden />
-            </Link>
-          </Button>
-          <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto">
-            <Link href={ROUTES.marketing.historicalPerformance}>
-              Browse Performance History
+              View Historical Performance
               <ArrowRight aria-hidden />
             </Link>
           </Button>
@@ -56,17 +49,6 @@ function HistoryCtaBand() {
   )
 }
 
-const StatsBand = dynamic(
-  () => import('@/components/marketing/stats-band').then((m) => m.StatsBand),
-  { loading: () => <div className="section-y min-h-[12rem]" aria-hidden /> },
-)
-const PerformanceHighlights = dynamic(
-  () =>
-    import('@/components/marketing/performance-highlights').then(
-      (m) => m.PerformanceHighlights,
-    ),
-  { loading: () => <div className="section-y min-h-[16rem]" aria-hidden /> },
-)
 const PerformanceShowcase = dynamic(
   () =>
     import('@/components/marketing/performance-showcase').then((m) => m.PerformanceShowcase),
@@ -112,10 +94,6 @@ const TodaysMarkets = dynamic(
 const LiveTradesPreview = dynamic(
   () => import('@/components/marketing/live-trades-preview').then((m) => m.LiveTradesPreview),
   { loading: () => <div className="section-y min-h-[24rem]" aria-hidden /> },
-)
-const PerformanceProof = dynamic(
-  () => import('@/components/marketing/performance-proof').then((m) => m.PerformanceProof),
-  { loading: () => <div className="section-y min-h-[22rem]" aria-hidden /> },
 )
 const Testimonials = dynamic(
   () => import('@/components/marketing/testimonials').then((m) => m.Testimonials),
@@ -163,12 +141,7 @@ export function LandingSections() {
       <Gate sectionKey="hero" visible={isSectionVisible}>
         <Hero />
       </Gate>
-      <TrustStrip />
-      <Gate sectionKey="statistics" visible={isSectionVisible}>
-        <StatsBand />
-      </Gate>
       <Gate sectionKey="performance" visible={isSectionVisible}>
-        <PerformanceHighlights />
         <PerformanceShowcase />
       </Gate>
       <Gate sectionKey="why_choose_us" visible={isSectionVisible}>
@@ -208,10 +181,6 @@ export function LandingSections() {
         >
           <LiveTradesPreview />
         </DeferredMount>
-      </Gate>
-
-      <Gate sectionKey="performance" visible={isSectionVisible}>
-        <PerformanceProof />
       </Gate>
 
       <Gate sectionKey="testimonials" visible={isSectionVisible}>

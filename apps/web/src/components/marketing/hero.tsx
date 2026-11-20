@@ -6,12 +6,10 @@ import { useEffect, useState } from 'react'
 import { ROUTES } from '@meridian/shared'
 import { ArrowRight, BadgeCheck, Lock, Shield } from 'lucide-react'
 
-import { LogoMark } from '@/components/common/logo'
 import { CountUp } from '@/components/motion/count-up'
 import { FadeIn } from '@/components/motion/fade-in'
 import { Magnetic } from '@/components/motion/magnetic'
 import { Button } from '@/components/ui/button'
-import { SITE } from '@/lib/constants'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { useLandingLiveStats } from '@/features/landing'
 import { usePublishedLanding } from '@/features/cms/site'
@@ -46,7 +44,6 @@ const TRUST = [
 ] as const
 
 const DEMO = {
-  companyName: 'Wealthora',
   heroTitle: 'Forex investing with every trade on record',
   heroSubtitle:
     'AI-assisted strategies, human-verified results and transparent historical performance.',
@@ -54,7 +51,10 @@ const DEMO = {
   heroSecondaryCta: 'View Historical Performance',
 } as const
 
-/** Premium centered hero — no Framer Motion on the critical path. */
+/**
+ * First viewport: brand lives in the sticky nav — hero is headline, support line,
+ * CTAs, and one dominant visual. Stats + market cards sit below the fold.
+ */
 export function Hero() {
   const prefersReducedMotion = usePrefersReducedMotion()
   const { landing: cms } = usePublishedLanding()
@@ -69,7 +69,6 @@ export function Hero() {
     return () => mq.removeEventListener('change', sync)
   }, [])
 
-  const companyName = cms.companyName?.trim() || DEMO.companyName
   const heroTitle = cms.heroTitle?.trim() || DEMO.heroTitle
   const heroSubtitle = cms.heroSubtitle?.trim() || DEMO.heroSubtitle
   const heroPrimaryCta = cms.heroPrimaryCta?.trim() || DEMO.heroPrimaryCta
@@ -145,22 +144,6 @@ export function Hero() {
       ) : null}
 
       <div className="container-page flex min-w-0 flex-col items-center text-center">
-        <div className="mb-7 flex flex-col items-center gap-3.5 sm:mb-8 sm:gap-4">
-          <div className="relative">
-            <div
-              className="pointer-events-none absolute -inset-6 rounded-full bg-[#D4D9DF]/10 blur-2xl"
-              aria-hidden
-            />
-            <LogoMark className="relative size-16 sm:size-[4.5rem]" />
-          </div>
-          <p className="text-[1.75rem] font-semibold tracking-tight sm:text-[2rem]">
-            <span className="bg-gradient-to-r from-[#C4CBD3] via-[#D4D9DF] to-[#F2F4F7] bg-clip-text text-transparent">
-              {companyName || SITE.wordmark.primary}
-            </span>
-          </p>
-        </div>
-
-        {/* LCP candidates — paint immediately */}
         <h1 className="text-display-xl max-w-4xl break-words text-fg">
           {heroTitle.includes('every trade') ? (
             <>
@@ -186,16 +169,16 @@ export function Hero() {
             </Button>
           </Magnetic>
           <Button asChild size="lg" variant="glass" className="w-full sm:w-auto">
-            <Link href={ROUTES.marketing.performance}>{heroSecondaryCta}</Link>
+            <Link href={ROUTES.marketing.historicalPerformance}>{heroSecondaryCta}</Link>
           </Button>
         </div>
 
         <FadeIn delay={0.08}>
-          <ul className="mt-7 flex max-w-xl flex-wrap items-center justify-center gap-2 sm:mt-8">
+          <ul className="mt-7 flex max-w-xl flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:mt-8">
             {TRUST.map((t) => (
               <li
                 key={t.label}
-                className="inline-flex items-center gap-1.5 rounded-full border border-glass-line bg-glass/50 px-3 py-1.5 text-[11px] text-fg-muted backdrop-blur-md sm:text-caption"
+                className="inline-flex items-center gap-1.5 text-caption text-fg-muted"
               >
                 <t.icon className="size-3.5 text-accent-300" aria-hidden />
                 {t.label}
@@ -203,34 +186,9 @@ export function Hero() {
             ))}
           </ul>
         </FadeIn>
-
-        <FadeIn delay={0.12} className="mt-8 w-full max-w-3xl sm:mt-9">
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="card-fill px-3 py-3 text-left sm:px-4 sm:py-3.5"
-              >
-                <p className="text-[11px] text-fg-subtle sm:text-caption">{stat.label}</p>
-                <p className="mt-1 text-stat-md text-fg sm:text-stat-lg">
-                  <CountUp
-                    value={stat.value}
-                    prefix={stat.prefix ?? ''}
-                    suffix={stat.suffix ?? ''}
-                    decimals={stat.decimals ?? 0}
-                  />
-                </p>
-              </div>
-            ))}
-          </div>
-        </FadeIn>
-
-        <FadeIn delay={0.16} className="mt-8 w-full max-w-3xl sm:mt-10">
-          <HeroMarketCards />
-        </FadeIn>
       </div>
 
-      <FadeIn delay={0.2} y={28} className="container-page mt-12 sm:mt-14 lg:mt-16">
+      <FadeIn delay={0.12} y={28} className="container-page mt-12 sm:mt-14 lg:mt-16">
         <div className="relative mx-auto max-w-5xl">
           <div
             className="pointer-events-none absolute -inset-6 -z-10 rounded-[2.5rem] bg-accent-500/10 blur-3xl sm:-inset-10"
@@ -239,6 +197,29 @@ export function Hero() {
           <HeroVisual />
           <HistoricalNote className="mt-4 text-center" />
         </div>
+      </FadeIn>
+
+      {/* Below-the-fold proof — not part of the first viewport budget */}
+      <FadeIn delay={0.16} className="container-page mt-12 w-full max-w-3xl sm:mt-14">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+          {stats.map((stat) => (
+            <div key={stat.label} className="card-fill px-3 py-3 text-left sm:px-4 sm:py-3.5">
+              <p className="text-caption text-fg-subtle">{stat.label}</p>
+              <p className="mt-1 text-stat-md text-fg sm:text-stat-lg">
+                <CountUp
+                  value={stat.value}
+                  prefix={stat.prefix ?? ''}
+                  suffix={stat.suffix ?? ''}
+                  decimals={stat.decimals ?? 0}
+                />
+              </p>
+            </div>
+          ))}
+        </div>
+      </FadeIn>
+
+      <FadeIn delay={0.2} className="container-page mt-8 w-full max-w-3xl sm:mt-10">
+        <HeroMarketCards />
       </FadeIn>
     </section>
   )

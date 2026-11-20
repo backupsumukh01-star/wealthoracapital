@@ -29,7 +29,6 @@ export function NavBar() {
   const scrolled = useScrolled(12)
   const { platform, isSuccess } = usePublishedPlatform()
   const { isAuthenticated } = useSession()
-  const dashboardHref = isAuthenticated ? ROUTES.dashboard.root : ROUTES.auth.login
 
   const navItems =
     isSuccess && platform.marketingNav.some((n) => n.enabled)
@@ -84,15 +83,20 @@ export function NavBar() {
         </ul>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-          <Button asChild variant="ghost" size="sm" className="hidden lg:inline-flex">
-            <Link href={dashboardHref}>Dashboard</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-            <Link href={ROUTES.auth.login}>Login</Link>
-          </Button>
-          <Button asChild size="sm" className="hidden sm:inline-flex">
-            <Link href={ROUTES.auth.register}>Get started</Link>
-          </Button>
+          {isAuthenticated ? (
+            <Button asChild size="sm" className="hidden sm:inline-flex">
+              <Link href={ROUTES.dashboard.root}>Dashboard</Link>
+            </Button>
+          ) : (
+            <>
+              <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+                <Link href={ROUTES.auth.login}>Login</Link>
+              </Button>
+              <Button asChild size="sm" className="hidden sm:inline-flex">
+                <Link href={ROUTES.auth.register}>Get started</Link>
+              </Button>
+            </>
+          )}
           <MobileNav />
         </div>
       </nav>

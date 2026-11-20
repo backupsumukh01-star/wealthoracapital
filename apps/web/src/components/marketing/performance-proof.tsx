@@ -103,16 +103,10 @@ export function PerformanceProof() {
         <HistoricalReturnTimeline />
       </RevealOnScroll>
 
-      <RevealOnScroll className="mx-auto mt-8 flex max-w-2xl flex-col items-stretch gap-3 sm:flex-row sm:justify-center">
+      <RevealOnScroll className="mx-auto mt-8 flex max-w-2xl justify-center">
         <Button asChild size="lg" className="w-full sm:w-auto">
           <Link href={ROUTES.marketing.historicalPerformance}>
-            Explore Historical Performance
-            <ArrowRight aria-hidden />
-          </Link>
-        </Button>
-        <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto">
-          <Link href={ROUTES.marketing.historicalPerformance}>
-            Browse Performance History
+            View Historical Performance
             <ArrowRight aria-hidden />
           </Link>
         </Button>

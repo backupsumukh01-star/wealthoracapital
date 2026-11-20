@@ -29,8 +29,7 @@ export function PerformanceShowcase({
   const { data: monthly = [] } = useLandingMonthlySeries()
   const yearly = useLandingYearlySeries()
   const liveBest = monthly.map((m) => m.returnPct).filter((v) => Math.abs(v) > 0.0001)
-  const bestMonth =
-    liveBest.length > 0 ? Math.max(...liveBest).toFixed(1) : stats.bestDay
+  const bestMonth = liveBest.length > 0 ? Math.max(...liveBest).toFixed(1) : null
 
   return (
     <Section
@@ -67,17 +66,18 @@ export function PerformanceShowcase({
         <div className="grid min-w-0 gap-4">
           <RevealOnScroll delay={0.06}>
             <div className="grid grid-cols-2 gap-3">
-              {[
-                { label: 'Win rate', value: stats.winRate, suffix: '%', color: 'text-hl-emerald' },
-                { label: 'Best month', value: bestMonth, suffix: '%', color: 'text-hl-cyan' },
-              ].map((w) => (
-                <div key={w.label} className="card-fill flex h-full flex-col p-4">
-                  <p className="text-caption text-fg-subtle">{w.label}</p>
-                  <p className={`text-stat-md mt-2 tabular-nums ${w.color}`}>
-                    <CountUp value={w.value} decimals={1} suffix={w.suffix} />
-                  </p>
-                </div>
-              ))}
+              <div className="card-fill flex h-full flex-col p-4">
+                <p className="text-caption text-fg-subtle">Win rate</p>
+                <p className="text-stat-md mt-2 tabular-nums text-hl-emerald">
+                  <CountUp value={stats.winRate} decimals={1} suffix="%" />
+                </p>
+              </div>
+              <div className="card-fill flex h-full flex-col p-4">
+                <p className="text-caption text-fg-subtle">Best month</p>
+                <p className="text-stat-md mt-2 tabular-nums text-hl-cyan">
+                  {bestMonth ? <CountUp value={bestMonth} decimals={1} suffix="%" /> : '—'}
+                </p>
+              </div>
             </div>
           </RevealOnScroll>
 
@@ -127,16 +127,10 @@ export function PerformanceShowcase({
       </div>
 
       {showPageLinks ? (
-        <RevealOnScroll className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:mt-8 sm:flex-row sm:items-center">
+        <RevealOnScroll className="mt-6 flex justify-center sm:mt-8">
           <Button asChild size="md" className="w-full sm:w-auto">
             <Link href={ROUTES.marketing.historicalPerformance}>
-              Explore Historical Performance
-              <ArrowRight aria-hidden />
-            </Link>
-          </Button>
-          <Button asChild size="md" variant="secondary" className="w-full sm:w-auto">
-            <Link href={ROUTES.marketing.historicalPerformance}>
-              Browse Performance History
+              View Historical Performance
               <ArrowRight aria-hidden />
             </Link>
           </Button>

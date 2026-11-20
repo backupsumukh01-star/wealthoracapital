@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { CheckCircle2 } from 'lucide-react'
+import { Mail } from 'lucide-react'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -39,14 +39,20 @@ const contactSchema = z.object({
 
 type ContactInput = z.infer<typeof contactSchema>
 
-/** Client-side contact form — validation + success UI only. */
+function categoryLabel(value: string) {
+  return CATEGORIES.find((c) => c.value === value)?.label ?? value
+}
+
+/**
+ * Honest contact flow — opens the user's mail client to SITE.supportEmail.
+ * No fake “message received” without a backend inbox.
+ */
 export function ContactForm() {
-  const [sent, setSent] = useState(false)
+  const [openedMail, setOpenedMail] = useState(false)
   const {
     register,
     handleSubmit,
     control,
-    reset,
     formState: { errors, isSubmitting },
   } = useForm<ContactInput>({
     resolver: zodResolver(contactSchema),
@@ -55,33 +61,42 @@ export function ContactForm() {
 
   async function onSubmit(values: ContactInput) {
     if (values.company) return
-    await new Promise((r) => setTimeout(r, 650))
-    setSent(true)
-    reset()
+    const subject = encodeURIComponent(`[${categoryLabel(values.category)}] ${values.name}`)
+    const body = encodeURIComponent(
+      `Name: ${values.name}\nReply-to: ${values.email}\nCategory: ${categoryLabel(values.category)}\n\n${values.message}`,
+    )
+    window.location.href = `mailto:${SITE.supportEmail}?subject=${subject}&body=${body}`
+    setOpenedMail(true)
   }
 
-  if (sent) {
+  if (openedMail) {
     return (
       <div
         className="flex min-h-[22rem] flex-col items-center justify-center px-2 py-8 text-center sm:min-h-[24rem]"
         role="status"
       >
-        <span className="mb-4 grid size-14 place-items-center rounded-full bg-profit/15 text-profit">
-          <CheckCircle2 className="size-7" aria-hidden />
+        <span className="mb-4 grid size-14 place-items-center rounded-full bg-accent-500/15 text-accent-200">
+          <Mail className="size-7" aria-hidden />
         </span>
-        <h2 className="text-heading-md text-fg">Message received</h2>
+        <h2 className="text-heading-md text-fg">Continue in your email app</h2>
         <p className="mt-2 max-w-sm text-body-sm text-fg-muted">
-          Thanks — the operations team will reply to your email during desk hours. For account
-          status, check your dashboard first.
+          We opened a draft to{' '}
+          <a
+            href={`mailto:${SITE.supportEmail}`}
+            className="break-all text-accent-300 underline-offset-4 hover:underline"
+          >
+            {SITE.supportEmail}
+          </a>
+          . If nothing appeared, copy that address and send your message manually.
         </p>
         <Button
           type="button"
           variant="secondary"
           size="md"
           className="mt-6"
-          onClick={() => setSent(false)}
+          onClick={() => setOpenedMail(false)}
         >
-          Send another message
+          Edit message
         </Button>
       </div>
     )
@@ -92,19 +107,19 @@ export function ContactForm() {
       <div>
         <h2 className="text-heading-sm text-fg">Send a message</h2>
         <p className="mt-1 text-body-sm text-fg-muted">
-          We typically reply within one business day. Urgent payout questions can go to{' '}
+          Submitting opens your email app with a draft to{' '}
           <a
             href={`mailto:${SITE.supportEmail}`}
             className="break-all text-accent-300 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-base rounded-sm"
           >
             {SITE.supportEmail}
           </a>
-          .
+          . Nothing is stored on this page until you hit send in your mail client.
         </p>
       </div>
 
       {errors.root ? (
-        <Alert tone="danger" title="Could not send your message">
+        <Alert tone="danger" title="Could not open your email app">
           {errors.root.message}
         </Alert>
       ) : null}
@@ -164,8 +179,15 @@ export function ContactForm() {
         />
       </FormField>
 
-      <Button type="submit" size="lg" fullWidth className="sm:w-auto sm:min-w-[11rem]" loading={isSubmitting} loadingText="Sending…">
-        Send message
+      <Button
+        type="submit"
+        size="lg"
+        fullWidth
+        className="sm:w-auto sm:min-w-[11rem]"
+        loading={isSubmitting}
+        loadingText="Opening…"
+      >
+        Open email draft
       </Button>
     </form>
   )
