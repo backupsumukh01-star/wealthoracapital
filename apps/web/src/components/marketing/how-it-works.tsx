@@ -50,6 +50,7 @@ export function HowItWorks() {
         section?.description ||
         'Simple path. No lock-up. The desk publishes the work; eligible wallets receive the verified result.'
       }
+      className="scroll-mt-[var(--sticky-chrome)]"
     >
       <StaggerGroup className="grid gap-3 sm:gap-4 md:gap-5">
         {steps.map((step, index) => {

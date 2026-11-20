@@ -11,6 +11,8 @@ export interface MarqueeProps {
   speed?: number
   direction?: 'left' | 'right'
   pauseOnHover?: boolean
+  /** Force-pause the CSS animation (e.g. while a focus section is in view). */
+  paused?: boolean
   className?: string
   /** Tighter card gaps for compact tapes (e.g. market ticker). */
   dense?: boolean
@@ -25,6 +27,7 @@ export function Marquee({
   speed = 40,
   direction = 'left',
   pauseOnHover = true,
+  paused = false,
   className,
   dense = false,
 }: MarqueeProps) {
@@ -57,6 +60,7 @@ export function Marquee({
         data-auto-scroll
         style={{
           animation: `${direction === 'left' ? 'marquee-left' : 'marquee-right'} ${speed}s linear infinite`,
+          animationPlayState: paused ? 'paused' : 'running',
         }}
       >
         <div className={cn('flex shrink-0 items-center', rowGap)}>{items}</div>

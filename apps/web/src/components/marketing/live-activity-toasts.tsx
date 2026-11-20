@@ -7,6 +7,7 @@ import { ArrowDownToLine, ArrowUpFromLine, Sparkles } from 'lucide-react'
 import { Money } from '@/components/common/money'
 import { LIVE_ACTIVITY } from '@/lib/landing-data'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
+import { useSectionInView } from '@/hooks/use-section-in-view'
 import { cn } from '@/lib/cn'
 
 const FLAGS: Record<string, string> = {
@@ -26,6 +27,11 @@ type ToastKind = 'deposit' | 'withdrawal' | 'profit' | 'investment'
  */
 export function LiveActivityToasts() {
   const prefersReducedMotion = usePrefersReducedMotion()
+  const journeyQuiet = useSectionInView('journey', { threshold: 0.2 })
+  const howItWorksQuiet = useSectionInView('how-it-works', { threshold: 0.2 })
+  const quiet = journeyQuiet || howItWorksQuiet
+  const quietRef = useRef(quiet)
+  quietRef.current = quiet
   const feed = useMemo(() => [...LIVE_ACTIVITY], [])
   const indexRef = useRef(0)
 
@@ -38,10 +44,14 @@ export function LiveActivityToasts() {
     if (feed.length === 0) return
 
     let hideTimer: number | undefined
-    const delay = 9000
-    const showMs = 4800
+    const delay = 11000
+    const showMs = 4200
 
     const showNext = () => {
+      if (quietRef.current) {
+        setVisible(false)
+        return
+      }
       const next = (indexRef.current + 1) % feed.length
       indexRef.current = next
       setIndex(next)
@@ -62,7 +72,7 @@ export function LiveActivityToasts() {
       hideTimer = window.setTimeout(() => setVisible(false), showMs)
     }
 
-    const start = window.setTimeout(showNext, 2400)
+    const start = window.setTimeout(showNext, 4200)
     const loop = window.setInterval(showNext, delay)
 
     return () => {
@@ -71,6 +81,10 @@ export function LiveActivityToasts() {
       window.clearInterval(loop)
     }
   }, [prefersReducedMotion, feed])
+
+  useEffect(() => {
+    if (quiet) setVisible(false)
+  }, [quiet])
 
   if (prefersReducedMotion || feed.length === 0) return null
 
@@ -97,7 +111,7 @@ export function LiveActivityToasts() {
       aria-live="polite"
     >
       <AnimatePresence mode="wait">
-        {visible ? (
+        {visible && !quiet ? (
           <motion.div
             key={`${kind}-${item.name}-${index}`}
             initial={{ opacity: 0, y: 24, x: -8 }}

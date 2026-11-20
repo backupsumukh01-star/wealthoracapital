@@ -341,9 +341,16 @@
 
   html {
     scroll-behavior: smooth;
+    scroll-padding-top: var(--sticky-chrome);
     -webkit-text-size-adjust: 100%;
     overflow-x: clip;
     max-width: 100%;
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      scroll-padding-top: var(--sticky-chrome-lg);
+    }
   }
 
   body {

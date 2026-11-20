@@ -2,24 +2,39 @@
 
 import { Marquee } from '@/components/motion/marquee'
 import { formatMarketChangePct, useMarketQuotes } from '@/features/markets/hooks'
+import { useSectionInView } from '@/hooks/use-section-in-view'
 import { cn } from '@/lib/cn'
 
 /** Market tape — last price + ±% from GET /markets/quotes (never demo drift). */
 export function ForexTicker() {
   const { data, isError, isLoading } = useMarketQuotes()
+  const journeyQuiet = useSectionInView('journey')
   const offline =
     isError || (!isLoading && (!data?.quotes?.length || data.status === 'OFFLINE'))
   const quotes = data?.quotes ?? []
 
   return (
-    <div className="w-full min-w-0 overflow-hidden border-b border-white/[0.06] bg-[#07090B]/90 backdrop-blur-xl">
+    <div
+      className={cn(
+        'w-full min-w-0 overflow-hidden border-b border-white/[0.06] bg-[#07090B] transition-opacity duration-300',
+        journeyQuiet && 'opacity-40',
+      )}
+      aria-hidden={journeyQuiet || undefined}
+    >
       <div className="flex h-9 w-full min-w-0 items-center gap-1.5 px-0 sm:h-10 sm:gap-2 sm:px-1 [mask-image:linear-gradient(90deg,transparent,black_2%,black_98%,transparent)]">
         {quotes.length === 0 || offline ? (
           <p className="min-w-0 flex-1 truncate px-3 text-[11px] text-fg-subtle sm:px-4">
             {data?.message || (isLoading ? 'Loading market data…' : 'Market data unavailable')}
           </p>
         ) : (
-          <Marquee speed={28} direction="left" className="min-w-0 flex-1" pauseOnHover dense>
+          <Marquee
+            speed={28}
+            direction="left"
+            className="min-w-0 flex-1"
+            pauseOnHover
+            dense
+            paused={journeyQuiet}
+          >
             {quotes.map((tick, i) => {
               const { text, tone } = formatMarketChangePct(tick.changePercent)
               return (

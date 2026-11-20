@@ -166,7 +166,7 @@ describe('opsAlertService.notify fan-out', () => {
     expect(telegramCalls[0]?.text).toContain('KYC submitted')
   })
 
-  it('sends registration alerts to any configured telegram bot', async () => {
+  it('does not send registration or admin-login alerts to specialized telegram bots', async () => {
     vi.resetModules()
     process.env.ADMIN_ALERT_EMAILS = ''
 
@@ -176,8 +176,8 @@ describe('opsAlertService.notify fan-out', () => {
     }))
     vi.doMock('../../src/services/telegram.service.js', () => ({
       telegramService: {
-        isConfigured: (kind: string) => kind === 'DEPOSIT',
-        configuredKinds: () => ['DEPOSIT'],
+        isConfigured: () => true,
+        configuredKinds: () => ['KYC', 'DEPOSIT', 'WITHDRAWAL'],
         send: async (kind: string) => {
           telegramCalls.push({ kind })
           return { sent: true, skipped: false }
@@ -205,7 +205,14 @@ describe('opsAlertService.notify fan-out', () => {
       userEmail: 'new@example.com',
       idempotencyKey: 'test.register.telegram',
     })
+    await opsAlertService.notify({
+      event: 'ADMIN_LOGIN',
+      title: 'Admin Google login',
+      action: 'Staff signed in',
+      userEmail: 'admin@example.com',
+      idempotencyKey: 'test.admin.login.telegram',
+    })
 
-    expect(telegramCalls).toEqual([{ kind: 'DEPOSIT' }])
+    expect(telegramCalls).toEqual([])
   })
 })

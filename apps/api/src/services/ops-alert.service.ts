@@ -90,16 +90,18 @@ function preferredTelegramBot(event: OpsAlertEvent): TelegramBotKind | null {
   if (event.startsWith('KYC_')) return 'KYC'
   if (event.startsWith('DEPOSIT_') || event === 'PAYMENT_WEBHOOK_FAILED') return 'DEPOSIT'
   if (event.startsWith('WITHDRAWAL_')) return 'WITHDRAWAL'
+  // Admin login, registrations, support, system errors, etc. stay on email
+  // (ADMIN_ALERT_EMAILS) — never fan out to KYC/deposit/withdrawal bots.
   return null
 }
 
-/** Specific KYC/deposit/withdrawal bots when set; otherwise every configured bot. */
+/** Only the matching specialized bot. No preferred bot → no Telegram (email still sends). */
 function telegramBotsForEvent(event: OpsAlertEvent): TelegramBotKind[] {
   const configured = telegramService.configuredKinds()
   if (configured.length === 0) return []
   const preferred = preferredTelegramBot(event)
   if (preferred && configured.includes(preferred)) return [preferred]
-  return configured
+  return []
 }
 
 function asDetails(value: unknown): Record<string, unknown> {
